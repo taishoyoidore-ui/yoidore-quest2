@@ -20,7 +20,30 @@ class YoidoreQuestApp {
 
     this.initAudio();
     this.initEvents();
+    this.loadCSVFromDefaultPath();
     this.render();
+  }
+
+  /* ------------------------------------------------------------------------
+   * 起動時の自動CSVデータ読み込み処理
+   * ------------------------------------------------------------------------ */
+  async loadCSVFromDefaultPath() {
+    try {
+      // キャッシュ回避のためタイムスタンプを付与してSTORES.csvを取得
+      const response = await fetch('STORES.csv?t=' + Date.now());
+      if (response.ok) {
+        const text = await response.text();
+        if (typeof updateDataFromCSV === 'function') {
+          const success = updateDataFromCSV(text);
+          if (success) {
+            // 店舗データの更新完了後に画面を再描画
+            this.render();
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('STORES.csvの取得に失敗したためデフォルトデータを使用します:', e);
+    }
   }
 
   /* ------------------------------------------------------------------------

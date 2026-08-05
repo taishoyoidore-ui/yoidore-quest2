@@ -5,15 +5,15 @@
 const STORES_DATA = [
   {
     id: "store-01",
-    name: "酒場 ドット酒場",
-    ruby: "さかば どっとさかば",
-    area: "駅前エリア",
-    category: "居酒屋",
-    type: "はしご向け",
+    name: "Tようび",
+    ruby: "てぃーようび",
+    area: "三軒家西",
+    category: "おばんざい",
+    type: "食事向け",
     isOpenToday: true,
     isEventActive: true,
     eventTitle: "パーティークエスト：サイコロで「1」が出たらウーロンハイ1杯サービス！",
-    catchphrase: "大正駅から徒歩1分！冒険者が最初に集うレトロ居酒屋",
+    catchphrase: "牛すじとお酒とおばんざい",
     yoidoreSet: {
       title: "酔いどれ伝説の生ビール＆極上どて焼きセット",
       content: "キンキンに冷えた生ビール（中）1杯 ＋ じっくり煮込んだ特製味噌どて焼き2本",
@@ -28,7 +28,7 @@ const STORES_DATA = [
       notes: "冒険の書（紙）をご提示された方限定。他クーポン併用不可。"
     },
     paymentMethods: ["現金", "PayPay", "クレジットカード"],
-    googleMapUrl: "https://maps.google.com/?q=大阪府大阪市大正区三軒家東1",
+    googleMapUrl: "https://maps.app.goo.gl/zEmF7y9d2rdJpG8a7",
     instagramUrl: "https://instagram.com/",
     mapPos: { top: "25%", left: "30%" },
     badge: "初心者歓迎"
@@ -308,3 +308,154 @@ const STORES_DATA = [
 const AREAS_LIST = ["駅前エリア", "三軒家西", "泉尾", "千島", "平尾"];
 const CATEGORIES_LIST = ["居酒屋", "BAR", "スナック", "カフェ", "焼肉", "お好み焼き", "ダイニング"];
 const TYPES_LIST = ["はしご向け", "休憩向け", "食事向け"];
+
+/**
+ * CSV文字列をSTORES_DATAオブジェクト配列にパースする関数
+ */
+function parseCSVToStoresData(csvText) {
+  if (!csvText) return null;
+  // BOM除去
+  if (csvText.charCodeAt(0) === 0xFEFF) {
+    csvText = csvText.slice(1);
+  }
+
+  const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== '');
+  if (lines.length <= 1) return null;
+
+  function parseCSVLine(line) {
+    const result = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        result.push(cur.trim());
+        cur = '';
+      } else {
+        cur += char;
+      }
+    }
+    result.push(cur.trim());
+    return result;
+  }
+
+  const headers = parseCSVLine(lines[0]);
+  const newStores = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCSVLine(lines[i]);
+    if (cols.length < 2) continue;
+
+    const getVal = (headerName) => {
+      const idx = headers.indexOf(headerName);
+      return idx !== -1 && cols[idx] !== undefined ? cols[idx] : '';
+    };
+
+    const id = getVal("ID") || `store-${String(i).padStart(2, '0')}`;
+    const name = getVal("店舗名");
+    if (!name) continue;
+
+    const ruby = getVal("よみがな");
+    const area = getVal("エリア") || "その他";
+    const category = getVal("カテゴリ") || "居酒屋";
+    const type = getVal("タイプ") || "はしご向け";
+    const badge = getVal("特徴バッジ") || "";
+    const catchphrase = getVal("キャッチコピー");
+
+    const set_title = getVal("酔いどれセット名");
+    const set_content = getVal("セット内容");
+    const priceStr = getVal("価格(円)").replace(/[^\d]/g, '');
+    const price = priceStr ? parseInt(priceStr, 10) : 1000;
+    const includeChargeStr = getVal("チャージ");
+    const includeCharge = includeChargeStr.includes("込") || includeChargeStr.toLowerCase() === 'true';
+
+    const days = getVal("提供日");
+    const hours = getVal("提供時間");
+    const limit = getVal("限定数");
+    const notes = getVal("備考・注意事項");
+
+    const eventTitle = getVal("イベント情報");
+    const paymentMethodsRaw = getVal("決済方法");
+    const paymentMethods = paymentMethodsRaw
+      ? paymentMethodsRaw.split(/[,/、\s]+/).filter(Boolean)
+      : ["現金"];
+
+    const googleMapUrl = getVal("Google Map URL") || `https://maps.google.com/?q=${encodeURIComponent(name)}`;
+
+    const existing = (typeof STORES_DATA !== 'undefined') ? STORES_DATA.find(s => s.id === id || s.name === name) : null;
+    const mapPos = existing ? existing.mapPos : { top: `${20 + (i * 7) % 60}%`, left: `${20 + (i * 11) % 60}%` };
+
+    newStores.push({
+      id,
+      name,
+      ruby,
+      area,
+      category,
+      type,
+      isOpenToday: true,
+      isEventActive: !!eventTitle,
+      eventTitle,
+      catchphrase,
+      yoidoreSet: {
+        title: set_title,
+        content: set_content,
+        price,
+        includeCharge
+      },
+      conditions: {
+        days,
+        hours,
+        limit,
+        soldOutEnd: limit.includes("限定") || limit.includes("完売"),
+        notes
+      },
+      paymentMethods,
+      googleMapUrl,
+      instagramUrl: existing ? existing.instagramUrl : "https://instagram.com/",
+      mapPos,
+      badge
+    });
+  }
+
+  return newStores;
+}
+
+/**
+ * CSVテキストを受け取り、グローバル変数 (STORES_DATA, AREAS_LIST, etc.) を更新する関数
+ */
+function updateDataFromCSV(csvText) {
+  const newStores = parseCSVToStoresData(csvText);
+  if (newStores && newStores.length > 0) {
+    STORES_DATA.length = 0;
+    Array.prototype.push.apply(STORES_DATA, newStores);
+
+    const areas = Array.from(new Set(STORES_DATA.map(s => s.area))).filter(Boolean);
+    if (areas.length > 0) {
+      AREAS_LIST.length = 0;
+      Array.prototype.push.apply(AREAS_LIST, areas);
+    }
+
+    const categories = Array.from(new Set(STORES_DATA.map(s => s.category))).filter(Boolean);
+    if (categories.length > 0) {
+      CATEGORIES_LIST.length = 0;
+      Array.prototype.push.apply(CATEGORIES_LIST, categories);
+    }
+
+    const types = Array.from(new Set(STORES_DATA.map(s => s.type))).filter(Boolean);
+    if (types.length > 0) {
+      TYPES_LIST.length = 0;
+      Array.prototype.push.apply(TYPES_LIST, types);
+    }
+
+    return true;
+  }
+  return false;
+}
+
