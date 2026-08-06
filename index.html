@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>大正酔いどれクエストⅡ - 冒険者のスマホ案内所</title>
-  <meta name="description" content="大正酔いどれクエストⅡのスマホ向け案内アプリ。大正区のイベント参加店舗や「酔いどれセット」の内容、店舗イベント情報をレトロRPG風UIで確認できます。">
+  <title>大正酔いどれクエストⅡ - 酔いどれ公式ガイドブック</title>
+  <meta name="description" content="大正酔いどれクエストⅡの公式ガイドブック案内アプリ。大正区のイベント参加店舗や「酔いどれセット」の内容、店舗イベント情報をレトロRPG風UIで確認できます。">
   
   <!-- CSS Stylesheet -->
   <link rel="stylesheet" href="css/style.css">
@@ -15,20 +15,38 @@
 
   <!-- スマホ風アプリコンテナ -->
   <main class="app-container">
+    <!-- レトロRPG風 スタート画面オーバーレイ -->
+    <div id="start-overlay" class="start-overlay">
+      <div class="start-content">
+        <div class="start-title-badge">⚔️ 大正はしご酒イベント ⚔️</div>
+        <h1 class="start-game-title">大正酔いどれ<br><span class="title-sub">クエスト II</span></h1>
+        <p class="start-subtitle">〜 止まらないハシゴ酒 〜</p>
+        
+        <div class="start-btn-box">
+          <button id="start-game-btn" class="start-game-btn" type="button">
+            <span class="sword-icon">📜</span> 公式ガイドブック <span class="sword-icon">📜</span>
+          </button>
+        </div>
+        <p class="start-hint">※タップすると効果音が流れます</p>
+      </div>
+    </div>
+
     <!-- ヘッダー -->
     <header class="app-header">
       <div class="header-title-box">
         <h1 class="header-logo">大正酔いどれクエストⅡ</h1>
-        <span class="header-subtitle">Ver.0.2</span>
       </div>
       <button id="sound-toggle-btn" class="sound-toggle-btn" type="button" aria-label="効果音のオンオフ切り替え">
         🔊 音声 ON
       </button>
     </header>
 
+    <!-- トップ用バナー画像コンテナ -->
+    <div id="hero-banner-wrapper"></div>
+
     <!-- メッセージウィンドウ (RPG風テキスト演出) -->
-    <section class="message-window" aria-live="polite">
-      <div id="rpg-message-text">冒険者ギルドへようこそ！どのコマンドを実行しますか？</div>
+    <section id="message-window-section" class="message-window" aria-live="polite">
+      <div id="rpg-message-text">公式案内所へようこそ！どのコマンドを実行しますか？</div>
     </section>
 
     <!-- 動的ビュー描画コンテナ -->
@@ -39,8 +57,8 @@
     <!-- ボトムナビゲーション -->
     <nav class="bottom-nav" aria-label="メインナビゲーション">
       <a href="#" class="nav-item active" data-target-view="top" id="nav-btn-top">
-        <span class="nav-item-icon">🏰</span>
-        <span>ギルド</span>
+        <span class="nav-item-icon">🍺</span>
+        <span>案内所</span>
       </a>
       <a href="#" class="nav-item" data-target-view="area" id="nav-btn-area">
         <span class="nav-item-icon">🗺</span>
@@ -50,7 +68,7 @@
         <span class="nav-item-icon">📜</span>
         <span>店舗一覧</span>
       </a>
-      <a href="#" class="nav-item" data-target-view="map" id="nav-btn-map">
+      <a href="https://maps.app.goo.gl/SqskFzoxuso7NwwL8" target="_blank" rel="noopener noreferrer" class="nav-item" id="nav-btn-map" data-target-view="map">
         <span class="nav-item-icon">📍</span>
         <span>マップ</span>
       </a>
@@ -58,6 +76,7 @@
   </main>
 
   <!-- JS Scripts -->
+  <script src="js/xlsx.full.min.js"></script>
   <script src="js/data.js"></script>
   <script src="js/app.js"></script>
 </body>

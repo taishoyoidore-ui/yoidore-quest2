@@ -11,12 +11,12 @@ const STORES_DATA = [
     category: "おばんざい",
     type: "食事向け",
     isOpenToday: true,
-    isEventActive: true,
-    eventTitle: "パーティークエスト：サイコロで「1」が出たらウーロンハイ1杯サービス！",
+    isEventActive: false,
+    eventTitle: "",
     catchphrase: "牛すじとお酒とおばんざい",
     yoidoreSet: {
-      title: "酔いどれ伝説の生ビール＆極上どて焼きセット",
-      content: "キンキンに冷えた生ビール（中）1杯 ＋ じっくり煮込んだ特製味噌どて焼き2本",
+      title: "おばんざい軽盛り3種+ドリンク1杯",
+      content: "お好きなおばんざい3種と、お好きなドリンク1杯のセットです",
       price: 1000,
       includeCharge: true
     },
@@ -29,7 +29,7 @@ const STORES_DATA = [
     },
     paymentMethods: ["現金", "PayPay", "クレジットカード"],
     googleMapUrl: "https://maps.app.goo.gl/zEmF7y9d2rdJpG8a7",
-    instagramUrl: "https://instagram.com/",
+    instagramUrl: "https://www.instagram.com/t_youbi_",
     mapPos: { top: "25%", left: "30%" },
     badge: "初心者歓迎"
   },
@@ -310,6 +310,137 @@ const CATEGORIES_LIST = ["居酒屋", "BAR", "スナック", "カフェ", "焼�
 const TYPES_LIST = ["はしご向け", "休憩向け", "食事向け"];
 
 /**
+ * Excel(XLSX) ArrayBufferをSTORES_DATAオブジェクト配列にパースする関数
+ */
+function parseXLSXToStoresData(arrayBuffer) {
+  if (!arrayBuffer) return null;
+  if (typeof XLSX === 'undefined') {
+    console.error('SheetJS (XLSX) ライブラリがロードされていません。');
+    return null;
+  }
+
+  const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+  const firstSheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[firstSheetName];
+  const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+  if (!jsonData || jsonData.length <= 1) return null;
+
+  const headers = jsonData[0].map(h => String(h || '').trim());
+  const newStores = [];
+
+  for (let i = 1; i < jsonData.length; i++) {
+    const cols = jsonData[i].map(c => String(c === undefined || c === null ? '' : c).trim());
+    if (cols.length === 0 || cols.every(c => c === '')) continue;
+
+    const getVal = (headerName) => {
+      const idx = headers.indexOf(headerName);
+      return idx !== -1 && cols[idx] !== undefined ? cols[idx] : '';
+    };
+
+    const id = getVal("ID") || `store-${String(i).padStart(2, '0')}`;
+    const name = getVal("店舗名");
+    if (!name) continue;
+
+    const ruby = getVal("よみがな");
+    const area = getVal("エリア") || "その他";
+    const category = getVal("カテゴリ") || "居酒屋";
+    const type = getVal("タイプ") || "はしご向け";
+    const badge = getVal("特徴バッジ") || "";
+    const catchphrase = getVal("キャッチコピー");
+
+    const set_title = getVal("酔いどれセット名");
+    const set_content = getVal("セット内容");
+    const priceStr = getVal("価格(円)").replace(/[^\d]/g, '');
+    const price = priceStr ? parseInt(priceStr, 10) : 1000;
+    const includeChargeStr = getVal("チャージ");
+    const includeCharge = includeChargeStr.includes("込") || includeChargeStr.toLowerCase() === 'true';
+
+    const days = getVal("提供日");
+    const hours = getVal("提供時間");
+    const limit = getVal("限定数");
+    const notes = getVal("備考・注意事項");
+
+    const eventTitle = getVal("イベント情報");
+    const paymentMethodsRaw = getVal("決済方法");
+    const paymentMethods = paymentMethodsRaw
+      ? paymentMethodsRaw.split(/[,/、\s]+/).filter(Boolean)
+      : ["現金"];
+
+    const googleMapUrl = getVal("Google Map URL") || `https://maps.google.com/?q=${encodeURIComponent(name)}`;
+    const instagramUrl = getVal("Instagram URL") || "https://instagram.com/";
+
+    const existing = (typeof STORES_DATA !== 'undefined') ? STORES_DATA.find(s => s.id === id || s.name === name) : null;
+    const mapPos = existing ? existing.mapPos : { top: `${20 + (i * 7) % 60}%`, left: `${20 + (i * 11) % 60}%` };
+
+    newStores.push({
+      id,
+      name,
+      ruby,
+      area,
+      category,
+      type,
+      isOpenToday: true,
+      isEventActive: !!eventTitle,
+      eventTitle,
+      catchphrase,
+      yoidoreSet: {
+        title: set_title,
+        content: set_content,
+        price,
+        includeCharge
+      },
+      conditions: {
+        days,
+        hours,
+        limit,
+        soldOutEnd: limit.includes("限定") || limit.includes("完売"),
+        notes
+      },
+      paymentMethods,
+      googleMapUrl,
+      instagramUrl,
+      mapPos,
+      badge
+    });
+  }
+
+  return newStores;
+}
+
+/**
+ * Excel ArrayBufferを受け取り、グローバル変数 (STORES_DATA, AREAS_LIST, etc.) を更新する関数
+ */
+function updateDataFromXLSX(arrayBuffer) {
+  const newStores = parseXLSXToStoresData(arrayBuffer);
+  if (newStores && newStores.length > 0) {
+    STORES_DATA.length = 0;
+    Array.prototype.push.apply(STORES_DATA, newStores);
+
+    const areas = Array.from(new Set(STORES_DATA.map(s => s.area))).filter(Boolean);
+    if (areas.length > 0) {
+      AREAS_LIST.length = 0;
+      Array.prototype.push.apply(AREAS_LIST, areas);
+    }
+
+    const categories = Array.from(new Set(STORES_DATA.map(s => s.category))).filter(Boolean);
+    if (categories.length > 0) {
+      CATEGORIES_LIST.length = 0;
+      Array.prototype.push.apply(CATEGORIES_LIST, categories);
+    }
+
+    const types = Array.from(new Set(STORES_DATA.map(s => s.type))).filter(Boolean);
+    if (types.length > 0) {
+      TYPES_LIST.length = 0;
+      Array.prototype.push.apply(TYPES_LIST, types);
+    }
+
+    return true;
+  }
+  return false;
+}
+
+/**
  * CSV文字列をSTORES_DATAオブジェクト配列にパースする関数
  */
 function parseCSVToStoresData(csvText) {
@@ -388,6 +519,7 @@ function parseCSVToStoresData(csvText) {
       : ["現金"];
 
     const googleMapUrl = getVal("Google Map URL") || `https://maps.google.com/?q=${encodeURIComponent(name)}`;
+    const instagramUrl = getVal("Instagram URL") || "https://instagram.com/";
 
     const existing = (typeof STORES_DATA !== 'undefined') ? STORES_DATA.find(s => s.id === id || s.name === name) : null;
     const mapPos = existing ? existing.mapPos : { top: `${20 + (i * 7) % 60}%`, left: `${20 + (i * 11) % 60}%` };
@@ -418,7 +550,7 @@ function parseCSVToStoresData(csvText) {
       },
       paymentMethods,
       googleMapUrl,
-      instagramUrl: existing ? existing.instagramUrl : "https://instagram.com/",
+      instagramUrl,
       mapPos,
       badge
     });

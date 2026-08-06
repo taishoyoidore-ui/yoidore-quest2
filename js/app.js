@@ -8,6 +8,7 @@ class YoidoreQuestApp {
     this.selectedStore = null;
     this.soundEnabled = true;
     this.audioCtx = null;
+    this.isStarted = false;
     
     // フィルター状態
     this.filters = {
@@ -20,29 +21,45 @@ class YoidoreQuestApp {
 
     this.initAudio();
     this.initEvents();
-    this.loadCSVFromDefaultPath();
+    this.loadXLSXFromDefaultPath();
     this.render();
   }
 
   /* ------------------------------------------------------------------------
-   * 起動時の自動CSVデータ読み込み処理
+   * 起動時の自動Excel/CSVデータ読み込み処理
    * ------------------------------------------------------------------------ */
-  async loadCSVFromDefaultPath() {
+  async loadXLSXFromDefaultPath() {
+    // 1. まずSTORES.xlsxの取得を試みる
     try {
-      // キャッシュ回避のためタイムスタンプを付与してSTORES.csvを取得
+      const response = await fetch('STORES.xlsx?t=' + Date.now());
+      if (response.ok) {
+        const buffer = await response.arrayBuffer();
+        if (typeof updateDataFromXLSX === 'function') {
+          const success = updateDataFromXLSX(buffer);
+          if (success) {
+            this.render();
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('STORES.xlsxの取得に失敗しました。CSVの読み込みを試みます:', e);
+    }
+
+    // 2. フォールバック: STORES.csvの取得
+    try {
       const response = await fetch('STORES.csv?t=' + Date.now());
       if (response.ok) {
         const text = await response.text();
         if (typeof updateDataFromCSV === 'function') {
           const success = updateDataFromCSV(text);
           if (success) {
-            // 店舗データの更新完了後に画面を再描画
             this.render();
           }
         }
       }
     } catch (e) {
-      console.warn('STORES.csvの取得に失敗したためデフォルトデータを使用します:', e);
+      console.warn('店舗データの読み込みに失敗したため、デフォルトデータを使用します:', e);
     }
   }
 
@@ -66,6 +83,53 @@ class YoidoreQuestApp {
     };
     document.addEventListener('click', unlockAudio);
     document.addEventListener('touchstart', unlockAudio);
+  }
+
+  playStartSE() {
+    if (!this.soundEnabled || !this.audioCtx) return;
+    try {
+      const now = this.audioCtx.currentTime;
+      const osc = this.audioCtx.createOscillator();
+      const gain = this.audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(523.25, now);       // C5
+      osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+      osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
+      osc.frequency.setValueAtTime(1046.50, now + 0.24);// C6
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      osc.connect(gain);
+      gain.connect(this.audioCtx.destination);
+      osc.start();
+      osc.stop(now + 0.45);
+    } catch (e) {}
+  }
+
+  startGame() {
+    if (!this.audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) {
+        this.audioCtx = new AudioContext();
+      }
+    }
+    if (this.audioCtx && this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume();
+    }
+
+    this.isStarted = true;
+    this.playStartSE();
+
+    const overlay = document.getElementById('start-overlay');
+    if (overlay) {
+      overlay.classList.add('fade-out');
+      setTimeout(() => {
+        overlay.classList.add('hidden');
+      }, 400);
+    }
+
+    setTimeout(() => {
+      this.typeMessage('公式案内所へようこそ！大正の町で「酔いどれセット」を探すコマンドを選択してください。');
+    }, 250);
   }
 
   playTone(freq, duration, type = 'square') {
@@ -139,6 +203,12 @@ class YoidoreQuestApp {
    * イベント初期化
    * ------------------------------------------------------------------------ */
   initEvents() {
+    // スタートボタン
+    const startBtn = document.getElementById('start-game-btn');
+    if (startBtn) {
+      startBtn.addEventListener('click', () => this.startGame());
+    }
+
     // サウンド切り替えボタン
     const soundBtn = document.getElementById('sound-toggle-btn');
     if (soundBtn) {
@@ -148,8 +218,15 @@ class YoidoreQuestApp {
     // ナビゲーションバー
     document.querySelectorAll('.nav-item').forEach(item => {
       item.addEventListener('click', (e) => {
-        e.preventDefault();
         const targetView = item.dataset.targetView;
+        if (targetView === 'map' || item.id === 'nav-btn-map') {
+          e.preventDefault();
+          this.playSelectSE();
+          window.open('https://maps.app.goo.gl/SqskFzoxuso7NwwL8', '_blank');
+          return;
+        }
+
+        e.preventDefault();
         if (targetView) {
           this.playSelectSE();
           if (targetView === 'stores-all') {
@@ -177,6 +254,11 @@ class YoidoreQuestApp {
    * 画面遷移とメッセージ更新
    * ------------------------------------------------------------------------ */
   navigateTo(view, extraData = null) {
+    if (view === 'map') {
+      window.open('https://maps.app.goo.gl/SqskFzoxuso7NwwL8', '_blank');
+      return;
+    }
+
     this.currentView = view;
     if (extraData && extraData.store) {
       this.selectedStore = extraData.store;
@@ -204,6 +286,10 @@ class YoidoreQuestApp {
     // 既存タイマーをクリア
     if (this.msgTimer) clearInterval(this.msgTimer);
 
+    if (this.audioCtx && this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume();
+    }
+
     this.msgTimer = setInterval(() => {
       if (i < text.length) {
         msgEl.textContent += text.charAt(i);
@@ -221,6 +307,41 @@ class YoidoreQuestApp {
   render() {
     const container = document.getElementById('view-container');
     if (!container) return;
+
+    // 上部画像エリア（ドット絵・バナー）の表示切り替え
+    const bannerWrapper = document.getElementById('hero-banner-wrapper');
+    if (bannerWrapper) {
+      if (this.currentView === 'top') {
+        bannerWrapper.innerHTML = `
+          <div class="hero-banner-box">
+            <img src="assets/banner.png" alt="大正酔いどれクエストⅡ" class="hero-banner-img">
+          </div>
+        `;
+      } else if (this.currentView === 'detail' && this.selectedStore) {
+        bannerWrapper.innerHTML = `
+          <div class="hero-banner-box">
+            <img src="assets/yoidore_set.png" alt="酔いどれセット" class="hero-banner-img">
+          </div>
+        `;
+      } else if (['area', 'category', 'type', 'stores'].includes(this.currentView)) {
+        let imageSrc = 'assets/stores_banner.png';
+        if (this.currentView === 'area') {
+          imageSrc = 'assets/area_banner.png';
+        } else if (this.currentView === 'category' || this.currentView === 'type') {
+          imageSrc = 'assets/category_banner.png';
+        } else if (this.currentView === 'stores') {
+          imageSrc = 'assets/stores_banner.png';
+        }
+
+        bannerWrapper.innerHTML = `
+          <div class="hero-banner-box compact">
+            <img src="${imageSrc}" alt="大正酔いどれクエストⅡ" class="hero-banner-img">
+          </div>
+        `;
+      } else {
+        bannerWrapper.innerHTML = '';
+      }
+    }
 
     container.innerHTML = '';
 
@@ -243,33 +364,29 @@ class YoidoreQuestApp {
       case 'detail':
         this.renderDetailView(container);
         break;
-      case 'map':
-        this.renderMapView(container);
-        break;
       default:
         this.renderTopView(container);
     }
   }
 
   /* ------------------------------------------------------------------------
-   * 3.1 トップ画面 (冒険者ギルド)
+   * 3.1 トップ画面 (酒場案内所)
    * ------------------------------------------------------------------------ */
   renderTopView(container) {
-    this.typeMessage('冒険者ギルドへようこそ！大正の町で「酔いどれセット」を探すコマンドを選択してください。');
+    if (this.isStarted) {
+      this.typeMessage('公式案内所へようこそ！大正の町で「酔いどれセット」を探すコマンドを選択してください。');
+    } else {
+      const msgEl = document.getElementById('rpg-message-text');
+      if (msgEl) {
+        msgEl.textContent = '「ガイドブックを開く」ボタンを押してください。';
+      }
+    }
 
     container.innerHTML = `
-      <div class="hero-banner-box">
-        <img src="assets/banner.png" alt="大正酔いどれクエストⅡ" class="hero-banner-img">
-        <div class="hero-banner-overlay">
-          <div class="hero-banner-title">★ 大正酔いどれクエストⅡ</div>
-          <div class="hero-banner-tag">イベント開催中</div>
-        </div>
-      </div>
-
       <div class="rpg-window gold-border">
         <div class="rpg-window-header">
           <span>▶ コマンドを選択</span>
-          <span class="header-badge">ギルド案内所</span>
+          <span class="header-badge">酒場案内所</span>
         </div>
         <ul class="command-list">
           <li class="command-item" data-action="area">
@@ -303,9 +420,9 @@ class YoidoreQuestApp {
           <li class="command-item" data-action="map">
             <div class="command-item-left">
               <span class="command-cursor">▶</span>
-              <span class="command-label">地図から探す</span>
+              <span class="command-label">Googleマップで探す</span>
             </div>
-            <span class="command-badge text-yellow">マップ</span>
+            <span class="command-badge text-yellow">Google MAP</span>
           </li>
           <li class="command-item" data-action="all">
             <div class="command-item-left">
@@ -332,7 +449,9 @@ class YoidoreQuestApp {
           this.filters.openToday = true;
           this.navigateTo('stores');
         }
-        else if (action === 'map') this.navigateTo('map');
+        else if (action === 'map') {
+          window.open('https://maps.app.goo.gl/SqskFzoxuso7NwwL8', '_blank');
+        }
         else if (action === 'all') {
           this.resetFilters();
           this.navigateTo('stores');
@@ -652,10 +771,6 @@ class YoidoreQuestApp {
 
     container.innerHTML = `
       <div class="detail-section">
-        <div class="detail-img-box">
-          <img src="assets/yoidore_set.png" alt="酔いどれセット">
-        </div>
-
         <div class="rpg-window gold-border">
           <div class="detail-title-block">
             <div style="display:flex; justify-shadow:space-between; align-items:center;">
@@ -766,57 +881,6 @@ class YoidoreQuestApp {
     container.querySelector('.back-to-stores').addEventListener('click', () => {
       this.playBackSE();
       this.navigateTo('stores');
-    });
-  }
-
-  /* ------------------------------------------------------------------------
-   * 3.6 地図 (Googleマップ/レトロマップ)
-   * ------------------------------------------------------------------------ */
-  renderMapView(container) {
-    this.typeMessage('大正区の冒険マップです。ピンをタップすると店舗情報がチェックできます。');
-
-    const pinsHtml = STORES_DATA.map(store => `
-      <div class="map-pin" style="top: ${store.mapPos.top}; left: ${store.mapPos.left};" data-id="${store.id}">
-        <div class="map-pin-icon">🍺</div>
-        <div class="map-pin-label">${store.name}</div>
-      </div>
-    `).join('');
-
-    container.innerHTML = `
-      <div class="rpg-window">
-        <div class="rpg-window-header">
-          <span>🗺 大正区 冒険者マップ</span>
-          <span class="header-badge">MAP</span>
-        </div>
-        <div class="map-canvas-container">
-          <div class="map-river"></div>
-          ${pinsHtml}
-        </div>
-      </div>
-
-      <div style="margin-top: 10px;">
-        <a href="https://maps.google.com/?q=大阪府大阪市大正区" target="_blank" class="external-link-btn">
-          <span>🌐 Googleマップ（広域表示）で開く</span>
-        </a>
-      </div>
-
-      <button class="back-btn back-to-top">◀ トップコマンドへ戻る</button>
-    `;
-
-    container.querySelectorAll('.map-pin').forEach(pin => {
-      pin.addEventListener('click', () => {
-        this.playSelectSE();
-        const storeId = pin.dataset.id;
-        const store = STORES_DATA.find(s => s.id === storeId);
-        if (store) {
-          this.navigateTo('detail', { store });
-        }
-      });
-    });
-
-    container.querySelector('.back-to-top').addEventListener('click', () => {
-      this.playBackSE();
-      this.navigateTo('top');
     });
   }
 }
