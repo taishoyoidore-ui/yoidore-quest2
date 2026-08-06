@@ -30,6 +30,7 @@ const STORES_DATA = [
     paymentMethods: ["現金", "PayPay", "クレジットカード"],
     googleMapUrl: "https://maps.app.goo.gl/zEmF7y9d2rdJpG8a7",
     instagramUrl: "https://www.instagram.com/t_youbi_",
+    photoUrl: "photo/tようび.jpg",
     mapPos: { top: "25%", left: "30%" },
     badge: "初心者歓迎"
   },
@@ -520,6 +521,8 @@ function parseCSVToStoresData(csvText) {
 
     const googleMapUrl = getVal("Google Map URL") || `https://maps.google.com/?q=${encodeURIComponent(name)}`;
     const instagramUrl = getVal("Instagram URL") || "https://instagram.com/";
+    const photoFileName = getVal("photo");
+    const photoUrl = photoFileName ? `photo/${photoFileName}` : null;
 
     const existing = (typeof STORES_DATA !== 'undefined') ? STORES_DATA.find(s => s.id === id || s.name === name) : null;
     const mapPos = existing ? existing.mapPos : { top: `${20 + (i * 7) % 60}%`, left: `${20 + (i * 11) % 60}%` };
@@ -551,12 +554,48 @@ function parseCSVToStoresData(csvText) {
       paymentMethods,
       googleMapUrl,
       instagramUrl,
+      photoUrl,
       mapPos,
       badge
     });
   }
 
   return newStores;
+}
+
+/**
+ * XLSX（ArrayBuffer）を受け取り、グローバル変数 (STORES_DATA, AREAS_LIST, CATEGORIES_LIST, TYPES_LIST) を動的に更新する関数
+ */
+function updateDataFromXLSX(arrayBuffer) {
+  const newStores = parseXLSXToStoresData(arrayBuffer);
+  if (newStores && newStores.length > 0) {
+    STORES_DATA.length = 0;
+    Array.prototype.push.apply(STORES_DATA, newStores);
+
+    // AREAS_LIST の連動更新
+    const areas = Array.from(new Set(STORES_DATA.map(s => s.area))).filter(Boolean);
+    if (areas.length > 0) {
+      AREAS_LIST.length = 0;
+      Array.prototype.push.apply(AREAS_LIST, areas);
+    }
+
+    // CATEGORIES_LIST の連動更新（STORES.xlsxに登録されている全カテゴリーを動的抽出）
+    const categories = Array.from(new Set(STORES_DATA.map(s => s.category))).filter(Boolean);
+    if (categories.length > 0) {
+      CATEGORIES_LIST.length = 0;
+      Array.prototype.push.apply(CATEGORIES_LIST, categories);
+    }
+
+    // TYPES_LIST の連動更新
+    const types = Array.from(new Set(STORES_DATA.map(s => s.type))).filter(Boolean);
+    if (types.length > 0) {
+      TYPES_LIST.length = 0;
+      Array.prototype.push.apply(TYPES_LIST, types);
+    }
+
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -590,4 +629,15 @@ function updateDataFromCSV(csvText) {
   }
   return false;
 }
+
+// 初期定義配列の自動同期
+(function syncInitialMasterLists() {
+  if (typeof STORES_DATA !== 'undefined' && STORES_DATA.length > 0) {
+    const categories = Array.from(new Set(STORES_DATA.map(s => s.category))).filter(Boolean);
+    if (categories.length > 0) {
+      CATEGORIES_LIST.length = 0;
+      Array.prototype.push.apply(CATEGORIES_LIST, categories);
+    }
+  }
+})();
 

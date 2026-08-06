@@ -128,7 +128,7 @@ class YoidoreQuestApp {
     }
 
     setTimeout(() => {
-      this.typeMessage('公式案内所へようこそ！大正の町で「酔いどれセット」を探すコマンドを選択してください。');
+      this.typeMessage('案内所へようこそ！大正の「オモロイらしい店」を探すコマンドを選択して下さい。');
     }, 250);
   }
 
@@ -339,7 +339,7 @@ class YoidoreQuestApp {
    * ------------------------------------------------------------------------ */
   renderTopView(container) {
     if (this.isStarted) {
-      this.typeMessage('公式案内所へようこそ！大正の町で「酔いどれセット」を探すコマンドを選択してください。');
+      this.typeMessage('案内所へようこそ！大正の「オモロイらしい店」を探すコマンドを選択して下さい。');
     } else {
       const msgEl = document.getElementById('rpg-message-text');
       if (msgEl) {
@@ -713,13 +713,17 @@ class YoidoreQuestApp {
       <div class="detail-section">
         <div class="rpg-window gold-border">
           <div class="detail-title-block">
-            <div style="display:flex; justify-shadow:space-between; align-items:center;">
-              <span class="tag tag-area">${store.area}</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                <span class="tag tag-area">${store.area}</span>
+                <span class="tag">${store.category}</span>
+                <span class="tag tag-type">${store.type}</span>
+              </div>
               <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}">
                 ${store.isOpenToday ? '今日営業中' : '本日定休日'}
               </span>
             </div>
-            <h2 class="detail-store-name">${store.name}</h2>
+            <h2 class="detail-store-name" style="margin-top:10px;">${store.name}</h2>
             <div class="detail-catchphrase">"${store.catchphrase}"</div>
           </div>
         </div>
@@ -728,7 +732,6 @@ class YoidoreQuestApp {
         <div class="rpg-window">
           <div class="rpg-window-header">
             <span>🍺 酔いどれセット情報</span>
-            <span class="header-badge text-green">¥${store.yoidoreSet.price.toLocaleString()}</span>
           </div>
           <table class="info-table">
             <tr>
@@ -738,6 +741,13 @@ class YoidoreQuestApp {
             <tr>
               <th>セット内容</th>
               <td>${store.yoidoreSet.content}</td>
+            </tr>
+            <tr>
+              <th>セット金額</th>
+              <td>
+                <strong class="text-yellow" style="font-size:16px;">¥${store.yoidoreSet.price.toLocaleString()}</strong>
+                <span style="font-size:11px; color:var(--text-dim); margin-left:6px;">(${store.yoidoreSet.includeCharge ? 'チャージ込' : '別途チャージあり'})</span>
+              </td>
             </tr>
             <tr>
               <th>チャージ等</th>
@@ -754,7 +764,6 @@ class YoidoreQuestApp {
         <div class="rpg-window">
           <div class="rpg-window-header">
             <span>📜 セット提供条件</span>
-            <span class="header-badge">条件</span>
           </div>
           <table class="info-table">
             <tr>
@@ -783,8 +792,11 @@ class YoidoreQuestApp {
           </div>
           <table class="info-table">
             <tr>
-              <th>店舗タイプ</th>
-              <td><span class="tag tag-type">${store.type}</span> (${store.category})</td>
+              <th>ジャンル・タイプ</th>
+              <td>
+                <span class="tag">${store.category}</span>
+                <span class="tag tag-type" style="margin-left:4px;">${store.type}</span>
+              </td>
             </tr>
             ${store.isEventActive ? `
               <tr>
@@ -802,6 +814,18 @@ class YoidoreQuestApp {
           </table>
         </div>
 
+        <!-- 店舗写真ギャラリー -->
+        ${store.photoUrl ? `
+          <div class="rpg-window">
+            <div class="rpg-window-header">
+              <span>📷 オモロイ人</span>
+            </div>
+            <div class="detail-photo-box">
+              <img src="${store.photoUrl}" alt="${store.name}のオモロイ人写真" class="detail-photo-img" onerror="this.closest('.rpg-window').style.display='none';">
+            </div>
+          </div>
+        ` : ''}
+
         <!-- 外部リンク -->
         <div class="rpg-window">
           <div style="display:flex; flex-direction:column; gap:8px;">
@@ -813,8 +837,18 @@ class YoidoreQuestApp {
             </a>
           </div>
         </div>
+
+        <!-- 1つ前の画面（検索結果）へ戻るボタン -->
+        <button class="back-btn back-to-stores-smart" type="button" style="margin-top: 14px;">
+          ◀ 1つ前の画面へ戻る
+        </button>
       </div>
     `;
+
+    container.querySelector('.back-to-stores-smart').addEventListener('click', () => {
+      this.playBackSE();
+      this.navigateTo('stores');
+    });
   }
 }
 
