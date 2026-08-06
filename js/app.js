@@ -378,9 +378,9 @@ class YoidoreQuestApp {
           <li class="command-item" data-action="type">
             <div class="command-item-left">
               <span class="command-cursor">▶</span>
-              <span class="command-label">店舗タイプから探す</span>
+              <span class="command-label">酔いどれタイプから探す</span>
             </div>
-            <span class="command-badge">はしご/休憩/食事</span>
+            <span class="command-badge">はしご/食事/ひと休み/遊べる</span>
           </li>
           <li class="command-item" data-action="today">
             <div class="command-item-left">
@@ -520,22 +520,26 @@ class YoidoreQuestApp {
    * 3.4 店舗タイプ一覧
    * ------------------------------------------------------------------------ */
   renderTypeView(container) {
-    this.typeMessage('冒険の目的に合わせた店舗タイプを選択してください。');
+    this.typeMessage('目的に合わせた『酔いどれタイプ』を選択してください。');
 
-    const typeItems = TYPES_LIST.map(type => {
-      const count = STORES_DATA.filter(s => s.type === type).length;
-      let desc = '';
-      if (type === 'はしご向け') desc = 'サクッと飲んで次へ行く酒場';
-      else if (type === '休憩向け') desc = 'ゆったり寛げるバー・カフェ';
-      else if (type === '食事向け') desc = 'しっかりご飯・名物料理を楽しむ';
+    // 正式に規定された4つの酔いどれタイプ（案1）と説明文
+    const OFFICIAL_TYPES = [
+      { type: 'はしご', desc: 'サクッと1杯飲んで次のお店へ' },
+      { type: '食事', desc: 'しっかりご飯・名物料理でお腹を満たす' },
+      { type: 'ひと休み', desc: 'ドリンクや軽食でほっと一息つく' },
+      { type: '遊べる・エンタメ', desc: 'ゲーム・ダーツ・会話や体験を楽しむ' }
+    ];
+
+    const typeItems = OFFICIAL_TYPES.map(item => {
+      const count = STORES_DATA.filter(s => s.type === item.type).length;
 
       return `
-        <li class="command-item" data-type="${type}">
+        <li class="command-item" data-type="${item.type}">
           <div class="command-item-left">
             <span class="command-cursor">▶</span>
             <div>
-              <div class="command-label">${type}</div>
-              <div style="font-size:11px; color:var(--text-dim);">${desc}</div>
+              <div class="command-label">${item.type}</div>
+              <div style="font-size:11px; color:var(--text-dim);">${item.desc}</div>
             </div>
           </div>
           <span class="command-badge">${count}店舗</span>
@@ -546,7 +550,7 @@ class YoidoreQuestApp {
     container.innerHTML = `
       <div class="rpg-window">
         <div class="rpg-window-header">
-          <span>▶ 店舗タイプ選択</span>
+          <span>▶ 酔いどれタイプ選択</span>
           <span class="header-badge">スタイル</span>
         </div>
         <ul class="command-list">
@@ -598,8 +602,10 @@ class YoidoreQuestApp {
       `<option value="${c}" ${this.filters.category === c ? 'selected' : ''}>${c === 'ALL' ? '全種類' : c}</option>`
     ).join('');
 
-    const typeOptions = ['ALL', ...TYPES_LIST].map(t => 
-      `<option value="${t}" ${this.filters.type === t ? 'selected' : ''}>${t === 'ALL' ? '全タイプ' : t}</option>`
+    const OFFICIAL_TYPE_NAMES = ['はしご', '食事', 'ひと休み', '遊べる・エンタメ'];
+    const allTypes = Array.from(new Set([...OFFICIAL_TYPE_NAMES, ...TYPES_LIST]));
+    const typeOptions = ['ALL', ...allTypes].map(t => 
+      `<option value="${t}" ${this.filters.type === t ? 'selected' : ''}>${t === 'ALL' ? '全酔いどれタイプ' : t}</option>`
     ).join('');
 
     const cardsHtml = filtered.length > 0 ? filtered.map(store => `

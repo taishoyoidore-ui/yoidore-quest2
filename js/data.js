@@ -16,7 +16,7 @@ const STORES_DATA = [
     "ruby": "てぃーようび",
     "area": "三軒家西",
     "category": "おばんざい",
-    "type": "食事向け",
+    "type": "食事",
     "isOpenToday": true,
     "isQuestActive": true,
     "quest": {
@@ -33,7 +33,7 @@ const STORES_DATA = [
       "price": 1000,
       "charge": "不要",
       "includeCharge": false,
-      "notes": "冒険の書（紙）をご提示された方限定。他クーポン併用不可。"
+      "notes": "他クーポン併用不可。"
     },
     "conditions": {
       "days": "月,火,水,金,土,日",
@@ -56,43 +56,39 @@ const STORES_DATA = [
   },
   {
     "id": "store-02",
-    "name": "BAR 8-BIT QUESTZ",
-    "ruby": "ばー はちびっとくえすと",
-    "area": "三軒家西",
-    "category": "BAR",
-    "type": "休憩向け",
+    "name": "バーガー酒場ハンバーガー・ママ",
+    "ruby": "",
+    "area": "三軒家東",
+    "category": "ハンバーガー酒場",
+    "type": "はしご",
     "isOpenToday": true,
-    "isQuestActive": true,
+    "isQuestActive": false,
     "quest": {
-      "title": "レトロゲームチャレンジ",
+      "title": "",
       "price": 0,
       "charge": "不要",
-      "content": "店主とワンゲーム対戦でチャージ割引！",
-      "notes": "※酔いどれセットご注文の方はチャージ重複なし。"
+      "content": "",
+      "notes": ""
     },
-    "catchphrase": "どこか懐かしいピコピコ音が流れる、大人の隠れ家バー",
+    "catchphrase": "一品と酒とグルメバーガー",
     "yoidoreSet": {
-      "title": "魔法のカクテル＆スモーキーナッツセット",
-      "content": "特製青いポーションカクテル（またはハイボール） ＋ 自家製燻製ナッツ",
-      "price": 1200,
-      "charge": "不要",
-      "includeCharge": false,
-      "notes": "チャージ料金（通常500円）はセット価格に含まれます。"
+      "title": "イベント限定ミニバーガー+ドリンク1杯",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
     },
     "conditions": {
-      "days": "金,土,日",
-      "hours": "19:00-02:00",
-      "limit": "1日15セット限定",
-      "soldOutEnd": true
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
     },
-    "paymentMethods": [
-      "現金",
-      "クレジットカード",
-      "電子マネー"
-    ],
-    "googleMapUrl": "https://maps.google.com/?q=大阪府大阪市大正区三軒家西1",
-    "instagramUrl": "https://instagram.com/",
-    "photoUrl": null,
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/hamburger.mama",
+    "photoUrl": "photo/002.jpg",
     "mapPos": {
       "top": "41%",
       "left": "53%"
@@ -100,11 +96,11 @@ const STORES_DATA = [
   },
   {
     "id": "store-03",
-    "name": "スナック 大正ロマン",
-    "ruby": "すなっく たいしょうろまん",
-    "area": "泉尾",
-    "category": "スナック",
-    "type": "はしご向け",
+    "name": "大正焼肉SUNナスビ!!",
+    "ruby": "",
+    "area": "駅前",
+    "category": "焼肉・ホルモン",
+    "type": "食事",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -114,28 +110,25 @@ const STORES_DATA = [
       "content": "",
       "notes": ""
     },
-    "catchphrase": "昭和・大正の情緒漂う商店街の名物ママがいるアットホームスナック",
+    "catchphrase": "通える高級焼肉",
     "yoidoreSet": {
-      "title": "昭和レトロカラオケ＆酔いどれ焼酎セット",
-      "content": "こだわり芋・麦焼酎（ロックまたは水割り）2杯 ＋ おまかせ手作りお通し3種盛り ＋ カラオケ1曲無料",
-      "price": 1500,
-      "charge": "不要",
-      "includeCharge": false,
-      "notes": "混雑時はお席90分制とさせていただきます。"
+      "title": "和牛のすじ煮込み+ドリンク1杯",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
     },
     "conditions": {
-      "days": "火,水,木,金,土,日",
-      "hours": "18:00-23:30",
-      "limit": "数量制限なし",
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
       "soldOutEnd": false
     },
-    "paymentMethods": [
-      "現金",
-      "PayPay"
-    ],
-    "googleMapUrl": "https://maps.google.com/?q=大阪府大阪市大正区泉尾2",
-    "instagramUrl": "https://instagram.com/",
-    "photoUrl": null,
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/sunnasubi0675085821",
+    "photoUrl": "photo/3.jpg",
     "mapPos": {
       "top": "48%",
       "left": "64%"
@@ -143,44 +136,39 @@ const STORES_DATA = [
   },
   {
     "id": "store-04",
-    "name": "純喫茶＆バル たいしょう",
-    "ruby": "じゅんきっさあんどばる たいしょう",
-    "area": "千島",
-    "category": "カフェ",
-    "type": "休憩向け",
+    "name": "大正居酒屋タイガーパンチ",
+    "ruby": "",
+    "area": "駅前",
+    "category": "立ち飲み",
+    "type": "はしご",
     "isOpenToday": true,
-    "isQuestActive": true,
+    "isQuestActive": false,
     "quest": {
-      "title": "喫茶クエスチョン",
+      "title": "",
       "price": 0,
       "charge": "不要",
-      "content": "店内のレトロ謎解き成功でミニデザートプレゼント！",
-      "notes": "※喫茶・カフェタイムからのご参加も大歓迎です！"
+      "content": "",
+      "notes": ""
     },
-    "catchphrase": "昼は濃厚ナポリタン、夜はクラフトビールが楽しめる和洋折衷カフェ",
+    "catchphrase": "創作ガチ中華",
     "yoidoreSet": {
-      "title": "大正浪漫クラフトビール＆厚切りガーリックトーストセット",
-      "content": "選べる地ビール1本 ＋ サクサク濃厚ガーリックトースト2切れ",
-      "price": 1000,
-      "charge": "不要",
-      "includeCharge": false,
-      "notes": "カフェタイム（15:00〜）から注文可能です。"
+      "title": "黒糖焼酎とニラ玉",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
     },
     "conditions": {
-      "days": "月,火,木,金,土,日",
-      "hours": "15:00-21:00",
-      "limit": "限定20セット",
-      "soldOutEnd": true
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
     },
-    "paymentMethods": [
-      "現金",
-      "PayPay",
-      "クレジットカード",
-      "電子マネー"
-    ],
-    "googleMapUrl": "https://maps.google.com/?q=大阪府大阪市大正区千島1",
-    "instagramUrl": "https://instagram.com/",
-    "photoUrl": null,
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/taipan_taisho",
+    "photoUrl": "photo/4.jpg",
     "mapPos": {
       "top": "55%",
       "left": "75%"
@@ -188,42 +176,39 @@ const STORES_DATA = [
   },
   {
     "id": "store-05",
-    "name": "ホルモン焼肉 酔魔神",
-    "ruby": "ほるもんやきにく よいまじん",
-    "area": "平尾",
-    "category": "焼肉",
-    "type": "食事向け",
+    "name": "ハイエナハイツ",
+    "ruby": "",
+    "area": "三軒家西",
+    "category": "ジビエ肉",
+    "type": "食事",
     "isOpenToday": true,
-    "isQuestActive": true,
+    "isQuestActive": false,
     "quest": {
-      "title": "肉くじクエスト",
+      "title": "",
       "price": 0,
       "charge": "不要",
-      "content": "特賞は「極上A5カルビ1皿無料券」！",
-      "notes": "※酔いどれセットご注文のお客さま1名につき1回挑戦可能！"
+      "content": "",
+      "notes": ""
     },
-    "catchphrase": "秘伝のタレと新鮮ホルモン！スタミナ回復ならここにおまかせ！",
+    "catchphrase": "ジビエ・肉料理",
     "yoidoreSet": {
-      "title": "スタミナ回復！メガハイボール＆ホルモン3種盛りセット",
-      "content": "メガ角ハイボール ＋ 本日の新鮮ホルモン3種（塩タン・ハツ・ミノ）",
-      "price": 1300,
+      "title": "ラム肉ショルダーステーキ(小)+飲み放題用メニューより1杯",
+      "content": "",
+      "price": 0,
       "charge": "込",
       "includeCharge": true,
-      "notes": "別途ワンドリンク制ではありませんが、テーブルチャージ200円が加算されます。"
+      "notes": ""
     },
     "conditions": {
-      "days": "月,火,木,金,土,日",
-      "hours": "17:00-22:30",
-      "limit": "限定25セット",
-      "soldOutEnd": true
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
     },
-    "paymentMethods": [
-      "現金",
-      "PayPay"
-    ],
-    "googleMapUrl": "https://maps.google.com/?q=大阪府大阪市大正区平尾3",
-    "instagramUrl": "https://instagram.com/",
-    "photoUrl": null,
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/haiena_haitu",
+    "photoUrl": "photo/5.jpg",
     "mapPos": {
       "top": "62%",
       "left": "26%"
@@ -231,11 +216,11 @@ const STORES_DATA = [
   },
   {
     "id": "store-06",
-    "name": "お好み焼き 鉄板クエスト",
-    "ruby": "おこのみやき てっぱんくえすと",
+    "name": "CHWEETS",
+    "ruby": "",
     "area": "三軒家西",
-    "category": "お好み焼き",
-    "type": "食事向け",
+    "category": "カフェ",
+    "type": "ひと休み",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -245,29 +230,25 @@ const STORES_DATA = [
       "content": "",
       "notes": ""
     },
-    "catchphrase": "外はカリッ、中はふわふわ！大正名物のすじkon焼きが自慢",
+    "catchphrase": "クレープ酒場・夜カフェ",
     "yoidoreSet": {
-      "title": "大正名物すじコン焼き＆こだわりチューハイセット",
-      "content": "名物すじコン玉（ミニサイズ） ＋ プレーンチューハイ（またはソフトドリンク）",
-      "price": 1000,
-      "charge": "不要",
-      "includeCharge": false,
-      "notes": "テイクアウトも可能です（箱代別途50円）。"
+      "title": "ハンドドリップコーヒー+クレープ(チョコバナナ or ビスケットキャラメル)",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
     },
     "conditions": {
-      "days": "月,火,水,木,金,土,日",
-      "hours": "16:30-22:00",
-      "limit": "限定30セット",
-      "soldOutEnd": true
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
     },
-    "paymentMethods": [
-      "現金",
-      "PayPay",
-      "QR決済"
-    ],
-    "googleMapUrl": "https://maps.google.com/?q=大阪府大阪市大正区三軒家西2",
-    "instagramUrl": "https://instagram.com/",
-    "photoUrl": null,
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/chweets_1138",
+    "photoUrl": "photo/6.jpg",
     "mapPos": {
       "top": "69%",
       "left": "37%"
@@ -275,56 +256,11 @@ const STORES_DATA = [
   },
   {
     "id": "store-07",
-    "name": "ダイニング ギルドバル",
-    "ruby": "だいにんぐ ぎるどばる",
-    "area": "駅前エリア",
-    "category": "ダイニング",
-    "type": "食事向け",
-    "isOpenToday": true,
-    "isQuestActive": true,
-    "quest": {
-      "title": "パーティークエスト",
-      "price": 0,
-      "charge": "不要",
-      "content": "4人以上のパーティ来店でボトルワイン1本半額！",
-      "notes": "※4名以上のパーティ来店で自動適用されます！"
-    },
-    "catchphrase": "洋風バルメニューと厳選ワインが揃う、冒険者たちの宴会場",
-    "yoidoreSet": {
-      "title": "ギルド特製生ハム盛り合わせ＆グラスワインセット",
-      "content": "スパークリングまたは赤・白ワイン1グラス ＋ スペイン産生ハムとチーズ盛り合わせ",
-      "price": 1200,
-      "charge": "不要",
-      "includeCharge": false,
-      "notes": "テーブル席・カウンター席どちらでも利用いただけます。"
-    },
-    "conditions": {
-      "days": "火,水,木,金,土,日",
-      "hours": "17:30-23:00",
-      "limit": "1日20セット",
-      "soldOutEnd": false
-    },
-    "paymentMethods": [
-      "現金",
-      "クレジットカード",
-      "PayPay",
-      "電子マネー"
-    ],
-    "googleMapUrl": "https://maps.google.com/?q=大阪府大阪市大正区三軒家東2",
-    "instagramUrl": "https://instagram.com/",
-    "photoUrl": null,
-    "mapPos": {
-      "top": "76%",
-      "left": "48%"
-    }
-  },
-  {
-    "id": "store-08",
-    "name": "海鮮居酒屋 昭和横丁",
-    "ruby": "かいせんいざかや しょうわよこちょう",
-    "area": "泉尾",
-    "category": "居酒屋",
-    "type": "はしご向け",
+    "name": "BAR K'S〜ケーズ〜",
+    "ruby": "",
+    "area": "三軒家西",
+    "category": "BAR",
+    "type": "遊べる・エンタメ",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -334,28 +270,65 @@ const STORES_DATA = [
       "content": "",
       "notes": ""
     },
-    "catchphrase": "毎朝市場から仕入れる新鮮な魚介と日本酒が勢ぞろい！",
+    "catchphrase": "ダーツ・カラオケ",
     "yoidoreSet": {
-      "title": "本日の厳選お刺身3種盛り＆冷酒ぐい呑みセット",
-      "content": "おすすめ地酒1杯 ＋ 旬の鮮魚お刺身3種盛り",
-      "price": 1000,
-      "charge": "不要",
-      "includeCharge": false,
-      "notes": "仕入れ状況により刺身の内容が変わります。"
+      "title": "限定カクテル",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
     },
     "conditions": {
-      "days": "月,火,水,木,金,土",
-      "hours": "17:00-22:30",
-      "limit": "限定20セット",
-      "soldOutEnd": true
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
     },
-    "paymentMethods": [
-      "現金",
-      "PayPay"
-    ],
-    "googleMapUrl": "https://maps.google.com/?q=大阪府大阪市大正区泉尾1",
-    "instagramUrl": "https://instagram.com/",
-    "photoUrl": null,
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/bar_ks_taisho",
+    "photoUrl": "photo/7.jpg",
+    "mapPos": {
+      "top": "76%",
+      "left": "48%"
+    }
+  },
+  {
+    "id": "store-08",
+    "name": "Bar Six Nine",
+    "ruby": "",
+    "area": "三軒家東",
+    "category": "BAR",
+    "type": "遊べる・エンタメ",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "ショットバー",
+    "yoidoreSet": {
+      "title": "ちょっとミックスナッツ or ちょっとピスタチオ + ドリンク1杯(ウイスキー or 焼酎)",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/bar_six_nine_0692",
+    "photoUrl": "photo/8.jpg",
     "mapPos": {
       "top": "23%",
       "left": "59%"
@@ -363,43 +336,39 @@ const STORES_DATA = [
   },
   {
     "id": "store-09",
-    "name": "クラフトBAR クラーケン",
-    "ruby": "くらふとばー くらーけん",
-    "area": "千島",
-    "category": "BAR",
-    "type": "はしご向け",
+    "name": "だしと鶏ちゃぼ大正店",
+    "ruby": "",
+    "area": "三軒家東",
+    "category": "鶏料理",
+    "type": "食事",
     "isOpenToday": true,
-    "isQuestActive": true,
+    "isQuestActive": false,
     "quest": {
-      "title": "ダーククエスト",
-      "price": 500,
-      "charge": "込",
-      "content": "黒ビールご注文でオリジナルステッカープレゼント！",
-      "notes": "※ステッカーは無くなり次第終了となります。"
-    },
-    "catchphrase": "世界のクラフトビールが常時8种タップで味わえる本格タップルーム",
-    "yoidoreSet": {
       "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "焼き鳥・お出汁料理",
+    "yoidoreSet": {
+      "title": "大根を美味しく炊いたやつの天ぷら or ちゃぼの肉豆腐＋国産鶏の出汁煮 + ドリンク1杯",
       "content": "",
       "price": 0,
       "charge": "込",
       "includeCharge": true,
-      "notes": "チャージなし。"
+      "notes": ""
     },
     "conditions": {
-      "days": "水,木,金,土,日",
-      "hours": "18:00-00:00",
-      "limit": "限定15セット",
-      "soldOutEnd": true
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
     },
-    "paymentMethods": [
-      "現金",
-      "クレジットカード",
-      "電子マネー"
-    ],
-    "googleMapUrl": "https://maps.google.com/?q=大阪府大阪市大正区千島2",
-    "instagramUrl": "https://instagram.com/",
-    "photoUrl": null,
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/chabo_taisho",
+    "photoUrl": "photo/9.jpg",
     "mapPos": {
       "top": "30%",
       "left": "70%"
@@ -407,71 +376,992 @@ const STORES_DATA = [
   },
   {
     "id": "store-10",
-    "name": "沖縄ダイニング 琉球クエスト",
-    "ruby": "おきなわだいにんぐ りゅうきゅうくえすと",
-    "area": "平尾",
-    "category": "ダイニング",
-    "type": "食事向け",
+    "name": "ふじわら君",
+    "ruby": "",
+    "area": "三軒家西",
+    "category": "居酒屋",
+    "type": "食事",
     "isOpenToday": true,
-    "isQuestActive": true,
+    "isQuestActive": false,
     "quest": {
-      "title": "三線ライブクエスト",
+      "title": "",
       "price": 0,
       "charge": "不要",
-      "content": "毎週土曜夜は三線ライブ開催！盛り上がろう！",
-      "notes": "※土曜夜限定の特別ライブイベントです！"
+      "content": "",
+      "notes": ""
     },
-    "catchphrase": "「リトル沖縄」大正区ならではの本格沖縄料理と泡盛の店",
+    "catchphrase": "創作料理居酒屋",
     "yoidoreSet": {
-      "title": "オリオン生ビール＆じっくり煮込んだラフテーセット",
-      "content": "オリオン生ビール1杯 ＋ とろとろ自家製ラフテー（豚角煮）",
-      "price": 1000,
-      "charge": "不要",
-      "includeCharge": false,
-      "notes": "泡盛への変更も可能です。"
+      "title": "日本酒1杯とおつまみ",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
     },
     "conditions": {
-      "days": "月,火,水,木,金,土,日",
+      "days": "月,火,水,金,土,日",
       "hours": "17:00-23:00",
-      "limit": "限定30セット",
-      "soldOutEnd": true
+      "limit": "",
+      "soldOutEnd": false
     },
-    "paymentMethods": [
-      "現金",
-      "PayPay",
-      "クレジットカード"
-    ],
-    "googleMapUrl": "https://maps.google.com/?q=大阪府大阪市大正区平尾2",
-    "instagramUrl": "https://instagram.com/",
-    "photoUrl": null,
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/fujiwarakun_taisho",
+    "photoUrl": "photo/10.jpg",
     "mapPos": {
       "top": "37%",
       "left": "21%"
+    }
+  },
+  {
+    "id": "store-11",
+    "name": "大正サロン髭とボヰン",
+    "ruby": "",
+    "area": "駅前",
+    "category": "立ち飲み",
+    "type": "はしご",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "立ち飲み・創作料理",
+    "yoidoreSet": {
+      "title": "おばんざい2種盛り+ドリンク1杯(460円以内)",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/hige_to.boin",
+    "photoUrl": "photo/11.jpg",
+    "mapPos": {
+      "top": "44%",
+      "left": "32%"
+    }
+  },
+  {
+    "id": "store-12",
+    "name": "大正バル誠~ｓｅｉ~",
+    "ruby": "",
+    "area": "三軒家東",
+    "category": "居酒屋",
+    "type": "はしご",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "串カツ・牡蠣・沖縄料理",
+    "yoidoreSet": {
+      "title": "串カツ5本盛り+ドリンク1杯(550円以内)",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/izakaya_sei",
+    "photoUrl": "photo/12.jpg",
+    "mapPos": {
+      "top": "51%",
+      "left": "43%"
+    }
+  },
+  {
+    "id": "store-13",
+    "name": "居酒屋たすいち",
+    "ruby": "",
+    "area": "駅前",
+    "category": "居酒屋",
+    "type": "食事",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "もつ鍋酒屋",
+    "yoidoreSet": {
+      "title": "唐揚げハーフ(2個)+ドリンク1杯",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/izakaya_tasuichi",
+    "photoUrl": "photo/13.jpg",
+    "mapPos": {
+      "top": "58%",
+      "left": "54%"
+    }
+  },
+  {
+    "id": "store-14",
+    "name": "地鶏る",
+    "ruby": "",
+    "area": "泉尾",
+    "category": "鶏料理",
+    "type": "はしご",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "宮崎鶏の炭火焼き",
+    "yoidoreSet": {
+      "title": "炭火焼き(小)+ドリンク1杯(495円以内)",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/jidoru_1013",
+    "photoUrl": "photo/14.jpg",
+    "mapPos": {
+      "top": "65%",
+      "left": "65%"
+    }
+  },
+  {
+    "id": "store-15",
+    "name": "沖縄酒場きじむなーの森",
+    "ruby": "",
+    "area": "三軒家西",
+    "category": "居酒屋",
+    "type": "食事",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "沖縄料理",
+    "yoidoreSet": {
+      "title": "沖縄前菜肴盛セット+ドリンク2杯（生ビール、ハイボール、泡盛（3種類から選べます）、二階堂、黒霧、酎ハイ）",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/kijimuna_no_mori.03.03",
+    "photoUrl": "photo/15.jpg",
+    "mapPos": {
+      "top": "72%",
+      "left": "76%"
+    }
+  },
+  {
+    "id": "store-16",
+    "name": "ナンチャツ亭のエリー",
+    "ruby": "",
+    "area": "駅前",
+    "category": "おばんざい",
+    "type": "食事",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "昭和レトロなおばんざい",
+    "yoidoreSet": {
+      "title": "おばんざい2種+ドリンク1杯(日本酒、一部銘柄を除く)",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/nanchatteino_erie",
+    "photoUrl": "photo/16.jpg",
+    "mapPos": {
+      "top": "79%",
+      "left": "27%"
+    }
+  },
+  {
+    "id": "store-17",
+    "name": "Neboke-ネボケ",
+    "ruby": "",
+    "area": "三軒家西",
+    "category": "BAR",
+    "type": "ひと休み",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "隠れ家バー",
+    "yoidoreSet": {
+      "title": "おつまみ2品+ドリンク1杯(1000円以内 )",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/Neboke_bar",
+    "photoUrl": "photo/17.jpg",
+    "mapPos": {
+      "top": "26%",
+      "left": "38%"
+    }
+  },
+  {
+    "id": "store-18",
+    "name": "串焼き酒場ニコヤ",
+    "ruby": "",
+    "area": "三軒家西",
+    "category": "串焼き・鉄板焼き",
+    "type": "はしご",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "創作鉄板串焼き",
+    "yoidoreSet": {
+      "title": "串3本+ドリンク1杯",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/nicoya1203",
+    "photoUrl": "photo/18.jpg",
+    "mapPos": {
+      "top": "33%",
+      "left": "49%"
+    }
+  },
+  {
+    "id": "store-19",
+    "name": "Barカセット",
+    "ruby": "",
+    "area": "三軒家東",
+    "category": "BAR",
+    "type": "遊べる・エンタメ",
+    "isOpenToday": true,
+    "isQuestActive": true,
+    "quest": {
+      "title": "",
+      "price": 300,
+      "charge": "不要",
+      "content": "スタッフと楽しい酔いどれチンチロチャンス！",
+      "notes": "成功：会心の1杯サービス、失敗：大魔王のショット(ちょっと)"
+    },
+    "catchphrase": "80's・ロック・駄菓子",
+    "yoidoreSet": {
+      "title": "",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/showz0069",
+    "photoUrl": "photo/19.jpg",
+    "mapPos": {
+      "top": "40%",
+      "left": "60%"
+    }
+  },
+  {
+    "id": "store-20",
+    "name": "焼肉ホルモンたろちゃん大正橋店",
+    "ruby": "",
+    "area": "三軒家東",
+    "category": "焼肉・ホルモン",
+    "type": "食事",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "駅前で昼から飲める店",
+    "yoidoreSet": {
+      "title": "おつまみ2品盛り+ドリンク1杯(350円以内)",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/tarochan_taisho",
+    "photoUrl": "photo/20.jpg",
+    "mapPos": {
+      "top": "47%",
+      "left": "71%"
+    }
+  },
+  {
+    "id": "store-21",
+    "name": "鉄板焼き栄八大阪大正店",
+    "ruby": "",
+    "area": "三軒家西",
+    "category": "串焼き・鉄板焼き",
+    "type": "食事",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "お好み・焼きそば・鉄板居酒屋",
+    "yoidoreSet": {
+      "title": "鉄板2種盛り+ドリンク1杯(ビール・ハイボール・酎ハイ)",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/teppanyaki_eihachi",
+    "photoUrl": "photo/21.jpg",
+    "mapPos": {
+      "top": "54%",
+      "left": "22%"
+    }
+  },
+  {
+    "id": "store-22",
+    "name": "うて食堂 大正BASE",
+    "ruby": "",
+    "area": "三軒家東",
+    "category": "おばんざい",
+    "type": "食事",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "蒸し料理で飲める食堂",
+    "yoidoreSet": {
+      "title": "おばんざい3種+ハイボールor酎ハイ",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/ura_omote.shokudou",
+    "photoUrl": "photo/22.jpg",
+    "mapPos": {
+      "top": "61%",
+      "left": "33%"
+    }
+  },
+  {
+    "id": "store-23",
+    "name": "大正焼肉ホルモンK2+",
+    "ruby": "",
+    "area": "三軒家西",
+    "category": "焼肉・ホルモン",
+    "type": "食事",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "焼肉ホルモン・韓国料理",
+    "yoidoreSet": {
+      "title": "チヂミ・キムチ・ナムルセット+ドリンク1杯(550円以内)",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/yakiniku.k2plus",
+    "photoUrl": "photo/23.jpg",
+    "mapPos": {
+      "top": "68%",
+      "left": "44%"
+    }
+  },
+  {
+    "id": "store-24",
+    "name": "呑み処　三日月",
+    "ruby": "",
+    "area": "駅前",
+    "category": "居酒屋",
+    "type": "はしご",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "カラオケ居酒屋",
+    "yoidoreSet": {
+      "title": "カラオケ1時間+1品+ドリンク1杯　(20時以降限定)",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/moon.3.3.3",
+    "photoUrl": "photo/24.jpg",
+    "mapPos": {
+      "top": "75%",
+      "left": "55%"
+    }
+  },
+  {
+    "id": "store-25",
+    "name": "呑笑戎屋",
+    "ruby": "",
+    "area": "駅前",
+    "category": "居酒屋",
+    "type": "はしご",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "地元親子の大衆居酒屋",
+    "yoidoreSet": {
+      "title": "日替わりでおばんざい2皿+ドリンク1杯",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/ebisuya.taisyo",
+    "photoUrl": "photo/25.jpg",
+    "mapPos": {
+      "top": "22%",
+      "left": "66%"
+    }
+  },
+  {
+    "id": "store-26",
+    "name": "三ちゃん",
+    "ruby": "",
+    "area": "三軒家西",
+    "category": "居酒屋",
+    "type": "食事",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "海鮮居酒屋",
+    "yoidoreSet": {
+      "title": "1品(お刺身や焼き物)+ドリンク1杯",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/sanchan.o2",
+    "photoUrl": "photo/26.jpg",
+    "mapPos": {
+      "top": "29%",
+      "left": "77%"
+    }
+  },
+  {
+    "id": "store-27",
+    "name": "SoundBar花いち",
+    "ruby": "",
+    "area": "駅前",
+    "category": "スナック",
+    "type": "遊べる・エンタメ",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "カラオケバー",
+    "yoidoreSet": {
+      "title": "チャーム+ドリンク1杯(700円まで)",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/soundbar__hanaichi",
+    "photoUrl": "photo/27.jpg",
+    "mapPos": {
+      "top": "36%",
+      "left": "28%"
+    }
+  },
+  {
+    "id": "store-28",
+    "name": "ザ·沖縄",
+    "ruby": "",
+    "area": "駅前",
+    "category": "居酒屋",
+    "type": "はしご",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "沖縄料理・カラオケ居酒屋",
+    "yoidoreSet": {
+      "title": "チャーム+お菓子1袋+ドリンク1杯",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/za.okinawa",
+    "photoUrl": "photo/28.jpg",
+    "mapPos": {
+      "top": "43%",
+      "left": "39%"
+    }
+  },
+  {
+    "id": "store-29",
+    "name": "魚と沖縄料理 えっせんす",
+    "ruby": "",
+    "area": "泉尾",
+    "category": "居酒屋",
+    "type": "はしご",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "お酒は地球を救う",
+    "yoidoreSet": {
+      "title": "選べるお好きな小鉢3品+ドリンク1杯(アサヒスーパードライ、オリオンビール、ブラックニッカハイボールのいずれか)",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/essence_taishou",
+    "photoUrl": "photo/29.jpg",
+    "mapPos": {
+      "top": "50%",
+      "left": "50%"
+    }
+  },
+  {
+    "id": "store-30",
+    "name": "Bar Coco-Color",
+    "ruby": "",
+    "area": "三軒家西",
+    "category": "BAR",
+    "type": "遊べる・エンタメ",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "カジュアルバー",
+    "yoidoreSet": {
+      "title": "1時間飲み放題+歌い放題(ドリンク制限あり)",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/bar_cococolor_taisho",
+    "photoUrl": "photo/30.jpg",
+    "mapPos": {
+      "top": "57%",
+      "left": "61%"
+    }
+  },
+  {
+    "id": "store-31",
+    "name": "福人(ふくんちゅ)",
+    "ruby": "",
+    "area": "三軒家東",
+    "category": "居酒屋",
+    "type": "食事",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "作りたいもん作りまっせ居酒屋",
+    "yoidoreSet": {
+      "title": "ゴーヤのお浸し+豚バラ軟骨塩煮込み+ドリンク1杯(瓶ビール以外)",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/fuku__nchu",
+    "photoUrl": "photo/31.jpg",
+    "mapPos": {
+      "top": "64%",
+      "left": "72%"
+    }
+  },
+  {
+    "id": "store-32",
+    "name": "TM's DINER",
+    "ruby": "",
+    "area": "三軒家東",
+    "category": "ダイニング",
+    "type": "はしご",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "イタリアン・メキシカン・アメリカン",
+    "yoidoreSet": {
+      "title": "洋食前菜の3種盛+ドリンク1杯(限定メニューより)",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/tms_diner_osaka",
+    "photoUrl": "photo/32.jpg",
+    "mapPos": {
+      "top": "71%",
+      "left": "23%"
+    }
+  },
+  {
+    "id": "store-33",
+    "name": "Pizzeria Legare",
+    "ruby": "",
+    "area": "平尾",
+    "category": "ダイニング",
+    "type": "食事",
+    "isOpenToday": true,
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
+    "catchphrase": "本格ピッツァ・ドイツワイン",
+    "yoidoreSet": {
+      "title": "ミニ前菜盛り合わせ+ドリンク1杯(ビール、ワイン、酎ハイ)",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": ""
+    },
+    "conditions": {
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
+      "limit": "",
+      "soldOutEnd": false
+    },
+    "paymentMethods": [],
+    "googleMapUrl": "",
+    "instagramUrl": "https://www.instagram.com/pizzerialegare",
+    "photoUrl": "photo/33.jpg",
+    "mapPos": {
+      "top": "78%",
+      "left": "34%"
     }
   }
 ];
 
 const AREAS_LIST = [
   "三軒家西",
+  "三軒家東",
+  "駅前",
   "泉尾",
-  "千島",
-  "平尾",
-  "駅前エリア"
+  "平尾"
 ];
 const CATEGORIES_LIST = [
   "おばんざい",
-  "BAR",
-  "スナック",
+  "ハンバーガー酒場",
+  "焼肉・ホルモン",
+  "立ち飲み",
+  "ジビエ肉",
   "カフェ",
-  "焼肉",
-  "お好み焼き",
-  "ダイニング",
-  "居酒屋"
+  "BAR",
+  "鶏料理",
+  "居酒屋",
+  "串焼き・鉄板焼き",
+  "スナック",
+  "ダイニング"
 ];
 const TYPES_LIST = [
-  "食事向け",
-  "休憩向け",
-  "はしご向け"
+  "食事",
+  "はしご",
+  "ひと休み",
+  "遊べる・エンタメ"
 ];
 
 /**

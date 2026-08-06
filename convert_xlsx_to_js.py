@@ -5,6 +5,7 @@ import json
 import openpyxl
 
 VALID_DAYS = {'月', '火', '水', '木', '金', '土', '日'}
+VALID_TYPES = {'はしご', '食事', 'ひと休み', '遊べる・エンタメ'}
 
 def convert_excel_to_js():
     excel_path = os.path.join(os.path.dirname(__file__), 'STORES.xlsx')
@@ -83,7 +84,7 @@ def convert_excel_to_js():
         ruby_idx = get_col_idx("よみがな", "フリガナ", "かな")
         area_idx = get_col_idx("エリア", "地域")
         category_idx = get_col_idx("カテゴリ", "カテゴリー", "ジャンル", "店の種類")
-        type_idx = get_col_idx("タイプ", "店舗タイプ", "スタイル")
+        type_idx = get_col_idx("酔いどれタイプ", "タイプ", "店舗タイプ", "スタイル", "セットタイプ")
         catchphrase_idx = get_col_idx("キャッチコピー", "コピー")
 
         set_title_idx = get_col_idx("酔いどれセット名", "セット名")
@@ -159,6 +160,26 @@ def convert_excel_to_js():
             area = str(row[area_idx] or '').strip() if (area_idx != -1 and area_idx < len(row) and row[area_idx]) else ''
             category = str(row[category_idx] or '').strip() if (category_idx != -1 and category_idx < len(row) and row[category_idx]) else ''
             store_type = str(row[type_idx] or '').strip() if (type_idx != -1 and type_idx < len(row) and row[type_idx]) else ''
+            # 旧表記からの自動変換マッピング
+            type_mapping = {
+                'はしご向け': 'はしご',
+                '食事向け': '食事',
+                '休憩向け': 'ひと休み',
+                'カフェ向け': 'ひと休み',
+                'カフェ・ひと休み向け': 'ひと休み',
+                'ひと休み向け': 'ひと休み',
+                'バー・遊べる向け': '遊べる・エンタメ',
+                '遊べる向け': '遊べる・エンタメ',
+                'エンタメ向け': '遊べる・エンタメ'
+            }
+            if store_type in type_mapping:
+                store_type = type_mapping[store_type]
+
+            if store_type and store_type not in VALID_TYPES:
+                errors.append(
+                    f"エラー: 店舗 '{store_name}' (行 {row_idx}): 『酔いどれタイプ』の指定 '{store_type}' が不正です。"
+                    f"指定可能なタイプは『はしご』『食事』『ひと休み』『遊べる・エンタメ』のいずれかです。"
+                )
             catchphrase = str(row[catchphrase_idx] or '').strip() if (catchphrase_idx != -1 and catchphrase_idx < len(row) and row[catchphrase_idx]) else ''
 
             set_title = str(row[set_title_idx] or '').strip() if (set_title_idx != -1 and set_title_idx < len(row) and row[set_title_idx]) else ''
