@@ -380,7 +380,7 @@ class YoidoreQuestApp {
               <span class="command-cursor">▶</span>
               <span class="command-label">酔いどれタイプから探す</span>
             </div>
-            <span class="command-badge">はしご/食事/ひと休み/遊べる</span>
+            <span class="command-badge">4タイプ</span>
           </li>
           <li class="command-item" data-action="today">
             <div class="command-item-left">
