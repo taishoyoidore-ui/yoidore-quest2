@@ -13,7 +13,6 @@ const STORES_DATA = [
   {
     "id": "store-01",
     "name": "Tようび",
-    "ruby": "てぃーようび",
     "area": "三軒家西",
     "category": "おばんざい",
     "type": "食事",
@@ -57,7 +56,6 @@ const STORES_DATA = [
   {
     "id": "store-02",
     "name": "バーガー酒場ハンバーガー・ママ",
-    "ruby": "",
     "area": "三軒家東",
     "category": "ハンバーガー酒場",
     "type": "はしご",
@@ -97,7 +95,6 @@ const STORES_DATA = [
   {
     "id": "store-03",
     "name": "大正焼肉SUNナスビ!!",
-    "ruby": "",
     "area": "駅前",
     "category": "焼肉・ホルモン",
     "type": "食事",
@@ -128,7 +125,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/sunnasubi0675085821",
-    "photoUrl": "photo/3.jpg",
+    "photoUrl": "photo/003.jpg",
     "mapPos": {
       "top": "48%",
       "left": "64%"
@@ -137,7 +134,6 @@ const STORES_DATA = [
   {
     "id": "store-04",
     "name": "大正居酒屋タイガーパンチ",
-    "ruby": "",
     "area": "駅前",
     "category": "立ち飲み",
     "type": "はしご",
@@ -168,7 +164,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/taipan_taisho",
-    "photoUrl": "photo/4.jpg",
+    "photoUrl": "photo/004.jpg",
     "mapPos": {
       "top": "55%",
       "left": "75%"
@@ -177,7 +173,6 @@ const STORES_DATA = [
   {
     "id": "store-05",
     "name": "ハイエナハイツ",
-    "ruby": "",
     "area": "三軒家西",
     "category": "ジビエ肉",
     "type": "食事",
@@ -208,7 +203,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/haiena_haitu",
-    "photoUrl": "photo/5.jpg",
+    "photoUrl": "photo/005.jpg",
     "mapPos": {
       "top": "62%",
       "left": "26%"
@@ -217,7 +212,6 @@ const STORES_DATA = [
   {
     "id": "store-06",
     "name": "CHWEETS",
-    "ruby": "",
     "area": "三軒家西",
     "category": "カフェ",
     "type": "ひと休み",
@@ -248,7 +242,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/chweets_1138",
-    "photoUrl": "photo/6.jpg",
+    "photoUrl": "photo/006.jpg",
     "mapPos": {
       "top": "69%",
       "left": "37%"
@@ -257,7 +251,6 @@ const STORES_DATA = [
   {
     "id": "store-07",
     "name": "BAR K'S〜ケーズ〜",
-    "ruby": "",
     "area": "三軒家西",
     "category": "BAR",
     "type": "遊べる・エンタメ",
@@ -288,7 +281,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/bar_ks_taisho",
-    "photoUrl": "photo/7.jpg",
+    "photoUrl": "photo/007.jpg",
     "mapPos": {
       "top": "76%",
       "left": "48%"
@@ -297,7 +290,6 @@ const STORES_DATA = [
   {
     "id": "store-08",
     "name": "Bar Six Nine",
-    "ruby": "",
     "area": "三軒家東",
     "category": "BAR",
     "type": "遊べる・エンタメ",
@@ -328,7 +320,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/bar_six_nine_0692",
-    "photoUrl": "photo/8.jpg",
+    "photoUrl": "photo/008.jpg",
     "mapPos": {
       "top": "23%",
       "left": "59%"
@@ -337,7 +329,6 @@ const STORES_DATA = [
   {
     "id": "store-09",
     "name": "だしと鶏ちゃぼ大正店",
-    "ruby": "",
     "area": "三軒家東",
     "category": "鶏料理",
     "type": "食事",
@@ -368,7 +359,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/chabo_taisho",
-    "photoUrl": "photo/9.jpg",
+    "photoUrl": "photo/009.jpg",
     "mapPos": {
       "top": "30%",
       "left": "70%"
@@ -377,7 +368,6 @@ const STORES_DATA = [
   {
     "id": "store-10",
     "name": "ふじわら君",
-    "ruby": "",
     "area": "三軒家西",
     "category": "居酒屋",
     "type": "食事",
@@ -408,7 +398,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/fujiwarakun_taisho",
-    "photoUrl": "photo/10.jpg",
+    "photoUrl": "photo/010.jpg",
     "mapPos": {
       "top": "37%",
       "left": "21%"
@@ -417,7 +407,6 @@ const STORES_DATA = [
   {
     "id": "store-11",
     "name": "大正サロン髭とボヰン",
-    "ruby": "",
     "area": "駅前",
     "category": "立ち飲み",
     "type": "はしご",
@@ -448,7 +437,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/hige_to.boin",
-    "photoUrl": "photo/11.jpg",
+    "photoUrl": "photo/011.jpg",
     "mapPos": {
       "top": "44%",
       "left": "32%"
@@ -457,7 +446,6 @@ const STORES_DATA = [
   {
     "id": "store-12",
     "name": "大正バル誠~ｓｅｉ~",
-    "ruby": "",
     "area": "三軒家東",
     "category": "居酒屋",
     "type": "はしご",
@@ -488,7 +476,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/izakaya_sei",
-    "photoUrl": "photo/12.jpg",
+    "photoUrl": "photo/012.jpg",
     "mapPos": {
       "top": "51%",
       "left": "43%"
@@ -497,7 +485,6 @@ const STORES_DATA = [
   {
     "id": "store-13",
     "name": "居酒屋たすいち",
-    "ruby": "",
     "area": "駅前",
     "category": "居酒屋",
     "type": "食事",
@@ -528,7 +515,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/izakaya_tasuichi",
-    "photoUrl": "photo/13.jpg",
+    "photoUrl": "photo/013.jpg",
     "mapPos": {
       "top": "58%",
       "left": "54%"
@@ -537,7 +524,6 @@ const STORES_DATA = [
   {
     "id": "store-14",
     "name": "地鶏る",
-    "ruby": "",
     "area": "泉尾",
     "category": "鶏料理",
     "type": "はしご",
@@ -568,7 +554,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/jidoru_1013",
-    "photoUrl": "photo/14.jpg",
+    "photoUrl": "photo/014.jpg",
     "mapPos": {
       "top": "65%",
       "left": "65%"
@@ -577,7 +563,6 @@ const STORES_DATA = [
   {
     "id": "store-15",
     "name": "沖縄酒場きじむなーの森",
-    "ruby": "",
     "area": "三軒家西",
     "category": "居酒屋",
     "type": "食事",
@@ -608,7 +593,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/kijimuna_no_mori.03.03",
-    "photoUrl": "photo/15.jpg",
+    "photoUrl": "photo/015.jpg",
     "mapPos": {
       "top": "72%",
       "left": "76%"
@@ -617,7 +602,6 @@ const STORES_DATA = [
   {
     "id": "store-16",
     "name": "ナンチャツ亭のエリー",
-    "ruby": "",
     "area": "駅前",
     "category": "おばんざい",
     "type": "食事",
@@ -648,7 +632,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/nanchatteino_erie",
-    "photoUrl": "photo/16.jpg",
+    "photoUrl": "photo/016.jpg",
     "mapPos": {
       "top": "79%",
       "left": "27%"
@@ -657,7 +641,6 @@ const STORES_DATA = [
   {
     "id": "store-17",
     "name": "Neboke-ネボケ",
-    "ruby": "",
     "area": "三軒家西",
     "category": "BAR",
     "type": "ひと休み",
@@ -688,7 +671,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/Neboke_bar",
-    "photoUrl": "photo/17.jpg",
+    "photoUrl": "photo/017.jpg",
     "mapPos": {
       "top": "26%",
       "left": "38%"
@@ -697,7 +680,6 @@ const STORES_DATA = [
   {
     "id": "store-18",
     "name": "串焼き酒場ニコヤ",
-    "ruby": "",
     "area": "三軒家西",
     "category": "串焼き・鉄板焼き",
     "type": "はしご",
@@ -728,7 +710,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/nicoya1203",
-    "photoUrl": "photo/18.jpg",
+    "photoUrl": "photo/018.jpg",
     "mapPos": {
       "top": "33%",
       "left": "49%"
@@ -737,7 +719,6 @@ const STORES_DATA = [
   {
     "id": "store-19",
     "name": "Barカセット",
-    "ruby": "",
     "area": "三軒家東",
     "category": "BAR",
     "type": "遊べる・エンタメ",
@@ -768,7 +749,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/showz0069",
-    "photoUrl": "photo/19.jpg",
+    "photoUrl": "photo/019.jpg",
     "mapPos": {
       "top": "40%",
       "left": "60%"
@@ -777,7 +758,6 @@ const STORES_DATA = [
   {
     "id": "store-20",
     "name": "焼肉ホルモンたろちゃん大正橋店",
-    "ruby": "",
     "area": "三軒家東",
     "category": "焼肉・ホルモン",
     "type": "食事",
@@ -808,7 +788,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/tarochan_taisho",
-    "photoUrl": "photo/20.jpg",
+    "photoUrl": "photo/020.jpg",
     "mapPos": {
       "top": "47%",
       "left": "71%"
@@ -817,7 +797,6 @@ const STORES_DATA = [
   {
     "id": "store-21",
     "name": "鉄板焼き栄八大阪大正店",
-    "ruby": "",
     "area": "三軒家西",
     "category": "串焼き・鉄板焼き",
     "type": "食事",
@@ -848,7 +827,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/teppanyaki_eihachi",
-    "photoUrl": "photo/21.jpg",
+    "photoUrl": "photo/021.jpg",
     "mapPos": {
       "top": "54%",
       "left": "22%"
@@ -857,7 +836,6 @@ const STORES_DATA = [
   {
     "id": "store-22",
     "name": "うて食堂 大正BASE",
-    "ruby": "",
     "area": "三軒家東",
     "category": "おばんざい",
     "type": "食事",
@@ -888,7 +866,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/ura_omote.shokudou",
-    "photoUrl": "photo/22.jpg",
+    "photoUrl": "photo/022.jpg",
     "mapPos": {
       "top": "61%",
       "left": "33%"
@@ -897,7 +875,6 @@ const STORES_DATA = [
   {
     "id": "store-23",
     "name": "大正焼肉ホルモンK2+",
-    "ruby": "",
     "area": "三軒家西",
     "category": "焼肉・ホルモン",
     "type": "食事",
@@ -928,7 +905,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/yakiniku.k2plus",
-    "photoUrl": "photo/23.jpg",
+    "photoUrl": "photo/023.jpg",
     "mapPos": {
       "top": "68%",
       "left": "44%"
@@ -937,7 +914,6 @@ const STORES_DATA = [
   {
     "id": "store-24",
     "name": "呑み処　三日月",
-    "ruby": "",
     "area": "駅前",
     "category": "居酒屋",
     "type": "はしご",
@@ -968,7 +944,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/moon.3.3.3",
-    "photoUrl": "photo/24.jpg",
+    "photoUrl": "photo/024.jpg",
     "mapPos": {
       "top": "75%",
       "left": "55%"
@@ -977,7 +953,6 @@ const STORES_DATA = [
   {
     "id": "store-25",
     "name": "呑笑戎屋",
-    "ruby": "",
     "area": "駅前",
     "category": "居酒屋",
     "type": "はしご",
@@ -1008,7 +983,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/ebisuya.taisyo",
-    "photoUrl": "photo/25.jpg",
+    "photoUrl": "photo/025.jpg",
     "mapPos": {
       "top": "22%",
       "left": "66%"
@@ -1017,7 +992,6 @@ const STORES_DATA = [
   {
     "id": "store-26",
     "name": "三ちゃん",
-    "ruby": "",
     "area": "三軒家西",
     "category": "居酒屋",
     "type": "食事",
@@ -1048,7 +1022,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/sanchan.o2",
-    "photoUrl": "photo/26.jpg",
+    "photoUrl": "photo/026.jpg",
     "mapPos": {
       "top": "29%",
       "left": "77%"
@@ -1057,7 +1031,6 @@ const STORES_DATA = [
   {
     "id": "store-27",
     "name": "SoundBar花いち",
-    "ruby": "",
     "area": "駅前",
     "category": "スナック",
     "type": "遊べる・エンタメ",
@@ -1088,7 +1061,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/soundbar__hanaichi",
-    "photoUrl": "photo/27.jpg",
+    "photoUrl": "photo/027.jpg",
     "mapPos": {
       "top": "36%",
       "left": "28%"
@@ -1097,7 +1070,6 @@ const STORES_DATA = [
   {
     "id": "store-28",
     "name": "ザ·沖縄",
-    "ruby": "",
     "area": "駅前",
     "category": "居酒屋",
     "type": "はしご",
@@ -1128,7 +1100,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/za.okinawa",
-    "photoUrl": "photo/28.jpg",
+    "photoUrl": "photo/028.jpg",
     "mapPos": {
       "top": "43%",
       "left": "39%"
@@ -1137,7 +1109,6 @@ const STORES_DATA = [
   {
     "id": "store-29",
     "name": "魚と沖縄料理 えっせんす",
-    "ruby": "",
     "area": "泉尾",
     "category": "居酒屋",
     "type": "はしご",
@@ -1168,7 +1139,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/essence_taishou",
-    "photoUrl": "photo/29.jpg",
+    "photoUrl": "photo/029.jpg",
     "mapPos": {
       "top": "50%",
       "left": "50%"
@@ -1177,7 +1148,6 @@ const STORES_DATA = [
   {
     "id": "store-30",
     "name": "Bar Coco-Color",
-    "ruby": "",
     "area": "三軒家西",
     "category": "BAR",
     "type": "遊べる・エンタメ",
@@ -1208,7 +1178,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/bar_cococolor_taisho",
-    "photoUrl": "photo/30.jpg",
+    "photoUrl": "photo/030.jpg",
     "mapPos": {
       "top": "57%",
       "left": "61%"
@@ -1217,7 +1187,6 @@ const STORES_DATA = [
   {
     "id": "store-31",
     "name": "福人(ふくんちゅ)",
-    "ruby": "",
     "area": "三軒家東",
     "category": "居酒屋",
     "type": "食事",
@@ -1248,7 +1217,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/fuku__nchu",
-    "photoUrl": "photo/31.jpg",
+    "photoUrl": "photo/031.jpg",
     "mapPos": {
       "top": "64%",
       "left": "72%"
@@ -1257,7 +1226,6 @@ const STORES_DATA = [
   {
     "id": "store-32",
     "name": "TM's DINER",
-    "ruby": "",
     "area": "三軒家東",
     "category": "ダイニング",
     "type": "はしご",
@@ -1288,7 +1256,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/tms_diner_osaka",
-    "photoUrl": "photo/32.jpg",
+    "photoUrl": "photo/032.jpg",
     "mapPos": {
       "top": "71%",
       "left": "23%"
@@ -1297,7 +1265,6 @@ const STORES_DATA = [
   {
     "id": "store-33",
     "name": "Pizzeria Legare",
-    "ruby": "",
     "area": "平尾",
     "category": "ダイニング",
     "type": "食事",
@@ -1328,7 +1295,7 @@ const STORES_DATA = [
     "paymentMethods": [],
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/pizzerialegare",
-    "photoUrl": "photo/33.jpg",
+    "photoUrl": "photo/033.jpg",
     "mapPos": {
       "top": "78%",
       "left": "34%"
@@ -1489,7 +1456,6 @@ function parseXLSXToStoresData(arrayBuffer) {
     const name = getVal("店舗名", "名", "店名");
     if (!name) continue;
 
-    const ruby = getVal("よみがな", "フリガナ", "かな");
     const area = getVal("エリア", "地域");
     const category = getVal("カテゴリ", "カテゴリー", "ジャンル", "店の種類");
     const type = getVal("タイプ", "店舗タイプ", "スタイル");
@@ -1536,7 +1502,6 @@ function parseXLSXToStoresData(arrayBuffer) {
     const storeObj = {
       id,
       name,
-      ruby,
       area,
       category,
       type,

@@ -81,7 +81,6 @@ def convert_excel_to_js():
 
         id_idx = get_col_idx("id")
         name_idx = get_col_idx("店舗名", "名", "店名")
-        ruby_idx = get_col_idx("よみがな", "フリガナ", "かな")
         area_idx = get_col_idx("エリア", "地域")
         category_idx = get_col_idx("カテゴリ", "カテゴリー", "ジャンル", "店の種類")
         type_idx = get_col_idx("酔いどれタイプ", "タイプ", "店舗タイプ", "スタイル", "セットタイプ")
@@ -156,7 +155,6 @@ def convert_excel_to_js():
                     hours_raw = f"{int(h1):02d}:{m1}-{int(h2):02d}:{m2}"
 
             # その他のフィールド読み込み（フォールバック補填なし・空欄は空欄のまま保持）
-            ruby = str(row[ruby_idx] or '').strip() if (ruby_idx != -1 and ruby_idx < len(row)) else ''
             area = str(row[area_idx] or '').strip() if (area_idx != -1 and area_idx < len(row) and row[area_idx]) else ''
             category = str(row[category_idx] or '').strip() if (category_idx != -1 and category_idx < len(row) and row[category_idx]) else ''
             store_type = str(row[type_idx] or '').strip() if (type_idx != -1 and type_idx < len(row) and row[type_idx]) else ''
@@ -227,7 +225,6 @@ def convert_excel_to_js():
             store_obj = {
                 "id": store_id,
                 "name": store_name,
-                "ruby": ruby,
                 "area": area,
                 "category": category,
                 "type": store_type,
@@ -412,7 +409,6 @@ function parseXLSXToStoresData(arrayBuffer) {{
     const name = getVal("店舗名", "名", "店名");
     if (!name) continue;
 
-    const ruby = getVal("よみがな", "フリガナ", "かな");
     const area = getVal("エリア", "地域");
     const category = getVal("カテゴリ", "カテゴリー", "ジャンル", "店の種類");
     const type = getVal("タイプ", "店舗タイプ", "スタイル");
@@ -459,7 +455,6 @@ function parseXLSXToStoresData(arrayBuffer) {{
     const storeObj = {{
       id,
       name,
-      ruby,
       area,
       category,
       type,

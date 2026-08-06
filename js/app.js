@@ -583,14 +583,13 @@ class YoidoreQuestApp {
       if (this.filters.searchQuery) {
         const q = this.filters.searchQuery.toLowerCase();
         return store.name.toLowerCase().includes(q) || 
-               store.ruby.toLowerCase().includes(q) ||
                store.catchphrase.toLowerCase().includes(q);
       }
       return true;
     });
 
-    // 五十音順ソート（初期表示順）
-    filtered.sort((a, b) => a.ruby.localeCompare(b.ruby, 'ja'));
+    // ID順ソート（初期表示順）
+    filtered.sort((a, b) => a.id.localeCompare(b.id, 'ja', { numeric: true }));
 
     this.typeMessage(`条件に一致する店舗が ${filtered.length} 件見つかりました。カードをタップして詳細を確認できます。`);
 
