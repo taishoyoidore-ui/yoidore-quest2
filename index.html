@@ -17,14 +17,16 @@
   <main class="app-container">
     <!-- レトロRPG風 スタート画面オーバーレイ -->
     <div id="start-overlay" class="start-overlay">
-      <div class="start-content">
-        <div class="start-title-badge">⚔️ 大正はしご酒イベント ⚔️</div>
-        <h1 class="start-game-title">大正酔いどれ<br><span class="title-sub">クエスト II</span></h1>
-        <p class="start-subtitle">〜 止まらないハシゴ酒 〜</p>
+      <div class="start-container">
+        <div class="start-title-badge">⚔️ 大正はしご酒イベント 公式ガイド ⚔️</div>
+        
+        <div class="start-hero-full-box">
+          <img src="assets/banner.png" alt="大正酔いどれクエストⅡ" class="start-hero-full-img">
+        </div>
         
         <div class="start-btn-box">
           <button id="start-game-btn" class="start-game-btn" type="button">
-            <span class="sword-icon">📜</span> 公式ガイドブック <span class="sword-icon">📜</span>
+            <span class="sword-icon">📜</span> ガイドブックを開く <span class="sword-icon">📜</span>
           </button>
         </div>
         <p class="start-hint">※タップすると効果音が流れます</p>
@@ -40,9 +42,6 @@
         🔊 音声 ON
       </button>
     </header>
-
-    <!-- トップ用バナー画像コンテナ -->
-    <div id="hero-banner-wrapper"></div>
 
     <!-- メッセージウィンドウ (RPG風テキスト演出) -->
     <section id="message-window-section" class="message-window" aria-live="polite">

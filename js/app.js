@@ -308,41 +308,6 @@ class YoidoreQuestApp {
     const container = document.getElementById('view-container');
     if (!container) return;
 
-    // 上部画像エリア（ドット絵・バナー）の表示切り替え
-    const bannerWrapper = document.getElementById('hero-banner-wrapper');
-    if (bannerWrapper) {
-      if (this.currentView === 'top') {
-        bannerWrapper.innerHTML = `
-          <div class="hero-banner-box">
-            <img src="assets/banner.png" alt="大正酔いどれクエストⅡ" class="hero-banner-img">
-          </div>
-        `;
-      } else if (this.currentView === 'detail' && this.selectedStore) {
-        bannerWrapper.innerHTML = `
-          <div class="hero-banner-box">
-            <img src="assets/yoidore_set.png" alt="酔いどれセット" class="hero-banner-img">
-          </div>
-        `;
-      } else if (['area', 'category', 'type', 'stores'].includes(this.currentView)) {
-        let imageSrc = 'assets/stores_banner.png';
-        if (this.currentView === 'area') {
-          imageSrc = 'assets/area_banner.png';
-        } else if (this.currentView === 'category' || this.currentView === 'type') {
-          imageSrc = 'assets/category_banner.png';
-        } else if (this.currentView === 'stores') {
-          imageSrc = 'assets/stores_banner.png';
-        }
-
-        bannerWrapper.innerHTML = `
-          <div class="hero-banner-box compact">
-            <img src="${imageSrc}" alt="大正酔いどれクエストⅡ" class="hero-banner-img">
-          </div>
-        `;
-      } else {
-        bannerWrapper.innerHTML = '';
-      }
-    }
-
     container.innerHTML = '';
 
     switch (this.currentView) {
@@ -489,7 +454,6 @@ class YoidoreQuestApp {
           ${areaItems}
         </ul>
       </div>
-      <button class="back-btn back-to-top">◀ トップコマンドへ戻る</button>
     `;
 
     container.querySelectorAll('.command-item').forEach(item => {
@@ -500,11 +464,6 @@ class YoidoreQuestApp {
         this.filters.area = item.dataset.area;
         this.navigateTo('stores');
       });
-    });
-
-    container.querySelector('.back-to-top').addEventListener('click', () => {
-      this.playBackSE();
-      this.navigateTo('top');
     });
   }
 
@@ -537,7 +496,6 @@ class YoidoreQuestApp {
           ${categoryItems}
         </ul>
       </div>
-      <button class="back-btn back-to-top">◀ トップコマンドへ戻る</button>
     `;
 
     container.querySelectorAll('.command-item').forEach(item => {
@@ -548,11 +506,6 @@ class YoidoreQuestApp {
         this.filters.category = item.dataset.category;
         this.navigateTo('stores');
       });
-    });
-
-    container.querySelector('.back-to-top').addEventListener('click', () => {
-      this.playBackSE();
-      this.navigateTo('top');
     });
   }
 
@@ -593,7 +546,6 @@ class YoidoreQuestApp {
           ${typeItems}
         </ul>
       </div>
-      <button class="back-btn back-to-top">◀ トップコマンドへ戻る</button>
     `;
 
     container.querySelectorAll('.command-item').forEach(item => {
@@ -604,11 +556,6 @@ class YoidoreQuestApp {
         this.filters.type = item.dataset.type;
         this.navigateTo('stores');
       });
-    });
-
-    container.querySelector('.back-to-top').addEventListener('click', () => {
-      this.playBackSE();
-      this.navigateTo('top');
     });
   }
 
@@ -703,8 +650,6 @@ class YoidoreQuestApp {
       <div class="store-card-list">
         ${cardsHtml}
       </div>
-
-      <button class="back-btn back-to-top">◀ トップコマンドへ戻る</button>
     `;
 
     // フィルターチェンジイベント
@@ -747,11 +692,6 @@ class YoidoreQuestApp {
           this.navigateTo('detail', { store });
         }
       });
-    });
-
-    container.querySelector('.back-to-top').addEventListener('click', () => {
-      this.playBackSE();
-      this.navigateTo('top');
     });
   }
 
@@ -873,15 +813,8 @@ class YoidoreQuestApp {
             </a>
           </div>
         </div>
-
-        <button class="back-btn back-to-stores">◀ 店舗一覧へ戻る</button>
       </div>
     `;
-
-    container.querySelector('.back-to-stores').addEventListener('click', () => {
-      this.playBackSE();
-      this.navigateTo('stores');
-    });
   }
 }
 
