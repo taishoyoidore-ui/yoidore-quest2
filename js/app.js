@@ -305,6 +305,13 @@ class YoidoreQuestApp {
    * メインレンダリングルーティン
    * ------------------------------------------------------------------------ */
   render() {
+    // 各店舗の今日・現在営業フラグを動的に更新
+    if (typeof checkIsOpenToday === 'function' && typeof STORES_DATA !== 'undefined') {
+      STORES_DATA.forEach(store => {
+        store.isOpenToday = checkIsOpenToday(store);
+      });
+    }
+
     const container = document.getElementById('view-container');
     if (!container) return;
 
@@ -380,7 +387,7 @@ class YoidoreQuestApp {
               <span class="command-cursor">▶</span>
               <span class="command-label">今日営業のお店</span>
             </div>
-            <span class="command-badge text-green">営業中</span>
+            <span class="command-badge text-green">営業中 ${STORES_DATA.filter(s => s.isOpenToday).length}店舗</span>
           </li>
           <li class="command-item" data-action="map">
             <div class="command-item-left">
@@ -602,20 +609,32 @@ class YoidoreQuestApp {
             <span>${store.name}</span>
           </div>
           <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}">
-            ${store.isOpenToday ? '今日営業' : '本日定休'}
+            ${store.isOpenToday ? '営業中' : '営業時間外'}
           </span>
         </div>
 
         <div class="store-tags">
-          <span class="tag tag-area">${store.area}</span>
-          <span class="tag">${store.category}</span>
-          <span class="tag tag-type">${store.type}</span>
-          ${store.isEventActive ? `<span class="event-active-badge">★ 店舗イベントあり</span>` : ''}
+          ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
+          ${store.category ? `<span class="tag">${store.category}</span>` : ''}
+          ${store.type ? `<span class="tag tag-type">${store.type}</span>` : ''}
         </div>
 
-        <div class="store-set-preview">
-          <span>🍺 ${store.yoidoreSet.title}</span>
-          <span class="store-price">¥${store.yoidoreSet.price.toLocaleString()}</span>
+        <div class="store-previews">
+          ${store.yoidoreSet && store.yoidoreSet.title ? `
+            <div class="store-set-preview">
+              <span class="preview-label">🍺 酔いどれセット:</span>
+              <span class="preview-title">${store.yoidoreSet.title}</span>
+              ${store.yoidoreSet.price > 0 ? `<span class="store-price">¥${store.yoidoreSet.price.toLocaleString()}</span>` : ''}
+            </div>
+          ` : ''}
+
+          ${store.isQuestActive ? `
+            <div class="store-quest-preview">
+              <span class="preview-label">⚔️ 店舗クエスト:</span>
+              <span class="preview-title">${store.quest.title || store.quest.content}</span>
+              <span class="quest-price-badge">${store.quest.price > 0 ? `¥${store.quest.price.toLocaleString()}` : '🟢 無料'}</span>
+            </div>
+          ` : ''}
         </div>
       </div>
     `).join('') : `
@@ -705,116 +724,144 @@ class YoidoreQuestApp {
       return;
     }
 
-    this.typeMessage(`「${store.name}」の情報です。酔いどれセットの内容と提供条件を確認してください。`);
+    this.typeMessage(`「${store.name}」の情報です。どれクエ対象時間とセット内容をご確認ください。`);
 
-    const paymentTagsHtml = store.paymentMethods.map(p => `<span class="payment-tag">${p}</span>`).join('');
+    const paymentTagsHtml = (store.paymentMethods && store.paymentMethods.length > 0)
+      ? store.paymentMethods.map(p => `<span class="payment-tag">${p}</span>`).join('')
+      : '';
 
     container.innerHTML = `
       <div class="detail-section">
+        <!-- 1. 店舗基本情報枠 -->
         <div class="rpg-window gold-border">
           <div class="detail-title-block">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
               <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-                <span class="tag tag-area">${store.area}</span>
-                <span class="tag">${store.category}</span>
-                <span class="tag tag-type">${store.type}</span>
+                ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
+                ${store.category ? `<span class="tag">${store.category}</span>` : ''}
+                ${store.type ? `<span class="tag tag-type">${store.type}</span>` : ''}
               </div>
               <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}">
-                ${store.isOpenToday ? '今日営業中' : '本日定休日'}
+                ${store.isOpenToday ? '現在営業中' : '現在営業時間外'}
               </span>
             </div>
             <h2 class="detail-store-name" style="margin-top:10px;">${store.name}</h2>
-            <div class="detail-catchphrase">"${store.catchphrase}"</div>
+            ${store.catchphrase ? `<div class="detail-catchphrase">"${store.catchphrase}"</div>` : ''}
+
+            ${paymentTagsHtml ? `
+              <div style="margin-top:12px; padding-top:10px; border-top:1px dashed var(--border-gold, #8b7333); display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <span style="font-size:12px; color:var(--text-yellow, #ffd700); font-weight:bold;">💳 支払い方法:</span>
+                <div class="payment-tags" style="display:inline-flex; gap:4px; flex-wrap:wrap;">${paymentTagsHtml}</div>
+              </div>
+            ` : ''}
           </div>
         </div>
 
-        <!-- 酔いどれセット情報 -->
+        <!-- 2. どれクエ対象時間枠 (店舗名称枠の直下) -->
         <div class="rpg-window">
           <div class="rpg-window-header">
-            <span>🍺 酔いどれセット情報</span>
+            <span>⏰ どれクエ対象時間</span>
           </div>
           <table class="info-table">
-            <tr>
-              <th>セット名</th>
-              <td class="text-yellow" style="font-weight:bold;">${store.yoidoreSet.title}</td>
-            </tr>
-            <tr>
-              <th>セット内容</th>
-              <td>${store.yoidoreSet.content}</td>
-            </tr>
-            <tr>
-              <th>セット金額</th>
-              <td>
-                <strong class="text-yellow" style="font-size:16px;">¥${store.yoidoreSet.price.toLocaleString()}</strong>
-                <span style="font-size:11px; color:var(--text-dim); margin-left:6px;">(${store.yoidoreSet.includeCharge ? 'チャージ込' : '別途チャージあり'})</span>
-              </td>
-            </tr>
-            <tr>
-              <th>チャージ等</th>
-              <td>
-                ${store.yoidoreSet.includeCharge 
-                  ? '<span class="text-green">✓ チャージ・つきだし料金含む</span>' 
-                  : '<span class="text-red">⚠ チャージ・つきだし別途必要</span>'}
-              </td>
-            </tr>
-          </table>
-        </div>
-
-        <!-- 提供条件 -->
-        <div class="rpg-window">
-          <div class="rpg-window-header">
-            <span>📜 セット提供条件</span>
-          </div>
-          <table class="info-table">
-            <tr>
-              <th>提供日/曜日</th>
-              <td>${store.conditions.days}</td>
-            </tr>
-            <tr>
-              <th>提供時間</th>
-              <td>${store.conditions.hours}</td>
-            </tr>
-            <tr>
-              <th>数量限定</th>
-              <td>${store.conditions.limit} ${store.conditions.soldOutEnd ? '（売り切れ次第終了）' : ''}</td>
-            </tr>
-            <tr>
-              <th>注意事項</th>
-              <td style="font-size:12px; color:var(--text-dim);">${store.conditions.notes}</td>
-            </tr>
-          </table>
-        </div>
-
-        <!-- 店舗タイプ & イベント -->
-        <div class="rpg-window">
-          <div class="rpg-window-header">
-            <span>🏷 店舗タイプ & イベント</span>
-          </div>
-          <table class="info-table">
-            <tr>
-              <th>ジャンル・タイプ</th>
-              <td>
-                <span class="tag">${store.category}</span>
-                <span class="tag tag-type" style="margin-left:4px;">${store.type}</span>
-              </td>
-            </tr>
-            ${store.isEventActive ? `
+            ${store.conditions.days ? `
               <tr>
-                <th>店舗イベント</th>
-                <td>
-                  <div class="event-active-badge" style="margin-bottom:4px;">PARTY QUEST!</div>
-                  <div class="text-yellow">${store.eventTitle}</div>
-                </td>
+                <th>提供日/曜日</th>
+                <td>${store.conditions.days}</td>
               </tr>
             ` : ''}
-            <tr>
-              <th>支払い方法</th>
-              <td><div class="payment-tags">${paymentTagsHtml}</div></td>
-            </tr>
+            ${store.conditions.hours ? `
+              <tr>
+                <th>提供時間</th>
+                <td>${store.conditions.hours}</td>
+              </tr>
+            ` : ''}
+            ${store.conditions.limit ? `
+              <tr>
+                <th>数量限定</th>
+                <td>${store.conditions.limit} ${store.conditions.soldOutEnd ? '（売り切れ次第終了）' : ''}</td>
+              </tr>
+            ` : ''}
           </table>
         </div>
 
-        <!-- 店舗写真ギャラリー -->
+        <!-- 3. 酔いどれセット情報枠 -->
+        ${store.yoidoreSet && store.yoidoreSet.title ? `
+          <div class="rpg-window">
+            <div class="rpg-window-header">
+              <span>🍺 酔いどれセット情報</span>
+            </div>
+            <table class="info-table">
+              <tr>
+                <th>セット名</th>
+                <td class="text-yellow" style="font-weight:bold;">${store.yoidoreSet.title}</td>
+              </tr>
+              ${store.yoidoreSet.content ? `
+                <tr>
+                  <th>セット内容</th>
+                  <td>${store.yoidoreSet.content}</td>
+                </tr>
+              ` : ''}
+              ${store.yoidoreSet.price > 0 ? `
+                <tr>
+                  <th>セット金額</th>
+                  <td>
+                    <strong class="text-yellow" style="font-size:16px;">¥${store.yoidoreSet.price.toLocaleString()}</strong>
+                    <span style="font-size:11px; color:var(--text-dim); margin-left:6px;">(税込・${store.yoidoreSet.charge === '不要' ? 'チャージ不要' : 'チャージ込'})</span>
+                  </td>
+                </tr>
+              ` : ''}
+              ${store.yoidoreSet.notes ? `
+                <tr>
+                  <th>セット備考</th>
+                  <td style="font-size:12px; color:var(--text-dim);">${store.yoidoreSet.notes}</td>
+                </tr>
+              ` : ''}
+            </table>
+          </div>
+        ` : ''}
+
+        <!-- 4. 店舗クエスト情報枠 -->
+        ${store.isQuestActive ? `
+          <div class="rpg-window">
+            <div class="rpg-window-header">
+              <span>⚔️ 店舗クエスト情報</span>
+            </div>
+            <table class="info-table">
+              ${store.quest.title ? `
+                <tr>
+                  <th>クエスト名</th>
+                  <td><span class="text-yellow" style="font-weight:bold;">${store.quest.title}</span></td>
+                </tr>
+              ` : ''}
+              ${store.quest.content ? `
+                <tr>
+                  <th>クエスト内容</th>
+                  <td>${store.quest.content}</td>
+                </tr>
+              ` : ''}
+              <tr>
+                <th>クエスト金額</th>
+                <td>
+                  ${store.quest.price > 0 ? `
+                    <strong class="text-yellow" style="font-size:16px;">¥${store.quest.price.toLocaleString()}</strong>
+                    <span style="font-size:11px; color:var(--text-dim); margin-left:6px;">(税込・${store.quest.charge === '込' ? 'チャージ込' : 'チャージ不要'})</span>
+                  ` : `
+                    <span class="quest-fee-badge">🟢 無料</span>
+                    <span style="font-size:11px; color:var(--text-dim); margin-left:6px;">(${store.quest.charge === '込' ? 'チャージ込' : 'チャージ不要'})</span>
+                  `}
+                </td>
+              </tr>
+              ${store.quest.notes ? `
+                <tr>
+                  <th>クエスト備考</th>
+                  <td style="font-size:12px; color:var(--text-dim);">${store.quest.notes}</td>
+                </tr>
+              ` : ''}
+            </table>
+          </div>
+        ` : ''}
+
+        <!-- 5. 店舗写真ギャラリー -->
         ${store.photoUrl ? `
           <div class="rpg-window">
             <div class="rpg-window-header">
@@ -827,16 +874,22 @@ class YoidoreQuestApp {
         ` : ''}
 
         <!-- 外部リンク -->
-        <div class="rpg-window">
-          <div style="display:flex; flex-direction:column; gap:8px;">
-            <a href="${store.googleMapUrl}" target="_blank" class="external-link-btn">
-              <span>📍 Googleマップで場所を確認する</span>
-            </a>
-            <a href="${store.instagramUrl}" target="_blank" class="external-link-btn" style="background: linear-gradient(180deg, #801848 0%, #380820 100%);">
-              <span>📷 店舗Instagramを開く</span>
-            </a>
+        ${(store.googleMapUrl || store.instagramUrl) ? `
+          <div class="rpg-window">
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              ${store.googleMapUrl ? `
+                <a href="${store.googleMapUrl}" target="_blank" class="external-link-btn">
+                  <span>📍 Googleマップで場所を確認する</span>
+                </a>
+              ` : ''}
+              ${store.instagramUrl ? `
+                <a href="${store.instagramUrl}" target="_blank" class="external-link-btn" style="background: linear-gradient(180deg, #801848 0%, #380820 100%);">
+                  <span>📷 店舗Instagramを開く</span>
+                </a>
+              ` : ''}
+            </div>
           </div>
-        </div>
+        ` : ''}
 
         <!-- 1つ前の画面（検索結果）へ戻るボタン -->
         <button class="back-btn back-to-stores-smart" type="button" style="margin-top: 14px;">

@@ -435,26 +435,80 @@ body {
   animation: pulse-glow 1.5s infinite alternate;
 }
 
+.quest-fee-badge {
+  display: inline-block;
+  font-size: 11px;
+  padding: 1px 7px;
+  background: #003822;
+  color: #00ffaa;
+  border: 1px solid #00aa66;
+  border-radius: 3px;
+  font-weight: bold;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
 @keyframes pulse-glow {
   0% { box-shadow: 0 0 2px #ff5500; }
   100% { box-shadow: 0 0 8px #ffaa00; }
 }
 
-.store-set-preview {
+.store-previews {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.store-set-preview, .store-quest-preview {
   background: #0a0d18;
   border: 1px solid #202840;
-  padding: 6px 8px;
-  font-size: 12px;
+  padding: 5px 8px;
+  font-size: 11px;
   color: #d0d5e8;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.store-quest-preview {
+  background: #140d1e;
+  border-color: #3a1a4a;
+}
+
+.preview-label {
+  font-weight: bold;
+  color: var(--text-yellow);
+  white-space: nowrap;
+}
+
+.store-quest-preview .preview-label {
+  color: #ff9900;
+}
+
+.preview-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quest-price-badge {
+  font-size: 10px;
+  padding: 1px 4px;
+  background: #003822;
+  color: #00ffaa;
+  border: 1px solid #00aa66;
+  border-radius: 2px;
+  white-space: nowrap;
 }
 
 .store-price {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-green);
   font-weight: bold;
+  white-space: nowrap;
 }
 
 /* 店舗詳細画面 */

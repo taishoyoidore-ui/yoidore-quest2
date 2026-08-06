@@ -4,6 +4,11 @@
  * ※直接編集せず、STORES.xlsx を編集した後に update_data.bat を実行してください。
  */
 
+const EVENT_PERIOD = {
+  "startDate": "2026-08-01",
+  "endDate": "2026-08-31"
+};
+
 const STORES_DATA = [
   {
     "id": "store-01",
@@ -13,21 +18,28 @@ const STORES_DATA = [
     "category": "おばんざい",
     "type": "食事向け",
     "isOpenToday": true,
-    "isEventActive": false,
-    "eventTitle": "",
+    "isQuestActive": true,
+    "quest": {
+      "title": "ジャンケン勝負！",
+      "price": 0,
+      "charge": "不要",
+      "content": "ジャンケン勝負！勝ったらクーポン進呈！",
+      "notes": "1名様1日1回まで"
+    },
     "catchphrase": "牛すじとお酒とおばんざい",
     "yoidoreSet": {
       "title": "おばんざい軽盛り3種+ドリンク1杯",
       "content": "お好きなおばんざい3種と、お好きなドリンク1杯のセットです",
       "price": 1000,
-      "includeCharge": true
+      "charge": "不要",
+      "includeCharge": false,
+      "notes": "冒険の書（紙）をご提示された方限定。他クーポン併用不可。"
     },
     "conditions": {
-      "days": "イベント期間中全日",
-      "hours": "17:00 - 23:00 (L.O. 22:30)",
+      "days": "月,火,水,金,土,日",
+      "hours": "17:00-23:00",
       "limit": "限定30セット / 日",
-      "soldOutEnd": true,
-      "notes": "冒険の書（紙）をご提示された方限定。他クーポン併用不可。"
+      "soldOutEnd": true
     },
     "paymentMethods": [
       "現金",
@@ -38,10 +50,9 @@ const STORES_DATA = [
     "instagramUrl": "https://www.instagram.com/t_youbi_",
     "photoUrl": "photo/001.jpg",
     "mapPos": {
-      "top": "27%",
-      "left": "31%"
-    },
-    "badge": "初心者歓迎"
+      "top": "34%",
+      "left": "42%"
+    }
   },
   {
     "id": "store-02",
@@ -51,21 +62,28 @@ const STORES_DATA = [
     "category": "BAR",
     "type": "休憩向け",
     "isOpenToday": true,
-    "isEventActive": true,
-    "eventTitle": "レトロゲームチャレンジ：店主とワンゲーム対戦でチャージ割引！",
+    "isQuestActive": true,
+    "quest": {
+      "title": "レトロゲームチャレンジ",
+      "price": 0,
+      "charge": "不要",
+      "content": "店主とワンゲーム対戦でチャージ割引！",
+      "notes": "※酔いどれセットご注文の方はチャージ重複なし。"
+    },
     "catchphrase": "どこか懐かしいピコピコ音が流れる、大人の隠れ家バー",
     "yoidoreSet": {
       "title": "魔法のカクテル＆スモーキーナッツセット",
       "content": "特製青いポーションカクテル（またはハイボール） ＋ 自家製燻製ナッツ",
       "price": 1200,
-      "includeCharge": true
+      "charge": "不要",
+      "includeCharge": false,
+      "notes": "チャージ料金（通常500円）はセット価格に含まれます。"
     },
     "conditions": {
-      "days": "金・土・日・祝",
-      "hours": "19:00 - 02:00",
+      "days": "金,土,日",
+      "hours": "19:00-02:00",
       "limit": "1日15セット限定",
-      "soldOutEnd": true,
-      "notes": "チャージ料金（通常500円）はセット価格に含まれます。"
+      "soldOutEnd": true
     },
     "paymentMethods": [
       "現金",
@@ -76,10 +94,9 @@ const STORES_DATA = [
     "instagramUrl": "https://instagram.com/",
     "photoUrl": null,
     "mapPos": {
-      "top": "34%",
-      "left": "42%"
-    },
-    "badge": "隠れ家"
+      "top": "41%",
+      "left": "53%"
+    }
   },
   {
     "id": "store-03",
@@ -89,21 +106,28 @@ const STORES_DATA = [
     "category": "スナック",
     "type": "はしご向け",
     "isOpenToday": true,
-    "isEventActive": false,
-    "eventTitle": "",
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
     "catchphrase": "昭和・大正の情緒漂う商店街の名物ママがいるアットホームスナック",
     "yoidoreSet": {
       "title": "昭和レトロカラオケ＆酔いどれ焼酎セット",
       "content": "こだわり芋・麦焼酎（ロックまたは水割り）2杯 ＋ おまかせ手作りお通し3種盛り ＋ カラオケ1曲無料",
       "price": 1500,
-      "includeCharge": true
+      "charge": "不要",
+      "includeCharge": false,
+      "notes": "混雑時はお席90分制とさせていただきます。"
     },
     "conditions": {
-      "days": "火〜日曜日",
-      "hours": "18:00 - 23:30",
+      "days": "火,水,木,金,土,日",
+      "hours": "18:00-23:30",
       "limit": "数量制限なし",
-      "soldOutEnd": false,
-      "notes": "混雑時はお席90分制とさせていただきます。"
+      "soldOutEnd": false
     },
     "paymentMethods": [
       "現金",
@@ -113,10 +137,9 @@ const STORES_DATA = [
     "instagramUrl": "https://instagram.com/",
     "photoUrl": null,
     "mapPos": {
-      "top": "41%",
-      "left": "53%"
-    },
-    "badge": "カラオケ有"
+      "top": "48%",
+      "left": "64%"
+    }
   },
   {
     "id": "store-04",
@@ -126,21 +149,28 @@ const STORES_DATA = [
     "category": "カフェ",
     "type": "休憩向け",
     "isOpenToday": true,
-    "isEventActive": true,
-    "eventTitle": "喫茶クエスチョン：店内のレトロ謎解き成功でミニデザートプレゼント！",
+    "isQuestActive": true,
+    "quest": {
+      "title": "喫茶クエスチョン",
+      "price": 0,
+      "charge": "不要",
+      "content": "店内のレトロ謎解き成功でミニデザートプレゼント！",
+      "notes": "※喫茶・カフェタイムからのご参加も大歓迎です！"
+    },
     "catchphrase": "昼は濃厚ナポリタン、夜はクラフトビールが楽しめる和洋折衷カフェ",
     "yoidoreSet": {
       "title": "大正浪漫クラフトビール＆厚切りガーリックトーストセット",
       "content": "選べる地ビール1本 ＋ サクサク濃厚ガーリックトースト2切れ",
       "price": 1000,
-      "includeCharge": true
+      "charge": "不要",
+      "includeCharge": false,
+      "notes": "カフェタイム（15:00〜）から注文可能です。"
     },
     "conditions": {
-      "days": "水曜日除く毎日",
-      "hours": "15:00 - 21:00",
+      "days": "月,火,木,金,土,日",
+      "hours": "15:00-21:00",
       "limit": "限定20セット",
-      "soldOutEnd": true,
-      "notes": "カフェタイム（15:00〜）から注文可能です。"
+      "soldOutEnd": true
     },
     "paymentMethods": [
       "現金",
@@ -152,10 +182,9 @@ const STORES_DATA = [
     "instagramUrl": "https://instagram.com/",
     "photoUrl": null,
     "mapPos": {
-      "top": "48%",
-      "left": "64%"
-    },
-    "badge": "カフェ＆バー"
+      "top": "55%",
+      "left": "75%"
+    }
   },
   {
     "id": "store-05",
@@ -165,21 +194,28 @@ const STORES_DATA = [
     "category": "焼肉",
     "type": "食事向け",
     "isOpenToday": true,
-    "isEventActive": true,
-    "eventTitle": "肉くじクエスト：特賞は「極上A5カルビ1皿無料券」！",
+    "isQuestActive": true,
+    "quest": {
+      "title": "肉くじクエスト",
+      "price": 0,
+      "charge": "不要",
+      "content": "特賞は「極上A5カルビ1皿無料券」！",
+      "notes": "※酔いどれセットご注文のお客さま1名につき1回挑戦可能！"
+    },
     "catchphrase": "秘伝のタレと新鮮ホルモン！スタミナ回復ならここにおまかせ！",
     "yoidoreSet": {
       "title": "スタミナ回復！メガハイボール＆ホルモン3種盛りセット",
       "content": "メガ角ハイボール ＋ 本日の新鮮ホルモン3種（塩タン・ハツ・ミノ）",
       "price": 1300,
-      "includeCharge": false
+      "charge": "込",
+      "includeCharge": true,
+      "notes": "別途ワンドリンク制ではありませんが、テーブルチャージ200円が加算されます。"
     },
     "conditions": {
-      "days": "木〜火曜日 (水曜定休)",
-      "hours": "17:00 - 22:30",
+      "days": "月,火,木,金,土,日",
+      "hours": "17:00-22:30",
       "limit": "限定25セット",
-      "soldOutEnd": true,
-      "notes": "別途ワンドリンク制ではありませんが、テーブルチャージ200円が加算されます。"
+      "soldOutEnd": true
     },
     "paymentMethods": [
       "現金",
@@ -189,10 +225,9 @@ const STORES_DATA = [
     "instagramUrl": "https://instagram.com/",
     "photoUrl": null,
     "mapPos": {
-      "top": "55%",
-      "left": "75%"
-    },
-    "badge": "ガッツリ系"
+      "top": "62%",
+      "left": "26%"
+    }
   },
   {
     "id": "store-06",
@@ -202,21 +237,28 @@ const STORES_DATA = [
     "category": "お好み焼き",
     "type": "食事向け",
     "isOpenToday": true,
-    "isEventActive": false,
-    "eventTitle": "",
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
     "catchphrase": "外はカリッ、中はふわふわ！大正名物のすじkon焼きが自慢",
     "yoidoreSet": {
       "title": "大正名物すじコン焼き＆こだわりチューハイセット",
       "content": "名物すじコン玉（ミニサイズ） ＋ プレーンチューハイ（またはソフトドリンク）",
       "price": 1000,
-      "includeCharge": true
+      "charge": "不要",
+      "includeCharge": false,
+      "notes": "テイクアウトも可能です（箱代別途50円）。"
     },
     "conditions": {
-      "days": "毎日営業",
-      "hours": "16:30 - 22:00",
+      "days": "月,火,水,木,金,土,日",
+      "hours": "16:30-22:00",
       "limit": "限定30セット",
-      "soldOutEnd": true,
-      "notes": "テイクアウトも可能です（箱代別途50円）。"
+      "soldOutEnd": true
     },
     "paymentMethods": [
       "現金",
@@ -227,10 +269,9 @@ const STORES_DATA = [
     "instagramUrl": "https://instagram.com/",
     "photoUrl": null,
     "mapPos": {
-      "top": "62%",
-      "left": "26%"
-    },
-    "badge": "粉もん"
+      "top": "69%",
+      "left": "37%"
+    }
   },
   {
     "id": "store-07",
@@ -240,21 +281,28 @@ const STORES_DATA = [
     "category": "ダイニング",
     "type": "食事向け",
     "isOpenToday": true,
-    "isEventActive": true,
-    "eventTitle": "パーティークエスト：4人以上のパーティ来店でボトルワイン1本半額！",
+    "isQuestActive": true,
+    "quest": {
+      "title": "パーティークエスト",
+      "price": 0,
+      "charge": "不要",
+      "content": "4人以上のパーティ来店でボトルワイン1本半額！",
+      "notes": "※4名以上のパーティ来店で自動適用されます！"
+    },
     "catchphrase": "洋風バルメニューと厳選ワインが揃う、冒険者たちの宴会場",
     "yoidoreSet": {
       "title": "ギルド特製生ハム盛り合わせ＆グラスワインセット",
       "content": "スパークリングまたは赤・白ワイン1グラス ＋ スペイン産生ハムとチーズ盛り合わせ",
       "price": 1200,
-      "includeCharge": true
+      "charge": "不要",
+      "includeCharge": false,
+      "notes": "テーブル席・カウンター席どちらでも利用いただけます。"
     },
     "conditions": {
-      "days": "火〜日曜日",
-      "hours": "17:30 - 23:00",
+      "days": "火,水,木,金,土,日",
+      "hours": "17:30-23:00",
       "limit": "1日20セット",
-      "soldOutEnd": false,
-      "notes": "テーブル席・カウンター席どちらでも利用いただけます。"
+      "soldOutEnd": false
     },
     "paymentMethods": [
       "現金",
@@ -266,10 +314,9 @@ const STORES_DATA = [
     "instagramUrl": "https://instagram.com/",
     "photoUrl": null,
     "mapPos": {
-      "top": "69%",
-      "left": "37%"
-    },
-    "badge": "おしゃれバル"
+      "top": "76%",
+      "left": "48%"
+    }
   },
   {
     "id": "store-08",
@@ -279,21 +326,28 @@ const STORES_DATA = [
     "category": "居酒屋",
     "type": "はしご向け",
     "isOpenToday": true,
-    "isEventActive": false,
-    "eventTitle": "",
+    "isQuestActive": false,
+    "quest": {
+      "title": "",
+      "price": 0,
+      "charge": "不要",
+      "content": "",
+      "notes": ""
+    },
     "catchphrase": "毎朝市場から仕入れる新鮮な魚介と日本酒が勢ぞろい！",
     "yoidoreSet": {
       "title": "本日の厳選お刺身3種盛り＆冷酒ぐい呑みセット",
       "content": "おすすめ地酒1杯 ＋ 旬の鮮魚お刺身3種盛り",
       "price": 1000,
-      "includeCharge": true
+      "charge": "不要",
+      "includeCharge": false,
+      "notes": "仕入れ状況により刺身の内容が変わります。"
     },
     "conditions": {
-      "days": "月〜土曜日",
-      "hours": "17:00 - 22:30",
+      "days": "月,火,水,木,金,土",
+      "hours": "17:00-22:30",
       "limit": "限定20セット",
-      "soldOutEnd": true,
-      "notes": "仕入れ状況により刺身の内容が変わります。"
+      "soldOutEnd": true
     },
     "paymentMethods": [
       "現金",
@@ -303,10 +357,9 @@ const STORES_DATA = [
     "instagramUrl": "https://instagram.com/",
     "photoUrl": null,
     "mapPos": {
-      "top": "76%",
-      "left": "48%"
-    },
-    "badge": "鮮魚直送"
+      "top": "23%",
+      "left": "59%"
+    }
   },
   {
     "id": "store-09",
@@ -316,21 +369,28 @@ const STORES_DATA = [
     "category": "BAR",
     "type": "はしご向け",
     "isOpenToday": true,
-    "isEventActive": true,
-    "eventTitle": "ダーククエスト：黒ビールご注文でオリジナルステッカープレゼント！",
+    "isQuestActive": true,
+    "quest": {
+      "title": "ダーククエスト",
+      "price": 500,
+      "charge": "込",
+      "content": "黒ビールご注文でオリジナルステッカープレゼント！",
+      "notes": "※ステッカーは無くなり次第終了となります。"
+    },
     "catchphrase": "世界のクラフトビールが常時8种タップで味わえる本格タップルーム",
     "yoidoreSet": {
-      "title": "選べるクラフトビールハーフパイント＆フィッシュ＆チップス",
-      "content": "本日のタップからお好きなビール（ハーフパイント） ＋ サクサク自家製フィッシュ＆チップス（小）",
-      "price": 1100,
-      "includeCharge": true
+      "title": "",
+      "content": "",
+      "price": 0,
+      "charge": "込",
+      "includeCharge": true,
+      "notes": "チャージなし。"
     },
     "conditions": {
-      "days": "水〜日曜日",
-      "hours": "18:00 - 00:00",
+      "days": "水,木,金,土,日",
+      "hours": "18:00-00:00",
       "limit": "限定15セット",
-      "soldOutEnd": true,
-      "notes": "チャージなし。"
+      "soldOutEnd": true
     },
     "paymentMethods": [
       "現金",
@@ -341,10 +401,9 @@ const STORES_DATA = [
     "instagramUrl": "https://instagram.com/",
     "photoUrl": null,
     "mapPos": {
-      "top": "23%",
-      "left": "59%"
-    },
-    "badge": "クラフトビール"
+      "top": "30%",
+      "left": "70%"
+    }
   },
   {
     "id": "store-10",
@@ -354,21 +413,28 @@ const STORES_DATA = [
     "category": "ダイニング",
     "type": "食事向け",
     "isOpenToday": true,
-    "isEventActive": true,
-    "eventTitle": "三線ライブクエスト：毎週土曜夜は三線ライブ開催！盛り上がろう！",
+    "isQuestActive": true,
+    "quest": {
+      "title": "三線ライブクエスト",
+      "price": 0,
+      "charge": "不要",
+      "content": "毎週土曜夜は三線ライブ開催！盛り上がろう！",
+      "notes": "※土曜夜限定の特別ライブイベントです！"
+    },
     "catchphrase": "「リトル沖縄」大正区ならではの本格沖縄料理と泡盛の店",
     "yoidoreSet": {
       "title": "オリオン生ビール＆じっくり煮込んだラフテーセット",
       "content": "オリオン生ビール1杯 ＋ とろとろ自家製ラフテー（豚角煮）",
       "price": 1000,
-      "includeCharge": true
+      "charge": "不要",
+      "includeCharge": false,
+      "notes": "泡盛への変更も可能です。"
     },
     "conditions": {
-      "days": "全日",
-      "hours": "17:00 - 23:00",
+      "days": "月,火,水,木,金,土,日",
+      "hours": "17:00-23:00",
       "limit": "限定30セット",
-      "soldOutEnd": true,
-      "notes": "泡盛への変更も可能です。"
+      "soldOutEnd": true
     },
     "paymentMethods": [
       "現金",
@@ -379,10 +445,9 @@ const STORES_DATA = [
     "instagramUrl": "https://instagram.com/",
     "photoUrl": null,
     "mapPos": {
-      "top": "30%",
-      "left": "70%"
-    },
-    "badge": "沖縄料理"
+      "top": "37%",
+      "left": "21%"
+    }
   }
 ];
 
@@ -410,6 +475,75 @@ const TYPES_LIST = [
 ];
 
 /**
+ * 店舗が「今日・今」営業中かを動的に判定する関数
+ */
+function checkIsOpenToday(store, eventPeriod = (typeof EVENT_PERIOD !== 'undefined' ? EVENT_PERIOD : null), now = new Date()) {
+  if (!store) return false;
+
+  // 1. イベント期間判定 (YYYY-MM-DD)
+  if (eventPeriod && eventPeriod.startDate && eventPeriod.endDate) {
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${y}-${m}-${d}`;
+
+    if (todayStr < eventPeriod.startDate || todayStr > eventPeriod.endDate) {
+      return false;
+    }
+  }
+
+  // 2. 曜日判定
+  const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+  const rawDays = (store.conditions && store.conditions.days) ? store.conditions.days : '';
+  const allowedDays = rawDays.split(',').map(s => s.trim());
+
+  // 3. 営業時間判定 (HH:MM-HH:MM)
+  const rawHours = (store.conditions && store.conditions.hours) ? store.conditions.hours : '';
+  if (!rawHours || !rawHours.includes('-')) {
+    return false;
+  }
+
+  const parts = rawHours.split('-').map(s => s.trim());
+  if (parts.length !== 2) return false;
+
+  const [startStr, endStr] = parts;
+  const [startH, startM] = startStr.split(':').map(Number);
+  const [endH, endM] = endStr.split(':').map(Number);
+
+  if (isNaN(startH) || isNaN(startM) || isNaN(endH) || isNaN(endM)) {
+    return false;
+  }
+
+  const curMinutes = now.getHours() * 60 + now.getMinutes();
+  const startMinutes = startH * 60 + startM;
+  const endMinutes = endH * 60 + endM;
+
+  const isOvernight = endMinutes <= startMinutes;
+
+  if (!isOvernight) {
+    // 通常営業（同日内）
+    const currentDayName = dayNames[now.getDay()];
+    if (!allowedDays.includes(currentDayName)) return false;
+    return curMinutes >= startMinutes && curMinutes < endMinutes;
+  } else {
+    // 深夜（日跨ぎ）営業
+    if (curMinutes >= startMinutes) {
+      // 当日夜のシフト枠
+      const currentDayName = dayNames[now.getDay()];
+      return allowedDays.includes(currentDayName);
+    } else if (curMinutes < endMinutes) {
+      // 翌日早朝のシフト枠（前日営業枠の継続）
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      const yesterdayName = dayNames[yesterday.getDay()];
+      return allowedDays.includes(yesterdayName);
+    } else {
+      return false;
+    }
+  }
+}
+
+/**
  * Excel(XLSX) ArrayBufferをSTORES_DATAオブジェクト配列にパースする関数（Webサーバー閲覧時の動的更新用）
  */
 function parseXLSXToStoresData(arrayBuffer) {
@@ -420,7 +554,24 @@ function parseXLSXToStoresData(arrayBuffer) {
   }
 
   const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-  const firstSheetName = workbook.SheetNames[0];
+
+  // イベント期間のパース
+  let parsedEventPeriod = null;
+  if (workbook.SheetNames.includes('イベント期間')) {
+    const eventSheet = workbook.Sheets['イベント期間'];
+    const eventJson = XLSX.utils.sheet_to_json(eventSheet, { header: 1, defval: '' });
+    if (eventJson && eventJson.length >= 2) {
+      const startVal = String(eventJson[1][0] || '').trim().split(' ')[0];
+      const endVal = String(eventJson[1][1] || '').trim().split(' ')[0];
+      parsedEventPeriod = { startDate: startVal, endDate: endVal };
+      if (typeof EVENT_PERIOD !== 'undefined') {
+        EVENT_PERIOD.startDate = startVal;
+        EVENT_PERIOD.endDate = endVal;
+      }
+    }
+  }
+
+  const firstSheetName = workbook.SheetNames.includes('店舗一覧') ? '店舗一覧' : workbook.SheetNames[0];
   const worksheet = workbook.Sheets[firstSheetName];
   const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
 
@@ -449,32 +600,40 @@ function parseXLSXToStoresData(arrayBuffer) {
     if (!name) continue;
 
     const ruby = getVal("よみがな", "フリガナ", "かな");
-    const area = getVal("エリア", "地域") || "その他";
-    const category = getVal("カテゴリ", "カテゴリー", "ジャンル", "店の種類") || "居酒屋";
-    const type = getVal("タイプ", "店舗タイプ", "スタイル") || "はしご向け";
-    const badge = getVal("特徴バッジ", "バッジ") || "";
+    const area = getVal("エリア", "地域");
+    const category = getVal("カテゴリ", "カテゴリー", "ジャンル", "店の種類");
+    const type = getVal("タイプ", "店舗タイプ", "スタイル");
     const catchphrase = getVal("キャッチコピー", "コピー");
 
     const set_title = getVal("酔いどれセット名", "セット名");
     const set_content = getVal("セット内容", "内容");
-    const priceStr = getVal("価格(円)", "価格", "金額").replace(/[^\d]/g, '');
-    const price = priceStr ? parseInt(priceStr, 10) : 1000;
-    const includeChargeStr = getVal("チャージ");
-    const includeCharge = includeChargeStr.includes("込") || includeChargeStr.toLowerCase() === 'true';
+    const priceStr = getVal("価格(円)", "価格", "金額", "セット価格(円)", "セット価格").replace(/[^\d]/g, '');
+    const price = priceStr ? parseInt(priceStr, 10) : 0;
+    const includeChargeStr = getVal("チャージ", "セットチャージ");
+    const setCharge = (includeChargeStr.includes("不要") || includeChargeStr.includes("無")) ? "不要" : "込";
 
     const days = getVal("提供日");
     const hours = getVal("提供時間");
     const limit = getVal("限定数");
-    const notes = getVal("備考・注意事項", "備考", "注意事項");
+    const setNotes = getVal("セット備考", "備考・注意事項", "備考", "注意事項");
 
-    const eventTitle = getVal("イベント情報", "イベント");
+    const questTitle = getVal("クエスト名");
+    const questPriceStr = getVal("クエスト価格(円)", "クエスト価格", "クエスト金額(円)", "クエスト金額").replace(/[^\d]/g, '');
+    const questPrice = questPriceStr ? parseInt(questPriceStr, 10) : 0;
+    const questChargeStr = getVal("クエストチャージ");
+    const questCharge = questChargeStr.includes("込") ? "込" : "不要";
+
+    const questContent = getVal("クエスト内容", "イベント情報", "イベント");
+    const questNotes = getVal("クエスト備考");
+    const isQuestActive = !!(questTitle || questContent);
+
     const paymentMethodsRaw = getVal("決済方法", "支払い方法");
     const paymentMethods = paymentMethodsRaw
       ? paymentMethodsRaw.split(/[,/、\s]+/).filter(Boolean)
-      : ["現金"];
+      : [];
 
-    const googleMapUrl = getVal("Google Map URL", "GoogleMapURL", "マップURL") || `https://maps.google.com/?q=${encodeURIComponent(name)}`;
-    const instagramUrl = getVal("Instagram URL", "InstagramURL", "インスタURL") || "https://instagram.com/";
+    const googleMapUrl = getVal("Google Map URL", "GoogleMapURL", "マップURL");
+    const instagramUrl = getVal("Instagram URL", "InstagramURL", "インスタURL");
     let photoFileName = getVal("photo", "Photo", "PHOTO", "写真", "画像");
     if (photoFileName) {
       photoFileName = photoFileName.replace(/^photo[/\\]/i, '');
@@ -484,7 +643,7 @@ function parseXLSXToStoresData(arrayBuffer) {
     const existing = (typeof STORES_DATA !== 'undefined') ? STORES_DATA.find(s => s.id === id || s.name === name) : null;
     const mapPos = existing ? existing.mapPos : { top: `${20 + (i * 7) % 60}%`, left: `${20 + (i * 11) % 60}%` };
 
-    newStores.push({
+    const storeObj = {
       id,
       name,
       ruby,
@@ -492,29 +651,38 @@ function parseXLSXToStoresData(arrayBuffer) {
       category,
       type,
       isOpenToday: true,
-      isEventActive: !!eventTitle,
-      eventTitle,
+      isQuestActive,
+      quest: {
+        title: questTitle,
+        price: questPrice,
+        charge: questCharge,
+        content: questContent,
+        notes: questNotes
+      },
       catchphrase,
       yoidoreSet: {
         title: set_title,
         content: set_content,
         price,
-        includeCharge
+        charge: setCharge,
+        includeCharge: setCharge === "込",
+        notes: setNotes
       },
       conditions: {
         days,
         hours,
         limit,
-        soldOutEnd: limit.includes("限定") || limit.includes("完売"),
-        notes
+        soldOutEnd: limit.includes("限定") || limit.includes("完売")
       },
       paymentMethods,
       googleMapUrl,
       instagramUrl,
       photoUrl,
-      mapPos,
-      badge
-    });
+      mapPos
+    };
+
+    storeObj.isOpenToday = checkIsOpenToday(storeObj, parsedEventPeriod || (typeof EVENT_PERIOD !== 'undefined' ? EVENT_PERIOD : null));
+    newStores.push(storeObj);
   }
 
   return newStores;
