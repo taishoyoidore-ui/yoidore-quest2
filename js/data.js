@@ -85,7 +85,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/LvrTR4thHgoGpoRc7",
     "instagramUrl": "https://www.instagram.com/hamburger.mama",
     "photoUrl": "photo/002.jpg",
     "logoUrl": "logo/002.png",
@@ -125,7 +125,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/9DHWbdXcG6VwQRg17",
     "instagramUrl": "https://www.instagram.com/sunnasubi0675085821",
     "photoUrl": "photo/003.jpg",
     "logoUrl": "logo/003.png",
@@ -165,7 +165,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/wSUzPpSDHh3tzyap6",
     "instagramUrl": "https://www.instagram.com/taipan_taisho",
     "photoUrl": "photo/004.jpg",
     "logoUrl": "logo/004.png",
@@ -205,7 +205,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/JVXGfL5NwG4vKz2t6",
     "instagramUrl": "https://www.instagram.com/haiena_haitu",
     "photoUrl": "photo/005.jpg",
     "logoUrl": "logo/005.png",
@@ -245,7 +245,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/rBmQt912byGEZgbU7",
     "instagramUrl": "https://www.instagram.com/chweets_1138",
     "photoUrl": "photo/006.jpg",
     "logoUrl": "logo/006.png",
@@ -285,7 +285,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/h1iC1PzMoU3TmyDg9",
     "instagramUrl": "https://www.instagram.com/bar_ks_taisho",
     "photoUrl": "photo/007.jpg",
     "logoUrl": "logo/007.png",
@@ -325,7 +325,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/j4hhdwnWPQZ365rk7",
     "instagramUrl": "https://www.instagram.com/bar_six_nine_0692",
     "photoUrl": "photo/008.jpg",
     "logoUrl": "logo/008.png",
@@ -365,7 +365,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/a9AcRcjV9q895Jeo6",
     "instagramUrl": "https://www.instagram.com/chabo_taisho",
     "photoUrl": "photo/009.jpg",
     "logoUrl": "logo/009.png",
@@ -405,7 +405,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/svhsvpjHHy4Wfxv49",
     "instagramUrl": "https://www.instagram.com/fujiwarakun_taisho",
     "photoUrl": "photo/010.jpg",
     "logoUrl": "logo/010.png",
@@ -445,7 +445,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/SGWcKvKGnM5jmSea6",
     "instagramUrl": "https://www.instagram.com/hige_to.boin",
     "photoUrl": "photo/011.jpg",
     "logoUrl": "logo/011.png",
@@ -485,7 +485,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/2TSaY99KjvafbH728",
     "instagramUrl": "https://www.instagram.com/izakaya_sei",
     "photoUrl": "photo/012.jpg",
     "logoUrl": "logo/012.png",
@@ -525,7 +525,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/GSNQFGQG6kZgSscz7",
     "instagramUrl": "https://www.instagram.com/izakaya_tasuichi",
     "photoUrl": "photo/013.jpg",
     "logoUrl": "logo/013.png",
@@ -565,7 +565,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/xrZVAtv7kBYFbYxU8",
     "instagramUrl": "https://www.instagram.com/jidoru_1013",
     "photoUrl": "photo/014.jpg",
     "logoUrl": "logo/014.png",
@@ -605,7 +605,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/BYfv2YxJfrB6RUYV8",
     "instagramUrl": "https://www.instagram.com/kijimuna_no_mori.03.03",
     "photoUrl": "photo/015.jpg",
     "logoUrl": "logo/015.png",
@@ -645,7 +645,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/kGdEWrLq5bwaRyeX7",
     "instagramUrl": "https://www.instagram.com/nanchatteino_erie",
     "photoUrl": "photo/016.jpg",
     "logoUrl": "logo/016.png",
@@ -685,7 +685,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/WiS8rFbF993DeBHp9",
     "instagramUrl": "https://www.instagram.com/Neboke_bar",
     "photoUrl": "photo/017.jpg",
     "logoUrl": "logo/017.png",
@@ -725,7 +725,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/xUqC8zQH77DDPQ7c9",
     "instagramUrl": "https://www.instagram.com/nicoya1203",
     "photoUrl": "photo/018.jpg",
     "logoUrl": "logo/018.png",
@@ -765,7 +765,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/uUPFxJA4w57PqYzf7",
     "instagramUrl": "https://www.instagram.com/showz0069",
     "photoUrl": "photo/019.jpg",
     "logoUrl": "logo/019.png",
@@ -805,7 +805,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/P1ytbeyLANs4TgD19",
     "instagramUrl": "https://www.instagram.com/tarochan_taisho",
     "photoUrl": "photo/020.jpg",
     "logoUrl": "logo/020.png",
@@ -845,7 +845,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/SgdnoFYhwHF52vjd8",
     "instagramUrl": "https://www.instagram.com/teppanyaki_eihachi",
     "photoUrl": "photo/021.jpg",
     "logoUrl": "logo/021.png",
@@ -885,7 +885,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/rc5NfzqfDAM7pevWA",
     "instagramUrl": "https://www.instagram.com/ura_omote.shokudou",
     "photoUrl": "photo/022.jpg",
     "logoUrl": "logo/022.png",
@@ -925,7 +925,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/9Wt44gRpXPDoTt1q9",
     "instagramUrl": "https://www.instagram.com/yakiniku.k2plus",
     "photoUrl": "photo/023.jpg",
     "logoUrl": "logo/023.png",
@@ -1045,7 +1045,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/DXhUb1vmR7aNUMMT8",
     "instagramUrl": "https://www.instagram.com/sanchan.o2",
     "photoUrl": "photo/026.jpg",
     "logoUrl": "logo/026.png",
@@ -1085,7 +1085,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/typkWCnoPJKCUWyH8",
     "instagramUrl": "https://www.instagram.com/soundbar__hanaichi",
     "photoUrl": "photo/027.jpg",
     "logoUrl": "logo/027.png",
@@ -1125,7 +1125,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/Prnu5oBX6hyQzpft6",
     "instagramUrl": "https://www.instagram.com/za.okinawa",
     "photoUrl": "photo/028.jpg",
     "logoUrl": "logo/028.png",
@@ -1165,7 +1165,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/NL1uEH8kq3MhMEzdA",
     "instagramUrl": "https://www.instagram.com/essence_taishou",
     "photoUrl": "photo/029.jpg",
     "logoUrl": "logo/029.png",
@@ -1205,7 +1205,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/95uXqnFcfkMM8Jwo8",
     "instagramUrl": "https://www.instagram.com/bar_cococolor_taisho",
     "photoUrl": "photo/030.jpg",
     "logoUrl": "logo/030.png",
@@ -1245,7 +1245,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/PB2QxJm3seTe8PFH6",
     "instagramUrl": "https://www.instagram.com/fuku__nchu",
     "photoUrl": "photo/031.jpg",
     "logoUrl": "logo/031.png",
@@ -1285,7 +1285,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/qM8P7SU6UqcARZm29",
     "instagramUrl": "https://www.instagram.com/tms_diner_osaka",
     "photoUrl": "photo/032.jpg",
     "logoUrl": "logo/032.png",
@@ -1325,7 +1325,7 @@ const STORES_DATA = [
       "soldOutEnd": false
     },
     "paymentMethods": [],
-    "googleMapUrl": "",
+    "googleMapUrl": "https://maps.app.goo.gl/e85zQpDRWme5xsyr6",
     "instagramUrl": "https://www.instagram.com/pizzerialegare",
     "photoUrl": "photo/033.jpg",
     "logoUrl": "logo/033.png",
