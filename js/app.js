@@ -9,6 +9,7 @@ class YoidoreQuestApp {
     this.soundEnabled = true;
     this.audioCtx = null;
     this.isStarted = false;
+    this.lastStoresScrollY = 0;
     
     // フィルター状態
     this.filters = {
@@ -230,7 +231,11 @@ class YoidoreQuestApp {
         if (targetView) {
           this.playSelectSE();
           if (targetView === 'stores-all') {
-            this.resetFilters();
+            if (this.currentView === 'stores') {
+              // すでに店舗一覧画面にいる状態でもう一度「店舗一覧」を押した場合は一番上へリセット
+              this.resetFilters();
+            }
+            // 店舗詳細など別画面から「店舗一覧」を押した場合は、前回のスクロール位置・検索条件を維持して戻る
             this.navigateTo('stores');
           } else {
             this.navigateTo(targetView);
@@ -248,6 +253,7 @@ class YoidoreQuestApp {
       openToday: false,
       searchQuery: ''
     };
+    this.lastStoresScrollY = 0;
   }
 
   /* ------------------------------------------------------------------------
@@ -257,6 +263,11 @@ class YoidoreQuestApp {
     if (view === 'map') {
       window.open('https://maps.app.goo.gl/SqskFzoxuso7NwwL8', '_blank');
       return;
+    }
+
+    // 店舗一覧画面から別画面（詳細など）へ遷移する際、現在のスクロール位置を保存
+    if (this.currentView === 'stores' && view !== 'stores') {
+      this.lastStoresScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
     }
 
     this.currentView = view;
@@ -273,7 +284,19 @@ class YoidoreQuestApp {
     });
 
     this.render();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // 店舗一覧画面に戻ってきた場合は前回のスクロール位置を復元、それ以外は最上部へ
+    if (view === 'stores' && this.lastStoresScrollY > 0) {
+      const targetY = this.lastStoresScrollY;
+      requestAnimationFrame(() => {
+        window.scrollTo(0, targetY);
+      });
+      setTimeout(() => {
+        window.scrollTo(0, targetY);
+      }, 50);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 
   // メッセージウィンドウのタイピング演出
@@ -572,25 +595,6 @@ class YoidoreQuestApp {
    * 3.7 店舗一覧 (カード形式 & フィルター)
    * ------------------------------------------------------------------------ */
   renderStoresView(container) {
-    // フィルタリング処理
-    let filtered = STORES_DATA.filter(store => {
-      if (this.filters.area !== 'ALL' && store.area !== this.filters.area) return false;
-      if (this.filters.category !== 'ALL' && store.category !== this.filters.category) return false;
-      if (this.filters.type !== 'ALL' && store.type !== this.filters.type) return false;
-      if (this.filters.openToday && !store.isOpenToday) return false;
-      if (this.filters.searchQuery) {
-        const q = this.filters.searchQuery.toLowerCase();
-        return store.name.toLowerCase().includes(q) || 
-               store.catchphrase.toLowerCase().includes(q);
-      }
-      return true;
-    });
-
-    // ID順ソート（初期表示順）
-    filtered.sort((a, b) => a.id.localeCompare(b.id, 'ja', { numeric: true }));
-
-    this.typeMessage(`条件に一致する店舗が ${filtered.length} 件見つかりました。カードをタップして詳細を確認できます。`);
-
     const areaOptions = ['ALL', ...AREAS_LIST].map(a => 
       `<option value="${a}" ${this.filters.area === a ? 'selected' : ''}>${a === 'ALL' ? '全エリア' : a}</option>`
     ).join('');
@@ -604,61 +608,6 @@ class YoidoreQuestApp {
     const typeOptions = ['ALL', ...allTypes].map(t => 
       `<option value="${t}" ${this.filters.type === t ? 'selected' : ''}>${t === 'ALL' ? '全酔いどれタイプ' : t}</option>`
     ).join('');
-
-    const cardsHtml = filtered.length > 0 ? filtered.map(store => `
-      <div class="store-card" data-id="${store.id}">
-        <div class="store-card-top-flex">
-          <div class="store-card-info-block">
-            <div class="store-card-header-row">
-              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-                ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
-                ${store.category ? `<span class="tag">${store.category}</span>` : ''}
-                ${store.type ? `<span class="tag tag-type">${store.type}</span>` : ''}
-              </div>
-              <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}">
-                ${store.isOpenToday ? '営業中' : '営業時間外'}
-              </span>
-            </div>
-
-            <div class="store-name" style="margin-top:6px;">
-              <span>${store.name}</span>
-            </div>
-          </div>
-
-          ${store.logoUrl ? `
-            <div class="store-card-logo-box">
-              <img src="${store.logoUrl}" alt="${store.name}のロゴ" class="store-card-logo-img" onerror="this.closest('.store-card-logo-box').style.display='none';">
-            </div>
-          ` : ''}
-        </div>
-
-        <div class="store-previews">
-          ${store.yoidoreSet && store.yoidoreSet.title ? `
-            <div class="store-set-preview">
-              <div class="preview-header">
-                <span class="preview-label">🍺 酔いどれセット:</span>
-                ${store.yoidoreSet.price > 0 ? `<span class="store-price">¥${store.yoidoreSet.price.toLocaleString()}</span>` : ''}
-              </div>
-              <div class="preview-title">${store.yoidoreSet.title}</div>
-            </div>
-          ` : ''}
-
-          ${store.isQuestActive ? `
-            <div class="store-quest-preview">
-              <div class="preview-header">
-                <span class="preview-label">⚔️ 店舗クエスト:</span>
-                <span class="quest-price-badge">${store.quest.price > 0 ? `¥${store.quest.price.toLocaleString()}` : '🟢 無料'}</span>
-              </div>
-              <div class="preview-title">${store.quest.title || store.quest.content}</div>
-            </div>
-          ` : ''}
-        </div>
-      </div>
-    `).join('') : `
-      <div class="rpg-window text-center" style="padding: 20px; color: var(--text-dim);">
-        条件に一致する店舗が見つかりませんでした。<br>フィルターを変更してください。
-      </div>
-    `;
 
     container.innerHTML = `
       <div class="rpg-window">
@@ -682,51 +631,158 @@ class YoidoreQuestApp {
         </div>
       </div>
 
-      <div class="store-card-list">
-        ${cardsHtml}
+      <div id="stores-card-list-container" class="store-card-list">
+        <!-- JSで動的レンダリング -->
       </div>
     `;
 
-    // フィルターチェンジイベント
-    const updateFiltersAndRender = () => {
+    // 店舗カード一覧の部分更新関数（入力欄などのDOMを破棄しない）
+    const updateStoreList = () => {
+      let filtered = STORES_DATA.filter(store => {
+        if (this.filters.area !== 'ALL' && store.area !== this.filters.area) return false;
+        if (this.filters.category !== 'ALL' && store.category !== this.filters.category) return false;
+        if (this.filters.type !== 'ALL' && store.type !== this.filters.type) return false;
+        if (this.filters.openToday && !store.isOpenToday) return false;
+        if (this.filters.searchQuery) {
+          const q = this.filters.searchQuery.toLowerCase().trim();
+          return store.name.toLowerCase().includes(q) || 
+                 store.catchphrase.toLowerCase().includes(q);
+        }
+        return true;
+      });
+
+      filtered.sort((a, b) => a.id.localeCompare(b.id, 'ja', { numeric: true }));
+
+      this.typeMessage(`条件に一致する店舗が ${filtered.length} 件見つかりました。カードをタップして詳細を確認できます。`);
+
+      const cardsHtml = filtered.length > 0 ? filtered.map(store => `
+        <div class="store-card" data-id="${store.id}">
+          <div class="store-card-top-flex">
+            <div class="store-card-info-block">
+              <div class="store-card-header-row">
+                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                  ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
+                  ${store.category ? `<span class="tag">${store.category}</span>` : ''}
+                  ${store.type ? `<span class="tag tag-type">${store.type}</span>` : ''}
+                </div>
+                <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}">
+                  ${store.isOpenToday ? '営業中' : '営業時間外'}
+                </span>
+              </div>
+
+              <div class="store-name" style="margin-top:6px;">
+                <span>${store.name}</span>
+              </div>
+            </div>
+
+            ${store.logoUrl ? `
+              <div class="store-card-logo-box">
+                <img src="${store.logoUrl}" alt="${store.name}のロゴ" class="store-card-logo-img" onerror="this.closest('.store-card-logo-box').style.display='none';">
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="store-previews">
+            ${store.yoidoreSet && store.yoidoreSet.title ? `
+              <div class="store-set-preview">
+                <div class="preview-header">
+                  <span class="preview-label">🍺 酔いどれセット:</span>
+                  ${store.yoidoreSet.price > 0 ? `<span class="store-price">¥${store.yoidoreSet.price.toLocaleString()}</span>` : ''}
+                </div>
+                <div class="preview-title">${store.yoidoreSet.title}</div>
+              </div>
+            ` : ''}
+
+            ${store.isQuestActive ? `
+              <div class="store-quest-preview">
+                <div class="preview-header">
+                  <span class="preview-label">⚔️ 店舗クエスト:</span>
+                  <span class="quest-price-badge">${store.quest.price > 0 ? `¥${store.quest.price.toLocaleString()}` : '🟢 無料'}</span>
+                </div>
+                <div class="preview-title">${store.quest.title || store.quest.content}</div>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `).join('') : `
+        <div class="rpg-window text-center" style="padding: 20px; color: var(--text-dim);">
+          条件に一致する店舗が見つかりませんでした。<br>フィルターを変更してください。
+        </div>
+      `;
+
+      const listContainer = document.getElementById('stores-card-list-container');
+      if (listContainer) {
+        listContainer.innerHTML = cardsHtml;
+
+        listContainer.querySelectorAll('.store-card').forEach(card => {
+          card.addEventListener('mouseenter', () => this.playCursorSE());
+          card.addEventListener('click', () => {
+            this.playSelectSE();
+            const storeId = card.dataset.id;
+            const store = STORES_DATA.find(s => s.id === storeId);
+            if (store) {
+              this.navigateTo('detail', { store });
+            }
+          });
+        });
+      }
+    };
+
+    // 初回レンダリング
+    updateStoreList();
+
+    // ドロップダウン選択チェンジイベント
+    const onFilterChange = () => {
       this.playSelectSE();
       this.filters.area = document.getElementById('filter-area').value;
       this.filters.category = document.getElementById('filter-category').value;
       this.filters.type = document.getElementById('filter-type').value;
-      this.filters.searchQuery = document.getElementById('filter-search').value;
-      this.render();
+      this.lastStoresScrollY = 0;
+      updateStoreList();
     };
 
-    document.getElementById('filter-area').addEventListener('change', updateFiltersAndRender);
-    document.getElementById('filter-category').addEventListener('change', updateFiltersAndRender);
-    document.getElementById('filter-type').addEventListener('change', updateFiltersAndRender);
-    
-    let searchTimeout;
-    document.getElementById('filter-search').addEventListener('input', (e) => {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => {
-        this.filters.searchQuery = e.target.value;
-        this.render();
-      }, 300);
+    document.getElementById('filter-area').addEventListener('change', onFilterChange);
+    document.getElementById('filter-category').addEventListener('change', onFilterChange);
+    document.getElementById('filter-type').addEventListener('change', onFilterChange);
+
+    // キーワード検索（IME日本語入力変換対応）
+    const searchInput = document.getElementById('filter-search');
+    let isComposing = false;
+
+    searchInput.addEventListener('compositionstart', () => {
+      isComposing = true;
     });
 
+    searchInput.addEventListener('compositionend', (e) => {
+      isComposing = false;
+      this.filters.searchQuery = e.target.value;
+      this.lastStoresScrollY = 0;
+      updateStoreList();
+    });
+
+    let searchTimeout;
+    searchInput.addEventListener('input', (e) => {
+      this.filters.searchQuery = e.target.value;
+      if (isComposing) return; // 日本語入力・漢字変換中はリアルタイム検索によるカード更新をスキップ
+      
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        this.lastStoresScrollY = 0;
+        updateStoreList();
+      }, 250);
+    });
+
+    // 今日営業のみチップ
     document.getElementById('chip-open-today').addEventListener('click', () => {
       this.playSelectSE();
       this.filters.openToday = !this.filters.openToday;
-      this.render();
-    });
-
-    // カードクリックイベント
-    container.querySelectorAll('.store-card').forEach(card => {
-      card.addEventListener('mouseenter', () => this.playCursorSE());
-      card.addEventListener('click', () => {
-        this.playSelectSE();
-        const storeId = card.dataset.id;
-        const store = STORES_DATA.find(s => s.id === storeId);
-        if (store) {
-          this.navigateTo('detail', { store });
-        }
-      });
+      const chip = document.getElementById('chip-open-today');
+      if (chip) {
+        chip.classList.toggle('active', this.filters.openToday);
+        chip.textContent = this.filters.openToday ? '✓ 今日営業のみ' : '今日営業のみ';
+      }
+      this.lastStoresScrollY = 0;
+      updateStoreList();
     });
   }
 
@@ -922,8 +978,14 @@ class YoidoreQuestApp {
       </div>
     `;
 
+    container.querySelectorAll('.external-link-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.playSelectSE();
+      });
+    });
+
     container.querySelector('.back-to-stores-smart').addEventListener('click', () => {
-      this.playBackSE();
+      this.playSelectSE();
       this.navigateTo('stores');
     });
   }

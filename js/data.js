@@ -216,7 +216,7 @@ const STORES_DATA = [
   },
   {
     "id": "store-06",
-    "name": "CHWEETS",
+    "name": "CHWEETS　キイロのお店",
     "area": "三軒家西",
     "category": "カフェ",
     "type": "ひと休み",
