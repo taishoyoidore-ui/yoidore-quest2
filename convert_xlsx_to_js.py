@@ -87,8 +87,8 @@ def convert_excel_to_js():
         catchphrase_idx = get_col_idx("キャッチコピー", "コピー")
 
         set_title_idx = get_col_idx("酔いどれセット名", "セット名")
-        set_content_idx = get_col_idx("セット内容", "内容")
-        price_idx = get_col_idx("価格(円)", "価格", "金額", "セット価格(円)", "セット価格")
+        set_content_idx = get_col_idx("セット内容", "内容", "セット詳細")
+        price_idx = get_col_idx("価格(円)", "価格", "金額", "セット価格(円)", "セット価格", "セット金額", "セット金額(円)")
         charge_idx = get_col_idx("チャージ", "セットチャージ")
 
         days_idx = get_col_idx("提供日")
@@ -97,15 +97,16 @@ def convert_excel_to_js():
         set_notes_idx = get_col_idx("セット備考", "備考・注意事項", "備考", "注意事項")
 
         quest_title_idx = get_col_idx("クエスト名")
-        quest_price_idx = get_col_idx("クエスト価格(円)", "クエスト価格", "クエスト金額(円)", "クエスト金額")
+        quest_price_idx = get_col_idx("クエスト価格(円)", "クエスト価格", "クエスト金額(円)", "クエスト金額", "クエスト金額(円)", "金額")
         quest_charge_idx = get_col_idx("クエストチャージ")
         quest_content_idx = get_col_idx("クエスト内容", "イベント情報", "イベント")
-        quest_notes_idx = get_col_idx("クエスト備考")
+        quest_notes_idx = get_col_idx("クエスト備考", "備考")
 
         payment_idx = get_col_idx("決済方法", "支払い方法")
         map_idx = get_col_idx("google map url", "googlemapurl", "マップurl")
         insta_idx = get_col_idx("instagram url", "instagramurl", "インスタurl")
         photo_idx = get_col_idx("photo", "写真", "画像")
+        logo_idx = get_col_idx("logo", "ロゴ", "ロゴ画像", "ロゴurl", "ロゴファイル")
 
         if name_idx == -1 or days_idx == -1 or hours_idx == -1:
             errors.append("エラー: 『店舗一覧』に必要な列（店舗名、提供日、提供時間）が見つかりません。")
@@ -217,6 +218,22 @@ def convert_excel_to_js():
             else:
                 photo_url = None
 
+            logo_file = str(row[logo_idx] or '').strip() if (logo_idx != -1 and logo_idx < len(row) and row[logo_idx]) else ''
+            if logo_file:
+                logo_file = re.sub(r'^(logo|photo)[/\\]', '', logo_file, flags=re.IGNORECASE)
+                logo_url = f"logo/{logo_file}"
+            else:
+                clean_id = re.sub(r'^\D+', '', store_id)
+                clean_id_zfill = clean_id.zfill(3) if clean_id else ''
+                c1 = os.path.join(os.path.dirname(__file__), 'logo', f"{clean_id_zfill}.png")
+                c2 = os.path.join(os.path.dirname(__file__), 'logo', f"{store_id}.png")
+                if clean_id_zfill and os.path.exists(c1):
+                    logo_url = f"logo/{clean_id_zfill}.png"
+                elif os.path.exists(c2):
+                    logo_url = f"logo/{store_id}.png"
+                else:
+                    logo_url = None
+
             map_pos = {
                 "top": f"{20 + (row_idx * 7) % 60}%",
                 "left": f"{20 + (row_idx * 11) % 60}%"
@@ -256,6 +273,7 @@ def convert_excel_to_js():
                 "googleMapUrl": g_map,
                 "instagramUrl": insta,
                 "photoUrl": photo_url,
+                "logoUrl": logo_url,
                 "mapPos": map_pos
             }
             stores.append(store_obj)
@@ -415,8 +433,8 @@ function parseXLSXToStoresData(arrayBuffer) {{
     const catchphrase = getVal("キャッチコピー", "コピー");
 
     const set_title = getVal("酔いどれセット名", "セット名");
-    const set_content = getVal("セット内容", "内容");
-    const priceStr = getVal("価格(円)", "価格", "金額", "セット価格(円)", "セット価格").replace(/[^\\d]/g, '');
+    const set_content = getVal("セット内容", "内容", "セット詳細");
+    const priceStr = getVal("価格(円)", "価格", "金額", "セット価格(円)", "セット価格", "セット金額", "セット金額(円)").replace(/[^\\d]/g, '');
     const price = priceStr ? parseInt(priceStr, 10) : 0;
     const includeChargeStr = getVal("チャージ", "セットチャージ");
     const setCharge = (includeChargeStr.includes("不要") || includeChargeStr.includes("無")) ? "不要" : "込";
@@ -427,13 +445,13 @@ function parseXLSXToStoresData(arrayBuffer) {{
     const setNotes = getVal("セット備考", "備考・注意事項", "備考", "注意事項");
 
     const questTitle = getVal("クエスト名");
-    const questPriceStr = getVal("クエスト価格(円)", "クエスト価格", "クエスト金額(円)", "クエスト金額").replace(/[^\\d]/g, '');
+    const questPriceStr = getVal("クエスト価格(円)", "クエスト価格", "クエスト金額(円)", "クエスト金額", "クエスト金額(円)", "金額").replace(/[^\\d]/g, '');
     const questPrice = questPriceStr ? parseInt(questPriceStr, 10) : 0;
     const questChargeStr = getVal("クエストチャージ");
     const questCharge = questChargeStr.includes("込") ? "込" : "不要";
 
     const questContent = getVal("クエスト内容", "イベント情報", "イベント");
-    const questNotes = getVal("クエスト備考");
+    const questNotes = getVal("クエスト備考", "備考");
     const isQuestActive = !!(questTitle || questContent);
 
     const paymentMethodsRaw = getVal("決済方法", "支払い方法");
@@ -448,6 +466,18 @@ function parseXLSXToStoresData(arrayBuffer) {{
       photoFileName = photoFileName.replace(/^photo[/\\\\]/i, '');
     }}
     const photoUrl = photoFileName ? `photo/${{photoFileName}}` : null;
+
+    let logoFileName = getVal("logo", "Logo", "LOGO", "ロゴ", "ロゴ画像", "ロゴファイル");
+    if (logoFileName) {{
+      logoFileName = logoFileName.replace(/^(logo|photo)[/\\\\]/i, '');
+    }}
+    if (!logoFileName) {{
+      const cleanId = id.replace(/\\D/g, '');
+      if (cleanId) {{
+        logoFileName = `${{cleanId.padStart(3, '0')}}.png`;
+      }}
+    }}
+    const logoUrl = logoFileName ? `logo/${{logoFileName}}` : null;
 
     const existing = (typeof STORES_DATA !== 'undefined') ? STORES_DATA.find(s => s.id === id || s.name === name) : null;
     const mapPos = existing ? existing.mapPos : {{ top: `${{20 + (i * 7) % 60}}%`, left: `${{20 + (i * 11) % 60}}%` }};
@@ -486,6 +516,7 @@ function parseXLSXToStoresData(arrayBuffer) {{
       googleMapUrl,
       instagramUrl,
       photoUrl,
+      logoUrl,
       mapPos
     }};
 

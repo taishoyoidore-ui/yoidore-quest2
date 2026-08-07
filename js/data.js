@@ -48,6 +48,7 @@ const STORES_DATA = [
     "googleMapUrl": "https://maps.app.goo.gl/zEmF7y9d2rdJpG8a7",
     "instagramUrl": "https://www.instagram.com/t_youbi_",
     "photoUrl": "photo/001.jpg",
+    "logoUrl": "logo/001.png",
     "mapPos": {
       "top": "34%",
       "left": "42%"
@@ -87,6 +88,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/hamburger.mama",
     "photoUrl": "photo/002.jpg",
+    "logoUrl": "logo/002.png",
     "mapPos": {
       "top": "41%",
       "left": "53%"
@@ -126,6 +128,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/sunnasubi0675085821",
     "photoUrl": "photo/003.jpg",
+    "logoUrl": "logo/003.png",
     "mapPos": {
       "top": "48%",
       "left": "64%"
@@ -165,6 +168,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/taipan_taisho",
     "photoUrl": "photo/004.jpg",
+    "logoUrl": "logo/004.png",
     "mapPos": {
       "top": "55%",
       "left": "75%"
@@ -204,6 +208,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/haiena_haitu",
     "photoUrl": "photo/005.jpg",
+    "logoUrl": "logo/005.png",
     "mapPos": {
       "top": "62%",
       "left": "26%"
@@ -243,6 +248,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/chweets_1138",
     "photoUrl": "photo/006.jpg",
+    "logoUrl": "logo/006.png",
     "mapPos": {
       "top": "69%",
       "left": "37%"
@@ -282,6 +288,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/bar_ks_taisho",
     "photoUrl": "photo/007.jpg",
+    "logoUrl": "logo/007.png",
     "mapPos": {
       "top": "76%",
       "left": "48%"
@@ -321,6 +328,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/bar_six_nine_0692",
     "photoUrl": "photo/008.jpg",
+    "logoUrl": "logo/008.png",
     "mapPos": {
       "top": "23%",
       "left": "59%"
@@ -360,6 +368,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/chabo_taisho",
     "photoUrl": "photo/009.jpg",
+    "logoUrl": "logo/009.png",
     "mapPos": {
       "top": "30%",
       "left": "70%"
@@ -399,6 +408,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/fujiwarakun_taisho",
     "photoUrl": "photo/010.jpg",
+    "logoUrl": "logo/010.png",
     "mapPos": {
       "top": "37%",
       "left": "21%"
@@ -438,6 +448,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/hige_to.boin",
     "photoUrl": "photo/011.jpg",
+    "logoUrl": "logo/011.png",
     "mapPos": {
       "top": "44%",
       "left": "32%"
@@ -458,7 +469,7 @@ const STORES_DATA = [
       "content": "",
       "notes": ""
     },
-    "catchphrase": "串カツ・牡蠣・沖縄料理",
+    "catchphrase": "120",
     "yoidoreSet": {
       "title": "串カツ5本盛り+ドリンク1杯(550円以内)",
       "content": "",
@@ -477,6 +488,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/izakaya_sei",
     "photoUrl": "photo/012.jpg",
+    "logoUrl": "logo/012.png",
     "mapPos": {
       "top": "51%",
       "left": "43%"
@@ -516,6 +528,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/izakaya_tasuichi",
     "photoUrl": "photo/013.jpg",
+    "logoUrl": "logo/013.png",
     "mapPos": {
       "top": "58%",
       "left": "54%"
@@ -555,6 +568,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/jidoru_1013",
     "photoUrl": "photo/014.jpg",
+    "logoUrl": "logo/014.png",
     "mapPos": {
       "top": "65%",
       "left": "65%"
@@ -594,6 +608,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/kijimuna_no_mori.03.03",
     "photoUrl": "photo/015.jpg",
+    "logoUrl": "logo/015.png",
     "mapPos": {
       "top": "72%",
       "left": "76%"
@@ -633,6 +648,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/nanchatteino_erie",
     "photoUrl": "photo/016.jpg",
+    "logoUrl": "logo/016.png",
     "mapPos": {
       "top": "79%",
       "left": "27%"
@@ -672,6 +688,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/Neboke_bar",
     "photoUrl": "photo/017.jpg",
+    "logoUrl": "logo/017.png",
     "mapPos": {
       "top": "26%",
       "left": "38%"
@@ -711,6 +728,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/nicoya1203",
     "photoUrl": "photo/018.jpg",
+    "logoUrl": "logo/018.png",
     "mapPos": {
       "top": "33%",
       "left": "49%"
@@ -750,6 +768,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/showz0069",
     "photoUrl": "photo/019.jpg",
+    "logoUrl": "logo/019.png",
     "mapPos": {
       "top": "40%",
       "left": "60%"
@@ -789,6 +808,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/tarochan_taisho",
     "photoUrl": "photo/020.jpg",
+    "logoUrl": "logo/020.png",
     "mapPos": {
       "top": "47%",
       "left": "71%"
@@ -828,6 +848,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/teppanyaki_eihachi",
     "photoUrl": "photo/021.jpg",
+    "logoUrl": "logo/021.png",
     "mapPos": {
       "top": "54%",
       "left": "22%"
@@ -867,6 +888,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/ura_omote.shokudou",
     "photoUrl": "photo/022.jpg",
+    "logoUrl": "logo/022.png",
     "mapPos": {
       "top": "61%",
       "left": "33%"
@@ -906,6 +928,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/yakiniku.k2plus",
     "photoUrl": "photo/023.jpg",
+    "logoUrl": "logo/023.png",
     "mapPos": {
       "top": "68%",
       "left": "44%"
@@ -945,6 +968,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/moon.3.3.3",
     "photoUrl": "photo/024.jpg",
+    "logoUrl": "logo/024.png",
     "mapPos": {
       "top": "75%",
       "left": "55%"
@@ -984,6 +1008,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/ebisuya.taisyo",
     "photoUrl": "photo/025.jpg",
+    "logoUrl": "logo/025.png",
     "mapPos": {
       "top": "22%",
       "left": "66%"
@@ -1023,6 +1048,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/sanchan.o2",
     "photoUrl": "photo/026.jpg",
+    "logoUrl": "logo/026.png",
     "mapPos": {
       "top": "29%",
       "left": "77%"
@@ -1062,6 +1088,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/soundbar__hanaichi",
     "photoUrl": "photo/027.jpg",
+    "logoUrl": "logo/027.png",
     "mapPos": {
       "top": "36%",
       "left": "28%"
@@ -1101,6 +1128,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/za.okinawa",
     "photoUrl": "photo/028.jpg",
+    "logoUrl": "logo/028.png",
     "mapPos": {
       "top": "43%",
       "left": "39%"
@@ -1140,6 +1168,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/essence_taishou",
     "photoUrl": "photo/029.jpg",
+    "logoUrl": "logo/029.png",
     "mapPos": {
       "top": "50%",
       "left": "50%"
@@ -1179,6 +1208,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/bar_cococolor_taisho",
     "photoUrl": "photo/030.jpg",
+    "logoUrl": "logo/030.png",
     "mapPos": {
       "top": "57%",
       "left": "61%"
@@ -1218,6 +1248,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/fuku__nchu",
     "photoUrl": "photo/031.jpg",
+    "logoUrl": "logo/031.png",
     "mapPos": {
       "top": "64%",
       "left": "72%"
@@ -1257,6 +1288,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/tms_diner_osaka",
     "photoUrl": "photo/032.jpg",
+    "logoUrl": "logo/032.png",
     "mapPos": {
       "top": "71%",
       "left": "23%"
@@ -1296,6 +1328,7 @@ const STORES_DATA = [
     "googleMapUrl": "",
     "instagramUrl": "https://www.instagram.com/pizzerialegare",
     "photoUrl": "photo/033.jpg",
+    "logoUrl": "logo/033.png",
     "mapPos": {
       "top": "78%",
       "left": "34%"
@@ -1462,8 +1495,8 @@ function parseXLSXToStoresData(arrayBuffer) {
     const catchphrase = getVal("キャッチコピー", "コピー");
 
     const set_title = getVal("酔いどれセット名", "セット名");
-    const set_content = getVal("セット内容", "内容");
-    const priceStr = getVal("価格(円)", "価格", "金額", "セット価格(円)", "セット価格").replace(/[^\d]/g, '');
+    const set_content = getVal("セット内容", "内容", "セット詳細");
+    const priceStr = getVal("価格(円)", "価格", "金額", "セット価格(円)", "セット価格", "セット金額", "セット金額(円)").replace(/[^\d]/g, '');
     const price = priceStr ? parseInt(priceStr, 10) : 0;
     const includeChargeStr = getVal("チャージ", "セットチャージ");
     const setCharge = (includeChargeStr.includes("不要") || includeChargeStr.includes("無")) ? "不要" : "込";
@@ -1474,13 +1507,13 @@ function parseXLSXToStoresData(arrayBuffer) {
     const setNotes = getVal("セット備考", "備考・注意事項", "備考", "注意事項");
 
     const questTitle = getVal("クエスト名");
-    const questPriceStr = getVal("クエスト価格(円)", "クエスト価格", "クエスト金額(円)", "クエスト金額").replace(/[^\d]/g, '');
+    const questPriceStr = getVal("クエスト価格(円)", "クエスト価格", "クエスト金額(円)", "クエスト金額", "クエスト金額(円)", "金額").replace(/[^\d]/g, '');
     const questPrice = questPriceStr ? parseInt(questPriceStr, 10) : 0;
     const questChargeStr = getVal("クエストチャージ");
     const questCharge = questChargeStr.includes("込") ? "込" : "不要";
 
     const questContent = getVal("クエスト内容", "イベント情報", "イベント");
-    const questNotes = getVal("クエスト備考");
+    const questNotes = getVal("クエスト備考", "備考");
     const isQuestActive = !!(questTitle || questContent);
 
     const paymentMethodsRaw = getVal("決済方法", "支払い方法");
@@ -1495,6 +1528,18 @@ function parseXLSXToStoresData(arrayBuffer) {
       photoFileName = photoFileName.replace(/^photo[/\\]/i, '');
     }
     const photoUrl = photoFileName ? `photo/${photoFileName}` : null;
+
+    let logoFileName = getVal("logo", "Logo", "LOGO", "ロゴ", "ロゴ画像", "ロゴファイル");
+    if (logoFileName) {
+      logoFileName = logoFileName.replace(/^(logo|photo)[/\\]/i, '');
+    }
+    if (!logoFileName) {
+      const cleanId = id.replace(/\D/g, '');
+      if (cleanId) {
+        logoFileName = `${cleanId.padStart(3, '0')}.png`;
+      }
+    }
+    const logoUrl = logoFileName ? `logo/${logoFileName}` : null;
 
     const existing = (typeof STORES_DATA !== 'undefined') ? STORES_DATA.find(s => s.id === id || s.name === name) : null;
     const mapPos = existing ? existing.mapPos : { top: `${20 + (i * 7) % 60}%`, left: `${20 + (i * 11) % 60}%` };
@@ -1533,6 +1578,7 @@ function parseXLSXToStoresData(arrayBuffer) {
       googleMapUrl,
       instagramUrl,
       photoUrl,
+      logoUrl,
       mapPos
     };
 

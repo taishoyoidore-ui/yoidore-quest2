@@ -357,8 +357,7 @@ class YoidoreQuestApp {
     container.innerHTML = `
       <div class="rpg-window gold-border">
         <div class="rpg-window-header">
-          <span>▶ コマンドを選択</span>
-          <span class="header-badge">酒場案内所</span>
+          <span>▶ コマンド選択</span>
         </div>
         <ul class="command-list">
           <li class="command-item" data-action="area">
@@ -455,7 +454,6 @@ class YoidoreQuestApp {
       <div class="rpg-window">
         <div class="rpg-window-header">
           <span>▶ エリア選択</span>
-          <span class="header-badge">マップ移動</span>
         </div>
         <ul class="command-list">
           ${areaItems}
@@ -609,35 +607,49 @@ class YoidoreQuestApp {
 
     const cardsHtml = filtered.length > 0 ? filtered.map(store => `
       <div class="store-card" data-id="${store.id}">
-        <div class="store-card-header">
-          <div class="store-name">
-            <span>${store.name}</span>
-          </div>
-          <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}">
-            ${store.isOpenToday ? '営業中' : '営業時間外'}
-          </span>
-        </div>
+        <div class="store-card-top-flex">
+          <div class="store-card-info-block">
+            <div class="store-card-header-row">
+              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
+                ${store.category ? `<span class="tag">${store.category}</span>` : ''}
+                ${store.type ? `<span class="tag tag-type">${store.type}</span>` : ''}
+              </div>
+              <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}">
+                ${store.isOpenToday ? '営業中' : '営業時間外'}
+              </span>
+            </div>
 
-        <div class="store-tags">
-          ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
-          ${store.category ? `<span class="tag">${store.category}</span>` : ''}
-          ${store.type ? `<span class="tag tag-type">${store.type}</span>` : ''}
+            <div class="store-name" style="margin-top:6px;">
+              <span>${store.name}</span>
+            </div>
+          </div>
+
+          ${store.logoUrl ? `
+            <div class="store-card-logo-box">
+              <img src="${store.logoUrl}" alt="${store.name}のロゴ" class="store-card-logo-img" onerror="this.closest('.store-card-logo-box').style.display='none';">
+            </div>
+          ` : ''}
         </div>
 
         <div class="store-previews">
           ${store.yoidoreSet && store.yoidoreSet.title ? `
             <div class="store-set-preview">
-              <span class="preview-label">🍺 酔いどれセット:</span>
-              <span class="preview-title">${store.yoidoreSet.title}</span>
-              ${store.yoidoreSet.price > 0 ? `<span class="store-price">¥${store.yoidoreSet.price.toLocaleString()}</span>` : ''}
+              <div class="preview-header">
+                <span class="preview-label">🍺 酔いどれセット:</span>
+                ${store.yoidoreSet.price > 0 ? `<span class="store-price">¥${store.yoidoreSet.price.toLocaleString()}</span>` : ''}
+              </div>
+              <div class="preview-title">${store.yoidoreSet.title}</div>
             </div>
           ` : ''}
 
           ${store.isQuestActive ? `
             <div class="store-quest-preview">
-              <span class="preview-label">⚔️ 店舗クエスト:</span>
-              <span class="preview-title">${store.quest.title || store.quest.content}</span>
-              <span class="quest-price-badge">${store.quest.price > 0 ? `¥${store.quest.price.toLocaleString()}` : '🟢 無料'}</span>
+              <div class="preview-header">
+                <span class="preview-label">⚔️ 店舗クエスト:</span>
+                <span class="quest-price-badge">${store.quest.price > 0 ? `¥${store.quest.price.toLocaleString()}` : '🟢 無料'}</span>
+              </div>
+              <div class="preview-title">${store.quest.title || store.quest.content}</div>
             </div>
           ` : ''}
         </div>
@@ -652,7 +664,6 @@ class YoidoreQuestApp {
       <div class="rpg-window">
         <div class="rpg-window-header">
           <span>▶ 絞り込み条件</span>
-          <span class="header-badge">検索フィルター</span>
         </div>
         <div class="filter-box">
           <div class="filter-row">
@@ -739,27 +750,35 @@ class YoidoreQuestApp {
       <div class="detail-section">
         <!-- 1. 店舗基本情報枠 -->
         <div class="rpg-window gold-border">
-          <div class="detail-title-block">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-                ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
-                ${store.category ? `<span class="tag">${store.category}</span>` : ''}
-                ${store.type ? `<span class="tag tag-type">${store.type}</span>` : ''}
+          <div class="detail-header-flex">
+            <div class="detail-title-block">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                  ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
+                  ${store.category ? `<span class="tag">${store.category}</span>` : ''}
+                  ${store.type ? `<span class="tag tag-type">${store.type}</span>` : ''}
+                </div>
+                <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}">
+                  ${store.isOpenToday ? '現在営業中' : '現在営業時間外'}
+                </span>
               </div>
-              <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}">
-                ${store.isOpenToday ? '現在営業中' : '現在営業時間外'}
-              </span>
+              <h2 class="detail-store-name" style="margin-top:10px;">${store.name}</h2>
+              ${store.catchphrase ? `<div class="detail-catchphrase">"${store.catchphrase}"</div>` : ''}
             </div>
-            <h2 class="detail-store-name" style="margin-top:10px;">${store.name}</h2>
-            ${store.catchphrase ? `<div class="detail-catchphrase">"${store.catchphrase}"</div>` : ''}
 
-            ${paymentTagsHtml ? `
-              <div style="margin-top:12px; padding-top:10px; border-top:1px dashed var(--border-gold, #8b7333); display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                <span style="font-size:12px; color:var(--text-yellow, #ffd700); font-weight:bold;">💳 支払い方法:</span>
-                <div class="payment-tags" style="display:inline-flex; gap:4px; flex-wrap:wrap;">${paymentTagsHtml}</div>
+            ${store.logoUrl ? `
+              <div class="detail-logo-box">
+                <img src="${store.logoUrl}" alt="${store.name}のロゴ" class="detail-logo-img" onerror="this.closest('.detail-logo-box').style.display='none';">
               </div>
             ` : ''}
           </div>
+
+          ${paymentTagsHtml ? `
+            <div style="margin-top:12px; padding-top:10px; border-top:1px dashed var(--border-gold, #8b7333); display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span style="font-size:13px; color:var(--text-yellow, #ffd700); font-weight:bold;">💳 支払い方法:</span>
+              <div class="payment-tags" style="display:inline-flex; gap:6px; flex-wrap:wrap;">${paymentTagsHtml}</div>
+            </div>
+          ` : ''}
         </div>
 
         <!-- 2. どれクエ対象時間枠 (店舗名称枠の直下) -->
@@ -802,23 +821,23 @@ class YoidoreQuestApp {
               </tr>
               ${store.yoidoreSet.content ? `
                 <tr>
-                  <th>セット内容</th>
+                  <th>内容</th>
                   <td>${store.yoidoreSet.content}</td>
                 </tr>
               ` : ''}
               ${store.yoidoreSet.price > 0 ? `
                 <tr>
-                  <th>セット金額</th>
+                  <th>金額</th>
                   <td>
-                    <strong class="text-yellow" style="font-size:16px;">¥${store.yoidoreSet.price.toLocaleString()}</strong>
-                    <span style="font-size:11px; color:var(--text-dim); margin-left:6px;">(税込・${store.yoidoreSet.charge === '不要' ? 'チャージ不要' : 'チャージ込'})</span>
+                    <strong class="text-yellow" style="font-size:17px;">¥${store.yoidoreSet.price.toLocaleString()}</strong>
+                    <span style="font-size:13px; color:var(--text-dim); margin-left:6px;">(税込・${store.yoidoreSet.charge === '不要' ? 'チャージ不要' : 'チャージ込'})</span>
                   </td>
                 </tr>
               ` : ''}
               ${store.yoidoreSet.notes ? `
                 <tr>
-                  <th>セット備考</th>
-                  <td style="font-size:12px; color:var(--text-dim);">${store.yoidoreSet.notes}</td>
+                  <th>備考</th>
+                  <td style="font-size:14px; color:var(--text-dim);">${store.yoidoreSet.notes}</td>
                 </tr>
               ` : ''}
             </table>
@@ -840,26 +859,26 @@ class YoidoreQuestApp {
               ` : ''}
               ${store.quest.content ? `
                 <tr>
-                  <th>クエスト内容</th>
+                  <th>内容</th>
                   <td>${store.quest.content}</td>
                 </tr>
               ` : ''}
               <tr>
-                <th>クエスト金額</th>
+                <th>金額</th>
                 <td>
                   ${store.quest.price > 0 ? `
-                    <strong class="text-yellow" style="font-size:16px;">¥${store.quest.price.toLocaleString()}</strong>
-                    <span style="font-size:11px; color:var(--text-dim); margin-left:6px;">(税込・${store.quest.charge === '込' ? 'チャージ込' : 'チャージ不要'})</span>
+                    <strong class="text-yellow" style="font-size:17px;">¥${store.quest.price.toLocaleString()}</strong>
+                    <span style="font-size:13px; color:var(--text-dim); margin-left:6px;">(税込・${store.quest.charge === '込' ? 'チャージ込' : 'チャージ不要'})</span>
                   ` : `
                     <span class="quest-fee-badge">🟢 無料</span>
-                    <span style="font-size:11px; color:var(--text-dim); margin-left:6px;">(${store.quest.charge === '込' ? 'チャージ込' : 'チャージ不要'})</span>
+                    <span style="font-size:13px; color:var(--text-dim); margin-left:6px;">(${store.quest.charge === '込' ? 'チャージ込' : 'チャージ不要'})</span>
                   `}
                 </td>
               </tr>
               ${store.quest.notes ? `
                 <tr>
-                  <th>クエスト備考</th>
-                  <td style="font-size:12px; color:var(--text-dim);">${store.quest.notes}</td>
+                  <th>備考</th>
+                  <td style="font-size:14px; color:var(--text-dim);">${store.quest.notes}</td>
                 </tr>
               ` : ''}
             </table>
