@@ -522,8 +522,8 @@ class YoidoreQuestApp {
 
     // 正式に規定された4つの酔いどれタイプ（案1）と説明文
     const OFFICIAL_TYPES = [
-      { type: 'はしご', desc: 'サクッと1杯飲んで次のお店へ' },
-      { type: '食事', desc: 'しっかりご飯・名物料理でお腹を満たす' },
+      { type: 'サク飲み', desc: 'サクッと1杯飲んで次のお店へ' },
+      { type: 'しっかりご飯', desc: 'しっかりご飯・名物料理でお腹を満たす' },
       { type: 'ひと休み', desc: 'ドリンクや軽食でほっと一息つく' },
       { type: '遊べる・エンタメ', desc: 'ゲーム・ダーツ・会話や体験を楽しむ' }
     ];
@@ -599,7 +599,7 @@ class YoidoreQuestApp {
       `<option value="${c}" ${this.filters.category === c ? 'selected' : ''}>${c === 'ALL' ? '全種類' : c}</option>`
     ).join('');
 
-    const OFFICIAL_TYPE_NAMES = ['はしご', '食事', 'ひと休み', '遊べる・エンタメ'];
+    const OFFICIAL_TYPE_NAMES = ['サク飲み', 'しっかりご飯', 'ひと休み', '遊べる・エンタメ'];
     const allTypes = Array.from(new Set([...OFFICIAL_TYPE_NAMES, ...TYPES_LIST]));
     const typeOptions = ['ALL', ...allTypes].map(t => 
       `<option value="${t}" ${this.filters.type === t ? 'selected' : ''}>${t === 'ALL' ? '全酔いどれタイプ' : t}</option>`

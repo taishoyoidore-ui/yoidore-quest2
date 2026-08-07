@@ -5,7 +5,7 @@ import json
 import openpyxl
 
 VALID_DAYS = {'月', '火', '水', '木', '金', '土', '日'}
-VALID_TYPES = {'はしご', '食事', 'ひと休み', '遊べる・エンタメ'}
+VALID_TYPES = {'サク飲み', 'しっかりご飯', 'ひと休み', '遊べる・エンタメ'}
 
 def convert_excel_to_js():
     excel_path = os.path.join(os.path.dirname(__file__), 'STORES.xlsx')
@@ -161,8 +161,12 @@ def convert_excel_to_js():
             store_type = str(row[type_idx] or '').strip() if (type_idx != -1 and type_idx < len(row) and row[type_idx]) else ''
             # 旧表記からの自動変換マッピング
             type_mapping = {
-                'はしご向け': 'はしご',
-                '食事向け': '食事',
+                'はしご向け': 'サク飲み',
+                'はしご': 'サク飲み',
+                'サク飲み': 'サク飲み',
+                '食事向け': 'しっかりご飯',
+                '食事': 'しっかりご飯',
+                'しっかりご飯': 'しっかりご飯',
                 '休憩向け': 'ひと休み',
                 'カフェ向け': 'ひと休み',
                 'カフェ・ひと休み向け': 'ひと休み',
@@ -177,7 +181,7 @@ def convert_excel_to_js():
             if store_type and store_type not in VALID_TYPES:
                 errors.append(
                     f"エラー: 店舗 '{store_name}' (行 {row_idx}): 『酔いどれタイプ』の指定 '{store_type}' が不正です。"
-                    f"指定可能なタイプは『はしご』『食事』『ひと休み』『遊べる・エンタメ』のいずれかです。"
+                    f"指定可能なタイプは『サク飲み』『しっかりご飯』『ひと休み』『遊べる・エンタメ』のいずれかです。"
                 )
             catchphrase = str(row[catchphrase_idx] or '').strip() if (catchphrase_idx != -1 and catchphrase_idx < len(row) and row[catchphrase_idx]) else ''
 

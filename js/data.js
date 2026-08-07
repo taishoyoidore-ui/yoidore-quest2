@@ -15,7 +15,7 @@ const STORES_DATA = [
     "name": "Tようび",
     "area": "三軒家西",
     "category": "おばんざい",
-    "type": "食事",
+    "type": "しっかりご飯",
     "isOpenToday": true,
     "isQuestActive": true,
     "quest": {
@@ -27,11 +27,11 @@ const STORES_DATA = [
     },
     "catchphrase": "牛すじとお酒とおばんざい",
     "yoidoreSet": {
-      "title": "おばんざい軽盛り3種+ドリンク1杯",
-      "content": "お好きなおばんざい3種と、お好きなドリンク1杯のセットです",
-      "price": 1000,
-      "charge": "不要",
-      "includeCharge": false,
+      "title": "おばんざい三種盛り晩酌セット",
+      "content": "おばんざい軽盛り3種+ドリンク1杯",
+      "price": 800,
+      "charge": "込",
+      "includeCharge": true,
       "notes": "他クーポン併用不可。"
     },
     "conditions": {
@@ -59,7 +59,7 @@ const STORES_DATA = [
     "name": "バーガー酒場ハンバーガー・ママ",
     "area": "三軒家東",
     "category": "ハンバーガー酒場",
-    "type": "はしご",
+    "type": "サク飲み",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -71,9 +71,9 @@ const STORES_DATA = [
     },
     "catchphrase": "一品と酒とグルメバーガー",
     "yoidoreSet": {
-      "title": "イベント限定ミニバーガー+ドリンク1杯",
-      "content": "",
-      "price": 0,
+      "title": "どれクエ限定ミニバーガーセット",
+      "content": "イベント限定ミニバーガー+ドリンク1杯",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -99,7 +99,7 @@ const STORES_DATA = [
     "name": "大正焼肉SUNナスビ!!",
     "area": "駅前",
     "category": "焼肉・ホルモン",
-    "type": "食事",
+    "type": "しっかりご飯",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -111,9 +111,9 @@ const STORES_DATA = [
     },
     "catchphrase": "通える高級焼肉",
     "yoidoreSet": {
-      "title": "和牛のすじ煮込み+ドリンク1杯",
-      "content": "",
-      "price": 0,
+      "title": "牛すじ煮込み焼肉屋の晩酌セット",
+      "content": "和牛のすじ煮込み+ドリンク1杯",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -139,7 +139,7 @@ const STORES_DATA = [
     "name": "大正居酒屋タイガーパンチ",
     "area": "駅前",
     "category": "立ち飲み",
-    "type": "はしご",
+    "type": "サク飲み",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -151,9 +151,9 @@ const STORES_DATA = [
     },
     "catchphrase": "創作ガチ中華",
     "yoidoreSet": {
-      "title": "黒糖焼酎とニラ玉",
-      "content": "",
-      "price": 0,
+      "title": "黒糖焼酎とニラ玉セット",
+      "content": "黒糖焼酎とニラ玉",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -179,7 +179,7 @@ const STORES_DATA = [
     "name": "ハイエナハイツ",
     "area": "三軒家西",
     "category": "ジビエ肉",
-    "type": "食事",
+    "type": "しっかりご飯",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -191,9 +191,9 @@ const STORES_DATA = [
     },
     "catchphrase": "ジビエ・肉料理",
     "yoidoreSet": {
-      "title": "ラム肉ショルダーステーキ(小)+飲み放題用メニューより1杯",
-      "content": "",
-      "price": 0,
+      "title": "ラム肉ショルダーステーキセット",
+      "content": "ラム肉ショルダーステーキ(小)+飲み放題用メニューより1杯",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -231,9 +231,9 @@ const STORES_DATA = [
     },
     "catchphrase": "クレープ酒場・夜カフェ",
     "yoidoreSet": {
-      "title": "ハンドドリップコーヒー+クレープ(チョコバナナ or ビスケットキャラメル)",
-      "content": "",
-      "price": 0,
+      "title": "夜カフェクレープセット",
+      "content": "ハンドドリップコーヒー+クレープ(チョコバナナ or ビスケットキャラメル)",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -271,8 +271,8 @@ const STORES_DATA = [
     },
     "catchphrase": "ダーツ・カラオケ",
     "yoidoreSet": {
-      "title": "限定カクテル",
-      "content": "",
+      "title": "限定カクテルセット",
+      "content": "限定カクテル",
       "price": 0,
       "charge": "込",
       "includeCharge": true,
@@ -311,9 +311,9 @@ const STORES_DATA = [
     },
     "catchphrase": "ショットバー",
     "yoidoreSet": {
-      "title": "ちょっとミックスナッツ or ちょっとピスタチオ + ドリンク1杯(ウイスキー or 焼酎)",
-      "content": "",
-      "price": 0,
+      "title": "ミックスナッツ晩酌セット",
+      "content": "ちょっとミックスナッツ or ちょっとピスタチオ + ドリンク1杯(ウイスキー or 焼酎)",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -339,7 +339,7 @@ const STORES_DATA = [
     "name": "だしと鶏ちゃぼ大正店",
     "area": "三軒家東",
     "category": "鶏料理",
-    "type": "食事",
+    "type": "しっかりご飯",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -351,9 +351,9 @@ const STORES_DATA = [
     },
     "catchphrase": "焼き鳥・お出汁料理",
     "yoidoreSet": {
-      "title": "大根を美味しく炊いたやつの天ぷら or ちゃぼの肉豆腐＋国産鶏の出汁煮 + ドリンク1杯",
-      "content": "",
-      "price": 0,
+      "title": "ちゃぼの鶏だし満喫セット",
+      "content": "大根を美味しく炊いたやつの天ぷら or ちゃぼの肉豆腐＋国産鶏の出汁煮 + ドリンク1杯",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -379,7 +379,7 @@ const STORES_DATA = [
     "name": "ふじわら君",
     "area": "三軒家西",
     "category": "居酒屋",
-    "type": "食事",
+    "type": "しっかりご飯",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -391,9 +391,9 @@ const STORES_DATA = [
     },
     "catchphrase": "創作料理居酒屋",
     "yoidoreSet": {
-      "title": "日本酒1杯とおつまみ",
-      "content": "",
-      "price": 0,
+      "title": "日本酒と創作おつまみセット",
+      "content": "日本酒1杯とおつまみ",
+      "price": 800,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -419,7 +419,7 @@ const STORES_DATA = [
     "name": "大正サロン髭とボヰン",
     "area": "駅前",
     "category": "立ち飲み",
-    "type": "はしご",
+    "type": "サク飲み",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -431,9 +431,9 @@ const STORES_DATA = [
     },
     "catchphrase": "立ち飲み・創作料理",
     "yoidoreSet": {
-      "title": "おばんざい2種盛り+ドリンク1杯(460円以内)",
-      "content": "",
-      "price": 0,
+      "title": "おばんざい立ち飲みセット",
+      "content": "おばんざい2種盛り+ドリンク1杯(460円以内)",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -459,7 +459,7 @@ const STORES_DATA = [
     "name": "大正バル誠~ｓｅｉ~",
     "area": "三軒家東",
     "category": "居酒屋",
-    "type": "はしご",
+    "type": "サク飲み",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -469,11 +469,11 @@ const STORES_DATA = [
       "content": "",
       "notes": ""
     },
-    "catchphrase": "120",
+    "catchphrase": "串カツ・牡蠣・沖縄料理",
     "yoidoreSet": {
-      "title": "串カツ5本盛り+ドリンク1杯(550円以内)",
-      "content": "",
-      "price": 0,
+      "title": "串カツと一杯セット",
+      "content": "串カツ5本盛り+ドリンク1杯(550円以内)",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -499,7 +499,7 @@ const STORES_DATA = [
     "name": "居酒屋たすいち",
     "area": "駅前",
     "category": "居酒屋",
-    "type": "食事",
+    "type": "しっかりご飯",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -511,9 +511,9 @@ const STORES_DATA = [
     },
     "catchphrase": "もつ鍋酒屋",
     "yoidoreSet": {
-      "title": "唐揚げハーフ(2個)+ドリンク1杯",
-      "content": "",
-      "price": 0,
+      "title": "唐揚げちょい飲みセット",
+      "content": "唐揚げハーフ(2個)+ドリンク1杯",
+      "price": 800,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -539,7 +539,7 @@ const STORES_DATA = [
     "name": "地鶏る",
     "area": "泉尾",
     "category": "鶏料理",
-    "type": "はしご",
+    "type": "サク飲み",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -551,9 +551,9 @@ const STORES_DATA = [
     },
     "catchphrase": "宮崎鶏の炭火焼き",
     "yoidoreSet": {
-      "title": "炭火焼き(小)+ドリンク1杯(495円以内)",
-      "content": "",
-      "price": 0,
+      "title": "宮崎地鶏炭火焼きセット",
+      "content": "炭火焼き(小)+ドリンク1杯(495円以内)",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -579,7 +579,7 @@ const STORES_DATA = [
     "name": "沖縄酒場きじむなーの森",
     "area": "三軒家西",
     "category": "居酒屋",
-    "type": "食事",
+    "type": "しっかりご飯",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -591,9 +591,9 @@ const STORES_DATA = [
     },
     "catchphrase": "沖縄料理",
     "yoidoreSet": {
-      "title": "沖縄前菜肴盛セット+ドリンク2杯（生ビール、ハイボール、泡盛（3種類から選べます）、二階堂、黒霧、酎ハイ）",
-      "content": "",
-      "price": 0,
+      "title": "沖縄前菜盛り泡盛セット",
+      "content": "沖縄前菜肴盛セット+ドリンク2杯（生ビール、ハイボール、泡盛（3種類から選べます）、二階堂、黒霧、酎ハイ）",
+      "price": 1600,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -619,7 +619,7 @@ const STORES_DATA = [
     "name": "ナンチャツ亭のエリー",
     "area": "駅前",
     "category": "おばんざい",
-    "type": "食事",
+    "type": "しっかりご飯",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -631,9 +631,9 @@ const STORES_DATA = [
     },
     "catchphrase": "昭和レトロなおばんざい",
     "yoidoreSet": {
-      "title": "おばんざい2種+ドリンク1杯(日本酒、一部銘柄を除く)",
-      "content": "",
-      "price": 0,
+      "title": "昭和おばんざい晩酌セット",
+      "content": "おばんざい2種+ドリンク1杯(日本酒、一部銘柄を除く)",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -671,9 +671,9 @@ const STORES_DATA = [
     },
     "catchphrase": "隠れ家バー",
     "yoidoreSet": {
-      "title": "おつまみ2品+ドリンク1杯(1000円以内 )",
-      "content": "",
-      "price": 0,
+      "title": "隠れ家おつまみセット",
+      "content": "おつまみ2品+ドリンク1杯(1000円以内 )",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -699,7 +699,7 @@ const STORES_DATA = [
     "name": "串焼き酒場ニコヤ",
     "area": "三軒家西",
     "category": "串焼き・鉄板焼き",
-    "type": "はしご",
+    "type": "サク飲み",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -711,9 +711,9 @@ const STORES_DATA = [
     },
     "catchphrase": "創作鉄板串焼き",
     "yoidoreSet": {
-      "title": "串3本+ドリンク1杯",
-      "content": "",
-      "price": 0,
+      "title": "創作串焼き三本セット",
+      "content": "串3本+ドリンク1杯",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -751,9 +751,9 @@ const STORES_DATA = [
     },
     "catchphrase": "80's・ロック・駄菓子",
     "yoidoreSet": {
-      "title": "",
+      "title": "80's駄菓子バーセット",
       "content": "",
-      "price": 0,
+      "price": 300,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -779,7 +779,7 @@ const STORES_DATA = [
     "name": "焼肉ホルモンたろちゃん大正橋店",
     "area": "三軒家東",
     "category": "焼肉・ホルモン",
-    "type": "食事",
+    "type": "しっかりご飯",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -791,9 +791,9 @@ const STORES_DATA = [
     },
     "catchphrase": "駅前で昼から飲める店",
     "yoidoreSet": {
-      "title": "おつまみ2品盛り+ドリンク1杯(350円以内)",
-      "content": "",
-      "price": 0,
+      "title": "昼飲みホルモンおつまみセット",
+      "content": "おつまみ2品盛り+ドリンク1杯(350円以内)",
+      "price": 500,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -819,7 +819,7 @@ const STORES_DATA = [
     "name": "鉄板焼き栄八大阪大正店",
     "area": "三軒家西",
     "category": "串焼き・鉄板焼き",
-    "type": "食事",
+    "type": "しっかりご飯",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -831,9 +831,9 @@ const STORES_DATA = [
     },
     "catchphrase": "お好み・焼きそば・鉄板居酒屋",
     "yoidoreSet": {
-      "title": "鉄板2種盛り+ドリンク1杯(ビール・ハイボール・酎ハイ)",
-      "content": "",
-      "price": 0,
+      "title": "鉄板焼き盛り合わせセット",
+      "content": "鉄板2種盛り+ドリンク1杯(ビール・ハイボール・酎ハイ)",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -859,7 +859,7 @@ const STORES_DATA = [
     "name": "うて食堂 大正BASE",
     "area": "三軒家東",
     "category": "おばんざい",
-    "type": "食事",
+    "type": "しっかりご飯",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -871,9 +871,9 @@ const STORES_DATA = [
     },
     "catchphrase": "蒸し料理で飲める食堂",
     "yoidoreSet": {
-      "title": "おばんざい3種+ハイボールor酎ハイ",
-      "content": "",
-      "price": 0,
+      "title": "蒸し料理おばんざいセット",
+      "content": "おばんざい3種+ハイボールor酎ハイ",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -899,7 +899,7 @@ const STORES_DATA = [
     "name": "大正焼肉ホルモンK2+",
     "area": "三軒家西",
     "category": "焼肉・ホルモン",
-    "type": "食事",
+    "type": "しっかりご飯",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -911,9 +911,9 @@ const STORES_DATA = [
     },
     "catchphrase": "焼肉ホルモン・韓国料理",
     "yoidoreSet": {
-      "title": "チヂミ・キムチ・ナムルセット+ドリンク1杯(550円以内)",
-      "content": "",
-      "price": 0,
+      "title": "韓国おつまみセット",
+      "content": "チヂミ・キムチ・ナムルセット+ドリンク1杯(550円以内)",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -939,7 +939,7 @@ const STORES_DATA = [
     "name": "呑み処　三日月",
     "area": "駅前",
     "category": "居酒屋",
-    "type": "はしご",
+    "type": "サク飲み",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -951,9 +951,9 @@ const STORES_DATA = [
     },
     "catchphrase": "カラオケ居酒屋",
     "yoidoreSet": {
-      "title": "カラオケ1時間+1品+ドリンク1杯　(20時以降限定)",
-      "content": "",
-      "price": 0,
+      "title": "歌って飲めるカラオケセット",
+      "content": "カラオケ1時間+1品+ドリンク1杯　(20時以降限定)",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -979,7 +979,7 @@ const STORES_DATA = [
     "name": "呑笑戎屋",
     "area": "駅前",
     "category": "居酒屋",
-    "type": "はしご",
+    "type": "サク飲み",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -991,9 +991,9 @@ const STORES_DATA = [
     },
     "catchphrase": "地元親子の大衆居酒屋",
     "yoidoreSet": {
-      "title": "日替わりでおばんざい2皿+ドリンク1杯",
-      "content": "",
-      "price": 0,
+      "title": "日替わりおばんざいセット",
+      "content": "日替わりでおばんざい2皿+ドリンク1杯",
+      "price": 800,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -1019,7 +1019,7 @@ const STORES_DATA = [
     "name": "三ちゃん",
     "area": "三軒家西",
     "category": "居酒屋",
-    "type": "食事",
+    "type": "しっかりご飯",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -1031,9 +1031,9 @@ const STORES_DATA = [
     },
     "catchphrase": "海鮮居酒屋",
     "yoidoreSet": {
-      "title": "1品(お刺身や焼き物)+ドリンク1杯",
-      "content": "",
-      "price": 0,
+      "title": "海鮮一品晩酌セット",
+      "content": "1品(お刺身や焼き物)+ドリンク1杯",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -1071,9 +1071,9 @@ const STORES_DATA = [
     },
     "catchphrase": "カラオケバー",
     "yoidoreSet": {
-      "title": "チャーム+ドリンク1杯(700円まで)",
-      "content": "",
-      "price": 0,
+      "title": "カラオケバー乾杯セット",
+      "content": "チャーム+ドリンク1杯(700円まで)",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -1099,7 +1099,7 @@ const STORES_DATA = [
     "name": "ザ·沖縄",
     "area": "駅前",
     "category": "居酒屋",
-    "type": "はしご",
+    "type": "サク飲み",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -1111,9 +1111,9 @@ const STORES_DATA = [
     },
     "catchphrase": "沖縄料理・カラオケ居酒屋",
     "yoidoreSet": {
-      "title": "チャーム+お菓子1袋+ドリンク1杯",
-      "content": "",
-      "price": 0,
+      "title": "沖縄ちょい飲みセット",
+      "content": "チャーム+お菓子1袋+ドリンク1杯",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -1139,7 +1139,7 @@ const STORES_DATA = [
     "name": "魚と沖縄料理 えっせんす",
     "area": "泉尾",
     "category": "居酒屋",
-    "type": "はしご",
+    "type": "サク飲み",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -1151,9 +1151,9 @@ const STORES_DATA = [
     },
     "catchphrase": "お酒は地球を救う",
     "yoidoreSet": {
-      "title": "選べるお好きな小鉢3品+ドリンク1杯(アサヒスーパードライ、オリオンビール、ブラックニッカハイボールのいずれか)",
-      "content": "",
-      "price": 0,
+      "title": "沖縄小鉢三種盛りセット",
+      "content": "選べるお好きな小鉢3品+ドリンク1杯(アサヒスーパードライ、オリオンビール、ブラックニッカハイボールのいずれか)",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -1191,9 +1191,9 @@ const STORES_DATA = [
     },
     "catchphrase": "カジュアルバー",
     "yoidoreSet": {
-      "title": "1時間飲み放題+歌い放題(ドリンク制限あり)",
-      "content": "",
-      "price": 0,
+      "title": "歌い放題飲み放題セット",
+      "content": "1時間飲み放題+歌い放題(ドリンク制限あり)",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -1219,7 +1219,7 @@ const STORES_DATA = [
     "name": "福人(ふくんちゅ)",
     "area": "三軒家東",
     "category": "居酒屋",
-    "type": "食事",
+    "type": "しっかりご飯",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -1231,9 +1231,9 @@ const STORES_DATA = [
     },
     "catchphrase": "作りたいもん作りまっせ居酒屋",
     "yoidoreSet": {
-      "title": "ゴーヤのお浸し+豚バラ軟骨塩煮込み+ドリンク1杯(瓶ビール以外)",
-      "content": "",
-      "price": 0,
+      "title": "沖縄家庭料理セット",
+      "content": "ゴーヤのお浸し+豚バラ軟骨塩煮込み+ドリンク1杯(瓶ビール以外)",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -1259,7 +1259,7 @@ const STORES_DATA = [
     "name": "TM's DINER",
     "area": "三軒家東",
     "category": "ダイニング",
-    "type": "はしご",
+    "type": "サク飲み",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -1271,9 +1271,9 @@ const STORES_DATA = [
     },
     "catchphrase": "イタリアン・メキシカン・アメリカン",
     "yoidoreSet": {
-      "title": "洋食前菜の3種盛+ドリンク1杯(限定メニューより)",
-      "content": "",
-      "price": 0,
+      "title": "洋食前菜バルセット",
+      "content": "洋食前菜の3種盛+ドリンク1杯(限定メニューより)",
+      "price": 1000,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -1299,7 +1299,7 @@ const STORES_DATA = [
     "name": "Pizzeria Legare",
     "area": "平尾",
     "category": "ダイニング",
-    "type": "食事",
+    "type": "しっかりご飯",
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -1311,9 +1311,9 @@ const STORES_DATA = [
     },
     "catchphrase": "本格ピッツァ・ドイツワイン",
     "yoidoreSet": {
-      "title": "ミニ前菜盛り合わせ+ドリンク1杯(ビール、ワイン、酎ハイ)",
-      "content": "",
-      "price": 0,
+      "title": "ピッツァ前菜ワインセット",
+      "content": "ミニ前菜盛り合わせ+ドリンク1杯(ビール、ワイン、酎ハイ)",
+      "price": 800,
       "charge": "込",
       "includeCharge": true,
       "notes": ""
@@ -1358,8 +1358,8 @@ const CATEGORIES_LIST = [
   "ダイニング"
 ];
 const TYPES_LIST = [
-  "食事",
-  "はしご",
+  "しっかりご飯",
+  "サク飲み",
   "ひと休み",
   "遊べる・エンタメ"
 ];
