@@ -901,7 +901,7 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 20px;
+  padding: 12px 10px;
   text-align: center;
   transition: opacity 0.4s ease, visibility 0.4s ease;
   backdrop-filter: blur(4px);
@@ -915,11 +915,11 @@ body {
 
 .start-container {
   width: 100%;
-  max-width: 420px;
+  max-width: 460px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px;
+  padding: 6px;
 }
 
 .start-title-badge {
@@ -933,21 +933,21 @@ body {
 
 .start-hero-full-box {
   width: 100%;
-  max-width: 380px;
-  margin-bottom: 16px;
+  max-width: 440px;
+  margin-bottom: 12px;
   filter: drop-shadow(0 0 20px rgba(247, 208, 112, 0.45));
 }
 
 .start-hero-full-img {
   width: 100%;
   height: auto;
-  max-height: 58vh;
+  max-height: 68vh;
   display: block;
   object-fit: contain;
-  border-radius: 8px;
-  border: 3px double var(--border-gold);
+  border: none;
+  border-radius: 0;
   image-rendering: pixelated;
-  background: #000;
+  background: transparent;
 }
 
 .start-btn-box {
