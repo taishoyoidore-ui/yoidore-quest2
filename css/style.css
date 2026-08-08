@@ -365,7 +365,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
+  gap: 8px;
   border-bottom: 1px dashed #333;
   padding-bottom: 10px;
 }
@@ -386,9 +386,9 @@ body {
 }
 
 .store-card-logo-box {
-  width: 64px;
-  height: 64px;
-  min-width: 64px;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
   border: 2px solid var(--border-gold);
   border-radius: 6px;
   background: #000000;
@@ -410,12 +410,14 @@ body {
 }
 
 .store-name {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: bold;
   color: var(--text-yellow);
   display: flex;
   align-items: center;
   gap: 6px;
+  word-break: break-word;
+  line-height: 1.45;
 }
 
 .store-status-badge {
@@ -586,13 +588,13 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
+  gap: 8px;
 }
 
 .detail-logo-box {
-  width: 88px;
-  height: 88px;
-  min-width: 88px;
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
   border: 2px solid var(--border-gold);
   border-radius: 8px;
   background: #000000;
@@ -621,9 +623,11 @@ body {
 }
 
 .detail-store-name {
-  font-size: 22px;
+  font-size: 20px;
   color: var(--text-yellow);
   text-shadow: 1px 1px 0 #000;
+  word-break: break-word;
+  line-height: 1.45;
 }
 
 .detail-catchphrase {

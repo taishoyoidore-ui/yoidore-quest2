@@ -407,9 +407,9 @@ class YoidoreQuestApp {
           <li class="command-item" data-action="today">
             <div class="command-item-left">
               <span class="command-cursor">▶</span>
-              <span class="command-label">今日営業のお店</span>
+              <span class="command-label">どれクエ対象時間内のお店</span>
             </div>
-            <span class="command-badge text-green">営業中 ${STORES_DATA.filter(s => s.isOpenToday).length}店舗</span>
+            <span class="command-badge text-green">対象時間内 ${STORES_DATA.filter(s => s.isOpenToday).length}店舗</span>
           </li>
           <li class="command-item" data-action="map">
             <div class="command-item-left">
@@ -625,7 +625,7 @@ class YoidoreQuestApp {
           </div>
           <div class="filter-chip-group">
             <div class="filter-chip ${this.filters.openToday ? 'active' : ''}" id="chip-open-today">
-              ${this.filters.openToday ? '✓ 今日営業のみ' : '今日営業のみ'}
+              ${this.filters.openToday ? '✓ どれクエ対象時間内のみ' : 'どれクエ対象時間内のみ'}
             </div>
           </div>
         </div>
@@ -666,7 +666,7 @@ class YoidoreQuestApp {
                   ${store.type ? `<span class="tag tag-type">${store.type}</span>` : ''}
                 </div>
                 <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}">
-                  ${store.isOpenToday ? '営業中' : '営業時間外'}
+                  ${store.isOpenToday ? 'どれクエ対象時間内' : 'どれクエ対象時間外'}
                 </span>
               </div>
 
@@ -779,7 +779,7 @@ class YoidoreQuestApp {
       const chip = document.getElementById('chip-open-today');
       if (chip) {
         chip.classList.toggle('active', this.filters.openToday);
-        chip.textContent = this.filters.openToday ? '✓ 今日営業のみ' : '今日営業のみ';
+        chip.textContent = this.filters.openToday ? '✓ どれクエ対象時間内のみ' : 'どれクエ対象時間内のみ';
       }
       this.lastStoresScrollY = 0;
       updateStoreList();
@@ -815,10 +815,10 @@ class YoidoreQuestApp {
                   ${store.type ? `<span class="tag tag-type">${store.type}</span>` : ''}
                 </div>
                 <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}">
-                  ${store.isOpenToday ? '現在営業中' : '現在営業時間外'}
+                  ${store.isOpenToday ? 'どれクエ対象時間内' : 'どれクエ対象時間外'}
                 </span>
               </div>
-              <h2 class="detail-store-name" style="margin-top:10px;">${store.name}</h2>
+              <h2 class="detail-store-name" style="margin-top:8px;">${store.name}</h2>
               ${store.catchphrase ? `<div class="detail-catchphrase">"${store.catchphrase}"</div>` : ''}
             </div>
 
