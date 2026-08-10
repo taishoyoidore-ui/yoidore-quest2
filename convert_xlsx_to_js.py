@@ -96,11 +96,22 @@ def convert_excel_to_js():
         limit_idx = get_col_idx("限定数")
         set_notes_idx = get_col_idx("セット備考", "備考・注意事項", "備考", "注意事項")
 
-        quest_title_idx = get_col_idx("クエスト名")
-        quest_price_idx = get_col_idx("クエスト価格(円)", "クエスト価格", "クエスト金額(円)", "クエスト金額", "クエスト金額(円)", "金額")
+        quest_title_idx = get_col_idx("クエスト名", "クエストタイトル", "クエスト簡易名")
+        quest_price_idx = get_col_idx("クエスト価格(円)", "クエスト価格", "クエスト金額(円)", "クエスト金額", "金額")
         quest_charge_idx = get_col_idx("クエストチャージ")
-        quest_content_idx = get_col_idx("クエスト内容", "イベント情報", "イベント")
-        quest_notes_idx = get_col_idx("クエスト備考", "備考")
+
+        # R列(インデックス17) & S列(インデックス18) の取得（「クエスト名」「クエスト内容」「クエスト備考」等の重複対応）
+        # R列(17番目): クエスト内容/詳細
+        if len(headers) > 17 and ("クエスト" in str(headers[17]) or "内容" in str(headers[17]) or "イベント" in str(headers[17])):
+            quest_content_idx = 17
+        else:
+            quest_content_idx = get_col_idx("クエスト内容", "イベント情報", "イベント", "クエスト詳細")
+
+        # S列(18番目): クエスト備考/注意事項
+        if len(headers) > 18 and ("内容" in str(headers[18]) or "備考" in str(headers[18]) or "注意事項" in str(headers[18])):
+            quest_notes_idx = 18
+        else:
+            quest_notes_idx = get_col_idx("クエスト備考", "備考", "注意事項")
 
         payment_idx = get_col_idx("決済方法", "支払い方法")
         map_idx = get_col_idx("google map url", "googlemapurl", "マップurl")
@@ -192,7 +203,7 @@ def convert_excel_to_js():
             price = int(price_clean) if price_clean else 0
 
             charge_raw = str(row[charge_idx] or '').strip() if (charge_idx != -1 and charge_idx < len(row) and row[charge_idx]) else ''
-            set_charge = '不要' if ('不要' in charge_raw or '無' in charge_raw) else '込'
+            set_charge = '込' if ('込' in charge_raw) else '不要'
 
             limit = str(row[limit_idx] or '').strip() if (limit_idx != -1 and limit_idx < len(row) and row[limit_idx]) else ''
             set_notes = str(row[set_notes_idx] or '').strip() if (set_notes_idx != -1 and set_notes_idx < len(row) and row[set_notes_idx]) else ''
@@ -441,21 +452,25 @@ function parseXLSXToStoresData(arrayBuffer) {{
     const priceStr = getVal("価格(円)", "価格", "金額", "セット価格(円)", "セット価格", "セット金額", "セット金額(円)").replace(/[^\\d]/g, '');
     const price = priceStr ? parseInt(priceStr, 10) : 0;
     const includeChargeStr = getVal("チャージ", "セットチャージ");
-    const setCharge = (includeChargeStr.includes("不要") || includeChargeStr.includes("無")) ? "不要" : "込";
+    const setCharge = includeChargeStr.includes("込") ? "込" : "不要";
 
     const days = getVal("提供日");
     const hours = getVal("提供時間");
     const limit = getVal("限定数");
     const setNotes = getVal("セット備考", "備考・注意事項", "備考", "注意事項");
 
-    const questTitle = getVal("クエスト名");
-    const questPriceStr = getVal("クエスト価格(円)", "クエスト価格", "クエスト金額(円)", "クエスト金額", "クエスト金額(円)", "金額").replace(/[^\\d]/g, '');
+    const questTitle = getVal("クエスト名", "クエストタイトル", "クエスト簡易名");
+    const questPriceStr = getVal("クエスト価格(円)", "クエスト価格", "クエスト金額(円)", "クエスト金額", "金額").replace(/[^\\d]/g, '');
     const questPrice = questPriceStr ? parseInt(questPriceStr, 10) : 0;
     const questChargeStr = getVal("クエストチャージ");
     const questCharge = questChargeStr.includes("込") ? "込" : "不要";
 
-    const questContent = getVal("クエスト内容", "イベント情報", "イベント");
-    const questNotes = getVal("クエスト備考", "備考");
+    // R列 (18列目/idx 17) & S列 (19列目/idx 18) の値取得
+    let questContent = (cols.length > 17 && cols[17]) ? cols[17] : getVal("クエスト内容", "イベント情報", "イベント", "クエスト詳細");
+    let questNotes = (cols.length > 18 && cols[18]) ? cols[18] : getVal("クエスト備考", "備考", "注意事項");
+    if (questContent === questTitle) {{
+      questContent = (cols.length > 17) ? cols[17] : '';
+    }}
     const isQuestActive = !!(questTitle || questContent);
 
     const paymentMethodsRaw = getVal("決済方法", "支払い方法");

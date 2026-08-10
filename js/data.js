@@ -30,8 +30,8 @@ const STORES_DATA = [
       "title": "おばんざい三種盛り晩酌セット",
       "content": "おばんざい軽盛り3種+ドリンク1杯",
       "price": 800,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": "他クーポン併用不可。"
     },
     "conditions": {
@@ -74,8 +74,8 @@ const STORES_DATA = [
       "title": "どれクエ限定ミニバーガーセット",
       "content": "イベント限定ミニバーガー+ドリンク1杯",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -114,8 +114,8 @@ const STORES_DATA = [
       "title": "牛すじ煮込み焼肉屋の晩酌セット",
       "content": "和牛のすじ煮込み+ドリンク1杯",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -154,8 +154,8 @@ const STORES_DATA = [
       "title": "黒糖焼酎とニラ玉セット",
       "content": "黒糖焼酎とニラ玉",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -194,8 +194,8 @@ const STORES_DATA = [
       "title": "ラム肉ショルダーステーキセット",
       "content": "ラム肉ショルダーステーキ(小)+飲み放題用メニューより1杯",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -234,8 +234,8 @@ const STORES_DATA = [
       "title": "夜カフェクレープセット",
       "content": "ハンドドリップコーヒー+クレープ(チョコバナナ or ビスケットキャラメル)",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -274,8 +274,8 @@ const STORES_DATA = [
       "title": "限定カクテルセット",
       "content": "限定カクテル",
       "price": 0,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -314,8 +314,8 @@ const STORES_DATA = [
       "title": "ミックスナッツ晩酌セット",
       "content": "ちょっとミックスナッツ or ちょっとピスタチオ + ドリンク1杯(ウイスキー or 焼酎)",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -354,8 +354,8 @@ const STORES_DATA = [
       "title": "ちゃぼの鶏だし満喫セット",
       "content": "大根を美味しく炊いたやつの天ぷら or ちゃぼの肉豆腐＋国産鶏の出汁煮 + ドリンク1杯",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -394,8 +394,8 @@ const STORES_DATA = [
       "title": "日本酒と創作おつまみセット",
       "content": "日本酒1杯とおつまみ",
       "price": 800,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -434,8 +434,8 @@ const STORES_DATA = [
       "title": "おばんざい立ち飲みセット",
       "content": "おばんざい2種盛り+ドリンク1杯(460円以内)",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -474,8 +474,8 @@ const STORES_DATA = [
       "title": "串カツと一杯セット",
       "content": "串カツ5本盛り+ドリンク1杯(550円以内)",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -514,8 +514,8 @@ const STORES_DATA = [
       "title": "唐揚げちょい飲みセット",
       "content": "唐揚げハーフ(2個)+ドリンク1杯",
       "price": 800,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -554,8 +554,8 @@ const STORES_DATA = [
       "title": "宮崎地鶏炭火焼きセット",
       "content": "炭火焼き(小)+ドリンク1杯(495円以内)",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -594,8 +594,8 @@ const STORES_DATA = [
       "title": "沖縄前菜盛り泡盛セット",
       "content": "沖縄前菜肴盛セット+ドリンク2杯（生ビール、ハイボール、泡盛（3種類から選べます）、二階堂、黒霧、酎ハイ）",
       "price": 1600,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -634,8 +634,8 @@ const STORES_DATA = [
       "title": "昭和おばんざい晩酌セット",
       "content": "おばんざい2種+ドリンク1杯(日本酒、一部銘柄を除く)",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -674,8 +674,8 @@ const STORES_DATA = [
       "title": "隠れ家おつまみセット",
       "content": "おつまみ2品+ドリンク1杯(1000円以内 )",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -714,8 +714,8 @@ const STORES_DATA = [
       "title": "創作串焼き三本セット",
       "content": "串3本+ドリンク1杯",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -745,17 +745,17 @@ const STORES_DATA = [
     "quest": {
       "title": "",
       "price": 300,
-      "charge": "不要",
+      "charge": "込",
       "content": "スタッフと楽しい酔いどれチンチロチャンス！",
-      "notes": "成功：会心の1杯サービス、失敗：大魔王のショット(ちょっと)"
+      "notes": "成功：会心の1杯サービス\n失敗：大魔王のショット(ちょっと)"
     },
     "catchphrase": "80's・ロック・駄菓子",
     "yoidoreSet": {
-      "title": "80's駄菓子バーセット",
+      "title": "",
       "content": "",
-      "price": 300,
-      "charge": "込",
-      "includeCharge": true,
+      "price": 0,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -794,8 +794,8 @@ const STORES_DATA = [
       "title": "昼飲みホルモンおつまみセット",
       "content": "おつまみ2品盛り+ドリンク1杯(350円以内)",
       "price": 500,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -834,8 +834,8 @@ const STORES_DATA = [
       "title": "鉄板焼き盛り合わせセット",
       "content": "鉄板2種盛り+ドリンク1杯(ビール・ハイボール・酎ハイ)",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -874,8 +874,8 @@ const STORES_DATA = [
       "title": "蒸し料理おばんざいセット",
       "content": "おばんざい3種+ハイボールor酎ハイ",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -914,8 +914,8 @@ const STORES_DATA = [
       "title": "韓国おつまみセット",
       "content": "チヂミ・キムチ・ナムルセット+ドリンク1杯(550円以内)",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -954,8 +954,8 @@ const STORES_DATA = [
       "title": "歌って飲めるカラオケセット",
       "content": "カラオケ1時間+1品+ドリンク1杯　(20時以降限定)",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -994,8 +994,8 @@ const STORES_DATA = [
       "title": "日替わりおばんざいセット",
       "content": "日替わりでおばんざい2皿+ドリンク1杯",
       "price": 800,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -1034,8 +1034,8 @@ const STORES_DATA = [
       "title": "海鮮一品晩酌セット",
       "content": "1品(お刺身や焼き物)+ドリンク1杯",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -1074,8 +1074,8 @@ const STORES_DATA = [
       "title": "カラオケバー乾杯セット",
       "content": "チャーム+ドリンク1杯(700円まで)",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -1114,8 +1114,8 @@ const STORES_DATA = [
       "title": "沖縄ちょい飲みセット",
       "content": "チャーム+お菓子1袋+ドリンク1杯",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -1154,8 +1154,8 @@ const STORES_DATA = [
       "title": "沖縄小鉢三種盛りセット",
       "content": "選べるお好きな小鉢3品+ドリンク1杯(アサヒスーパードライ、オリオンビール、ブラックニッカハイボールのいずれか)",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -1194,8 +1194,8 @@ const STORES_DATA = [
       "title": "歌い放題飲み放題セット",
       "content": "1時間飲み放題+歌い放題(ドリンク制限あり)",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -1234,8 +1234,8 @@ const STORES_DATA = [
       "title": "沖縄家庭料理セット",
       "content": "ゴーヤのお浸し+豚バラ軟骨塩煮込み+ドリンク1杯(瓶ビール以外)",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -1274,8 +1274,8 @@ const STORES_DATA = [
       "title": "洋食前菜バルセット",
       "content": "洋食前菜の3種盛+ドリンク1杯(限定メニューより)",
       "price": 1000,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -1314,8 +1314,8 @@ const STORES_DATA = [
       "title": "ピッツァ前菜ワインセット",
       "content": "ミニ前菜盛り合わせ+ドリンク1杯(ビール、ワイン、酎ハイ)",
       "price": 800,
-      "charge": "込",
-      "includeCharge": true,
+      "charge": "不要",
+      "includeCharge": false,
       "notes": ""
     },
     "conditions": {
@@ -1499,21 +1499,25 @@ function parseXLSXToStoresData(arrayBuffer) {
     const priceStr = getVal("価格(円)", "価格", "金額", "セット価格(円)", "セット価格", "セット金額", "セット金額(円)").replace(/[^\d]/g, '');
     const price = priceStr ? parseInt(priceStr, 10) : 0;
     const includeChargeStr = getVal("チャージ", "セットチャージ");
-    const setCharge = (includeChargeStr.includes("不要") || includeChargeStr.includes("無")) ? "不要" : "込";
+    const setCharge = includeChargeStr.includes("込") ? "込" : "不要";
 
     const days = getVal("提供日");
     const hours = getVal("提供時間");
     const limit = getVal("限定数");
     const setNotes = getVal("セット備考", "備考・注意事項", "備考", "注意事項");
 
-    const questTitle = getVal("クエスト名");
-    const questPriceStr = getVal("クエスト価格(円)", "クエスト価格", "クエスト金額(円)", "クエスト金額", "クエスト金額(円)", "金額").replace(/[^\d]/g, '');
+    const questTitle = getVal("クエスト名", "クエストタイトル", "クエスト簡易名");
+    const questPriceStr = getVal("クエスト価格(円)", "クエスト価格", "クエスト金額(円)", "クエスト金額", "金額").replace(/[^\d]/g, '');
     const questPrice = questPriceStr ? parseInt(questPriceStr, 10) : 0;
     const questChargeStr = getVal("クエストチャージ");
     const questCharge = questChargeStr.includes("込") ? "込" : "不要";
 
-    const questContent = getVal("クエスト内容", "イベント情報", "イベント");
-    const questNotes = getVal("クエスト備考", "備考");
+    // R列 (18列目/idx 17) & S列 (19列目/idx 18) の値取得
+    let questContent = (cols.length > 17 && cols[17]) ? cols[17] : getVal("クエスト内容", "イベント情報", "イベント", "クエスト詳細");
+    let questNotes = (cols.length > 18 && cols[18]) ? cols[18] : getVal("クエスト備考", "備考", "注意事項");
+    if (questContent === questTitle) {
+      questContent = (cols.length > 17) ? cols[17] : '';
+    }
     const isQuestActive = !!(questTitle || questContent);
 
     const paymentMethodsRaw = getVal("決済方法", "支払い方法");
