@@ -1174,10 +1174,6 @@ class YoidoreQuestApp {
           </div>
         ` : ''}
 
-        <!-- 1つ前の画面（検索結果）へ戻るボタン -->
-        <button class="back-btn back-to-stores-smart" type="button" style="margin-top: 14px;">
-          ◀ 1つ前の画面へ戻る
-        </button>
       </div>
     `;
 
@@ -1185,10 +1181,6 @@ class YoidoreQuestApp {
       btn.addEventListener('click', () => {
         this.playSelectSE();
       });
-    });
-
-    container.querySelector('.back-to-stores-smart').addEventListener('click', () => {
-      this.goBack();
     });
   }
 }
