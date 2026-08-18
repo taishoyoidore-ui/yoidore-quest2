@@ -35,13 +35,31 @@
 
     <!-- ヘッダー -->
     <header class="app-header">
-      <div class="header-title-box">
+      <div class="header-left-box">
         <h1 class="header-logo">大正酔いどれクエストⅡ</h1>
       </div>
-      <button id="sound-toggle-btn" class="sound-toggle-btn" type="button" aria-label="効果音のオンオフ切り替え">
-        🔊 音声 ON
-      </button>
+      <div class="header-right-box">
+        <button id="header-back-btn" class="header-back-btn hidden" type="button" aria-label="前の画面に戻る">
+          ◀ もどる
+        </button>
+        <button id="sound-toggle-btn" class="sound-toggle-btn" type="button" aria-label="効果音のオンオフ切り替え">
+          🔊 音声 ON
+        </button>
+      </div>
     </header>
+
+    <!-- 店舗一覧用 スティッキースマート絞り込みバー (スクロール時に出現) -->
+    <aside id="sticky-filter-bar" class="sticky-filter-bar hidden" aria-label="現在の絞り込み条件">
+      <div class="sticky-filter-inner">
+        <div class="sticky-filter-left" id="sticky-filter-tags">
+          <span class="sticky-icon">🔍</span>
+          <span class="sticky-summary-text">全店舗 (33件)</span>
+        </div>
+        <button id="sticky-filter-change-btn" class="sticky-filter-btn" type="button">
+          条件変更 ▾
+        </button>
+      </div>
+    </aside>
 
     <!-- メッセージウィンドウ (RPG風テキスト演出) -->
     <section id="message-window-section" class="message-window" aria-live="polite">
@@ -57,7 +75,7 @@
     <nav class="bottom-nav" aria-label="メインナビゲーション">
       <a href="#" class="nav-item active" data-target-view="top" id="nav-btn-top">
         <span class="nav-item-icon">🍺</span>
-        <span>案内所</span>
+        <span>案内所(TOP)</span>
       </a>
       <a href="#" class="nav-item" data-target-view="area" id="nav-btn-area">
         <span class="nav-item-icon">🗺</span>

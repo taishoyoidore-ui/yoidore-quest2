@@ -20,6 +20,15 @@ class YoidoreQuestApp {
       searchQuery: ''
     };
 
+    // 初期履歴の登録 (ブラウザバック用)
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState({
+        view: 'top',
+        selectedStoreId: null,
+        filters: { ...this.filters }
+      }, '');
+    }
+
     this.initAudio();
     this.initEvents();
     this.loadXLSXFromDefaultPath();
@@ -216,6 +225,33 @@ class YoidoreQuestApp {
       soundBtn.addEventListener('click', () => this.toggleSound());
     }
 
+    // ヘッダー「◀ もどる」ボタン
+    const headerBackBtn = document.getElementById('header-back-btn');
+    if (headerBackBtn) {
+      headerBackBtn.addEventListener('click', () => {
+        this.goBack();
+      });
+    }
+
+    // スティッキー絞り込みバーのタップで最上部（絞り込みフォーム）へスムーズスクロール
+    const stickyBar = document.getElementById('sticky-filter-bar');
+    if (stickyBar) {
+      stickyBar.addEventListener('click', () => {
+        this.playSelectSE();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    // ブラウザバック / スワイプ戻りイベント (PopState)
+    window.addEventListener('popstate', (e) => {
+      this.handlePopState(e);
+    });
+
+    // スクロール時のスマート絞り込みバー表示制御
+    window.addEventListener('scroll', () => {
+      this.updateStickyFilterBar();
+    });
+
     // ナビゲーションバー
     document.querySelectorAll('.nav-item').forEach(item => {
       item.addEventListener('click', (e) => {
@@ -245,6 +281,115 @@ class YoidoreQuestApp {
     });
   }
 
+  /* ------------------------------------------------------------------------
+   * スティッキースマート絞り込みバーの動的更新
+   * ------------------------------------------------------------------------ */
+  updateStickyFilterBar() {
+    const stickyBar = document.getElementById('sticky-filter-bar');
+    if (!stickyBar) return;
+
+    if (this.currentView !== 'stores') {
+      stickyBar.classList.add('hidden');
+      return;
+    }
+
+    // 絞り込み条件ウィンドウが画面上部にスクロールアウトしたかを判定
+    const filterWindow = document.getElementById('store-filter-window');
+    let shouldShow = false;
+    
+    if (filterWindow) {
+      const rect = filterWindow.getBoundingClientRect();
+      // ウィンドウの下端がヘッダー（46px）の下を通過したら表示
+      shouldShow = rect.bottom <= 50;
+    } else {
+      const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+      shouldShow = scrollY > 150;
+    }
+
+    if (shouldShow) {
+      stickyBar.classList.remove('hidden');
+    } else {
+      stickyBar.classList.add('hidden');
+    }
+
+    // 条件タグのテキスト生成
+    const tagsContainer = document.getElementById('sticky-filter-tags');
+    if (tagsContainer) {
+      const activeTags = [];
+      if (this.filters.area !== 'ALL') activeTags.push(`<span class="sticky-tag-item">📍 ${this.filters.area}</span>`);
+      if (this.filters.category !== 'ALL') activeTags.push(`<span class="sticky-tag-item">${this.filters.category}</span>`);
+      if (this.filters.type !== 'ALL') activeTags.push(`<span class="sticky-tag-item">🍺 ${this.filters.type}</span>`);
+      if (this.filters.openToday) activeTags.push(`<span class="sticky-tag-item text-green">✓ 営業中</span>`);
+      if (this.filters.searchQuery) activeTags.push(`<span class="sticky-tag-item">🔎 ${this.filters.searchQuery}</span>`);
+
+      let count = 0;
+      if (typeof STORES_DATA !== 'undefined') {
+        count = STORES_DATA.filter(store => {
+          if (this.filters.area !== 'ALL' && store.area !== this.filters.area) return false;
+          if (this.filters.category !== 'ALL' && store.category !== this.filters.category) return false;
+          if (this.filters.type !== 'ALL' && store.type !== this.filters.type) return false;
+          if (this.filters.openToday && !store.isOpenToday) return false;
+          if (this.filters.searchQuery) {
+            const q = this.filters.searchQuery.toLowerCase().trim();
+            return store.name.toLowerCase().includes(q) || store.catchphrase.toLowerCase().includes(q);
+          }
+          return true;
+        }).length;
+      }
+
+      if (activeTags.length > 0) {
+        tagsContainer.innerHTML = `
+          <span class="sticky-icon">🔍</span>
+          <div style="display:flex; gap:4px; align-items:center; overflow:hidden;">
+            ${activeTags.join('')}
+            <span style="font-size:11px; color:var(--text-dim); margin-left:4px;">(${count}件)</span>
+          </div>
+        `;
+      } else {
+        tagsContainer.innerHTML = `
+          <span class="sticky-icon">📜</span>
+          <span class="sticky-summary-text">全店舗一覧 (${count}件)</span>
+        `;
+      }
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+   * 1つ前の画面に戻る処理
+   * ------------------------------------------------------------------------ */
+  goBack() {
+    this.playBackSE();
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      // 履歴がない場合のフォールバック
+      if (this.currentView === 'detail') {
+        this.navigateTo('stores');
+      } else {
+        this.navigateTo('top');
+      }
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+   * ブラウザバック・スワイプ戻り時のハンドリング
+   * ------------------------------------------------------------------------ */
+  handlePopState(e) {
+    this.playBackSE();
+    if (e.state && e.state.view) {
+      if (e.state.filters) {
+        this.filters = { ...e.state.filters };
+      }
+      if (e.state.selectedStoreId && typeof STORES_DATA !== 'undefined') {
+        this.selectedStore = STORES_DATA.find(s => s.id === e.state.selectedStoreId) || null;
+      }
+      this.navigateTo(e.state.view, null, true);
+    } else {
+      // stateが無い場合はトップ画面へ
+      this.navigateTo('top', null, true);
+    }
+  }
+
   resetFilters() {
     this.filters = {
       area: 'ALL',
@@ -259,7 +404,7 @@ class YoidoreQuestApp {
   /* ------------------------------------------------------------------------
    * 画面遷移とメッセージ更新
    * ------------------------------------------------------------------------ */
-  navigateTo(view, extraData = null) {
+  navigateTo(view, extraData = null, isPopState = false) {
     if (view === 'map') {
       window.open('https://maps.app.goo.gl/SqskFzoxuso7NwwL8', '_blank');
       return;
@@ -275,6 +420,25 @@ class YoidoreQuestApp {
       this.selectedStore = extraData.store;
     }
 
+    // History API に画面状態をプッシュ (popstate による遷移でない場合のみ)
+    if (!isPopState && window.history && window.history.pushState) {
+      window.history.pushState({
+        view: view,
+        selectedStoreId: this.selectedStore ? this.selectedStore.id : null,
+        filters: { ...this.filters }
+      }, '');
+    }
+
+    // ヘッダー「◀ もどる」ボタンの表示/非表示切り替え (トップ画面以外で表示)
+    const headerBackBtn = document.getElementById('header-back-btn');
+    if (headerBackBtn) {
+      if (view === 'top') {
+        headerBackBtn.classList.add('hidden');
+      } else {
+        headerBackBtn.classList.remove('hidden');
+      }
+    }
+
     // ボトムナビのハイライト更新
     document.querySelectorAll('.nav-item').forEach(nav => {
       nav.classList.remove('active');
@@ -284,6 +448,7 @@ class YoidoreQuestApp {
     });
 
     this.render();
+    this.updateStickyFilterBar();
 
     // 店舗一覧画面に戻ってきた場合は前回のスクロール位置を復元、それ以外は最上部へ
     if (view === 'stores' && this.lastStoresScrollY > 0) {
@@ -595,6 +760,12 @@ class YoidoreQuestApp {
    * 3.7 店舗一覧 (カード形式 & フィルター)
    * ------------------------------------------------------------------------ */
   renderStoresView(container) {
+    const isFiltered = this.filters.area !== 'ALL' || 
+                       this.filters.category !== 'ALL' || 
+                       this.filters.type !== 'ALL' || 
+                       this.filters.openToday || 
+                       this.filters.searchQuery !== '';
+
     const areaOptions = ['ALL', ...AREAS_LIST].map(a => 
       `<option value="${a}" ${this.filters.area === a ? 'selected' : ''}>${a === 'ALL' ? '全エリア' : a}</option>`
     ).join('');
@@ -610,9 +781,12 @@ class YoidoreQuestApp {
     ).join('');
 
     container.innerHTML = `
-      <div class="rpg-window">
+      <div class="rpg-window" id="store-filter-window">
         <div class="rpg-window-header">
           <span>▶ 絞り込み条件</span>
+          <div class="filter-header-action">
+            ${isFiltered ? `<button id="btn-reset-filters" class="filter-reset-btn" type="button">✖ 条件クリア</button>` : ''}
+          </div>
         </div>
         <div class="filter-box">
           <div class="filter-row">
@@ -741,10 +915,22 @@ class YoidoreQuestApp {
           });
         });
       }
+
+      this.updateStickyFilterBar();
     };
 
     // 初回レンダリング
     updateStoreList();
+
+    // 条件リセットボタン
+    const resetBtn = document.getElementById('btn-reset-filters');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        this.playSelectSE();
+        this.resetFilters();
+        this.renderStoresView(container);
+      });
+    }
 
     // ドロップダウン選択チェンジイベント
     const onFilterChange = () => {
@@ -1002,8 +1188,7 @@ class YoidoreQuestApp {
     });
 
     container.querySelector('.back-to-stores-smart').addEventListener('click', () => {
-      this.playSelectSE();
-      this.navigateTo('stores');
+      this.goBack();
     });
   }
 }

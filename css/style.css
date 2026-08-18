@@ -62,7 +62,7 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: hidden;
+  padding-top: 50px; /* 固定ヘッダーの高さぶん空ける */
 }
 
 /* スキャンラインエフェクト (レトロCRT風) */
@@ -77,36 +77,158 @@ body {
     rgba(0, 0, 0, 0.25) 50%
   );
   background-size: 100% 4px;
-  z-index: 999;
+  z-index: 10;
   pointer-events: none;
   opacity: 0.6;
 }
 
-/* ヘッダー */
+/* ヘッダー (画面上部に完全固定) */
 .app-header {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
   background: #000;
   border-bottom: 4px double var(--border-white);
   padding: 8px 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  position: sticky;
-  top: 0;
-  z-index: 1000;
+  z-index: 10000;
+  min-height: 46px;
+  box-sizing: border-box;
 }
 
-.header-title-box {
+.header-left-box {
   display: flex;
+  align-items: center;
+  flex: 1;
+  overflow: hidden;
+}
+
+.header-right-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.header-back-btn {
+  background: linear-gradient(180deg, #3a1515 0%, #1a0808 100%);
+  border: 2px solid var(--text-red);
+  color: #fff;
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  padding: 4px 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  transition: all 0.1s;
+  white-space: nowrap;
+}
+
+.header-back-btn:active {
+  transform: scale(0.95);
+  background: #501010;
+}
+
+.header-logo {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--text-yellow);
+  text-shadow: 2px 2px 0px #000, -1px -1px 0px #805000;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* スティッキースマート絞り込みバー (スクロール時にヘッダー直下に固定) */
+.sticky-filter-bar {
+  position: fixed;
+  top: 46px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  background: rgba(10, 14, 28, 0.96);
+  border-bottom: 2px solid var(--border-gold);
+  padding: 6px 12px;
+  z-index: 9900;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.sticky-filter-bar.hidden {
+  display: none !important;
+}
+
+.sticky-filter-inner {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 8px;
 }
 
-.header-logo {
-  font-size: 18px;
-  font-weight: bold;
+.sticky-filter-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.sticky-icon {
+  font-size: 13px;
   color: var(--text-yellow);
-  text-shadow: 2px 2px 0px #000, -1px -1px 0px #805000;
-  letter-spacing: 1px;
+}
+
+.sticky-summary-text {
+  font-size: 12px;
+  color: var(--text-white);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sticky-tag-item {
+  display: inline-block;
+  background: #182440;
+  color: var(--text-yellow);
+  border: 1px solid #385080;
+  border-radius: 2px;
+  font-size: 11px;
+  padding: 1px 5px;
+  margin-right: 4px;
+}
+
+.sticky-filter-btn {
+  background: linear-gradient(180deg, #1b3058 0%, #0d1a33 100%);
+  border: 1px solid var(--border-gold);
+  color: var(--text-yellow);
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sticky-filter-btn:active {
+  transform: scale(0.95);
+  background: #254075;
 }
 
 .header-subtitle {
@@ -398,7 +520,7 @@ body {
   overflow: hidden;
   box-shadow: 0 0 8px rgba(247, 208, 112, 0.4);
   position: relative;
-  z-index: 10000; /* スキャンライン(z-index: 999)の上に表示して特殊フィルターを除外 */
+  z-index: 20; /* スキャンライン(z-index: 10)の上に表示して特殊フィルターを除外 */
 }
 
 .store-card-logo-img {
@@ -604,7 +726,7 @@ body {
   overflow: hidden;
   box-shadow: 0 0 12px rgba(247, 208, 112, 0.5);
   position: relative;
-  z-index: 10000; /* スキャンライン(z-index: 999)の上に表示して特殊フィルターを除外 */
+  z-index: 20; /* スキャンライン(z-index: 10)の上に表示して特殊フィルターを除外 */
 }
 
 .detail-logo-img {
@@ -1010,3 +1132,73 @@ body {
   height: auto;
   display: block;
 }
+
+/* フローティングアクションボタン (一覧画面スクロール時の上部・条件変更ジャンプ用) */
+.floating-action-container {
+  position: fixed;
+  bottom: 70px;
+  right: calc(50% - 225px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: opacity 0.2s, transform 0.2s, visibility 0.2s;
+}
+
+@media (max-width: 480px) {
+  .floating-action-container {
+    right: 14px;
+  }
+}
+
+.floating-action-container.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.floating-btn {
+  background: rgba(10, 15, 30, 0.95);
+  border: 2px solid var(--border-gold);
+  color: var(--text-yellow);
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8), 0 0 8px rgba(247, 208, 112, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(4px);
+}
+
+.floating-btn:active {
+  transform: scale(0.95);
+  background: #1e2850;
+}
+
+.filter-header-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-reset-btn {
+  background: #2a1010;
+  border: 1px solid var(--text-red);
+  color: #ff9999;
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.filter-reset-btn:hover, .filter-reset-btn:active {
+  background: #4a1515;
+}
+
