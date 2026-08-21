@@ -399,6 +399,22 @@ class YoidoreQuestApp {
       searchQuery: ''
     };
     this.lastStoresScrollY = 0;
+    this.updateHistoryFilters();
+  }
+
+  /* ------------------------------------------------------------------------
+   * 現在の履歴ステートの絞り込み条件を最新に同期
+   * ------------------------------------------------------------------------ */
+  updateHistoryFilters() {
+    if (window.history && window.history.replaceState) {
+      const currentState = window.history.state || {};
+      window.history.replaceState({
+        ...currentState,
+        view: this.currentView,
+        selectedStoreId: this.selectedStore ? this.selectedStore.id : null,
+        filters: { ...this.filters }
+      }, '');
+    }
   }
 
   /* ------------------------------------------------------------------------
@@ -917,6 +933,7 @@ class YoidoreQuestApp {
       }
 
       this.updateStickyFilterBar();
+      this.updateHistoryFilters();
     };
 
     // 初回レンダリング
