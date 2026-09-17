@@ -17,7 +17,7 @@ const APP_CONFIG = {
 
   // LINE LIFF 設定
   liff: {
-    id: '2011634811-l3iZWcv7'
+    id: '2011637649-WWv6pnTL'
   },
 
   // 開発・テスト用モック設定（LINE外やPCブラウザで動かした際の自動フォールバック）
