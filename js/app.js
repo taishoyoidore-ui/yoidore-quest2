@@ -149,15 +149,17 @@ class YoidoreQuestApp {
   }
 
   startGame() {
-    if (!this.audioCtx) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (AudioContext) {
-        this.audioCtx = new AudioContext();
+    try {
+      if (!this.audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          this.audioCtx = new AudioContext();
+        }
       }
-    }
-    if (this.audioCtx && this.audioCtx.state === 'suspended') {
-      this.audioCtx.resume();
-    }
+      if (this.audioCtx && this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume();
+      }
+    } catch (e) {}
 
     this.isStarted = true;
     this.playStartSE();
@@ -167,9 +169,11 @@ class YoidoreQuestApp {
       overlay.classList.add('fade-out');
       setTimeout(() => {
         overlay.classList.add('hidden');
-      }, 400);
+        overlay.style.display = 'none';
+      }, 350);
     }
 
+    this.render();
     setTimeout(() => {
       this.typeMessage('案内所へようこそ！大正の「オモロイらしい店」を探すコマンドを選択して下さい。');
     }, 250);
