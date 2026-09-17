@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>大正酔いどれクエストⅡ - バックオフィス管理画面</title>
+  <link rel="icon" href="assets/banner.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <!-- QRCode.js for POP Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+  <!-- 認証ロックモーダル (初期パスワード: yoidore2026) -->
+  <div id="auth-lock-modal" class="auth-overlay">
+    <div class="auth-card">
+      <div class="auth-header">
+        <span class="auth-icon">🍺</span>
+        <h2>大正酔いどれクエストⅡ</h2>
+        <p class="auth-subtitle">バックオフィス運営管理システム</p>
+      </div>
+      <form id="auth-form" onsubmit="event.preventDefault(); window.adminApp.handleLogin();">
+        <div class="form-group">
+          <label for="admin-pin"><i class="fa-solid fa-lock"></i> 管理者パスワード</label>
+          <input type="password" id="admin-pin" placeholder="パスワードを入力 (初期値: yoidore2026)" required autofocus>
+          <div id="auth-error" class="auth-error-msg" style="display: none;">パスワードが正しくありません</div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">
+          <i class="fa-solid fa-right-to-bracket"></i> 管理画面にログイン
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 管理画面メインコンテナ -->
+  <div id="admin-app" class="admin-layout" style="display: none;">
+    <!-- サイドバーナビゲーション (PC) / 上部ヘッダー (スマホ) -->
+    <aside class="admin-sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-title">
+          <span class="brand-icon">🍺</span>
+          <div class="brand-text">
+            <h3>大正酔いどれクエストⅡ</h3>
+            <span class="badge badge-admin">運営本部バックオフィス</span>
+          </div>
+        </div>
+        <button class="mobile-close-btn" onclick="window.adminApp.toggleMobileSidebar()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#dashboard" class="nav-item active" data-tab="dashboard">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>ダッシュボード</span>
+        </a>
+        <a href="#stores" class="nav-item" data-tab="stores">
+          <i class="fa-solid fa-store"></i>
+          <span>店舗マスター管理</span>
+        </a>
+        <a href="#tiers" class="nav-item" data-tab="tiers">
+          <i class="fa-solid fa-gift"></i>
+          <span>特典・期限設定</span>
+        </a>
+        <a href="#logs" class="nav-item" data-tab="logs">
+          <i class="fa-solid fa-list-check"></i>
+          <span>参加者・履歴ログ</span>
+        </a>
+        <a href="#pop" class="nav-item" data-tab="pop">
+          <i class="fa-solid fa-qrcode"></i>
+          <span>店頭POP・QR一括印刷</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="db-status-badge">
+          <span class="status-dot online"></span>
+          <span>Supabase DB 連動中</span>
+        </div>
+        <button class="btn btn-outline-danger btn-sm btn-block" onclick="window.adminApp.handleLogout()">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> ログアウト
+        </button>
+      </div>
+    </aside>
+
+    <!-- メインコンテンツエリア -->
+    <main class="admin-main">
+      <!-- トップバー -->
+      <header class="top-header">
+        <div class="header-left">
+          <button class="mobile-menu-btn" onclick="window.adminApp.toggleMobileSidebar()">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <h1 id="page-title">ダッシュボード</h1>
+        </div>
+        <div class="header-right">
+          <span id="last-sync-time" class="text-muted"><i class="fa-solid fa-arrows-rotate fa-spin"></i> 同期中...</span>
+          <button class="btn btn-secondary btn-sm" onclick="window.adminApp.refreshData()">
+            <i class="fa-solid fa-rotate"></i> 最新データ更新
+          </button>
+          <a href="index.html" target="_blank" class="btn btn-outline btn-sm">
+            <i class="fa-solid fa-up-right-from-square"></i> アプリ実機表示
+          </a>
+        </div>
+      </header>
+
+      <div class="content-wrapper">
+        <!-- 1. ダッシュボードタブ -->
+        <section id="tab-dashboard" class="tab-pane active">
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-icon icon-blue"><i class="fa-solid fa-users"></i></div>
+              <div class="kpi-info">
+                <div class="kpi-label">総参加者数 (LINE)</div>
+                <div class="kpi-value" id="kpi-users-count">-</div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon icon-green"><i class="fa-solid fa-beer-mug-empty"></i></div>
+              <div class="kpi-info">
+                <div class="kpi-label">総来店チェックイン数</div>
+                <div class="kpi-value" id="kpi-visits-count">-</div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon icon-yellow"><i class="fa-solid fa-ticket"></i></div>
+              <div class="kpi-info">
+                <div class="kpi-label">獲得クーポン総数</div>
+                <div class="kpi-value" id="kpi-coupons-issued">-</div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon icon-purple"><i class="fa-solid fa-stamp"></i></div>
+              <div class="kpi-info">
+                <div class="kpi-label">利用（消し込み）済クーポン</div>
+                <div class="kpi-value" id="kpi-coupons-used">-</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-grid">
+            <!-- 来店ランキング TOP 5 -->
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-trophy text-gold"></i> 来店チェックイン数 TOP 5</h3>
+              </div>
+              <div class="card-body">
+                <div id="top-stores-ranking" class="ranking-list">
+                  <div class="empty-state">データ集計中...</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- クーポン交換人気 TOP 5 -->
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-award text-primary"></i> クーポン交換人気店舗 TOP 5</h3>
+              </div>
+              <div class="card-body">
+                <div id="top-coupons-ranking" class="ranking-list">
+                  <div class="empty-state">データ集計中...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- リアルタイムアクティビティログ -->
+          <div class="card mt-4">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-bolt text-yellow"></i> リアルタイムアクティビティ速報</h3>
+            </div>
+            <div class="card-body">
+              <div id="recent-activity-list" class="activity-timeline">
+                <div class="empty-state">ログを読み込み中...</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. 店舗マスター管理タブ -->
+        <section id="tab-stores" class="tab-pane">
+          <div class="card">
+            <div class="card-header store-table-header">
+              <div class="header-filters">
+                <div class="search-input-wrapper">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                  <input type="text" id="store-search" placeholder="店舗名・エリア・料理で検索..." oninput="window.adminApp.filterStores()">
+                </div>
+                <select id="area-filter" onchange="window.adminApp.filterStores()">
+                  <option value="">すべてのエリア</option>
+                </select>
+                <select id="coupon-target-filter" onchange="window.adminApp.filterStores()">
+                  <option value="">クーポン取扱: すべて</option>
+                  <option value="true">クーポン取扱店のみ</option>
+                  <option value="false">クーポン対象外のみ</option>
+                </select>
+              </div>
+              <div class="header-actions">
+                <button class="btn btn-primary" onclick="window.adminApp.openStoreModal('new')">
+                  <i class="fa-solid fa-plus"></i> 新規店舗を追加
+                </button>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 80px;">ID</th>
+                    <th>店舗名</th>
+                    <th>エリア</th>
+                    <th>ジャンル / 席タイプ</th>
+                    <th>酔いどれセット</th>
+                    <th>クエスト</th>
+                    <th style="text-align: center;">クーポン対象</th>
+                    <th style="text-align: center; width: 140px;">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="store-table-body">
+                  <tr>
+                    <td colspan="8" class="text-center py-4">店舗データを読み込み中...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. 特典・期限設定タブ -->
+        <section id="tab-tiers" class="tab-pane">
+          <div class="grid-2col">
+            <!-- 特典ランク・マイルストーン設定 -->
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-trophy"></i> はしご達成特典（宝箱）設定</h3>
+                <button class="btn btn-sm btn-secondary" onclick="window.adminApp.openTierModal('new')">
+                  <i class="fa-solid fa-plus"></i> 特典を追加
+                </button>
+              </div>
+              <div class="card-body">
+                <p class="text-muted mb-3">何軒はしご達成で何店舗分のクーポンを選択・獲得できるかを設定します。</p>
+                <div id="reward-tiers-list" class="tier-cards-container">
+                  <div class="empty-state">設定を読み込み中...</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- イベント開催期間・システム設定 -->
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-calendar-days"></i> イベント開催期間・有効期限設定</h3>
+              </div>
+              <div class="card-body">
+                <form id="event-config-form" onsubmit="event.preventDefault(); window.adminApp.saveEventConfig();">
+                  <div class="form-group">
+                    <label>イベント開始日</label>
+                    <input type="date" id="event-start-date" class="form-control" required>
+                  </div>
+                  <div class="form-group">
+                    <label>イベント終了日（本開催）</label>
+                    <input type="date" id="event-end-date" class="form-control" required>
+                  </div>
+                  <div class="form-group">
+                    <label>クーポン最終利用期限（後夜祭含む）</label>
+                    <input type="date" id="coupon-valid-until" class="form-control" required>
+                    <small class="text-muted">この日付を過ぎると、獲得したクーポンは自動的に「期限切れ」となります。</small>
+                  </div>
+                  <button type="submit" class="btn btn-primary mt-3">
+                    <i class="fa-solid fa-floppy-disk"></i> 開催設定を保存
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. 参加者・履歴ログタブ -->
+        <section id="tab-logs" class="tab-pane">
+          <div class="card">
+            <div class="card-header tab-header-sub">
+              <div class="sub-tabs">
+                <button class="sub-tab active" data-sub="users" onclick="window.adminApp.switchLogSubTab('users')">
+                  <i class="fa-solid fa-users"></i> 参加者一覧 (<span id="count-users">0</span>)
+                </button>
+                <button class="sub-tab" data-sub="visits" onclick="window.adminApp.switchLogSubTab('visits')">
+                  <i class="fa-solid fa-beer-mug-empty"></i> 来店チェックイン履歴 (<span id="count-visits">0</span>)
+                </button>
+                <button class="sub-tab" data-sub="coupons" onclick="window.adminApp.switchLogSubTab('coupons')">
+                  <i class="fa-solid fa-stamp"></i> クーポン獲得・消し込み履歴 (<span id="count-coupons">0</span>)
+                </button>
+              </div>
+              <div class="export-actions">
+                <button class="btn btn-outline btn-sm" onclick="window.adminApp.exportCurrentTableToCSV()">
+                  <i class="fa-solid fa-file-csv"></i> 表示中のデータをCSV出力
+                </button>
+              </div>
+            </div>
+
+            <!-- サブタブ1: 参加者一覧 -->
+            <div id="subtab-users" class="subtab-content active">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>ユーザー</th>
+                      <th>LINE User ID</th>
+                      <th>制覇店舗数</th>
+                      <th>獲得クーポン数</th>
+                      <th>初回参加日時</th>
+                      <th>最終アクセス</th>
+                    </tr>
+                  </thead>
+                  <tbody id="users-table-body">
+                    <tr><td colspan="6" class="text-center py-4">読み込み中...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- サブタブ2: 来店履歴 -->
+            <div id="subtab-visits" class="subtab-content">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>来店日時</th>
+                      <th>来店ユーザー</th>
+                      <th>店舗ID</th>
+                      <th>店舗名</th>
+                    </tr>
+                  </thead>
+                  <tbody id="visits-table-body">
+                    <tr><td colspan="4" class="text-center py-4">読み込み中...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- サブタブ3: クーポン履歴 -->
+            <div id="subtab-coupons" class="subtab-content">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>獲得日時</th>
+                      <th>ユーザー</th>
+                      <th>利用対象店舗</th>
+                      <th>状態</th>
+                      <th>消し込み（利用）日時</th>
+                    </tr>
+                  </thead>
+                  <tbody id="coupons-table-body">
+                    <tr><td colspan="5" class="text-center py-4">読み込み中...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. 店頭POP・QR一括印刷タブ -->
+        <section id="tab-pop" class="tab-pane">
+          <div class="pop-controls no-print">
+            <div class="pop-header-info">
+              <h3><i class="fa-solid fa-print"></i> 全33店舗 店頭チェックイン用POP</h3>
+              <p class="text-muted">A4用紙1枚につき各店舗の卓上POP（QRコード・店舗名・説明文）を綺麗に印刷・PDF保存できます。</p>
+            </div>
+            <div class="pop-actions">
+              <select id="pop-store-select" onchange="window.adminApp.filterPopCards()" class="form-control" style="width: 220px; display: inline-block;">
+                <option value="all">全店舗を表示（一括印刷）</option>
+              </select>
+              <button class="btn btn-primary" onclick="window.print()">
+                <i class="fa-solid fa-print"></i> 印刷 / PDFで保存
+              </button>
+            </div>
+          </div>
+
+          <!-- POPプレビューコンテナ（印刷時はこれがそのまま出力） -->
+          <div id="pop-cards-container" class="pop-cards-grid">
+            <div class="empty-state">POPを生成中...</div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- 店舗編集・新規作成モーダル -->
+  <div id="store-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <h3 id="store-modal-title">店舗情報の編集</h3>
+        <button class="modal-close-btn" onclick="window.adminApp.closeStoreModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="store-form" onsubmit="event.preventDefault(); window.adminApp.saveStore();">
+        <div class="modal-body">
+          <input type="hidden" id="edit-store-mode" value="edit">
+          <div class="grid-2col">
+            <div class="form-group">
+              <label>店舗ID (例: store-01) <span class="required">*</span></label>
+              <input type="text" id="edit-store-id" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label>店舗名 <span class="required">*</span></label>
+              <input type="text" id="edit-store-name" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="grid-3col">
+            <div class="form-group">
+              <label>エリア <span class="required">*</span></label>
+              <input type="text" id="edit-store-area" class="form-control" required placeholder="三軒家西, 泉尾など">
+            </div>
+            <div class="form-group">
+              <label>ジャンル <span class="required">*</span></label>
+              <input type="text" id="edit-store-category" class="form-control" required placeholder="居酒屋, おばんざいなど">
+            </div>
+            <div class="form-group">
+              <label>席スタイル</label>
+              <input type="text" id="edit-store-style" class="form-control" placeholder="カウンター, テーブルあり, 立ち呑み">
+            </div>
+          </div>
+
+          <div class="grid-2col">
+            <div class="form-group">
+              <label>酔いどれタイプ</label>
+              <input type="text" id="edit-store-type" class="form-control" placeholder="サク飲み, 腹ごしらえなど">
+            </div>
+            <div class="form-group">
+              <label>テイクアウト</label>
+              <select id="edit-store-takeout" class="form-control">
+                <option value="false">不可</option>
+                <option value="true">可能</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>キャッチフレーズ</label>
+            <input type="text" id="edit-store-catchphrase" class="form-control" placeholder="お店の自慢や特徴">
+          </div>
+
+          <div class="grid-2col">
+            <div class="form-group">
+              <label>営業日 / 提供日</label>
+              <input type="text" id="edit-store-days" class="form-control" placeholder="月,火,水,木,金,土,日">
+            </div>
+            <div class="form-group">
+              <label>提供時間 / 営業時間</label>
+              <input type="text" id="edit-store-hours" class="form-control" placeholder="17:00〜23:00">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>決済方法</label>
+            <input type="text" id="edit-store-payment" class="form-control" placeholder="現金, PayPay, クレジットカード">
+          </div>
+
+          <!-- セット情報 -->
+          <div class="form-section-title">🍺 酔いどれセット情報</div>
+          <div class="grid-2col">
+            <div class="form-group">
+              <label>セット名</label>
+              <input type="text" id="edit-store-set-name" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>セット価格 (円)</label>
+              <input type="number" id="edit-store-set-price" class="form-control" value="1000">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>セット内容</label>
+            <textarea id="edit-store-set-content" class="form-control" rows="2"></textarea>
+          </div>
+          <div class="grid-3col">
+            <div class="form-group">
+              <label>チャージ料</label>
+              <input type="text" id="edit-store-set-charge" class="form-control" placeholder="なし, 300円等">
+            </div>
+            <div class="form-group">
+              <label>限定数</label>
+              <input type="text" id="edit-store-set-limit" class="form-control" placeholder="なし, 1日限定10食等">
+            </div>
+            <div class="form-group">
+              <label>注意事項</label>
+              <input type="text" id="edit-store-set-notes" class="form-control">
+            </div>
+          </div>
+
+          <!-- クエスト情報 -->
+          <div class="form-section-title">⚔️ 店舗クエスト情報</div>
+          <div class="grid-2col">
+            <div class="form-group">
+              <label>クエスト名</label>
+              <input type="text" id="edit-store-quest-name" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>クエスト価格 (円)</label>
+              <input type="number" id="edit-store-quest-price" class="form-control" value="0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>クエスト内容</label>
+            <textarea id="edit-store-quest-content" class="form-control" rows="2"></textarea>
+          </div>
+
+          <!-- リンク & フラグ -->
+          <div class="form-section-title">🔗 外部リンク & 特典フラグ</div>
+          <div class="grid-2col">
+            <div class="form-group">
+              <label>Google Map URL</label>
+              <input type="url" id="edit-store-map-url" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Instagram URL</label>
+              <input type="url" id="edit-store-insta-url" class="form-control">
+            </div>
+          </div>
+          <div class="grid-2col">
+            <div class="form-group">
+              <label>写真画像URL</label>
+              <input type="text" id="edit-store-photo-url" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>ロゴ画像URL</label>
+              <input type="text" id="edit-store-logo-url" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-group custom-toggle-box">
+            <label class="toggle-switch-label">
+              <input type="checkbox" id="edit-store-coupon-target" checked>
+              <span class="toggle-switch-slider"></span>
+              <strong style="margin-left: 10px;">🎁 クーポン取扱店（はしご達成特典の引き換え対象店）として登録する</strong>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="window.adminApp.closeStoreModal()">キャンセル</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Supabaseに保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- トースト通知 -->
+  <div id="toast" class="admin-toast"></div>
+
+  <!-- スクリプト読み込み -->
+  <script src="js/config.js?v=3"></script>
+  <script src="js/api.js?v=3"></script>
+  <script src="js/admin.js?v=1"></script>
+</body>
+</html>
