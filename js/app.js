@@ -1005,9 +1005,9 @@ class YoidoreQuestApp {
 
     const couponsHtml = (userCoupons.length > 0)
       ? `
-        <div class="rpg-window">
-          <div class="rpg-window-header">
-            <span>🎟️ 所持クーポン・記念品引換券 (${userCoupons.length}件)</span>
+        <div class="rpg-window window-purple" style="margin-bottom:14px;">
+          <div class="rpg-window-header header-purple">
+            <span>🎟️ 所持クーポン・引換券 (${userCoupons.length}件)</span>
           </div>
           <div style="margin-top:10px;">
             ${activeCoupons.map(c => renderCouponCard(c, false)).join('')}
@@ -1016,8 +1016,8 @@ class YoidoreQuestApp {
         </div>
       `
       : `
-        <div class="rpg-window">
-          <div class="rpg-window-header">
+        <div class="rpg-window window-purple" style="margin-bottom:14px;">
+          <div class="rpg-window-header header-purple">
             <span>🎟️ 所持クーポン・引換券</span>
           </div>
           <div style="padding:15px; text-align:center; color:var(--text-dim); font-size:13px;">
@@ -1047,7 +1047,7 @@ class YoidoreQuestApp {
         <!-- 開催フェーズ動的告知バナー -->
         ${this.getSeasonBannerHTML()}
 
-        <!-- 勇者ステータス -->
+        <!-- 1. 勇者ステータス -->
         <div class="hero-status-card">
           <img src="${user.pictureUrl || 'assets/banner.png'}" alt="Avatar" class="hero-avatar" onerror="this.src='assets/banner.png';">
           <div class="hero-info">
@@ -1063,8 +1063,8 @@ class YoidoreQuestApp {
           </div>
         </div>
 
-        <!-- クエスト進捗 -->
-        <div class="quest-progress-box">
+        <!-- 2. クエスト進捗 -->
+        <div class="quest-progress-box" style="margin-bottom:12px;">
           <div class="quest-progress-header">
             <span class="quest-progress-title">⚔️ 止まらないハシゴ進捗</span>
             <span class="quest-progress-count">${visitedCount} <span style="font-size:13px; color:var(--text-dim);">/ ${totalStores} 軒</span></span>
@@ -1074,22 +1074,9 @@ class YoidoreQuestApp {
           </div>
         </div>
 
-        <!-- 特典宝箱一覧 -->
-        <div class="rpg-window gold-border" style="margin-bottom:12px;">
-          <div class="rpg-window-header">
-            <span>🎁 ハシゴ達成特典・宝箱</span>
-          </div>
-          <div style="margin-top:10px;">
-            ${tiersHtml}
-          </div>
-        </div>
-
-        <!-- 所持クーポン一覧 -->
-        ${couponsHtml}
-
-        <!-- ハシゴ済み店舗一覧 -->
-        <div class="rpg-window" style="margin-top:14px;">
-          <div class="rpg-window-header">
+        <!-- 3. ハシゴ済み店舗一覧 (進捗の直下) -->
+        <div class="rpg-window window-green" style="margin-bottom:14px;">
+          <div class="rpg-window-header header-green">
             <span>📜 ハシゴ済みリスト (${visitedCount}軒)</span>
           </div>
           <ul class="command-list" style="margin-top:8px;">
@@ -1097,7 +1084,20 @@ class YoidoreQuestApp {
           </ul>
         </div>
 
-        <!-- 開発・デモ用クイックテスト操作 -->
+        <!-- 4. 特典宝箱一覧 (目標・チャレンジ) -->
+        <div class="rpg-window window-gold gold-border" style="margin-bottom:14px;">
+          <div class="rpg-window-header header-gold">
+            <span>🎁 ハシゴ達成特典・宝箱</span>
+          </div>
+          <div style="margin-top:10px;">
+            ${tiersHtml}
+          </div>
+        </div>
+
+        <!-- 5. 所持クーポン一覧 (どうぐ袋・持ち物) -->
+        ${couponsHtml}
+
+        <!-- 6. 開発・デモ用クイックテスト操作 -->
         <div class="rpg-window" style="margin-top:20px; border:1px dashed #f59e0b; background: rgba(30, 25, 15, 0.7);">
           <div class="rpg-window-header" style="color: #fbbf24;">
             <span>🧪 開発・レビュー用テスト機能</span>
