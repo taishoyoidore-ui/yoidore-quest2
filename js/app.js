@@ -948,19 +948,35 @@ class YoidoreQuestApp {
     const activeCoupons = userCoupons.filter(c => c.status !== 'used');
     const usedCoupons = userCoupons.filter(c => c.status === 'used');
 
+    const season = window.questApi?.currentSeason;
+    const info = season?.statusInfo;
+    const isExpired = info ? info.isExpired : false;
+    const isCouponUsable = info ? info.isCouponUsable : true;
+    const couponStartDateStr = info?.couponStartDateStr || '';
+
     const renderCouponCard = (c, isUsed) => {
       const isGoods = c.reward_type === 'goods';
       if (isGoods) {
+        let badge = '<span class="text-yellow" style="font-size:11px;">【引換可能】</span>';
+        let actionTxt = '受取画面を表示 ▶';
+        if (isUsed) {
+          badge = '<span class="text-dim" style="font-size:11px;">【受取済み】</span>';
+          actionTxt = '受取済み';
+        } else if (isExpired) {
+          badge = '<span class="text-danger" style="font-size:11px;">【引換終了】</span>';
+          actionTxt = '期限終了';
+        }
+
         return `
           <div class="coupon-ticket ${isUsed ? 'used' : ''}" data-coupon-id="${c.id}" style="border-left: 4px solid #f59e0b;">
             <div class="coupon-ticket-header">
               <span class="coupon-store-name">🎁 ${this.escapeHtml(c.goods_name || c.title || '記念オリジナルグッズ')}</span>
-              <span class="text-yellow" style="font-size:11px;">${isUsed ? '【使用済み】' : '【利用可能】'}</span>
+              ${badge}
             </div>
             <div class="coupon-desc-text">📍 受取場所: ${this.escapeHtml(c.exchange_location || '全参加店舗または運営本部')}</div>
             <div class="coupon-footer">
               <span>獲得日: ${new Date(c.acquired_at).toLocaleDateString()}</span>
-              <span style="color:var(--text-cyan); font-weight:bold;">${isUsed ? '受取済み' : '受取画面を表示 ▶'}</span>
+              <span style="color:var(--text-cyan); font-weight:bold;">${actionTxt}</span>
             </div>
             ${isUsed ? `<div class="coupon-used-stamp">USED</div>` : ''}
           </div>
@@ -970,16 +986,30 @@ class YoidoreQuestApp {
       const st = stores.find(s => s.id === c.store_id) || c.stores || {};
       const storeName = st.name || c.stores?.name || c.store_id;
       const storeArea = st.area || c.stores?.area || '';
+
+      let badge = '<span class="text-green" style="font-size:11px;">【利用可能】</span>';
+      let actionTxt = 'タップして提示 ▶';
+      if (isUsed) {
+        badge = '<span class="text-dim" style="font-size:11px;">【使用済み】</span>';
+        actionTxt = '使用済み';
+      } else if (isExpired) {
+        badge = '<span class="text-danger" style="font-size:11px;">【期限終了】</span>';
+        actionTxt = '期限終了';
+      } else if (!isCouponUsable) {
+        badge = `<span class="text-yellow" style="font-size:11px;">【${couponStartDateStr ? couponStartDateStr + '〜' : '後日利用可'}】</span>`;
+        actionTxt = '利用前（詳細） ▶';
+      }
+
       return `
         <div class="coupon-ticket ${isUsed ? 'used' : ''}" data-coupon-id="${c.id}">
           <div class="coupon-ticket-header">
             <span class="coupon-store-name">🏪 ${storeName} ${storeArea ? `(${storeArea})` : ''}</span>
-            <span class="text-yellow" style="font-size:11px;">${isUsed ? '【使用済み】' : '【利用可能】'}</span>
+            ${badge}
           </div>
-          <div class="coupon-desc-text">🍺 酔いどれ勇者の酒場特典（来店・注文時に提示）</div>
+          <div class="coupon-desc-text">🍺 酔いどれ勇者の酒場特典（後夜祭・指定期間に提示）</div>
           <div class="coupon-footer">
             <span>獲得日: ${new Date(c.acquired_at).toLocaleDateString()}</span>
-            <span style="color:var(--text-cyan); font-weight:bold;">${isUsed ? '使用済み' : 'タップして提示 ▶'}</span>
+            <span style="color:var(--text-cyan); font-weight:bold;">${actionTxt}</span>
           </div>
           ${isUsed ? `<div class="coupon-used-stamp">USED</div>` : ''}
         </div>
@@ -1422,6 +1452,14 @@ class YoidoreQuestApp {
               🔒 <strong>利用期限終了</strong><br>
               今期のクーポン利用期間（〜 ${window.questApi.currentSeason.coupon_valid_until}）が終了したため、ご利用いただけません。
             </div>
+          ` : (!window.questApi?.currentSeason?.statusInfo?.isCouponUsable ? `
+            <div style="padding:16px; border:1px solid #f59e0b; border-radius:6px; background:rgba(245,158,11,0.15); color:#fde68a; font-size:13px; text-align:center; line-height:1.6;">
+              🔒 <strong>クーポン利用期間前</strong><br>
+              このクーポンは本開催（ハシゴ酒期間）終了後の<br>
+              <strong style="color:var(--text-yellow); font-size:15px; display:block; margin:6px 0;">📅 ${window.questApi?.currentSeason?.statusInfo?.couponStartDateStr || '翌日'} 〜 ${window.questApi?.currentSeason?.coupon_valid_until || ''}</strong>
+              の期間に各店舗でご利用いただけます。<br>
+              <span style="font-size:11px; color:var(--text-dim);">※本開催期間中はハシゴ酒とサイン集めをお楽しみください！</span>
+            </div>
           ` : `
             <div class="staff-warning-banner">
               ⚠️ 【店員専用操作】<br>
@@ -1430,7 +1468,7 @@ class YoidoreQuestApp {
             <button id="btn-staff-redeem" class="staff-redeem-action-btn">
               🍺 【店舗スタッフ確認】使用済みにする
             </button>
-          `)}
+          `))}
         </div>
       `;
     }
