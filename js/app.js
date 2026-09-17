@@ -2301,20 +2301,6 @@ class YoidoreQuestApp {
           ` : ''}
         </div>
 
-        ${isCouponTarget ? `
-          <!-- ハシゴ達成クーポン対象枠 -->
-          <div class="rpg-window gold-border" style="background:#1a1708;">
-            <div class="rpg-window-header">
-              <span>🎁 ハシゴ達成クーポン対象店舗</span>
-            </div>
-            <div style="padding:8px 0;">
-              <div style="font-size:14px; color:#fff; line-height:1.4;">
-                ${this.escapeHtml((store.couponDescription || 'お好きなワンドリンク または 小鉢1品サービス！').replace(/^【街ぶら達成特典】/, '').trim())}
-              </div>
-            </div>
-          </div>
-        ` : ''}
-
         <!-- 2. どれクエ対象時間枠 (店舗名称枠の直下) -->
         <div class="rpg-window">
           <div class="rpg-window-header">
@@ -2435,6 +2421,20 @@ class YoidoreQuestApp {
             </div>
             <div class="detail-photo-box">
               <img src="${store.photoUrl || store.photo_url}" alt="${store.name}のオモロイ人写真" class="detail-photo-img" onerror="this.closest('.rpg-window').style.display='none';">
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- 6. ハシゴ達成クーポン対象枠 -->
+        ${isCouponTarget ? `
+          <div class="rpg-window gold-border" style="background:#1a1708;">
+            <div class="rpg-window-header">
+              <span>🎁 ハシゴ達成クーポン対象店舗</span>
+            </div>
+            <div style="padding:8px 0;">
+              <div style="font-size:14px; color:#fff; line-height:1.4;">
+                ${this.escapeHtml((store.couponDescription || 'お好きなワンドリンク または 小鉢1品サービス！').replace(/^【街ぶら達成特典】/, '').trim())}
+              </div>
             </div>
           </div>
         ` : ''}
