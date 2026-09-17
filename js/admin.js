@@ -152,16 +152,16 @@ class YoidoreAdminApp {
         this.users = [];
       }
 
-      // 5. 来店ログ一覧 (選択中シーズン)
+      // 5. 来店ログ一覧
       try {
-        this.visits = await this.api.supabaseFetch(`visits?season_id=eq.${this.selectedSeasonId}&select=*&order=visited_at.desc`);
+        this.visits = await this.api.supabaseFetch(`visits?select=*&order=visited_at.desc`);
       } catch (e) {
         this.visits = [];
       }
 
-      // 6. クーポン発行・消し込み履歴 (選択中シーズン)
+      // 6. クーポン発行・消し込み履歴
       try {
-        this.coupons = await this.api.supabaseFetch(`user_coupons?season_id=eq.${this.selectedSeasonId}&select=*&order=acquired_at.desc`);
+        this.coupons = await this.api.supabaseFetch(`user_coupons?select=*&order=acquired_at.desc`);
       } catch (e) {
         this.coupons = [];
       }
@@ -285,7 +285,7 @@ class YoidoreAdminApp {
 
     const topStoresElem = document.getElementById('top-stores-ranking');
     if (sortedStores.length === 0) {
-      topStoresElem.innerHTML = '<div class="empty-state text-muted py-3">今期の来店チェックインデータがありません</div>';
+      topStoresElem.innerHTML = '<div class="empty-state text-muted py-3">今期の来店・サイン受取データがありません</div>';
     } else {
       topStoresElem.innerHTML = sortedStores.map(([storeId, count], idx) => {
         const store = this.stores.find(s => s.id === storeId);
@@ -366,7 +366,7 @@ class YoidoreAdminApp {
         const userName = user ? user.display_name : '冒険者';
 
         let icon = '🍺';
-        let text = `<strong>${this.escapeHtml(userName)}</strong> が <strong>${this.escapeHtml(storeName)}</strong> にチェックインしました`;
+        let text = `<strong>${this.escapeHtml(userName)}</strong> が <strong>${this.escapeHtml(storeName)}</strong> の店主サインを受け取りました`;
         if (act.type === 'acquired') {
           icon = '🎁';
           text = `<strong>${this.escapeHtml(userName)}</strong> が <strong>${this.escapeHtml(storeName)}</strong> のクーポンを獲得しました`;
@@ -683,29 +683,50 @@ class YoidoreAdminApp {
       return;
     }
 
-    tierElem.innerHTML = this.tiers.map(t => `
-      <div class="tier-admin-card">
-        <div>
-          <div class="tier-admin-header">
-            <span class="tier-admin-title">🏆 ${this.escapeHtml(t.title)}</span>
-            <span class="tag tag-active" style="font-size: 0.75rem;">第${t.season_id || this.selectedSeasonId}回</span>
+    tierElem.innerHTML = this.tiers.map(t => {
+      const isGoods = t.reward_type === 'goods';
+      return `
+        <div class="tier-admin-card">
+          <div>
+            <div class="tier-admin-header">
+              <span class="tier-admin-title">🏆 ${this.escapeHtml(t.title)}</span>
+              <span class="tag ${isGoods ? 'tag-warning' : 'tag-active'}" style="font-size: 0.75rem;">
+                ${isGoods ? '🎁 グッズ引換型' : '🍺 店舗クーポン型'}
+              </span>
+            </div>
+            <div class="tier-admin-meta">
+              <span class="tier-meta-badge"><i class="fa-solid fa-beer-mug-empty"></i> 必要: <strong>${t.required_visits}</strong> 軒</span>
+              ${isGoods ? 
+                `<span class="tier-meta-badge"><i class="fa-solid fa-gift"></i> グッズ: <strong>${this.escapeHtml(t.goods_name || 'オリジナル記念品')}</strong></span>` :
+                `<span class="tier-meta-badge"><i class="fa-solid fa-ticket"></i> 獲得: <strong>${t.selectable_count}</strong> 店舗</span>`
+              }
+            </div>
+            ${isGoods && t.exchange_location ? `
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                <i class="fa-solid fa-location-dot"></i> 引換場所: ${this.escapeHtml(t.exchange_location)}
+              </div>
+            ` : ''}
+            <div class="tier-admin-desc">${this.escapeHtml(t.description || '説明なし')}</div>
           </div>
-          <div class="tier-admin-meta">
-            <span class="tier-meta-badge"><i class="fa-solid fa-beer-mug-empty"></i> 必要: <strong>${t.required_visits}</strong> 軒</span>
-            <span class="tier-meta-badge"><i class="fa-solid fa-ticket"></i> 獲得: <strong>${t.selectable_count}</strong> 店舗</span>
+          <div class="tier-admin-actions">
+            <button class="btn btn-sm btn-secondary" onclick="window.adminApp.openTierModal(${t.id})">
+              <i class="fa-solid fa-pen"></i> 編集
+            </button>
+            <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.deleteTier(${t.id}, '${this.escapeHtml(t.title)}')">
+              <i class="fa-solid fa-trash"></i> 削除
+            </button>
           </div>
-          <div class="tier-admin-desc">${this.escapeHtml(t.description || '説明なし')}</div>
         </div>
-        <div class="tier-admin-actions">
-          <button class="btn btn-sm btn-secondary" onclick="window.adminApp.openTierModal(${t.id})">
-            <i class="fa-solid fa-pen"></i> 編集
-          </button>
-          <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.deleteTier(${t.id}, '${this.escapeHtml(t.title)}')">
-            <i class="fa-solid fa-trash"></i> 削除
-          </button>
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
+  }
+
+  toggleTierTypeUI() {
+    const isGoods = document.getElementById('edit-tier-type-goods').checked;
+    const couponSettings = document.getElementById('tier-coupon-settings');
+    const goodsSettings = document.getElementById('tier-goods-settings');
+    if (couponSettings) couponSettings.style.display = isGoods ? 'none' : 'block';
+    if (goodsSettings) goodsSettings.style.display = isGoods ? 'block' : 'none';
   }
 
   openTierModal(tierIdOrMode) {
@@ -721,17 +742,31 @@ class YoidoreAdminApp {
       const maxVisits = this.tiers.reduce((max, t) => Math.max(max, t.required_visits || 0), 0);
       tier = {
         id: '',
+        reward_type: 'store_coupon',
         title: `${maxVisits ? maxVisits + 5 : 5}軒はしご達成特典`,
         required_visits: maxVisits ? maxVisits + 5 : 5,
         selectable_count: 5,
+        goods_name: '',
+        exchange_location: '',
+        exchange_notice: '',
         description: 'クーポン取扱店の中からお好きな店舗を選んで特典チケットを獲得！'
       };
     }
+
+    const isGoods = tier.reward_type === 'goods';
+    if (document.getElementById('edit-tier-type-goods')) {
+      document.getElementById('edit-tier-type-goods').checked = isGoods;
+      document.getElementById('edit-tier-type-coupon').checked = !isGoods;
+    }
+    this.toggleTierTypeUI();
 
     document.getElementById('edit-tier-id').value = tier.id || '';
     document.getElementById('edit-tier-title').value = tier.title || '';
     document.getElementById('edit-tier-required').value = tier.required_visits || 5;
     document.getElementById('edit-tier-selectable').value = tier.selectable_count || 5;
+    document.getElementById('edit-tier-goods-name').value = tier.goods_name || '';
+    document.getElementById('edit-tier-exchange-loc').value = tier.exchange_location || '';
+    document.getElementById('edit-tier-exchange-notice').value = tier.exchange_notice || '';
     document.getElementById('edit-tier-desc').value = tier.description || '';
 
     document.getElementById('tier-modal').style.display = 'flex';
@@ -743,22 +778,35 @@ class YoidoreAdminApp {
 
   async saveTierForm() {
     const idVal = document.getElementById('edit-tier-id').value;
+    const isGoods = document.getElementById('edit-tier-type-goods').checked;
+    const reward_type = isGoods ? 'goods' : 'store_coupon';
     const title = document.getElementById('edit-tier-title').value.trim();
     const required_visits = parseInt(document.getElementById('edit-tier-required').value, 10);
-    const selectable_count = parseInt(document.getElementById('edit-tier-selectable').value, 10);
+    const selectable_count = parseInt(document.getElementById('edit-tier-selectable').value, 10) || 1;
+    const goods_name = document.getElementById('edit-tier-goods-name').value.trim();
+    const exchange_location = document.getElementById('edit-tier-exchange-loc').value.trim();
+    const exchange_notice = document.getElementById('edit-tier-exchange-notice').value.trim();
     const description = document.getElementById('edit-tier-desc').value.trim();
     const season_id = this.selectedSeasonId;
 
-    if (!title || isNaN(required_visits) || isNaN(selectable_count)) {
-      alert('必須項目を正しく入力してください。');
+    if (!title || isNaN(required_visits)) {
+      alert('タイトルと必要店舗数は必須です。');
+      return;
+    }
+    if (isGoods && !goods_name) {
+      alert('グッズ引換型の場合、グッズ名称は必須です。');
       return;
     }
 
     const tierData = {
       season_id,
+      reward_type,
       title,
       required_visits,
-      selectable_count,
+      selectable_count: isGoods ? 1 : selectable_count,
+      goods_name: isGoods ? goods_name : null,
+      exchange_location: isGoods ? exchange_location : null,
+      exchange_notice: isGoods ? exchange_notice : null,
       description
     };
 
@@ -944,11 +992,15 @@ class YoidoreAdminApp {
 
     try {
       this.showToast('開催日程を保存中...');
-      await this.api.supabaseFetch(`seasons?id=eq.${current.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ name, start_date, end_date, coupon_valid_until })
+      await this.api.adminSaveSeason({
+        id: current.id,
+        name,
+        start_date,
+        end_date,
+        coupon_valid_until,
+        is_active: true
       });
-      this.showToast(`第${current.id}回の開催日程を更新しました！`);
+      this.showToast(`第${current.id}回の開催日程を保存しました！`);
       await this.loadAllData();
     } catch (err) {
       alert('保存に失敗しました: ' + err.message);
@@ -1151,7 +1203,7 @@ class YoidoreAdminApp {
 
   // 来店履歴削除
   async confirmDeleteVisit(visitId) {
-    if (!confirm('この来店チェックイン記録を削除しますか？')) return;
+    if (!confirm('この来店・サイン記録を削除しますか？')) return;
     try {
       this.showToast('来店記録を削除中...');
       await this.api.adminDeleteVisit(visitId);
@@ -1268,7 +1320,7 @@ class YoidoreAdminApp {
         <div class="pop-store-name">${this.escapeHtml(store.name)}</div>
         <div class="pop-store-area">${this.escapeHtml(store.area || '')} 【${this.escapeHtml(store.id)}】</div>
         <div class="pop-qr-wrapper" id="pop-qr-${store.id}"></div>
-        <div class="pop-guide-text">📱 スマホのカメラでQRを読み取って<br>【来店チェックイン】！</div>
+        <div class="pop-guide-text">📱 スマホのカメラでQRを読み取って<br>【店主サインを受け取る】！</div>
         <div class="pop-sub-guide">※冒険の書にサインが刻まれ、はしご件数が記録されます</div>
       `;
 

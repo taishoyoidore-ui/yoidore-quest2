@@ -21,22 +21,36 @@ const APP_CONFIG = {
   },
 
 
-  // 特典ランク・クーポン獲得マイルストーン設定
-  // ※はしご達成の必要店舗数（required_visits）や獲得できる店舗数（selectable_count）はここで簡単に変更できます
+  // 特典ランク・クーポン・グッズ獲得マイルストーン設定
+  // reward_type: 'store_coupon' (店舗クーポン型) または 'goods' (グッズ・記念品引換型)
   fallbackRewardTiers: [
     {
       id: 1,
+      reward_type: 'store_coupon',
       required_visits: 5,
-      title: '5軒はしご達成特典',
+      title: '5軒はしご達成特典（店舗クーポン）',
       selectable_count: 5,
-      description: 'クーポン取扱店の中からお好きな5店舗を選んで特典チケットを獲得！'
+      description: 'クーポン取扱店の中からお好きな5店舗を選んで1杯無料クーポンを獲得！'
     },
     {
       id: 2,
+      reward_type: 'goods',
       required_visits: 10,
-      title: '10軒はしご達成特典',
-      selectable_count: 5,
-      description: 'クーポン取扱店の中からさらにお好きな5店舗を選んで特典チケットを獲得！'
+      title: '10軒はしご達成特典（特製トートバッグ）',
+      goods_name: '大正酔いどれ特製トートバッグ',
+      exchange_location: '全参加店舗または運営本部にて引換可能',
+      exchange_notice: '※お会計時またはご注文時に引換画面をスタッフへご提示ください。',
+      description: '10軒制覇の証！大正酔いどれクエスト限定オリジナルエコトートバッグ。'
+    },
+    {
+      id: 3,
+      reward_type: 'goods',
+      required_visits: 20,
+      title: '20軒はしご達成特典（限定Tシャツ）',
+      goods_name: '酔いどれ勇者 限定オリジナルTシャツ',
+      exchange_location: '運営指定店舗（大正酒場本部）にて引換',
+      exchange_notice: '※サイズ（M/L/XL）は先着順となります。在庫がなくなり次第終了となります。',
+      description: '20軒制覇の猛者のみに贈られる限定プレミアムTシャツ！'
     }
   ],
 

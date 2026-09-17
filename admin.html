@@ -138,7 +138,7 @@
             <div class="kpi-card">
               <div class="kpi-icon icon-green"><i class="fa-solid fa-beer-mug-empty"></i></div>
               <div class="kpi-info">
-                <div class="kpi-label">今期来店チェックイン数</div>
+                <div class="kpi-label">今期の来店・サイン記録数</div>
                 <div class="kpi-value" id="kpi-visits-count">-</div>
               </div>
             </div>
@@ -162,7 +162,7 @@
             <!-- 来店ランキング TOP 5 -->
             <div class="card">
               <div class="card-header">
-                <h3><i class="fa-solid fa-trophy text-gold"></i> 今期の来店チェックイン数 TOP 5</h3>
+                <h3><i class="fa-solid fa-trophy text-gold"></i> 今期の酒場訪問（サイン受取）数 TOP 5</h3>
               </div>
               <div class="card-body">
                 <div id="top-stores-ranking" class="ranking-list">
@@ -291,7 +291,7 @@
                     <small class="text-muted">この日付を過ぎると、アプリ上のクーポンは自動的に「期限切れ」となり使用できなくなります。</small>
                   </div>
                   <button type="submit" class="btn btn-primary mt-2">
-                    <i class="fa-solid fa-floppy-disk"></i> 開催日程をSupabaseに保存
+                    <i class="fa-solid fa-floppy-disk"></i> 開催日程を保存
                   </button>
                 </form>
               </div>
@@ -344,7 +344,7 @@
                   <i class="fa-solid fa-users"></i> 参加者一覧 (<span id="count-users">0</span>)
                 </button>
                 <button class="sub-tab" data-sub="visits" onclick="window.adminApp.switchLogSubTab('visits')">
-                  <i class="fa-solid fa-beer-mug-empty"></i> 来店チェックイン履歴 (<span id="count-visits">0</span>)
+                  <i class="fa-solid fa-beer-mug-empty"></i> 来店・サイン記録履歴 (<span id="count-visits">0</span>)
                 </button>
                 <button class="sub-tab" data-sub="coupons" onclick="window.adminApp.switchLogSubTab('coupons')">
                   <i class="fa-solid fa-stamp"></i> クーポン獲得・消し込み履歴 (<span id="count-coupons">0</span>)
@@ -426,7 +426,7 @@
         <section id="tab-pop" class="tab-pane">
           <div class="pop-controls no-print">
             <div class="pop-header-info">
-              <h3><i class="fa-solid fa-print"></i> 全33店舗 店頭チェックイン用POP</h3>
+              <h3><i class="fa-solid fa-print"></i> 全33店舗 店頭サイン受取用POP</h3>
               <p class="text-muted">A4用紙1枚につき各店舗の卓上POP（QRコード・店舗名・説明文）を綺麗に印刷・PDF保存できます。</p>
             </div>
             <div class="pop-actions">
@@ -657,31 +657,63 @@
   <div id="tier-modal" class="modal-overlay" style="display: none;">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3 id="tier-modal-title"><i class="fa-solid fa-gift"></i> 特典ランク設定</h3>
+        <h3 id="tier-modal-title"><i class="fa-solid fa-gift"></i> はしご達成特典（宝箱）設定</h3>
         <button class="modal-close-btn" onclick="window.adminApp.closeTierModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <form id="tier-form" onsubmit="event.preventDefault(); window.adminApp.saveTierForm();">
         <input type="hidden" id="edit-tier-id">
         <div class="modal-body">
           <div class="form-group">
+            <label>特典種別 <span class="badge badge-required">必須</span></label>
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; margin: 0;">
+                <input type="radio" name="edit-tier-type" value="store_coupon" id="edit-tier-type-coupon" onchange="window.adminApp.toggleTierTypeUI()" checked>
+                <span>🍺 <strong>店舗クーポン型</strong>（好きなお店を選んで1杯無料等を発行）</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; margin: 0;">
+                <input type="radio" name="edit-tier-type" value="goods" id="edit-tier-type-goods" onchange="window.adminApp.toggleTierTypeUI()">
+                <span>🎁 <strong>グッズ・記念品引換型</strong>（Tシャツ、トートバッグ、メダル等）</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
             <label>特典タイトル <span class="badge badge-required">必須</span></label>
-            <input type="text" id="edit-tier-title" class="form-control" placeholder="例: 5軒はしご達成特典" required>
+            <input type="text" id="edit-tier-title" class="form-control" placeholder="例: 5軒はしご達成特典（特製トートバッグ）" required>
           </div>
-          <div class="grid-2col">
+
+          <div class="form-group">
+            <label>必要来店店舗数 <span class="badge badge-required">必須</span></label>
+            <input type="number" id="edit-tier-required" class="form-control" min="1" max="100" placeholder="5" required>
+            <small class="text-muted">ユーザーがこの軒数を巡ると宝箱が解放されます。</small>
+          </div>
+
+          <!-- 店舗クーポン型専用設定 -->
+          <div id="tier-coupon-settings" class="form-group">
+            <label>獲得可能クーポン数 <span class="badge badge-required">必須</span></label>
+            <input type="number" id="edit-tier-selectable" class="form-control" min="1" max="33" value="5">
+            <small class="text-muted">対象店舗の中から選べる店舗数です。</small>
+          </div>
+
+          <!-- グッズ引換型専用設定 -->
+          <div id="tier-goods-settings" style="display: none; background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.15); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
             <div class="form-group">
-              <label>必要来店店舗数 <span class="badge badge-required">必須</span></label>
-              <input type="number" id="edit-tier-required" class="form-control" min="1" max="100" placeholder="5" required>
-              <small class="text-muted">ユーザーがこの軒数を巡ると宝箱が解放されます。</small>
+              <label>グッズ・記念品名称 <span class="badge badge-required">必須</span></label>
+              <input type="text" id="edit-tier-goods-name" class="form-control" placeholder="例: 大正酔いどれ特製トートバッグ">
             </div>
             <div class="form-group">
-              <label>獲得可能クーポン数 <span class="badge badge-required">必須</span></label>
-              <input type="number" id="edit-tier-selectable" class="form-control" min="1" max="33" value="5" required>
-              <small class="text-muted">対象店舗の中から選べる店舗数です。</small>
+              <label>引換可能場所</label>
+              <input type="text" id="edit-tier-exchange-loc" class="form-control" placeholder="例: 全参加店舗 または 運営店舗（○○酒場）にて引換可能">
+            </div>
+            <div class="form-group">
+              <label>受取時の注意事項・案内</label>
+              <input type="text" id="edit-tier-exchange-notice" class="form-control" placeholder="例: ※お会計時にスタッフにご提示ください。サイズは先着順です。">
             </div>
           </div>
+
           <div class="form-group">
             <label>説明文</label>
-            <textarea id="edit-tier-desc" class="form-control" rows="2" placeholder="クーポン取扱店の中からお好きな5店舗を選んで特典チケットを獲得！"></textarea>
+            <textarea id="edit-tier-desc" class="form-control" rows="2" placeholder="特典の詳しい説明を入力してください"></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -747,8 +779,8 @@
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=7"></script>
-  <script src="js/api.js?v=7"></script>
-  <script src="js/admin.js?v=7"></script>
+  <script src="js/config.js?v=12"></script>
+  <script src="js/api.js?v=12"></script>
+  <script src="js/admin.js?v=12"></script>
 </body>
 </html>
