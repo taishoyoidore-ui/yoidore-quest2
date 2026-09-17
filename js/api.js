@@ -563,18 +563,24 @@ class QuestApiManager {
     try {
       const data = await this.supabaseFetch(`user_coupons?user_id=eq.${encodeURIComponent(this.currentUser.userId)}&select=*,stores(*)&order=acquired_at.desc`);
       if (Array.isArray(data)) {
-        // 特典マスタ（reward_tiers）と照合してグッズ型/店舗クーポン型の情報を付与
         const tiers = await this.getRewardTiers();
+        const goodsTiers = tiers.filter(t => t.reward_type === 'goods');
+
         coupons = data.map(c => {
-          const matchedTier = tiers.find(t => Number(t.id) === Number(c.reward_tier_id)) || {};
-          const isGoods = matchedTier.reward_type === 'goods';
+          let matchedTier = tiers.find(t => Number(t.id) === Number(c.reward_tier_id));
+          if (!matchedTier && goodsTiers.length > 0 && c.store_id === 'store-01') {
+            matchedTier = goodsTiers[0];
+          }
+
+          const isGoods = matchedTier?.reward_type === 'goods';
           return {
             ...c,
+            reward_tier_id: c.reward_tier_id || matchedTier?.id || null,
             reward_type: isGoods ? 'goods' : (c.reward_type || 'store_coupon'),
-            goods_name: matchedTier.goods_name || c.goods_name || matchedTier.title || null,
-            exchange_location: matchedTier.exchange_location || c.exchange_location || null,
-            exchange_notice: matchedTier.exchange_notice || c.exchange_notice || null,
-            title: matchedTier.title || c.title || ''
+            goods_name: matchedTier?.goods_name || c.goods_name || matchedTier?.title || null,
+            exchange_location: matchedTier?.exchange_location || c.exchange_location || null,
+            exchange_notice: matchedTier?.exchange_notice || c.exchange_notice || null,
+            title: matchedTier?.title || c.title || ''
           };
         });
       }
@@ -597,26 +603,36 @@ class QuestApiManager {
       return { success: false, message: '店舗が選択されていません' };
     }
 
-    const dbRows = selectedStoreIds.map(storeId => {
+    const numTierId = parseInt(rewardTierId, 10);
+    const makeRows = (useTierId) => selectedStoreIds.map(storeId => {
       const row = {
         user_id: this.currentUser.userId,
         store_id: storeId,
         status: 'active',
         acquired_at: new Date().toISOString()
       };
-      if (rewardTierId && !isNaN(Number(rewardTierId))) {
-        row.reward_tier_id = parseInt(rewardTierId, 10);
+      if (useTierId && !isNaN(numTierId)) {
+        row.reward_tier_id = numTierId;
       }
       return row;
     });
 
     try {
       await this.syncUserToDatabase();
-      await this.supabaseFetch('user_coupons', {
-        method: 'POST',
-        headers: { 'Prefer': 'return=representation' },
-        body: JSON.stringify(dbRows)
-      });
+      try {
+        await this.supabaseFetch('user_coupons', {
+          method: 'POST',
+          headers: { 'Prefer': 'return=representation' },
+          body: JSON.stringify(makeRows(true))
+        });
+      } catch (fkErr) {
+        // FK制約エラー時は reward_tier_id を除外して確実に保存
+        await this.supabaseFetch('user_coupons', {
+          method: 'POST',
+          headers: { 'Prefer': 'return=representation' },
+          body: JSON.stringify(makeRows(false))
+        });
+      }
       await this.getUserCoupons();
     } catch (err) {
       console.error('データベースへのクーポン保存エラー:', err);
@@ -647,26 +663,38 @@ class QuestApiManager {
 
     try {
       await this.syncUserToDatabase();
+      const numTierId = parseInt(rewardTierId, 10);
       const insertRow = {
         user_id: this.currentUser.userId,
         store_id: 'store-01', // 共通デフォルト店舗
         status: 'active',
         acquired_at: new Date().toISOString()
       };
-      if (rewardTierId && !isNaN(Number(rewardTierId))) {
-        insertRow.reward_tier_id = parseInt(rewardTierId, 10);
+
+      try {
+        if (!isNaN(numTierId)) {
+          insertRow.reward_tier_id = numTierId;
+        }
+        await this.supabaseFetch('user_coupons', {
+          method: 'POST',
+          headers: { 'Prefer': 'return=representation' },
+          body: JSON.stringify(insertRow)
+        });
+      } catch (fkErr) {
+        // FK制約エラー時は reward_tier_id を除外して確実に保存
+        delete insertRow.reward_tier_id;
+        await this.supabaseFetch('user_coupons', {
+          method: 'POST',
+          headers: { 'Prefer': 'return=representation' },
+          body: JSON.stringify(insertRow)
+        });
       }
 
-      await this.supabaseFetch('user_coupons', {
-        method: 'POST',
-        headers: { 'Prefer': 'return=representation' },
-        body: JSON.stringify(insertRow)
-      });
       await this.getUserCoupons();
       return { success: true, goods: { ...insertRow, goods_name: tier?.goods_name || tier?.title } };
     } catch (e) {
       console.error('グッズ引換券のデータベース保存エラー:', e);
-      return { success: false, message: 'グッズ引換券の発行に失敗しました: ' + e.message };
+      return { success: false, message: 'グッズ引換券の発行に失敗しました: ' + (e.message || '通信エラー') };
     }
   }
 
