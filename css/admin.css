@@ -254,6 +254,113 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-wrap: wrap;
+}
+
+.season-badge-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #92400e;
+}
+
+.season-badge-select select {
+  background: transparent;
+  border: none;
+  font-weight: bold;
+  color: #78350f;
+  cursor: pointer;
+  outline: none;
+  font-size: 0.85rem;
+  padding: 0;
+}
+
+/* 開催状態告知バナー */
+.status-banner {
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 20px;
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.banner-icon {
+  font-size: 2rem;
+}
+
+.banner-subtitle {
+  font-size: 0.85rem;
+  margin-top: 2px;
+}
+
+.banner-badge {
+  font-weight: bold;
+  font-size: 0.9rem;
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+
+.banner-active {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #f59e0b;
+  color: #78350f;
+}
+.banner-active .banner-badge {
+  background: #f59e0b;
+  color: #000;
+}
+
+.banner-warning {
+  background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%);
+  border: 1px solid #ea580c;
+  color: #7c2d12;
+}
+.banner-warning .banner-badge {
+  background: #ea580c;
+  color: #fff;
+}
+
+.banner-expired {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  border: 1px solid #94a3b8;
+  color: #475569;
+}
+.banner-expired .banner-badge {
+  background: #64748b;
+  color: #fff;
+}
+
+.seasons-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.season-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: #f8fafc;
+  transition: all 0.2s;
+}
+
+.season-card.active {
+  border: 2px solid var(--primary);
+  background: #fffbeb;
 }
 
 .mobile-menu-btn {
@@ -899,3 +1006,85 @@ body {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* --------------------------------------------------------------------------
+ * 特典ランク (reward_tiers) 管理スタイル
+ * -------------------------------------------------------------------------- */
+.tier-cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.tier-admin-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.tier-admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.tier-admin-title {
+  font-size: 1.05rem;
+  font-weight: bold;
+  color: #1e293b;
+}
+
+.tier-admin-meta {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+}
+
+.tier-meta-badge {
+  background: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #475569;
+  font-weight: 600;
+}
+
+.tier-admin-desc {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.tier-admin-actions {
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 12px;
+  justify-content: flex-end;
+}
+
+/* --------------------------------------------------------------------------
+ * 称号マスタ (hero_titles) 管理スタイル
+ * -------------------------------------------------------------------------- */
+.hero-titles-container {
+  overflow-x: auto;
+}
+
+.hero-title-badge-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #000;
+}
+

@@ -13,6 +13,17 @@ class QuestApiManager {
     this.isLiffReady = false;
     this.isOfflineMode = false;
     
+    // シーズン管理
+    this.currentSeason = {
+      id: 2,
+      name: '大正酔いどれクエストⅡ',
+      start_date: '2026-08-01',
+      end_date: '2026-08-31',
+      coupon_valid_until: '2026-09-30',
+      is_active: true
+    };
+    this.seasons = [];
+    
     // キャッシュ
     this.stores = [];
     this.visits = [];
@@ -136,50 +147,70 @@ class QuestApiManager {
     try {
       const data = await this.supabaseFetch('stores?select=*&order=display_order.asc');
       if (Array.isArray(data) && data.length > 0) {
+        const formatMediaUrl = (val, prefix, fallbackExt, numId) => {
+          let target = val;
+          if (!target) {
+            return numId ? `${prefix}/${numId}.${fallbackExt}` : '';
+          }
+          target = String(target).trim();
+          if (!target) {
+            return numId ? `${prefix}/${numId}.${fallbackExt}` : '';
+          }
+          if (target.startsWith('http://') || target.startsWith('https://') || target.startsWith('/') || target.startsWith(`${prefix}/`)) {
+            return target;
+          }
+          return `${prefix}/${target}`;
+        };
+
         // Supabaseのstoresをフロントエンドのデータ構造に正規化
         this.stores = data.map(s => {
           const raw = s.raw_data || {};
           const numId = s.id ? s.id.replace(/\D/g, '').padStart(3, '0') : '001';
+          const resolvedPhoto = formatMediaUrl(s.photo_url || raw['photoUrl'] || raw['photo'], 'photo', 'jpg', numId);
+          const resolvedLogo = formatMediaUrl(s.logo_url || raw['logoUrl'] || raw['logo'], 'logo', 'png', numId);
+
           return {
             id: s.id,
             name: s.name,
             area: s.area || raw['エリア'] || '',
-            category: raw['カテゴリ'] || raw['category'] || '',
-            style: raw['スタイル'] || raw['style'] || '',
-            type: raw['タイプ'] || raw['酔いどれタイプ'] || raw['type'] || '',
-            takeout: raw['テイクアウト'] || (raw['isTakeout'] ? 'テイクアウトOK' : '不可'),
-            isTakeout: Boolean(raw['isTakeout'] || raw['テイクアウト'] === 'テイクアウトOK' || raw['テイクアウト'] === '可'),
+            category: s.category || raw['カテゴリ'] || raw['category'] || '',
+            style: s.style || raw['スタイル'] || raw['style'] || '',
+            type: s.yoidore_type || raw['タイプ'] || raw['酔いどれタイプ'] || raw['type'] || '',
+            takeout: s.takeout !== undefined ? (s.takeout ? 'テイクアウトOK' : 'テイクアウト不可') : (raw['テイクアウト'] || (raw['isTakeout'] ? 'テイクアウトOK' : '不可')),
+            isTakeout: s.takeout !== undefined ? Boolean(s.takeout) : Boolean(raw['isTakeout'] || raw['テイクアウト'] === 'テイクアウトOK' || raw['テイクアウト'] === '可'),
             isOpenToday: raw['isOpenToday'] !== false,
             isQuestActive: raw['isQuestActive'] !== false,
             isCouponTarget: s.is_coupon_target !== false,
             couponDescription: s.coupon_description || '',
-            catchphrase: raw['キャッチコピー'] || raw['catchphrase'] || '',
-            quest: raw.quest || {
-              title: raw['クエスト名'] || raw['クエストタイトル'] || 'クエスト',
-              price: Number(raw['クエスト価格'] || raw['クエスト価格(円)'] || 0),
-              charge: raw['クエストチャージ'] || '不要',
-              content: raw['クエスト内容'] || '',
-              notes: raw['クエスト備考'] || ''
+            catchphrase: s.catchphrase || raw['キャッチコピー'] || raw['catchphrase'] || '',
+            quest: {
+              title: s.quest_name || raw.quest?.title || raw['クエスト名'] || raw['クエストタイトル'] || 'クエスト',
+              price: s.quest_price !== undefined ? Number(s.quest_price) : Number(raw.quest?.price || raw['クエスト価格'] || raw['クエスト価格(円)'] || 0),
+              charge: s.quest_charge || raw.quest?.charge || raw['クエストチャージ'] || '不要',
+              content: s.quest_content || raw.quest?.content || raw['クエスト内容'] || '',
+              notes: s.quest_notes || raw.quest?.notes || raw['クエスト備考'] || ''
             },
-            yoidoreSet: raw.yoidoreSet || {
-              title: raw['酔いどれセット名'] || raw['セット名'] || '酔いどれセット',
-              content: raw['セット内容'] || '',
-              price: Number(raw['価格'] || raw['価格(円)'] || raw['セット価格'] || 0),
-              charge: raw['チャージ'] || raw['チャージ有無'] || '不要',
-              includeCharge: Boolean(raw['チャージ込']),
-              notes: raw['セット備考'] || raw['備考'] || ''
+            yoidoreSet: {
+              title: s.set_name || raw.yoidoreSet?.title || raw['酔いどれセット名'] || raw['セット名'] || '酔いどれセット',
+              content: s.set_content || raw.yoidoreSet?.content || raw['セット内容'] || '',
+              price: s.set_price !== undefined ? Number(s.set_price) : Number(raw.yoidoreSet?.price || raw['価格'] || raw['価格(円)'] || raw['セット価格'] || 0),
+              charge: s.set_charge || raw.yoidoreSet?.charge || raw['チャージ'] || raw['チャージ有無'] || '不要',
+              includeCharge: Boolean(s.set_charge === '込' || raw.yoidoreSet?.includeCharge || raw['チャージ込']),
+              notes: s.set_notes || raw.yoidoreSet?.notes || raw['セット備考'] || raw['備考'] || ''
             },
             conditions: raw.conditions || {
-              days: raw['提供日'] || '全日',
-              hours: raw['提供時間'] || '営業時間内',
-              limit: raw['限定数'] || 'なし',
+              days: s.days || raw['提供日'] || '全日',
+              hours: s.hours || raw['提供時間'] || '営業時間内',
+              limit: s.set_limit || raw['限定数'] || 'なし',
               soldOutEnd: Boolean(raw['売切終了'])
             },
-            paymentMethods: Array.isArray(raw['paymentMethods']) ? raw['paymentMethods'] : (raw['決済方法'] ? String(raw['決済方法']).split(/[,、]/).map(p => p.trim()) : ['現金']),
-            googleMapUrl: raw['googleMapUrl'] || raw['Google Map URL'] || raw['map_url'] || '',
-            instagramUrl: raw['instagramUrl'] || raw['Instagram URL'] || raw['insta_url'] || '',
-            photoUrl: raw['photoUrl'] || raw['photo'] || `photo/${numId}.jpg`,
-            logoUrl: raw['logoUrl'] || raw['logo'] || `logo/${numId}.png`,
+            paymentMethods: s.payment ? String(s.payment).split(/[,、]/).map(p => p.trim()) : (Array.isArray(raw['paymentMethods']) ? raw['paymentMethods'] : (raw['決済方法'] ? String(raw['決済方法']).split(/[,、]/).map(p => p.trim()) : ['現金'])),
+            googleMapUrl: s.map_url || raw['googleMapUrl'] || raw['Google Map URL'] || raw['map_url'] || '',
+            instagramUrl: s.insta_url || raw['instagramUrl'] || raw['Instagram URL'] || raw['insta_url'] || '',
+            photoUrl: resolvedPhoto,
+            photo_url: resolvedPhoto,
+            logoUrl: resolvedLogo,
+            logo_url: resolvedLogo,
             mapPos: raw.mapPos || { x: 50, y: 50 }
           };
         });
@@ -200,11 +231,89 @@ class QuestApiManager {
   }
 
   /* ------------------------------------------------------------------------
+   * シーズン情報取得 & 開催状態判定
+   * ------------------------------------------------------------------------ */
+  async getCurrentSeason() {
+    try {
+      const data = await this.supabaseFetch('seasons?is_active=eq.true&select=*&limit=1');
+      if (Array.isArray(data) && data.length > 0) {
+        this.currentSeason = data[0];
+      }
+    } catch (e) {
+      console.warn('シーズン情報の取得に失敗（デフォルトを使用）:', e);
+    }
+
+    const now = new Date();
+    const startDate = new Date(this.currentSeason.start_date || '2026-08-01');
+    const endDate = new Date(this.currentSeason.end_date || '2026-08-31');
+    // 終了日の23:59:59まで有効
+    endDate.setHours(23, 59, 59, 999);
+
+    const couponValidUntil = new Date(this.currentSeason.coupon_valid_until || '2026-09-30');
+    couponValidUntil.setHours(23, 59, 59, 999);
+
+    const isEventActive = now >= startDate && now <= endDate;
+    const isCouponActive = now <= couponValidUntil;
+    const isExpired = now > couponValidUntil;
+
+    // 残り日数計算
+    const diffTime = couponValidUntil.getTime() - now.getTime();
+    const daysLeft = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+
+    this.currentSeason.statusInfo = {
+      now,
+      startDate,
+      endDate,
+      couponValidUntil,
+      isEventActive,
+      isCouponActive,
+      isExpired,
+      daysLeft
+    };
+
+    return this.currentSeason;
+  }
+
+  async getSeasons() {
+    try {
+      const data = await this.supabaseFetch('seasons?select=*&order=id.desc');
+      if (Array.isArray(data)) {
+        this.seasons = data;
+        return this.seasons;
+      }
+    } catch (e) {
+      console.warn('シーズン一覧の取得に失敗:', e);
+    }
+    this.seasons = [this.currentSeason];
+    return this.seasons;
+  }
+
+  /* ------------------------------------------------------------------------
+   * リピーター（歴戦の古参勇者）判定
+   * ------------------------------------------------------------------------ */
+  async checkIsVeteranUser() {
+    if (!this.currentUser) return { isVeteran: false, previousVisitsCount: 0 };
+    try {
+      // 過去シーズン(現在シーズン未満)の来店を検索
+      const currentSeasonId = this.currentSeason?.id || 2;
+      const data = await this.supabaseFetch(`visits?user_id=eq.${encodeURIComponent(this.currentUser.userId)}&season_id=lt.${currentSeasonId}&select=id`);
+      const count = Array.isArray(data) ? data.length : 0;
+      return {
+        isVeteran: count > 0,
+        previousVisitsCount: count
+      };
+    } catch (e) {
+      return { isVeteran: false, previousVisitsCount: 0 };
+    }
+  }
+
+  /* ------------------------------------------------------------------------
    * 特典ランク一覧取得
    * ------------------------------------------------------------------------ */
-  async getRewardTiers() {
+  async getRewardTiers(seasonId = null) {
+    const targetSeasonId = seasonId !== null ? seasonId : (this.currentSeason?.id || 2);
     try {
-      const data = await this.supabaseFetch('reward_tiers?select=*&order=required_visits.asc');
+      const data = await this.supabaseFetch(`reward_tiers?season_id=eq.${targetSeasonId}&select=*&order=required_visits.asc`);
       if (Array.isArray(data) && data.length > 0) {
         this.rewardTiers = data;
         return this.rewardTiers;
@@ -217,12 +326,39 @@ class QuestApiManager {
   }
 
   /* ------------------------------------------------------------------------
+   * 勇者レベル・称号マスタ一覧取得
+   * ------------------------------------------------------------------------ */
+  async getHeroTitles() {
+    try {
+      const data = await this.supabaseFetch('hero_titles?select=*&order=min_visits.asc');
+      if (Array.isArray(data) && data.length > 0) {
+        this.heroTitles = data;
+        return this.heroTitles;
+      }
+    } catch (e) {
+      console.warn('称号マスタの取得に失敗 (フォールバックを使用):', e);
+    }
+
+    try {
+      const local = localStorage.getItem('yoidore_hero_titles');
+      if (local) {
+        this.heroTitles = JSON.parse(local);
+        return this.heroTitles;
+      }
+    } catch (e) {}
+
+    this.heroTitles = this.config.fallbackHeroTitles || [];
+    return this.heroTitles;
+  }
+
+  /* ------------------------------------------------------------------------
    * ユーザーの来店ログ取得 (visits)
    * ------------------------------------------------------------------------ */
   async getUserVisits() {
     if (!this.currentUser) return [];
+    const seasonId = this.currentSeason?.id || 2;
     try {
-      const data = await this.supabaseFetch(`visits?user_id=eq.${encodeURIComponent(this.currentUser.userId)}&select=*&order=visited_at.desc`);
+      const data = await this.supabaseFetch(`visits?user_id=eq.${encodeURIComponent(this.currentUser.userId)}&season_id=eq.${seasonId}&select=*&order=visited_at.desc`);
       if (Array.isArray(data)) {
         this.visits = data;
         return this.visits;
@@ -231,7 +367,7 @@ class QuestApiManager {
       console.warn('来店履歴の取得に失敗 (ローカルストレージを使用):', e);
     }
     try {
-      const raw = localStorage.getItem('yoidore_visits');
+      const raw = localStorage.getItem(`yoidore_visits_s${seasonId}`);
       this.visits = raw ? JSON.parse(raw) : [];
     } catch (err) {
       this.visits = this.visits || [];
@@ -247,6 +383,8 @@ class QuestApiManager {
       await this.initAuth();
     }
     if (!storeId) return { success: false, message: '店舗IDが指定されていません' };
+
+    const seasonId = this.currentSeason?.id || 2;
 
     // 既に訪問済みかチェック
     const existing = this.visits.find(v => v.store_id === storeId);
@@ -270,6 +408,7 @@ class QuestApiManager {
         body: JSON.stringify({
           user_id: this.currentUser.userId,
           store_id: storeId,
+          season_id: seasonId,
           visited_at: new Date().toISOString()
         })
       });
@@ -280,11 +419,12 @@ class QuestApiManager {
         id: `visit_${Date.now()}`,
         user_id: this.currentUser.userId,
         store_id: storeId,
+        season_id: seasonId,
         visited_at: new Date().toISOString()
       };
       this.visits = [newVisit, ...(this.visits || [])];
       try {
-        localStorage.setItem('yoidore_visits', JSON.stringify(this.visits));
+        localStorage.setItem(`yoidore_visits_s${seasonId}`, JSON.stringify(this.visits));
       } catch (e) {}
     }
 
@@ -303,8 +443,9 @@ class QuestApiManager {
    * ------------------------------------------------------------------------ */
   async getUserCoupons() {
     if (!this.currentUser) return [];
+    const seasonId = this.currentSeason?.id || 2;
     try {
-      const data = await this.supabaseFetch(`user_coupons?user_id=eq.${encodeURIComponent(this.currentUser.userId)}&select=*,stores(*),reward_tiers(*)&order=acquired_at.desc`);
+      const data = await this.supabaseFetch(`user_coupons?user_id=eq.${encodeURIComponent(this.currentUser.userId)}&season_id=eq.${seasonId}&select=*,stores(*),reward_tiers(*)&order=acquired_at.desc`);
       if (Array.isArray(data)) {
         this.userCoupons = data;
         return this.userCoupons;
@@ -313,7 +454,7 @@ class QuestApiManager {
       console.warn('クーポン一覧の取得に失敗 (ローカルストレージを使用):', e);
     }
     try {
-      const raw = localStorage.getItem('yoidore_coupons');
+      const raw = localStorage.getItem(`yoidore_coupons_s${seasonId}`);
       this.userCoupons = raw ? JSON.parse(raw) : [];
     } catch (err) {
       this.userCoupons = this.userCoupons || [];
@@ -330,6 +471,8 @@ class QuestApiManager {
       return { success: false, message: '店舗が選択されていません' };
     }
 
+    const seasonId = this.currentSeason?.id || 2;
+
     const insertRows = selectedStoreIds.map((storeId, idx) => {
       const store = (this.stores && this.stores.find(s => s.id === storeId)) ||
                     (window.STORES_DATA && window.STORES_DATA.find(s => s.id === storeId));
@@ -338,6 +481,7 @@ class QuestApiManager {
         user_id: this.currentUser.userId,
         store_id: storeId,
         reward_tier_id: rewardTierId,
+        season_id: seasonId,
         status: 'active',
         acquired_at: new Date().toISOString(),
         stores: store || { id: storeId, name: storeId }
@@ -355,7 +499,7 @@ class QuestApiManager {
       console.warn('Supabaseクーポン保存失敗のためローカル保存:', err);
       this.userCoupons = [...(this.userCoupons || []), ...insertRows];
       try {
-        localStorage.setItem('yoidore_coupons', JSON.stringify(this.userCoupons));
+        localStorage.setItem(`yoidore_coupons_s${seasonId}`, JSON.stringify(this.userCoupons));
       } catch (e) {}
     }
 
@@ -387,12 +531,101 @@ class QuestApiManager {
           c.used_at = new Date().toISOString();
         }
         try {
-          localStorage.setItem('yoidore_coupons', JSON.stringify(this.userCoupons));
+          const seasonId = this.currentSeason?.id || 2;
+          localStorage.setItem(`yoidore_coupons_s${seasonId}`, JSON.stringify(this.userCoupons));
         } catch (e) {}
       }
     }
 
     return { success: true };
+  }
+
+  /* ------------------------------------------------------------------------
+   * バックオフィス管理用 削除 & 更新 API
+   * ------------------------------------------------------------------------ */
+  // ユーザーの完全削除 (カスケードでvisits/couponsも削除)
+  async adminDeleteUser(userId) {
+    // 関連データの明示的クリーンアップ
+    try {
+      await this.supabaseFetch(`visits?user_id=eq.${encodeURIComponent(userId)}`, { method: 'DELETE' });
+    } catch (e) {}
+    try {
+      await this.supabaseFetch(`user_coupons?user_id=eq.${encodeURIComponent(userId)}`, { method: 'DELETE' });
+    } catch (e) {}
+    return await this.supabaseFetch(`users?line_user_id=eq.${encodeURIComponent(userId)}`, { method: 'DELETE' });
+  }
+
+  // 来店ログの個別削除
+  async adminDeleteVisit(visitId) {
+    return await this.supabaseFetch(`visits?id=eq.${encodeURIComponent(visitId)}`, { method: 'DELETE' });
+  }
+
+  // クーポン記録の個別削除
+  async adminDeleteCoupon(couponId) {
+    return await this.supabaseFetch(`user_coupons?id=eq.${encodeURIComponent(couponId)}`, { method: 'DELETE' });
+  }
+
+  // クーポン状態の手動変更 (使用済み ⇔ 未使用)
+  async adminUpdateCouponStatus(couponId, status, usedAt = null) {
+    return await this.supabaseFetch(`user_coupons?id=eq.${encodeURIComponent(couponId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        status,
+        used_at: status === 'used' ? (usedAt || new Date().toISOString()) : null
+      })
+    });
+  }
+
+  // シーズンの新規登録 / 更新
+  async adminSaveSeason(seasonData) {
+    return await this.supabaseFetch('seasons', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify(seasonData)
+    });
+  }
+
+  // アクティブシーズンの切り替え
+  async adminSetActiveSeason(seasonId) {
+    // 全てを一度非アクティブ化
+    await this.supabaseFetch('seasons?id=neq.0', {
+      method: 'PATCH',
+      body: JSON.stringify({ is_active: false })
+    });
+    // 指定IDをアクティブ化
+    await this.supabaseFetch(`seasons?id=eq.${seasonId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_active: true })
+    });
+    await this.getCurrentSeason();
+  }
+
+  // 特典ランク (reward_tiers) の新規登録 / 更新
+  async adminSaveRewardTier(tierData) {
+    return await this.supabaseFetch('reward_tiers', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify(tierData)
+    });
+  }
+
+  // 特典ランクの削除
+  async adminDeleteRewardTier(tierId) {
+    return await this.supabaseFetch(`reward_tiers?id=eq.${encodeURIComponent(tierId)}`, { method: 'DELETE' });
+  }
+
+  // 勇者レベル・称号 (hero_titles) の新規登録 / 更新
+  async adminSaveHeroTitle(titleData) {
+    return await this.supabaseFetch('hero_titles', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify(titleData)
+    });
+  }
+
+  // 勇者称号の削除
+  async adminDeleteHeroTitle(titleId) {
+    return await this.supabaseFetch(`hero_titles?id=eq.${encodeURIComponent(titleId)}`, { method: 'DELETE' });
   }
 
   /* ------------------------------------------------------------------------
@@ -402,8 +635,9 @@ class QuestApiManager {
     this.visits = [];
     this.userCoupons = [];
     try {
-      localStorage.removeItem('yoidore_visits');
-      localStorage.removeItem('yoidore_coupons');
+      const seasonId = this.currentSeason?.id || 2;
+      localStorage.removeItem(`yoidore_visits_s${seasonId}`);
+      localStorage.removeItem(`yoidore_coupons_s${seasonId}`);
     } catch (e) {}
   }
 }

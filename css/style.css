@@ -1054,6 +1054,98 @@ body {
   color: var(--text-yellow);
 }
 
+.nav-item.nav-item-highlight {
+  position: relative;
+  top: -4px;
+  background: linear-gradient(180deg, #3d2b05 0%, #171102 100%);
+  border: 2px solid var(--border-gold);
+  border-radius: 8px;
+  padding: 3px 8px 2px 8px;
+  color: var(--text-yellow);
+  box-shadow: 0 0 10px rgba(248, 225, 108, 0.4);
+  animation: pulseQrNav 2s infinite;
+}
+
+@keyframes pulseQrNav {
+  0% { box-shadow: 0 0 4px rgba(248, 225, 108, 0.4); border-color: var(--border-gold); }
+  50% { box-shadow: 0 0 14px rgba(248, 225, 108, 0.9); border-color: #fff; }
+  100% { box-shadow: 0 0 4px rgba(248, 225, 108, 0.4); border-color: var(--border-gold); }
+}
+
+/* 冒険の書 QRスキャンボタン */
+.qr-scan-hero-btn {
+  width: 100%;
+  background: linear-gradient(180deg, #2b6cb0 0%, #1a4971 100%);
+  border: 2px solid #63b3ed;
+  color: #fff;
+  font-family: var(--font-pixel);
+  font-size: 14px;
+  font-weight: bold;
+  padding: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), 0 0 10px rgba(99, 179, 237, 0.4);
+  transition: all 0.15s;
+}
+
+.qr-scan-hero-btn:active {
+  transform: scale(0.97);
+  background: #1a4971;
+}
+
+/* QRスキャナーモーダル内部 */
+.qr-scanner-box {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto 12px auto;
+  background: #000;
+  border: 2px solid var(--border-gold);
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#qr-reader {
+  width: 100% !important;
+  border: none !important;
+}
+
+#qr-reader video {
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.qr-scanner-reticle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 190px;
+  height: 190px;
+  border: 2px dashed #00ffaa;
+  box-shadow: 0 0 15px rgba(0, 255, 170, 0.6);
+  pointer-events: none;
+  border-radius: 8px;
+  box-sizing: border-box;
+  animation: scanPulse 1.8s infinite alternate;
+  z-index: 10;
+}
+
+@keyframes scanPulse {
+  0% { border-color: #00ffaa; box-shadow: 0 0 10px rgba(0, 255, 170, 0.4); }
+  100% { border-color: #f8e16c; box-shadow: 0 0 20px rgba(248, 225, 108, 0.8); }
+}
+
+
 /* 検索＆フィルターフォーム */
 .filter-box {
   display: flex;
@@ -1717,5 +1809,46 @@ body {
 @keyframes slideUp {
   from { transform: translateY(20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+/* 開催フェーズ動的告知バナー */
+.season-notice-banner {
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.season-notice-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.season-notice-icon {
+  font-size: 24px;
+}
+
+.season-notice-text {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.season-notice-banner.banner-active {
+  background: linear-gradient(135deg, #78350f 0%, #451a03 100%);
+  border: 2px solid var(--border-gold);
+  color: #fef08a;
+}
+
+.season-notice-banner.banner-warning {
+  background: linear-gradient(135deg, #7c2d12 0%, #431407 100%);
+  border: 2px solid #ea580c;
+  color: #fed7aa;
+}
+
+.season-notice-banner.banner-expired {
+  background: linear-gradient(135deg, #334155 0%, #0f172a 100%);
+  border: 2px solid #64748b;
+  color: #cbd5e1;
 }
 

@@ -113,17 +113,17 @@
         <span class="nav-item-icon">🍺</span>
         <span>案内所</span>
       </a>
-      <a href="#" class="nav-item" data-target-view="quest-book" id="nav-btn-quest-book">
-        <span class="nav-item-icon">📜</span>
-        <span>冒険の書</span>
-      </a>
-      <a href="#" class="nav-item" data-target-view="area" id="nav-btn-area">
-        <span class="nav-item-icon">🗺</span>
-        <span>エリア</span>
-      </a>
       <a href="#" class="nav-item" data-target-view="stores-all" id="nav-btn-stores">
         <span class="nav-item-icon">🏪</span>
         <span>店舗一覧</span>
+      </a>
+      <a href="#" class="nav-item nav-item-highlight" data-target-view="qr-scan" id="nav-btn-qr-scan">
+        <span class="nav-item-icon">📷</span>
+        <span>QR読取</span>
+      </a>
+      <a href="#" class="nav-item" data-target-view="quest-book" id="nav-btn-quest-book">
+        <span class="nav-item-icon">📜</span>
+        <span>冒険の書</span>
       </a>
       <a href="https://maps.app.goo.gl/SqskFzoxuso7NwwL8" target="_blank" rel="noopener noreferrer" class="nav-item" id="nav-btn-map" data-target-view="map">
         <span class="nav-item-icon">📍</span>
@@ -149,8 +149,9 @@
 
   <!-- JS Scripts -->
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <script src="js/config.js?v=3"></script>
-  <script src="js/api.js?v=3"></script>
-  <script src="js/app.js?v=3"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="js/config.js?v=5"></script>
+  <script src="js/api.js?v=5"></script>
+  <script src="js/app.js?v=5"></script>
 </body>
 </html>

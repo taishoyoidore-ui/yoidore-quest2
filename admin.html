@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>大正酔いどれクエストⅡ - バックオフィス管理画面</title>
+  <title>大正酔いどれクエスト - バックオフィス管理システム</title>
   <link rel="icon" href="assets/banner.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="css/admin.css">
@@ -16,7 +16,7 @@
     <div class="auth-card">
       <div class="auth-header">
         <span class="auth-icon">🍺</span>
-        <h2>大正酔いどれクエストⅡ</h2>
+        <h2>大正酔いどれクエスト</h2>
         <p class="auth-subtitle">バックオフィス運営管理システム</p>
       </div>
       <form id="auth-form" onsubmit="event.preventDefault(); window.adminApp.handleLogin();">
@@ -40,7 +40,7 @@
         <div class="brand-title">
           <span class="brand-icon">🍺</span>
           <div class="brand-text">
-            <h3>大正酔いどれクエストⅡ</h3>
+            <h3>大正酔いどれクエスト</h3>
             <span class="badge badge-admin">運営本部バックオフィス</span>
           </div>
         </div>
@@ -59,12 +59,12 @@
           <span>店舗マスター管理</span>
         </a>
         <a href="#tiers" class="nav-item" data-tab="tiers">
-          <i class="fa-solid fa-gift"></i>
-          <span>特典・期限設定</span>
+          <i class="fa-solid fa-calendar-check"></i>
+          <span>シーズン・開催設定</span>
         </a>
         <a href="#logs" class="nav-item" data-tab="logs">
           <i class="fa-solid fa-list-check"></i>
-          <span>参加者・履歴ログ</span>
+          <span>参加者・データ管理</span>
         </a>
         <a href="#pop" class="nav-item" data-tab="pop">
           <i class="fa-solid fa-qrcode"></i>
@@ -92,6 +92,14 @@
             <i class="fa-solid fa-bars"></i>
           </button>
           <h1 id="page-title">ダッシュボード</h1>
+          
+          <!-- シーズン選択セレクター -->
+          <div class="season-badge-select">
+            <i class="fa-solid fa-trophy"></i>
+            <select id="season-selector" onchange="window.adminApp.onSeasonSelectChange(this.value)">
+              <option value="2">第2回 (大正酔いどれクエストⅡ)</option>
+            </select>
+          </div>
         </div>
         <div class="header-right">
           <span id="last-sync-time" class="text-muted"><i class="fa-solid fa-arrows-rotate fa-spin"></i> 同期中...</span>
@@ -107,18 +115,30 @@
       <div class="content-wrapper">
         <!-- 1. ダッシュボードタブ -->
         <section id="tab-dashboard" class="tab-pane active">
+          <!-- 開催フェーズ告知バー -->
+          <div id="dashboard-status-banner" class="status-banner banner-active mb-4">
+            <div class="banner-content">
+              <span class="banner-icon" id="banner-icon">🍺</span>
+              <div>
+                <strong id="banner-title">イベント開催中</strong>
+                <p id="banner-desc" class="banner-subtitle">酒場を巡って宝箱を解放中！</p>
+              </div>
+            </div>
+            <div id="banner-timer" class="banner-badge">残り - 日</div>
+          </div>
+
           <div class="kpi-grid">
             <div class="kpi-card">
               <div class="kpi-icon icon-blue"><i class="fa-solid fa-users"></i></div>
               <div class="kpi-info">
-                <div class="kpi-label">総参加者数 (LINE)</div>
+                <div class="kpi-label">今期参加者数 (LINE)</div>
                 <div class="kpi-value" id="kpi-users-count">-</div>
               </div>
             </div>
             <div class="kpi-card">
               <div class="kpi-icon icon-green"><i class="fa-solid fa-beer-mug-empty"></i></div>
               <div class="kpi-info">
-                <div class="kpi-label">総来店チェックイン数</div>
+                <div class="kpi-label">今期来店チェックイン数</div>
                 <div class="kpi-value" id="kpi-visits-count">-</div>
               </div>
             </div>
@@ -132,7 +152,7 @@
             <div class="kpi-card">
               <div class="kpi-icon icon-purple"><i class="fa-solid fa-stamp"></i></div>
               <div class="kpi-info">
-                <div class="kpi-label">利用（消し込み）済クーポン</div>
+                <div class="kpi-label">利用（消し込み）済</div>
                 <div class="kpi-value" id="kpi-coupons-used">-</div>
               </div>
             </div>
@@ -142,7 +162,7 @@
             <!-- 来店ランキング TOP 5 -->
             <div class="card">
               <div class="card-header">
-                <h3><i class="fa-solid fa-trophy text-gold"></i> 来店チェックイン数 TOP 5</h3>
+                <h3><i class="fa-solid fa-trophy text-gold"></i> 今期の来店チェックイン数 TOP 5</h3>
               </div>
               <div class="card-body">
                 <div id="top-stores-ranking" class="ranking-list">
@@ -225,55 +245,97 @@
           </div>
         </section>
 
-        <!-- 3. 特典・期限設定タブ -->
+        <!-- 3. シーズン・開催設定タブ -->
         <section id="tab-tiers" class="tab-pane">
-          <div class="grid-2col">
-            <!-- 特典ランク・マイルストーン設定 -->
+          <div class="grid-2col mb-4">
+            <!-- シーズン管理 (第2回、第3回...) -->
             <div class="card">
               <div class="card-header">
-                <h3><i class="fa-solid fa-trophy"></i> はしご達成特典（宝箱）設定</h3>
-                <button class="btn btn-sm btn-secondary" onclick="window.adminApp.openTierModal('new')">
-                  <i class="fa-solid fa-plus"></i> 特典を追加
+                <h3><i class="fa-solid fa-layer-group"></i> 歴代シーズン（開催回）管理</h3>
+                <button class="btn btn-sm btn-primary" onclick="window.adminApp.openSeasonModal('new')">
+                  <i class="fa-solid fa-plus"></i> 新シーズンを作成
                 </button>
               </div>
               <div class="card-body">
-                <p class="text-muted mb-3">何軒はしご達成で何店舗分のクーポンを選択・獲得できるかを設定します。</p>
-                <div id="reward-tiers-list" class="tier-cards-container">
-                  <div class="empty-state">設定を読み込み中...</div>
+                <p class="text-muted mb-3">毎年・毎回のイベント回次を管理します。過去の履歴を保持したまま次回開催へ切り替えられます。</p>
+                <div id="seasons-list" class="seasons-container">
+                  <div class="empty-state">シーズン一覧を読み込み中...</div>
                 </div>
               </div>
             </div>
 
-            <!-- イベント開催期間・システム設定 -->
+            <!-- 開催中のシーズン詳細設定 -->
             <div class="card">
               <div class="card-header">
-                <h3><i class="fa-solid fa-calendar-days"></i> イベント開催期間・有効期限設定</h3>
+                <h3><i class="fa-solid fa-calendar-days"></i> 選択中シーズンの開催期間・期限設定</h3>
               </div>
               <div class="card-body">
-                <form id="event-config-form" onsubmit="event.preventDefault(); window.adminApp.saveEventConfig();">
+                <form id="season-edit-form" onsubmit="event.preventDefault(); window.adminApp.saveCurrentSeasonDates();">
                   <div class="form-group">
-                    <label>イベント開始日</label>
-                    <input type="date" id="event-start-date" class="form-control" required>
+                    <label>シーズン名</label>
+                    <input type="text" id="edit-season-name" class="form-control" required>
+                  </div>
+                  <div class="grid-2col">
+                    <div class="form-group">
+                      <label>イベント開始日</label>
+                      <input type="date" id="edit-season-start" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                      <label>イベント終了日（本開催）</label>
+                      <input type="date" id="edit-season-end" class="form-control" required>
+                    </div>
                   </div>
                   <div class="form-group">
-                    <label>イベント終了日（本開催）</label>
-                    <input type="date" id="event-end-date" class="form-control" required>
+                    <label>クーポン最終利用期限（後夜祭終了日）</label>
+                    <input type="date" id="edit-season-valid" class="form-control" required>
+                    <small class="text-muted">この日付を過ぎると、アプリ上のクーポンは自動的に「期限切れ」となり使用できなくなります。</small>
                   </div>
-                  <div class="form-group">
-                    <label>クーポン最終利用期限（後夜祭含む）</label>
-                    <input type="date" id="coupon-valid-until" class="form-control" required>
-                    <small class="text-muted">この日付を過ぎると、獲得したクーポンは自動的に「期限切れ」となります。</small>
-                  </div>
-                  <button type="submit" class="btn btn-primary mt-3">
-                    <i class="fa-solid fa-floppy-disk"></i> 開催設定を保存
+                  <button type="submit" class="btn btn-primary mt-2">
+                    <i class="fa-solid fa-floppy-disk"></i> 開催日程をSupabaseに保存
                   </button>
                 </form>
               </div>
             </div>
           </div>
+
+          <!-- はしご達成特典（宝箱）設定 -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <div>
+                <h3><i class="fa-solid fa-gift"></i> 今期のはしご達成特典（宝箱マイルストーン）設定</h3>
+                <p class="text-muted" style="margin:4px 0 0 0; font-size:12px;">指定した店舗数（例: 5軒、10軒）に到達した際に、ユーザーが獲得できるクーポン特典を設定します。</p>
+              </div>
+              <button class="btn btn-sm btn-primary" onclick="window.adminApp.openTierModal('new')">
+                <i class="fa-solid fa-plus"></i> 特典ランクを新規作成
+              </button>
+            </div>
+            <div class="card-body">
+              <div id="reward-tiers-list" class="tier-cards-container">
+                <div class="empty-state">設定を読み込み中...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 勇者レベル・称号設定 -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3><i class="fa-solid fa-medal"></i> 勇者レベル＆称号マスタ設定</h3>
+                <p class="text-muted" style="margin:4px 0 0 0; font-size:12px;">制覇店舗数に応じて、ユーザーの冒険の書に付与されるレベル（Lv.1〜）と称号（酒場制覇の豪傑等）を設定します。</p>
+              </div>
+              <button class="btn btn-sm btn-primary" onclick="window.adminApp.openHeroTitleModal('new')">
+                <i class="fa-solid fa-plus"></i> 新しい称号を追加
+              </button>
+            </div>
+            <div class="card-body">
+              <div id="hero-titles-list" class="hero-titles-container">
+                <div class="empty-state">称号マスタを読み込み中...</div>
+              </div>
+            </div>
+          </div>
         </section>
 
-        <!-- 4. 参加者・履歴ログタブ -->
+        <!-- 4. 参加者・データ管理タブ (削除・復元・CSV) -->
         <section id="tab-logs" class="tab-pane">
           <div class="card">
             <div class="card-header tab-header-sub">
@@ -295,7 +357,7 @@
               </div>
             </div>
 
-            <!-- サブタブ1: 参加者一覧 -->
+            <!-- サブタブ1: 参加者一覧 (個別削除対応) -->
             <div id="subtab-users" class="subtab-content active">
               <div class="table-responsive">
                 <table class="data-table">
@@ -303,20 +365,21 @@
                     <tr>
                       <th>ユーザー</th>
                       <th>LINE User ID</th>
-                      <th>制覇店舗数</th>
+                      <th>今期制覇数</th>
                       <th>獲得クーポン数</th>
-                      <th>初回参加日時</th>
+                      <th>初回来店日時</th>
                       <th>最終アクセス</th>
+                      <th style="text-align: center; width: 100px;">操作</th>
                     </tr>
                   </thead>
                   <tbody id="users-table-body">
-                    <tr><td colspan="6" class="text-center py-4">読み込み中...</td></tr>
+                    <tr><td colspan="7" class="text-center py-4">読み込み中...</td></tr>
                   </tbody>
                 </table>
               </div>
             </div>
 
-            <!-- サブタブ2: 来店履歴 -->
+            <!-- サブタブ2: 来店履歴 (個別削除対応) -->
             <div id="subtab-visits" class="subtab-content">
               <div class="table-responsive">
                 <table class="data-table">
@@ -326,16 +389,17 @@
                       <th>来店ユーザー</th>
                       <th>店舗ID</th>
                       <th>店舗名</th>
+                      <th style="text-align: center; width: 90px;">操作</th>
                     </tr>
                   </thead>
                   <tbody id="visits-table-body">
-                    <tr><td colspan="4" class="text-center py-4">読み込み中...</td></tr>
+                    <tr><td colspan="5" class="text-center py-4">読み込み中...</td></tr>
                   </tbody>
                 </table>
               </div>
             </div>
 
-            <!-- サブタブ3: クーポン履歴 -->
+            <!-- サブタブ3: クーポン履歴 (消し込み状態切替 & 削除対応) -->
             <div id="subtab-coupons" class="subtab-content">
               <div class="table-responsive">
                 <table class="data-table">
@@ -346,10 +410,11 @@
                       <th>利用対象店舗</th>
                       <th>状態</th>
                       <th>消し込み（利用）日時</th>
+                      <th style="text-align: center; width: 180px;">操作</th>
                     </tr>
                   </thead>
                   <tbody id="coupons-table-body">
-                    <tr><td colspan="5" class="text-center py-4">読み込み中...</td></tr>
+                    <tr><td colspan="6" class="text-center py-4">読み込み中...</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -381,6 +446,53 @@
         </section>
       </div>
     </main>
+  </div>
+
+  <!-- 新規シーズン作成モーダル -->
+  <div id="season-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>🏆 新規シーズンの作成</h3>
+        <button class="modal-close-btn" onclick="window.adminApp.closeSeasonModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="new-season-form" onsubmit="event.preventDefault(); window.adminApp.createSeason();">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>シーズン番号 (ID) <span class="required">*</span></label>
+            <input type="number" id="new-season-id" class="form-control" required placeholder="例: 3">
+          </div>
+          <div class="form-group">
+            <label>イベント正式名称 <span class="required">*</span></label>
+            <input type="text" id="new-season-name" class="form-control" required placeholder="例: 大正酔いどれクエストⅢ">
+          </div>
+          <div class="grid-2col">
+            <div class="form-group">
+              <label>開始日 <span class="required">*</span></label>
+              <input type="date" id="new-season-start" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label>終了日 <span class="required">*</span></label>
+              <input type="date" id="new-season-end" class="form-control" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>クーポン最終有効期限 <span class="required">*</span></label>
+            <input type="date" id="new-season-valid" class="form-control" required>
+          </div>
+          <div class="form-group custom-toggle-box">
+            <label class="toggle-switch-label">
+              <input type="checkbox" id="new-season-active">
+              <span class="toggle-switch-slider"></span>
+              <strong style="margin-left: 10px;">⚡ 作成後、直ちにこのシーズンを開催中にする</strong>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="window.adminApp.closeSeasonModal()">キャンセル</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> シーズンを作成</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- 店舗編集・新規作成モーダル -->
@@ -541,12 +653,102 @@
     </div>
   </div>
 
+  <!-- 特典ランク（reward_tiers）作成・編集モーダル -->
+  <div id="tier-modal" class="modal-backdrop">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3 id="tier-modal-title"><i class="fa-solid fa-gift"></i> 特典ランク設定</h3>
+        <button class="modal-close" onclick="window.adminApp.closeTierModal()">&times;</button>
+      </div>
+      <form id="tier-form" onsubmit="event.preventDefault(); window.adminApp.saveTierForm();">
+        <input type="hidden" id="edit-tier-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>特典タイトル <span class="badge badge-required">必須</span></label>
+            <input type="text" id="edit-tier-title" class="form-control" placeholder="例: 5軒はしご達成特典" required>
+          </div>
+          <div class="grid-2col">
+            <div class="form-group">
+              <label>必要来店店舗数 <span class="badge badge-required">必須</span></label>
+              <input type="number" id="edit-tier-required" class="form-control" min="1" max="100" placeholder="5" required>
+              <small class="text-muted">ユーザーがこの軒数を巡ると宝箱が解放されます。</small>
+            </div>
+            <div class="form-group">
+              <label>獲得可能クーポン数 <span class="badge badge-required">必須</span></label>
+              <input type="number" id="edit-tier-selectable" class="form-control" min="1" max="33" value="5" required>
+              <small class="text-muted">対象店舗の中から選べる店舗数です。</small>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>説明文</label>
+            <textarea id="edit-tier-desc" class="form-control" rows="2" placeholder="クーポン取扱店の中からお好きな5店舗を選んで特典チケットを獲得！"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="window.adminApp.closeTierModal()">キャンセル</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> 保存する</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 勇者称号・レベル（hero_titles）作成・編集モーダル -->
+  <div id="hero-title-modal" class="modal-backdrop">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3 id="hero-title-modal-title"><i class="fa-solid fa-medal"></i> 勇者称号・レベル設定</h3>
+        <button class="modal-close" onclick="window.adminApp.closeHeroTitleModal()">&times;</button>
+      </div>
+      <form id="hero-title-form" onsubmit="event.preventDefault(); window.adminApp.saveHeroTitleForm();">
+        <input type="hidden" id="edit-title-id">
+        <div class="modal-body">
+          <div class="grid-2col">
+            <div class="form-group">
+              <label>レベル (Lv.) <span class="badge badge-required">必須</span></label>
+              <input type="number" id="edit-title-level" class="form-control" min="1" max="99" placeholder="1" required>
+            </div>
+            <div class="form-group">
+              <label>必要制覇店舗数 (〜軒以上) <span class="badge badge-required">必須</span></label>
+              <input type="number" id="edit-title-min-visits" class="form-control" min="0" max="100" placeholder="0" required>
+              <small class="text-muted">この店舗数以上を制覇した際に付与されます。</small>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>称号名 <span class="badge badge-required">必須</span></label>
+            <input type="text" id="edit-title-name" class="form-control" placeholder="例: 酒場制覇の豪傑" required>
+          </div>
+          <div class="grid-2col">
+            <div class="form-group">
+              <label>バッジカラー (HEX)</label>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input type="color" id="edit-title-color-picker" value="#facc15" style="width:40px; height:38px; padding:0; border:none; cursor:pointer;" onchange="document.getElementById('edit-title-color').value=this.value">
+                <input type="text" id="edit-title-color" class="form-control" value="#facc15" onchange="document.getElementById('edit-title-color-picker').value=this.value">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>表示順</label>
+              <input type="number" id="edit-title-order" class="form-control" value="1">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>説明文</label>
+            <textarea id="edit-title-desc" class="form-control" rows="2" placeholder="5店舗を制覇した頼もしい豪傑"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="window.adminApp.closeHeroTitleModal()">キャンセル</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> 保存する</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- トースト通知 -->
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=3"></script>
-  <script src="js/api.js?v=3"></script>
-  <script src="js/admin.js?v=1"></script>
+  <script src="js/config.js?v=5"></script>
+  <script src="js/api.js?v=5"></script>
+  <script src="js/admin.js?v=3"></script>
 </body>
 </html>

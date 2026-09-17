@@ -1,5 +1,5 @@
 /**
- * 大正酔いどれクエストⅡ - バックオフィス管理画面ロジック
+ * 大正酔いどれクエスト - バックオフィス管理システムロジック
  */
 
 class YoidoreAdminApp {
@@ -11,6 +11,9 @@ class YoidoreAdminApp {
     this.visits = [];
     this.coupons = [];
     this.tiers = [];
+    this.heroTitles = [];
+    this.seasons = [];
+    this.selectedSeasonId = 2;
     this.activeTab = 'dashboard';
     this.activeLogSubTab = 'users';
 
@@ -23,7 +26,7 @@ class YoidoreAdminApp {
   }
 
   /* ------------------------------------------------------------------------
-   * 認証制御 (PINコード / パスワード)
+   * 認証制御
    * ------------------------------------------------------------------------ */
   checkAuthSession() {
     const isAuth = sessionStorage.getItem('yoidore_admin_auth');
@@ -104,8 +107,8 @@ class YoidoreAdminApp {
     const titles = {
       dashboard: 'リアルタイムダッシュボード',
       stores: '店舗マスター管理',
-      tiers: 'はしご達成特典・開催期限設定',
-      logs: '参加者・来店履歴ログ',
+      tiers: 'シーズン・開催設定',
+      logs: '参加者・データ管理',
       pop: '店頭POP・QRコード一括印刷'
     };
     document.getElementById('page-title').textContent = titles[tabId] || '管理画面';
@@ -113,7 +116,7 @@ class YoidoreAdminApp {
     // スマホサイドバーを閉じる
     document.getElementById('sidebar').classList.remove('open');
 
-    // 必要に応じたタブ個別描画
+    // 必要に応じた個別描画
     if (tabId === 'pop') this.renderPopCards();
   }
 
@@ -126,37 +129,49 @@ class YoidoreAdminApp {
     syncElem.innerHTML = '<i class="fa-solid fa-arrows-rotate fa-spin"></i> 同期中...';
 
     try {
-      // 1. 店舗データ
+      // 1. シーズン情報
+      this.seasons = await this.api.getSeasons();
+      const currentSeason = await this.api.getCurrentSeason();
+      if (currentSeason) {
+        this.selectedSeasonId = currentSeason.id;
+      }
+
+      // 2. 店舗データ
       this.stores = await this.api.getStores(true);
 
-      // 2. 特典ランクデータ
-      this.tiers = await this.api.getRewardTiers(true);
+      // 3. 特典ランクデータ (選択中シーズン)
+      this.tiers = await this.api.getRewardTiers(this.selectedSeasonId);
 
-      // 3. ユーザー一覧
+      // 3.5 勇者レベル・称号マスタデータ
+      this.heroTitles = await this.api.getHeroTitles();
+
+      // 4. ユーザー一覧
       try {
         this.users = await this.api.supabaseFetch('users?select=*&order=created_at.desc');
       } catch (e) {
         this.users = [];
       }
 
-      // 4. 来店ログ一覧
+      // 5. 来店ログ一覧 (選択中シーズン)
       try {
-        this.visits = await this.api.supabaseFetch('visits?select=*&order=visited_at.desc');
+        this.visits = await this.api.supabaseFetch(`visits?season_id=eq.${this.selectedSeasonId}&select=*&order=visited_at.desc`);
       } catch (e) {
         this.visits = [];
       }
 
-      // 5. クーポン発行・消し込み履歴
+      // 6. クーポン発行・消し込み履歴 (選択中シーズン)
       try {
-        this.coupons = await this.api.supabaseFetch('user_coupons?select=*&order=acquired_at.desc');
+        this.coupons = await this.api.supabaseFetch(`user_coupons?season_id=eq.${this.selectedSeasonId}&select=*&order=acquired_at.desc`);
       } catch (e) {
         this.coupons = [];
       }
 
       // 画面反映
+      this.renderSeasonSelector();
+      this.renderStatusBanner();
       this.renderDashboard();
       this.renderStoresTable();
-      this.renderTiersSettings();
+      this.renderSeasonSettings();
       this.renderLogs();
       this.renderPopStoreSelect();
 
@@ -172,6 +187,78 @@ class YoidoreAdminApp {
   async refreshData() {
     await this.loadAllData();
     this.showToast('最新データに更新しました！');
+  }
+
+  /* ------------------------------------------------------------------------
+   * シーズン切替制御
+   * ------------------------------------------------------------------------ */
+  renderSeasonSelector() {
+    const sel = document.getElementById('season-selector');
+    if (!sel) return;
+    sel.innerHTML = this.seasons.map(s => `
+      <option value="${s.id}" ${s.id === this.selectedSeasonId ? 'selected' : ''}>
+        第${s.id}回: ${this.escapeHtml(s.name)}${s.is_active ? ' (現在開催中)' : ''}
+      </option>
+    `).join('');
+  }
+
+  async onSeasonSelectChange(seasonId) {
+    this.selectedSeasonId = parseInt(seasonId, 10);
+    this.showToast(`第${this.selectedSeasonId}回のデータに切り替え中...`);
+    await this.loadAllData();
+  }
+
+  renderStatusBanner() {
+    const current = this.seasons.find(s => s.id === this.selectedSeasonId) || this.api.currentSeason;
+    const banner = document.getElementById('dashboard-status-banner');
+    const icon = document.getElementById('banner-icon');
+    const title = document.getElementById('banner-title');
+    const desc = document.getElementById('banner-desc');
+    const timer = document.getElementById('banner-timer');
+
+    if (!banner || !current) return;
+
+    const now = new Date();
+    const startDate = new Date(current.start_date);
+    const endDate = new Date(current.end_date);
+    endDate.setHours(23, 59, 59, 999);
+    const validUntil = new Date(current.coupon_valid_until);
+    validUntil.setHours(23, 59, 59, 999);
+
+    banner.className = 'status-banner mb-4';
+
+    if (now < startDate) {
+      // 開催前
+      banner.classList.add('banner-warning');
+      icon.textContent = '⏳';
+      title.textContent = `【開催前】${current.name}`;
+      desc.textContent = `開催予定: ${current.start_date} 〜 ${current.end_date}`;
+      const days = Math.ceil((startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      timer.textContent = `開幕まであと ${days} 日`;
+    } else if (now <= endDate) {
+      // 本開催中
+      banner.classList.add('banner-active');
+      icon.textContent = '🍺';
+      title.textContent = `【本開催中】${current.name}`;
+      desc.textContent = `はしご酒クエスト開催中！ (〜 ${current.end_date} まで)`;
+      const days = Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+      timer.textContent = `開催終了まであと ${days} 日`;
+    } else if (now <= validUntil) {
+      // 後夜祭（クーポン利用期間）
+      banner.classList.add('banner-warning');
+      icon.textContent = '⚠️';
+      title.textContent = `【後夜祭・クーポン利用期間】${current.name}`;
+      desc.textContent = `本開催は終了しました。クーポンの利用期限は ${current.coupon_valid_until} までです！`;
+      const days = Math.max(0, Math.ceil((validUntil.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+      timer.textContent = `クーポン期限まであと ${days} 日`;
+    } else {
+      // 終了
+      banner.classList.add('banner-expired');
+      icon.textContent = '🔒';
+      title.textContent = `【期間終了】${current.name}`;
+      desc.textContent = `今期のクエストおよびクーポン利用期間はすべて終了いたしました。`;
+      timer.textContent = `終了済`;
+    }
   }
 
   /* ------------------------------------------------------------------------
@@ -198,7 +285,7 @@ class YoidoreAdminApp {
 
     const topStoresElem = document.getElementById('top-stores-ranking');
     if (sortedStores.length === 0) {
-      topStoresElem.innerHTML = '<div class="empty-state text-muted py-3">まだ来店チェックインデータがありません</div>';
+      topStoresElem.innerHTML = '<div class="empty-state text-muted py-3">今期の来店チェックインデータがありません</div>';
     } else {
       topStoresElem.innerHTML = sortedStores.map(([storeId, count], idx) => {
         const store = this.stores.find(s => s.id === storeId);
@@ -230,7 +317,7 @@ class YoidoreAdminApp {
 
     const topCouponsElem = document.getElementById('top-coupons-ranking');
     if (sortedCoupons.length === 0) {
-      topCouponsElem.innerHTML = '<div class="empty-state text-muted py-3">まだクーポン獲得データがありません</div>';
+      topCouponsElem.innerHTML = '<div class="empty-state text-muted py-3">今期のクーポン獲得データがありません</div>';
     } else {
       topCouponsElem.innerHTML = sortedCoupons.map(([storeId, count], idx) => {
         const store = this.stores.find(s => s.id === storeId);
@@ -310,7 +397,6 @@ class YoidoreAdminApp {
     const stores = filtered || this.stores;
     const tbody = document.getElementById('store-table-body');
 
-    // エリアフィルター更新
     const areaFilter = document.getElementById('area-filter');
     if (areaFilter.children.length <= 1) {
       const areas = Array.from(new Set(this.stores.map(s => s.area))).filter(Boolean);
@@ -431,7 +517,6 @@ class YoidoreAdminApp {
       };
     }
 
-    // 各フィールドに値を設定
     document.getElementById('edit-store-id').value = store.id || '';
     document.getElementById('edit-store-name').value = store.name || '';
     document.getElementById('edit-store-area').value = store.area || '';
@@ -524,59 +609,411 @@ class YoidoreAdminApp {
   }
 
   /* ------------------------------------------------------------------------
-   * 3. 特典・期限設定
+   * 3. シーズン・開催設定
    * ------------------------------------------------------------------------ */
-  renderTiersSettings() {
-    const listElem = document.getElementById('reward-tiers-list');
-    if (this.tiers.length === 0) {
-      listElem.innerHTML = '<div class="empty-state text-muted py-3">特典ランクが設定されていません</div>';
-      return;
+  renderSeasonSettings() {
+    // シーズン一覧カード
+    const seasonsListElem = document.getElementById('seasons-list');
+    if (this.seasons.length === 0) {
+      seasonsListElem.innerHTML = '<div class="empty-state text-muted py-3">シーズンデータがありません</div>';
+    } else {
+      seasonsListElem.innerHTML = this.seasons.map(s => {
+        const isCurrent = s.id === this.selectedSeasonId;
+        return `
+          <div class="season-card ${isCurrent ? 'active' : ''}">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <strong style="font-size: 1.05rem; color: #0f172a;">第${s.id}回: ${this.escapeHtml(s.name)}</strong>
+                  ${s.is_active ? '<span class="tag tag-active">開催中</span>' : '<span class="tag tag-area">準備/過去</span>'}
+                </div>
+                <div class="text-muted" style="font-size: 0.85rem; margin-top: 4px;">
+                  📅 開催: ${s.start_date} 〜 ${s.end_date} ｜ 🎟️ クーポン期限: ${s.coupon_valid_until}
+                </div>
+              </div>
+              <div>
+                ${!s.is_active ? `
+                  <button class="btn btn-sm btn-primary" onclick="window.adminApp.activateSeason(${s.id})">
+                    <i class="fa-solid fa-bolt"></i> この回を開催中に切替
+                  </button>
+                ` : `
+                  <span class="text-success" style="font-weight: bold; font-size: 0.85rem;"><i class="fa-solid fa-check"></i> 現在稼働中</span>
+                `}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
-    listElem.innerHTML = this.tiers.map(t => `
-      <div class="card mb-3" style="border: 1px solid #cbd5e1;">
-        <div class="card-body" style="padding: 16px;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
-              <h4 style="color: #0f172a; margin-bottom: 4px;">🎁 ${this.escapeHtml(t.title)}</h4>
-              <p class="text-muted" style="font-size: 0.85rem;">${this.escapeHtml(t.description || '')}</p>
-            </div>
-            <span class="tag tag-active" style="font-size: 0.85rem;">
-              ${t.required_visits} 軒達成 ➔ ${t.selectable_count} 店舗選択
-            </span>
-          </div>
-        </div>
-      </div>
-    `).join('');
+    // 編集フォーム値
+    const current = this.seasons.find(s => s.id === this.selectedSeasonId) || this.api.currentSeason;
+    if (current) {
+      document.getElementById('edit-season-name').value = current.name || '';
+      document.getElementById('edit-season-start').value = current.start_date || '2026-08-01';
+      document.getElementById('edit-season-end').value = current.end_date || '2026-08-31';
+      document.getElementById('edit-season-valid').value = current.coupon_valid_until || '2026-09-30';
+    }
 
-    // イベント期間フォームの初期値
-    const period = this.api.config.eventPeriod || {};
-    document.getElementById('event-start-date').value = period.startDate || '2026-08-01';
-    document.getElementById('event-end-date').value = period.endDate || '2026-08-31';
-    document.getElementById('coupon-valid-until').value = '2026-09-30';
-  }
+    // 特典一覧のレンダリング
+    this.renderRewardTiers();
 
-  saveEventConfig() {
-    const start = document.getElementById('event-start-date').value;
-    const end = document.getElementById('event-end-date').value;
-    const validUntil = document.getElementById('coupon-valid-until').value;
-
-    this.showToast(`開催期間 (${start}〜${end}) と クーポン期限 (${validUntil}) を保存しました！`);
+    // 勇者称号マスタのレンダリング
+    this.renderHeroTitles();
   }
 
   /* ------------------------------------------------------------------------
-   * 4. 参加者・ログ閲覧 & CSVエクスポート
+   * 特典ランク (reward_tiers) CRUD制御
+   * ------------------------------------------------------------------------ */
+  renderRewardTiers() {
+    const tierElem = document.getElementById('reward-tiers-list');
+    if (!tierElem) return;
+
+    if (this.tiers.length === 0) {
+      tierElem.innerHTML = '<div class="empty-state text-muted py-3" style="grid-column: 1 / -1;">今シーズンの特典マイルストーンが登録されていません。「＋ 特典ランクを新規作成」から追加してください。</div>';
+      return;
+    }
+
+    tierElem.innerHTML = this.tiers.map(t => `
+      <div class="tier-admin-card">
+        <div>
+          <div class="tier-admin-header">
+            <span class="tier-admin-title">🏆 ${this.escapeHtml(t.title)}</span>
+            <span class="tag tag-active" style="font-size: 0.75rem;">第${t.season_id || this.selectedSeasonId}回</span>
+          </div>
+          <div class="tier-admin-meta">
+            <span class="tier-meta-badge"><i class="fa-solid fa-beer-mug-empty"></i> 必要: <strong>${t.required_visits}</strong> 軒</span>
+            <span class="tier-meta-badge"><i class="fa-solid fa-ticket"></i> 獲得: <strong>${t.selectable_count}</strong> 店舗</span>
+          </div>
+          <div class="tier-admin-desc">${this.escapeHtml(t.description || '説明なし')}</div>
+        </div>
+        <div class="tier-admin-actions">
+          <button class="btn btn-sm btn-secondary" onclick="window.adminApp.openTierModal(${t.id})">
+            <i class="fa-solid fa-pen"></i> 編集
+          </button>
+          <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.deleteTier(${t.id}, '${this.escapeHtml(t.title)}')">
+            <i class="fa-solid fa-trash"></i> 削除
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  openTierModal(tierIdOrMode) {
+    const isNew = tierIdOrMode === 'new';
+    document.getElementById('tier-modal-title').innerHTML = isNew ? 
+      '<i class="fa-solid fa-gift"></i> 新規特典ランクの作成' : 
+      '<i class="fa-solid fa-pen-to-square"></i> 特典ランクの編集';
+
+    let tier = {};
+    if (!isNew) {
+      tier = this.tiers.find(t => t.id === Number(tierIdOrMode)) || {};
+    } else {
+      const maxVisits = this.tiers.reduce((max, t) => Math.max(max, t.required_visits || 0), 0);
+      tier = {
+        id: '',
+        title: `${maxVisits ? maxVisits + 5 : 5}軒はしご達成特典`,
+        required_visits: maxVisits ? maxVisits + 5 : 5,
+        selectable_count: 5,
+        description: 'クーポン取扱店の中からお好きな店舗を選んで特典チケットを獲得！'
+      };
+    }
+
+    document.getElementById('edit-tier-id').value = tier.id || '';
+    document.getElementById('edit-tier-title').value = tier.title || '';
+    document.getElementById('edit-tier-required').value = tier.required_visits || 5;
+    document.getElementById('edit-tier-selectable').value = tier.selectable_count || 5;
+    document.getElementById('edit-tier-desc').value = tier.description || '';
+
+    document.getElementById('tier-modal').style.display = 'flex';
+  }
+
+  closeTierModal() {
+    document.getElementById('tier-modal').style.display = 'none';
+  }
+
+  async saveTierForm() {
+    const idVal = document.getElementById('edit-tier-id').value;
+    const title = document.getElementById('edit-tier-title').value.trim();
+    const required_visits = parseInt(document.getElementById('edit-tier-required').value, 10);
+    const selectable_count = parseInt(document.getElementById('edit-tier-selectable').value, 10);
+    const description = document.getElementById('edit-tier-desc').value.trim();
+    const season_id = this.selectedSeasonId;
+
+    if (!title || isNaN(required_visits) || isNaN(selectable_count)) {
+      alert('必須項目を正しく入力してください。');
+      return;
+    }
+
+    const tierData = {
+      season_id,
+      title,
+      required_visits,
+      selectable_count,
+      description
+    };
+
+    if (idVal) {
+      tierData.id = parseInt(idVal, 10);
+    }
+
+    try {
+      this.showToast('特典ランクを保存中...');
+      await this.api.adminSaveRewardTier(tierData);
+      this.closeTierModal();
+      this.showToast(`特典「${title}」を保存しました！`);
+      await this.loadAllData();
+    } catch (err) {
+      alert('保存に失敗しました: ' + err.message);
+    }
+  }
+
+  async deleteTier(tierId, title) {
+    if (!confirm(`【確認】特典ランク「${title}」を削除しますか？\n（ユーザーが既に獲得しているクーポンデータへの影響にご注意ください）`)) {
+      return;
+    }
+
+    try {
+      this.showToast('特典ランクを削除中...');
+      await this.api.adminDeleteRewardTier(tierId);
+      this.showToast(`特典「${title}」を削除しました。`);
+      await this.loadAllData();
+    } catch (err) {
+      alert('削除に失敗しました: ' + err.message);
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+   * 勇者称号・レベル (hero_titles) CRUD制御
+   * ------------------------------------------------------------------------ */
+  renderHeroTitles() {
+    const container = document.getElementById('hero-titles-list');
+    if (!container) return;
+
+    if (this.heroTitles.length === 0) {
+      container.innerHTML = '<div class="empty-state text-muted py-3">称号マスタが設定されていません。「＋ 新しい称号を追加」から作成してください。</div>';
+      return;
+    }
+
+    const sortedTitles = [...this.heroTitles].sort((a, b) => (Number(a.min_visits) || 0) - (Number(b.min_visits) || 0));
+
+    container.innerHTML = `
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 80px;">レベル</th>
+            <th style="width: 140px;">必要制覇店舗数</th>
+            <th style="width: 200px;">称号名 (バッジ表示)</th>
+            <th>説明文</th>
+            <th style="width: 120px; text-align: center;">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sortedTitles.map(t => `
+            <tr>
+              <td><strong style="color: #0f172a;">Lv.${t.level}</strong></td>
+              <td><span class="badge" style="background: #e2e8f0; color: #334155;"><strong>${t.min_visits}</strong> 軒以上</span></td>
+              <td>
+                <span class="hero-title-badge-preview" style="background: ${t.badge_color || '#facc15'}; color: #000; border: 1px solid rgba(0,0,0,0.15);">
+                  🎖️ ${this.escapeHtml(t.title)}
+                </span>
+              </td>
+              <td class="text-muted" style="font-size: 0.85rem;">${this.escapeHtml(t.description || '-')}</td>
+              <td style="text-align: center;">
+                <button class="btn btn-sm btn-secondary" onclick="window.adminApp.openHeroTitleModal(${t.id || t.level})">
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.deleteHeroTitle(${t.id || t.level}, '${this.escapeHtml(t.title)}')">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  openHeroTitleModal(titleIdOrMode) {
+    const isNew = titleIdOrMode === 'new';
+    document.getElementById('hero-title-modal-title').innerHTML = isNew ? 
+      '<i class="fa-solid fa-medal"></i> 新規勇者称号の追加' : 
+      '<i class="fa-solid fa-pen-to-square"></i> 勇者称号・レベルの編集';
+
+    let item = {};
+    if (!isNew) {
+      item = this.heroTitles.find(t => (t.id && t.id === Number(titleIdOrMode)) || t.level === Number(titleIdOrMode)) || {};
+    } else {
+      const maxLv = this.heroTitles.reduce((max, t) => Math.max(max, t.level || 0), 0);
+      const maxMin = this.heroTitles.reduce((max, t) => Math.max(max, t.min_visits || 0), 0);
+      item = {
+        id: '',
+        level: maxLv + 1,
+        min_visits: maxMin + 5,
+        title: '大正の凄腕勇者',
+        badge_color: '#facc15',
+        description: '大正の酒場を極めし凄腕の勇者',
+        display_order: maxLv + 1
+      };
+    }
+
+    document.getElementById('edit-title-id').value = item.id || '';
+    document.getElementById('edit-title-level').value = item.level || 1;
+    document.getElementById('edit-title-min-visits').value = item.min_visits !== undefined ? item.min_visits : 0;
+    document.getElementById('edit-title-name').value = item.title || '';
+    document.getElementById('edit-title-color').value = item.badge_color || '#facc15';
+    document.getElementById('edit-title-color-picker').value = item.badge_color || '#facc15';
+    document.getElementById('edit-title-order').value = item.display_order || (item.level || 1);
+    document.getElementById('edit-title-desc').value = item.description || '';
+
+    document.getElementById('hero-title-modal').style.display = 'flex';
+  }
+
+  closeHeroTitleModal() {
+    document.getElementById('hero-title-modal').style.display = 'none';
+  }
+
+  async saveHeroTitleForm() {
+    const idVal = document.getElementById('edit-title-id').value;
+    const level = parseInt(document.getElementById('edit-title-level').value, 10);
+    const min_visits = parseInt(document.getElementById('edit-title-min-visits').value, 10);
+    const title = document.getElementById('edit-title-name').value.trim();
+    const badge_color = document.getElementById('edit-title-color').value.trim();
+    const display_order = parseInt(document.getElementById('edit-title-order').value, 10) || level;
+    const description = document.getElementById('edit-title-desc').value.trim();
+
+    if (isNaN(level) || isNaN(min_visits) || !title) {
+      alert('レベル、必要店舗数、称号名は必須です。');
+      return;
+    }
+
+    const titleData = {
+      level,
+      min_visits,
+      title,
+      badge_color,
+      display_order,
+      description
+    };
+
+    if (idVal) {
+      titleData.id = parseInt(idVal, 10);
+    }
+
+    try {
+      this.showToast('称号マスタを保存中...');
+      await this.api.adminSaveHeroTitle(titleData);
+      this.closeHeroTitleModal();
+      this.showToast(`称号「${title}」を保存しました！`);
+      await this.loadAllData();
+    } catch (err) {
+      alert('保存に失敗しました: ' + err.message);
+    }
+  }
+
+  async deleteHeroTitle(titleId, title) {
+    if (!confirm(`【確認】称号「${title}」をマスタから削除しますか？`)) {
+      return;
+    }
+
+    try {
+      this.showToast('称号を削除中...');
+      await this.api.adminDeleteHeroTitle(titleId);
+      this.showToast(`称号「${title}」を削除しました。`);
+      await this.loadAllData();
+    } catch (err) {
+      alert('削除に失敗しました: ' + err.message);
+    }
+  }
+
+  async saveCurrentSeasonDates() {
+    const current = this.seasons.find(s => s.id === this.selectedSeasonId) || this.api.currentSeason;
+    const name = document.getElementById('edit-season-name').value.trim();
+    const start_date = document.getElementById('edit-season-start').value;
+    const end_date = document.getElementById('edit-season-end').value;
+    const coupon_valid_until = document.getElementById('edit-season-valid').value;
+
+    try {
+      this.showToast('開催日程を保存中...');
+      await this.api.supabaseFetch(`seasons?id=eq.${current.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name, start_date, end_date, coupon_valid_until })
+      });
+      this.showToast(`第${current.id}回の開催日程を更新しました！`);
+      await this.loadAllData();
+    } catch (err) {
+      alert('保存に失敗しました: ' + err.message);
+    }
+  }
+
+  openSeasonModal() {
+    const nextId = (this.seasons.reduce((max, s) => Math.max(max, s.id), 0) || 2) + 1;
+    document.getElementById('new-season-id').value = nextId;
+    document.getElementById('new-season-name').value = `大正酔いどれクエスト第${nextId}弾`;
+    document.getElementById('new-season-start').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('new-season-end').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('new-season-valid').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('new-season-active').checked = false;
+    document.getElementById('season-modal').style.display = 'flex';
+  }
+
+  closeSeasonModal() {
+    document.getElementById('season-modal').style.display = 'none';
+  }
+
+  async createSeason() {
+    const id = parseInt(document.getElementById('new-season-id').value, 10);
+    const name = document.getElementById('new-season-name').value.trim();
+    const start_date = document.getElementById('new-season-start').value;
+    const end_date = document.getElementById('new-season-end').value;
+    const coupon_valid_until = document.getElementById('new-season-valid').value;
+    const is_active = document.getElementById('new-season-active').checked;
+
+    const seasonData = { id, name, start_date, end_date, coupon_valid_until, is_active };
+
+    try {
+      this.showToast('新規シーズンを作成中...');
+      if (is_active) {
+        await this.api.adminSetActiveSeason(id);
+      }
+      await this.api.adminSaveSeason(seasonData);
+
+      this.closeSeasonModal();
+      this.showToast(`「${name}」を作成しました！`);
+      this.selectedSeasonId = id;
+      await this.loadAllData();
+    } catch (err) {
+      alert('シーズン作成に失敗しました: ' + err.message);
+    }
+  }
+
+  async activateSeason(seasonId) {
+    if (!confirm(`第${seasonId}回を開催中（アクティブ）に切り替えますか？\n（参加者のアプリが第${seasonId}回モードに切り替わります）`)) {
+      return;
+    }
+    try {
+      this.showToast('開催シーズンを切り替え中...');
+      await this.api.adminSetActiveSeason(seasonId);
+      this.selectedSeasonId = seasonId;
+      this.showToast(`第${seasonId}回を開催中に切り替えました！`);
+      await this.loadAllData();
+    } catch (err) {
+      alert('切り替えに失敗しました: ' + err.message);
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+   * 4. 参加者・履歴ログ & 削除・復元機能
    * ------------------------------------------------------------------------ */
   renderLogs() {
-    // カウントバッジ
     document.getElementById('count-users').textContent = this.users.length;
     document.getElementById('count-visits').textContent = this.visits.length;
     document.getElementById('count-coupons').textContent = this.coupons.length;
 
-    // 1. ユーザーテーブル
+    // 1. ユーザーテーブル (個別削除ボタン付き)
     const userTbody = document.getElementById('users-table-body');
     if (this.users.length === 0) {
-      userTbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">参加者データがありません</td></tr>';
+      userTbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">参加者データがありません</td></tr>';
     } else {
       userTbody.innerHTML = this.users.map(u => {
         const userVisits = this.visits.filter(v => v.user_id === u.line_user_id).length;
@@ -597,15 +1034,20 @@ class YoidoreAdminApp {
             <td><strong>${userCoupons} 枚</strong></td>
             <td><small class="text-muted">${createdStr}</small></td>
             <td><small class="text-muted">${activeStr}</small></td>
+            <td style="text-align: center;">
+              <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.confirmDeleteUser('${u.line_user_id}', '${this.escapeHtml(u.display_name || '')}')">
+                <i class="fa-solid fa-trash"></i> 削除
+              </button>
+            </td>
           </tr>
         `;
       }).join('');
     }
 
-    // 2. 来店履歴テーブル
+    // 2. 来店履歴テーブル (個別削除ボタン付き)
     const visitTbody = document.getElementById('visits-table-body');
     if (this.visits.length === 0) {
-      visitTbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">来店履歴がありません</td></tr>';
+      visitTbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">今期の来店履歴がありません</td></tr>';
     } else {
       visitTbody.innerHTML = this.visits.map(v => {
         const store = this.stores.find(s => s.id === v.store_id);
@@ -620,15 +1062,20 @@ class YoidoreAdminApp {
             <td><strong>${this.escapeHtml(userName)}</strong></td>
             <td><code>${this.escapeHtml(v.store_id)}</code></td>
             <td><strong>${this.escapeHtml(storeName)}</strong></td>
+            <td style="text-align: center;">
+              <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.confirmDeleteVisit('${v.id}')" title="来店履歴を削除">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
           </tr>
         `;
       }).join('');
     }
 
-    // 3. クーポン履歴テーブル
+    // 3. クーポン履歴テーブル (状態切替 & 削除ボタン付き)
     const couponTbody = document.getElementById('coupons-table-body');
     if (this.coupons.length === 0) {
-      couponTbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">クーポン履歴がありません</td></tr>';
+      couponTbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">今期のクーポン履歴がありません</td></tr>';
     } else {
       couponTbody.innerHTML = this.coupons.map(c => {
         const store = this.stores.find(s => s.id === c.store_id);
@@ -646,6 +1093,22 @@ class YoidoreAdminApp {
             <td><strong>${this.escapeHtml(storeName)}</strong></td>
             <td><span class="tag ${isUsed ? 'tag-active' : 'tag-area'}">${isUsed ? '✅ 利用済' : '未使用'}</span></td>
             <td>${usedStr}</td>
+            <td style="text-align: center;">
+              <div style="display: flex; gap: 4px; justify-content: center;">
+                ${isUsed ? `
+                  <button class="btn btn-sm btn-secondary" onclick="window.adminApp.updateCouponStatus('${c.id}', 'active')" title="未使用に戻す">
+                    <i class="fa-solid fa-rotate-left"></i> 未使用へ
+                  </button>
+                ` : `
+                  <button class="btn btn-sm btn-secondary" onclick="window.adminApp.updateCouponStatus('${c.id}', 'used')" title="手動で使用済みにする">
+                    <i class="fa-solid fa-check"></i> 消込
+                  </button>
+                `}
+                <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.confirmDeleteCoupon('${c.id}')" title="クーポンを削除">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </td>
           </tr>
         `;
       }).join('');
@@ -662,30 +1125,83 @@ class YoidoreAdminApp {
     });
   }
 
+  // ユーザー完全削除
+  async confirmDeleteUser(userId, displayName) {
+    if (!confirm(`⚠️ 警告: ユーザー「${displayName}」を完全に削除しますか？\n\n※このユーザーに紐づくすべての来店記録・獲得クーポンも完全に削除されます。この操作は元に戻せません。`)) {
+      return;
+    }
+    try {
+      this.showToast('ユーザーと関連データを削除中...');
+      await this.api.adminDeleteUser(userId);
+      this.showToast(`ユーザー「${displayName}」を削除しました`);
+      await this.loadAllData();
+    } catch (err) {
+      alert('削除に失敗しました: ' + err.message);
+    }
+  }
+
+  // 来店履歴削除
+  async confirmDeleteVisit(visitId) {
+    if (!confirm('この来店チェックイン記録を削除しますか？')) return;
+    try {
+      this.showToast('来店記録を削除中...');
+      await this.api.adminDeleteVisit(visitId);
+      this.showToast('来店記録を削除しました');
+      await this.loadAllData();
+    } catch (err) {
+      alert('削除に失敗しました: ' + err.message);
+    }
+  }
+
+  // クーポン削除
+  async confirmDeleteCoupon(couponId) {
+    if (!confirm('このクーポンデータを削除しますか？')) return;
+    try {
+      this.showToast('クーポンを削除中...');
+      await this.api.adminDeleteCoupon(couponId);
+      this.showToast('クーポンを削除しました');
+      await this.loadAllData();
+    } catch (err) {
+      alert('削除に失敗しました: ' + err.message);
+    }
+  }
+
+  // クーポンステータス変更 (未使用 ⇔ 利用済)
+  async updateCouponStatus(couponId, newStatus) {
+    try {
+      this.showToast('クーポンの状態を更新中...');
+      await this.api.adminUpdateCouponStatus(couponId, newStatus);
+      this.showToast(`クーポンを【${newStatus === 'used' ? '利用済' : '未使用'}】に変更しました`);
+      await this.loadAllData();
+    } catch (err) {
+      alert('更新に失敗しました: ' + err.message);
+    }
+  }
+
   exportCurrentTableToCSV() {
-    let filename = `yoidore_${this.activeLogSubTab}_${new Date().toISOString().slice(0, 10)}.csv`;
-    let csvContent = '\uFEFF'; // BOM for Excel
+    let filename = `yoidore_season${this.selectedSeasonId}_${this.activeLogSubTab}_${new Date().toISOString().slice(0, 10)}.csv`;
+    let csvContent = '\uFEFF';
 
     if (this.activeLogSubTab === 'users') {
-      csvContent += 'LINE_User_ID,表示名,制覇店舗数,獲得クーポン数,初回日時,最終アクセス\n';
+      csvContent += 'LINE_User_ID,表示名,今期制覇店舗数,獲得クーポン数,初回来店日時,最終アクセス\n';
       this.users.forEach(u => {
         const userVisits = this.visits.filter(v => v.user_id === u.line_user_id).length;
         const userCoupons = this.coupons.filter(c => c.user_id === u.line_user_id).length;
         csvContent += `"${u.line_user_id}","${(u.display_name || '').replace(/"/g, '""')}",${userVisits},${userCoupons},"${u.created_at || ''}","${u.last_active_at || ''}"\n`;
       });
     } else if (this.activeLogSubTab === 'visits') {
-      csvContent += '来店日時,LINE_User_ID,ユーザー名,店舗ID,店舗名\n';
+      csvContent += '来店日時,シーズンID,LINE_User_ID,ユーザー名,店舗ID,店舗名\n';
       this.visits.forEach(v => {
         const store = this.stores.find(s => s.id === v.store_id);
         const user = this.users.find(u => u.line_user_id === v.user_id);
-        csvContent += `"${v.visited_at || ''}","${v.user_id}","${(user ? user.display_name : '').replace(/"/g, '""')}","${v.store_id}","${(store ? store.name : '').replace(/"/g, '""')}"\n`;
+        csvContent += `"${v.visited_at || ''}",${v.season_id || this.selectedSeasonId},"${v.user_id}","${(user ? user.display_name : '').replace(/"/g, '""')}","${v.store_id}","${(store ? store.name : '').replace(/"/g, '""')}"\n`;
       });
     } else if (this.activeLogSubTab === 'coupons') {
-      csvContent += '獲得日時,LINE_User_ID,ユーザー名,店舗ID,店舗名,状態,利用消し込み日時\n';
+      csvContent += '獲得日時,シーズンID,LINE_User_ID,ユーザー名,店舗ID,店舗名,状態,利用消し込み日時\n';
       this.coupons.forEach(c => {
         const store = this.stores.find(s => s.id === c.store_id);
         const user = this.users.find(u => u.line_user_id === c.user_id);
-        csvContent += `"${c.acquired_at || ''}","${c.user_id}","${(user ? user.display_name : '').replace(/"/g, '""')}","${c.store_id}","${(store ? store.name : '').replace(/"/g, '""')}","${c.status}","${c.used_at || ''}"\n`;
+        csvContent += `"${c.acquired_at || ''}",${c.season_id || this.selectedSeasonId},"${c.user_id}","${(user ? user.display_name : '').replace(/"/g, '""')}","${c.store_id}","${(store ? store.name : '').replace(/"/g, '""')}","${c.status}","${c.used_at || ''}"\n`;
       });
     }
 
@@ -694,7 +1210,7 @@ class YoidoreAdminApp {
     link.href = URL.createObjectURL(blob);
     link.download = filename;
     link.click();
-    this.showToast(`CSVファイル「${filename}」をダウンロードしました`);
+    this.showToast(`CSV「${filename}」をダウンロードしました`);
   }
 
   /* ------------------------------------------------------------------------
@@ -727,6 +1243,8 @@ class YoidoreAdminApp {
 
     container.innerHTML = '';
     const liffId = this.api.liffId || '2011637649-WWv6pnTL';
+    const currentSeason = this.seasons.find(s => s.id === this.selectedSeasonId) || this.api.currentSeason;
+    const seasonTitle = currentSeason ? currentSeason.name : '大正酔いどれクエストⅡ';
 
     stores.forEach(store => {
       const checkinUrl = `https://liff.line.me/${liffId}?checkin=${store.id}`;
@@ -736,7 +1254,7 @@ class YoidoreAdminApp {
       card.innerHTML = `
         <div class="pop-event-header">
           <span class="pop-event-badge">大正区はしご酒イベント</span>
-          <div class="pop-event-title">🍺 大正酔いどれクエストⅡ ⚔️</div>
+          <div class="pop-event-title">🍺 ${this.escapeHtml(seasonTitle)} ⚔️</div>
         </div>
         <div class="pop-store-name">${this.escapeHtml(store.name)}</div>
         <div class="pop-store-area">${this.escapeHtml(store.area || '')} 【${this.escapeHtml(store.id)}】</div>
@@ -747,7 +1265,6 @@ class YoidoreAdminApp {
 
       container.appendChild(card);
 
-      // QRコード描画 (QRCode.js)
       const qrElem = document.getElementById(`pop-qr-${store.id}`);
       if (qrElem && window.QRCode) {
         new window.QRCode(qrElem, {
