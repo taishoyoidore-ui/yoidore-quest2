@@ -865,14 +865,16 @@ class YoidoreQuestApp {
 
     this.typeMessage(`『${user.displayName}』の冒険の書です。店舗を巡ってQRコードを読み取ると制覇数が記録されます。`);
 
-    const rewardTiers = (window.questApi && window.questApi.rewardTiers) || [];
+    const rewardTiers = (window.questApi && window.questApi.rewardTiers && window.questApi.rewardTiers.length > 0)
+      ? window.questApi.rewardTiers 
+      : (window.APP_CONFIG?.fallbackRewardTiers || []);
     const userCoupons = (window.questApi && window.questApi.userCoupons) || [];
 
     // 獲得済み特典ランクの判定 (数値・文字列両対応)
     const claimedTierIds = new Set(userCoupons.map(c => Number(c.reward_tier_id)));
 
     // 特典宝箱のレンダリング
-    const tiersHtml = rewardTiers.map(tier => {
+    const tiersHtml = (rewardTiers.length > 0) ? rewardTiers.map(tier => {
       const isReached = visitedCount >= tier.required_visits;
       const isClaimed = claimedTierIds.has(Number(tier.id));
       const isGoods = tier.reward_type === 'goods';
@@ -927,7 +929,7 @@ class YoidoreQuestApp {
           <div style="margin-top:8px;">${actionHtml}</div>
         </div>
       `;
-    }).join('');
+    }).join('') : '<div style="padding:15px; text-align:center; color:var(--text-dim); font-size:13px;">特典マイルストーンを設定中または読み込み中です。</div>';
 
     // 所持クーポン・引換券一覧のレンダリング
     const activeCoupons = userCoupons.filter(c => c.status !== 'used');

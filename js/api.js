@@ -344,6 +344,7 @@ class QuestApiManager {
   /* ------------------------------------------------------------------------
    * 特典ランク一覧取得 (Supabaseデータベース最優先)
    * ------------------------------------------------------------------------ */
+  async getRewardTiers(seasonId = null) {
     let localTiers = [];
     try {
       const local = localStorage.getItem('yoidore_reward_tiers');
