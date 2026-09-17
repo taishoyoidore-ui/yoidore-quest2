@@ -8,6 +8,42 @@
   
   <!-- CSS Stylesheet -->
   <link rel="stylesheet" href="css/style.css">
+
+  <!-- エラー検知＆デバッグモニター（画面下のモニターに即時出力） -->
+  <script>
+    window.addEventListener('error', function(e) {
+      // <img>タグやフォント等のリソース読み込み通知は除外
+      if (e.target && (e.target.tagName === 'IMG' || e.target.tagName === 'LINK' || e.target.tagName === 'AUDIO')) {
+        console.warn('リソース読み込みスキップ:', e.target.src || e.target.href);
+        return;
+      }
+      var msg = e.message || (e.error ? e.error.message : '不明なスクリプトエラー');
+      var file = e.filename ? e.filename.split('/').pop() : '不明';
+      var line = e.lineno || 0;
+      
+      var logEl = document.getElementById('debug-log-inner');
+      if (logEl) {
+        logEl.innerHTML = '<div style="color:#ff4757; margin-bottom:2px; font-weight:bold;">❌ [JSエラー] ' + msg + ' (' + file + ':' + line + '行)</div>' + logEl.innerHTML;
+      }
+    }, true);
+
+    window.addEventListener('unhandledrejection', function(e) {
+      var msg = e.reason ? (e.reason.message || e.reason.stack || JSON.stringify(e.reason)) : '不明なPromiseエラー';
+      var logEl = document.getElementById('debug-log-inner');
+      if (logEl) {
+        logEl.innerHTML = '<div style="color:#ff77a8; margin-bottom:2px;">⚠️ [非同期エラー] ' + msg + '</div>' + logEl.innerHTML;
+      }
+    });
+
+    function debugLog(msg) {
+      console.log(msg);
+      var logEl = document.getElementById('debug-log-inner');
+      if (logEl) {
+        var time = new Date().toTimeString().split(' ')[0];
+        logEl.innerHTML = '<div style="color:#5ce1e6; margin-bottom:2px;">[' + time + '] ' + msg + '</div>' + logEl.innerHTML;
+      }
+    }
+  </script>
 </head>
 <body>
   <!-- CRTレトロスキャンライン風オーバーレイ -->
@@ -96,8 +132,24 @@
     </nav>
   </main>
 
+  <!-- デバッグ用ログ表示パネル -->
+  <div id="debug-panel" style="position:fixed; bottom:65px; left:10px; right:10px; max-height:120px; background:rgba(0,0,0,0.85); border:1px solid #5ce1e6; border-radius:4px; padding:6px; font-size:11px; font-family:monospace; color:#fff; z-index:999999; overflow-y:auto;">
+    <div style="font-weight:bold; color:#f8e16c; margin-bottom:2px; display:flex; justify-content:space-between;">
+      <span>🛠️ 動作ログモニター</span>
+      <button onclick="document.getElementById('debug-log-inner').innerHTML=''" style="background:#333; color:#fff; border:none; padding:1px 6px; border-radius:2px; cursor:pointer;">クリア</button>
+    </div>
+    <div id="debug-log-inner">初期化待機中...</div>
+  </div>
+
   <!-- JS Scripts -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+    // file:// ローカル起動時はクロスオリジン制約のあるLIFF SDKの読み込みをスキップして高速起動
+    if (window.location.protocol.startsWith('http')) {
+      var liffScript = document.createElement('script');
+      liffScript.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js';
+      document.head.appendChild(liffScript);
+    }
+  </script>
   <script src="js/xlsx.full.min.js"></script>
   <script src="js/data.js"></script>
   <script src="js/config.js"></script>

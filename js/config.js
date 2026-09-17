@@ -24,21 +24,22 @@ const APP_CONFIG = {
     }
   },
 
-  // 特典デフォルトランク（Supabase取得失敗時のフォールバック用）
+  // 特典ランク・クーポン獲得マイルストーン設定
+  // ※はしご達成の必要店舗数（required_visits）や獲得できる店舗数（selectable_count）はここで簡単に変更できます
   fallbackRewardTiers: [
     {
       id: 1,
-      required_visits: 3,
-      title: '3軒はしご達成クーポン',
-      selectable_count: 1,
-      description: 'クーポン対象店舗の中からお好きな1店舗の特典を選べます！'
+      required_visits: 5,
+      title: '5軒はしご達成特典',
+      selectable_count: 5,
+      description: 'クーポン取扱店の中からお好きな5店舗を選んで特典チケットを獲得！'
     },
     {
       id: 2,
-      required_visits: 5,
-      title: '5軒完全制覇クーポン',
+      required_visits: 10,
+      title: '10軒はしご達成特典',
       selectable_count: 5,
-      description: 'クーポン対象店舗の中からお好きな5店舗の特典を選べます！'
+      description: 'クーポン取扱店の中からさらにお好きな5店舗を選んで特典チケットを獲得！'
     }
   ]
 };

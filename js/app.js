@@ -4,6 +4,7 @@
 
 class YoidoreQuestApp {
   constructor() {
+    if (window.debugLog) window.debugLog('🚀 YoidoreQuestApp 起動開始');
     this.currentView = 'top';
     this.selectedStore = null;
     this.soundEnabled = true;
@@ -22,20 +23,50 @@ class YoidoreQuestApp {
       searchQuery: ''
     };
 
-    // 初期履歴の登録 (ブラウザバック用)
-    if (window.history && window.history.replaceState) {
-      window.history.replaceState({
-        view: 'top',
-        selectedStoreId: null,
-        filters: { ...this.filters }
-      }, '');
+    // 初期履歴の登録 (ブラウザバック用 - file://プロトコル等でのSecurityError対策)
+    try {
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({
+          view: 'top',
+          selectedStoreId: null,
+          filters: { ...this.filters }
+        }, '');
+      }
+    } catch (e) {
+      if (window.debugLog) window.debugLog('⚠️ history.replaceStateスキップ: ' + e.message);
     }
 
-    this.initAudio();
-    this.initEvents();
-    this.loadXLSXFromDefaultPath();
-    this.initQuestSystem();
-    this.render();
+    try {
+      this.initAudio();
+      this.initEvents();
+      this.loadXLSXFromDefaultPath();
+      this.initQuestSystem();
+      this.render();
+      if (window.debugLog) window.debugLog('✅ アプリ初期化完了（画面描画済）');
+    } catch (err) {
+      alert('【初期化エラー】' + err.message);
+      if (window.debugLog) window.debugLog('❌ 初期化エラー: ' + err.stack);
+    }
+  }
+
+  getStores() {
+    return (window.STORES_DATA && window.STORES_DATA.length > 0) ? window.STORES_DATA : (typeof STORES_DATA !== 'undefined' ? STORES_DATA : []);
+  }
+
+  getAreas() {
+    return (window.AREAS_LIST && window.AREAS_LIST.length > 0) ? window.AREAS_LIST : (typeof AREAS_LIST !== 'undefined' ? AREAS_LIST : ['三軒家西', '三軒家東', '駅前', '泉尾', '平尾']);
+  }
+
+  getCategories() {
+    return (window.CATEGORIES_LIST && window.CATEGORIES_LIST.length > 0) ? window.CATEGORIES_LIST : (typeof CATEGORIES_LIST !== 'undefined' ? CATEGORIES_LIST : []);
+  }
+
+  getStyles() {
+    return (window.STYLES_LIST && window.STYLES_LIST.length > 0) ? window.STYLES_LIST : (typeof STYLES_LIST !== 'undefined' ? STYLES_LIST : ['立ち飲み', 'テーブルあり', 'カウンターあり']);
+  }
+
+  getTypes() {
+    return (window.TYPES_LIST && window.TYPES_LIST.length > 0) ? window.TYPES_LIST : (typeof TYPES_LIST !== 'undefined' ? TYPES_LIST : ['サク飲み', '腹ごしらえ', 'ひと休み', '夜遊び']);
   }
 
   /* ------------------------------------------------------------------------
@@ -149,6 +180,7 @@ class YoidoreQuestApp {
   }
 
   startGame() {
+    if (window.debugLog) window.debugLog('▶ PUSH STARTがクリックされました');
     try {
       if (!this.audioCtx) {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -159,18 +191,20 @@ class YoidoreQuestApp {
       if (this.audioCtx && this.audioCtx.state === 'suspended') {
         this.audioCtx.resume();
       }
-    } catch (e) {}
+    } catch (e) {
+      if (window.debugLog) window.debugLog('⚠️ 音声初期化スキップ: ' + e.message);
+    }
 
     this.isStarted = true;
-    this.playStartSE();
+    try {
+      this.playStartSE();
+    } catch (e) {}
 
     const overlay = document.getElementById('start-overlay');
     if (overlay) {
       overlay.classList.add('fade-out');
-      setTimeout(() => {
-        overlay.classList.add('hidden');
-        overlay.style.display = 'none';
-      }, 350);
+      overlay.style.display = 'none'; // 即時非表示を確実化
+      if (window.debugLog) window.debugLog('✨ スタートオーバーレイを非表示にしました');
     }
 
     this.render();
@@ -192,9 +226,7 @@ class YoidoreQuestApp {
       gain.connect(this.audioCtx.destination);
       osc.start();
       osc.stop(this.audioCtx.currentTime + duration);
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) {}
   }
 
   playCursorSE() {
@@ -202,39 +234,11 @@ class YoidoreQuestApp {
   }
 
   playSelectSE() {
-    if (!this.soundEnabled || !this.audioCtx) return;
-    try {
-      const now = this.audioCtx.currentTime;
-      const osc = this.audioCtx.createOscillator();
-      const gain = this.audioCtx.createGain();
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(523.25, now); // C5
-      osc.frequency.setValueAtTime(659.25, now + 0.06); // E5
-      gain.gain.setValueAtTime(0.1, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-      osc.connect(gain);
-      gain.connect(this.audioCtx.destination);
-      osc.start();
-      osc.stop(now + 0.2);
-    } catch (e) {}
+    this.playTone(880, 0.08, 'square');
   }
 
   playBackSE() {
-    if (!this.soundEnabled || !this.audioCtx) return;
-    try {
-      const now = this.audioCtx.currentTime;
-      const osc = this.audioCtx.createOscillator();
-      const gain = this.audioCtx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(392.00, now); // G4
-      osc.frequency.setValueAtTime(261.63, now + 0.08); // C4
-      gain.gain.setValueAtTime(0.1, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-      osc.connect(gain);
-      gain.connect(this.audioCtx.destination);
-      osc.start();
-      osc.stop(now + 0.25);
-    } catch (e) {}
+    this.playTone(330, 0.08, 'square');
   }
 
   playFanfareSE() {
@@ -280,7 +284,10 @@ class YoidoreQuestApp {
     // スタートボタン
     const startBtn = document.getElementById('start-game-btn');
     if (startBtn) {
-      startBtn.addEventListener('click', () => this.startGame());
+      startBtn.addEventListener('click', () => {
+        if (window.debugLog) window.debugLog('🖱️ start-game-btn クリックイベント発火');
+        this.startGame();
+      });
     }
 
     // サウンド切り替えボタン
@@ -293,6 +300,7 @@ class YoidoreQuestApp {
     const headerBackBtn = document.getElementById('header-back-btn');
     if (headerBackBtn) {
       headerBackBtn.addEventListener('click', () => {
+        if (window.debugLog) window.debugLog('🖱️ ヘッダーもどるボタン クリック');
         this.goBack();
       });
     }
@@ -317,9 +325,14 @@ class YoidoreQuestApp {
     });
 
     // ナビゲーションバー
-    document.querySelectorAll('.nav-item').forEach(item => {
+    const navItems = document.querySelectorAll('.nav-item');
+    if (window.debugLog) window.debugLog('ナビゲーション登録件数: ' + navItems.length);
+
+    navItems.forEach(item => {
       item.addEventListener('click', (e) => {
         const targetView = item.dataset.targetView;
+        if (window.debugLog) window.debugLog('🖱️ ナビクリック: ' + targetView);
+
         if (targetView === 'map' || item.id === 'nav-btn-map') {
           e.preventDefault();
           this.playSelectSE();
@@ -332,10 +345,8 @@ class YoidoreQuestApp {
           this.playSelectSE();
           if (targetView === 'stores-all') {
             if (this.currentView === 'stores') {
-              // すでに店舗一覧画面にいる状態でもう一度「店舗一覧」を押した場合は一番上へリセット
               this.resetFilters();
             }
-            // 店舗詳細など別画面から「店舗一覧」を押した場合は、前回のスクロール位置・検索条件を維持して戻る
             this.navigateTo('stores');
           } else {
             this.navigateTo(targetView);
@@ -476,14 +487,18 @@ class YoidoreQuestApp {
    * 現在の履歴ステートの絞り込み条件を最新に同期
    * ------------------------------------------------------------------------ */
   updateHistoryFilters() {
-    if (window.history && window.history.replaceState) {
-      const currentState = window.history.state || {};
-      window.history.replaceState({
-        ...currentState,
-        view: this.currentView,
-        selectedStoreId: this.selectedStore ? this.selectedStore.id : null,
-        filters: { ...this.filters }
-      }, '');
+    try {
+      if (window.history && window.history.replaceState) {
+        const currentState = window.history.state || {};
+        window.history.replaceState({
+          ...currentState,
+          view: this.currentView,
+          selectedStoreId: this.selectedStore ? this.selectedStore.id : null,
+          filters: { ...this.filters }
+        }, '');
+      }
+    } catch (e) {
+      console.warn('history.replaceState is not supported in this context:', e);
     }
   }
 
@@ -498,7 +513,7 @@ class YoidoreQuestApp {
 
     // 店舗一覧画面から別画面（詳細など）へ遷移する際、現在のスクロール位置を保存
     if (this.currentView === 'stores' && view !== 'stores') {
-      this.lastStoresScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+      this.lastStoresScrollY = window.scrollY || window.pageYOffset || (document.documentElement ? document.documentElement.scrollTop : 0) || 0;
     }
 
     this.currentView = view;
@@ -506,13 +521,17 @@ class YoidoreQuestApp {
       this.selectedStore = extraData.store;
     }
 
-    // History API に画面状態をプッシュ (popstate による遷移でない場合のみ)
-    if (!isPopState && window.history && window.history.pushState) {
-      window.history.pushState({
-        view: view,
-        selectedStoreId: this.selectedStore ? this.selectedStore.id : null,
-        filters: { ...this.filters }
-      }, '');
+    // History API に画面状態をプッシュ (popstate による遷移でない場合のみ - file://でのエラー対策)
+    try {
+      if (!isPopState && window.history && window.history.pushState) {
+        window.history.pushState({
+          view: view,
+          selectedStoreId: this.selectedStore ? this.selectedStore.id : null,
+          filters: { ...this.filters }
+        }, '');
+      }
+    } catch (e) {
+      console.warn('history.pushState is not supported in this context:', e);
     }
 
     // ヘッダー「◀ もどる」ボタンの表示/非表示切り替え (トップ画面以外で表示)
@@ -837,14 +856,13 @@ class YoidoreQuestApp {
     const renderCouponCard = (c, isUsed) => {
       const storeName = c.stores?.name || c.store_id;
       const storeArea = c.stores?.area || '';
-      const desc = c.stores?.coupon_description || '街ぶら達成クーポン特典';
       return `
         <div class="coupon-ticket ${isUsed ? 'used' : ''}" data-coupon-id="${c.id}">
           <div class="coupon-ticket-header">
             <span class="coupon-store-name">🏪 ${storeName} ${storeArea ? `(${storeArea})` : ''}</span>
             <span class="text-yellow" style="font-size:11px;">${isUsed ? '【利用済み】' : '【利用可能】'}</span>
           </div>
-          <div class="coupon-desc-text">🎁 ${desc}</div>
+          <div class="coupon-desc-text">🎁 酔いどれ勇者の酒場特典（来店時に提示）</div>
           <div class="coupon-footer">
             <span>獲得日: ${new Date(c.acquired_at).toLocaleDateString()}</span>
             <span style="color:var(--text-cyan); font-weight:bold;">${isUsed ? '使用済' : 'タップして提示 ▶'}</span>
@@ -872,7 +890,7 @@ class YoidoreQuestApp {
             <span>🎟️ 所持クーポン一覧</span>
           </div>
           <div style="padding:15px; text-align:center; color:var(--text-dim); font-size:13px;">
-            現在所持しているクーポンはありません。<br>3軒以上はしごして特典宝箱をアンロックしましょう！
+            現在所持しているクーポンはありません。<br>酒場をはしごして特典宝箱をアンロックしましょう！
           </div>
         </div>
       `;
@@ -925,31 +943,15 @@ class YoidoreQuestApp {
         <!-- 特典宝箱一覧 -->
         <div class="rpg-window gold-border" style="margin-bottom:12px;">
           <div class="rpg-window-header">
-            <span>🎁 達成特典・宝箱</span>
+            <span>🎁 はしご達成特典・宝箱</span>
           </div>
           <div style="margin-top:10px;">
             ${tiersHtml}
           </div>
         </div>
 
-        <!-- クーポン一覧 -->
+        <!-- 所持クーポン一覧 -->
         ${couponsHtml}
-
-        <!-- 開発・テスト用チェックインシミュレーター -->
-        <div class="checkin-sim-box">
-          <div class="checkin-sim-title">
-            <span>⚙️ 【開発・テスト用】来店チェックイン実行</span>
-          </div>
-          <p style="font-size:11px; color:var(--text-dim); margin-bottom:8px;">
-            ※本番は店頭QRコードスキャンで自動来店されます。テスト時は以下から店舗を選んで来店記録できます。
-          </p>
-          <div class="checkin-sim-row">
-            <select id="sim-store-select" class="checkin-sim-select">
-              ${stores.map(s => `<option value="${s.id}">${s.id}: ${s.name} (${s.area})</option>`).join('')}
-            </select>
-            <button id="sim-checkin-btn" class="checkin-sim-btn">来店記録！</button>
-          </div>
-        </div>
 
         <!-- 訪問済み店舗一覧 -->
         <div class="rpg-window" style="margin-top:14px;">
@@ -959,6 +961,24 @@ class YoidoreQuestApp {
           <ul class="command-list" style="margin-top:8px;">
             ${visitedStoresHtml || `<li style="padding:15px; text-align:center; color:var(--text-dim); font-size:13px;">まだ訪問記録がありません。酒場を巡りましょう！</li>`}
           </ul>
+        </div>
+
+        <!-- 🧪 テスト・検証用パネル -->
+        <div class="rpg-window" style="margin-top:14px; border-color:#5ce1e6;">
+          <div class="rpg-window-header" style="color:#5ce1e6;">
+            <span>🧪 開発・検証用テスト操作</span>
+          </div>
+          <div style="padding:10px; display:flex; flex-direction:column; gap:8px;">
+            <div style="font-size:12px; color:var(--text-dim);">ローカル動作確認用にワンクリックでチェックインやリセットができます</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button id="btn-quick-5-checkin" style="background:#1e824c; color:#fff; border:1px solid #2ecc71; padding:6px 12px; font-size:12px; border-radius:4px; cursor:pointer; font-weight:bold;">
+                🍺 5店舗まとめてチェックイン（達成テスト）
+              </button>
+              <button id="btn-reset-test-data" style="background:#7f1d1d; color:#fff; border:1px solid #ef4444; padding:6px 12px; font-size:12px; border-radius:4px; cursor:pointer;">
+                🔄 冒険の書を初期化
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -987,13 +1007,29 @@ class YoidoreQuestApp {
       });
     });
 
-    // シミュレーターチェックインボタン
-    const simBtn = document.getElementById('sim-checkin-btn');
-    if (simBtn) {
-      simBtn.addEventListener('click', async () => {
-        const select = document.getElementById('sim-store-select');
-        if (select && select.value) {
-          await this.handleCheckin(select.value);
+    // 5店舗まとめてチェックイン
+    const quick5Btn = document.getElementById('btn-quick-5-checkin');
+    if (quick5Btn) {
+      quick5Btn.addEventListener('click', async () => {
+        this.playFanfareSE();
+        const sampleStores = stores.slice(0, 5);
+        for (const st of sampleStores) {
+          await window.questApi.checkInStore(st.id);
+        }
+        alert('🍺 5店舗のチェックインを記録しました！特典宝箱をあけてクーポンを選んでみてください。');
+        this.render();
+      });
+    }
+
+    // テストデータ初期化
+    const resetBtn = document.getElementById('btn-reset-test-data');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        if (confirm('冒険の書の訪問履歴と所持クーポンをリセットしますか？')) {
+          this.playBackSE();
+          window.questApi.resetMockData();
+          alert('冒険の書を初期化しました。');
+          this.render();
         }
       });
     }
@@ -1003,9 +1039,12 @@ class YoidoreQuestApp {
    * 特典クーポン選択モーダル (達成条件に応じて店舗を選択)
    * ------------------------------------------------------------------------ */
   openCouponSelectModal(tier) {
-    const stores = (typeof STORES_DATA !== 'undefined') ? STORES_DATA : [];
-    // クーポン対象店舗のみを抽出
-    const targetStores = stores.filter(s => s.isCouponTarget);
+    const stores = this.getStores();
+    // クーポン対象店舗のみを抽出（デフォルトは全店またはisCouponTarget: true）
+    const targetStores = stores.filter(s => s.isCouponTarget !== false);
+    const userCoupons = (window.questApi && window.questApi.userCoupons) || [];
+    const alreadyClaimedStoreIds = new Set(userCoupons.map(c => c.store_id));
+
     const maxSelect = tier.selectable_count || 1;
     let selectedSet = new Set();
 
@@ -1015,14 +1054,27 @@ class YoidoreQuestApp {
 
     const renderItems = () => {
       return targetStores.map(s => {
+        const isAlreadyClaimed = alreadyClaimedStoreIds.has(s.id);
         const isChecked = selectedSet.has(s.id);
-        const desc = s.couponDescription || '【街ぶら達成特典】お好きなワンドリンク または 小鉢1品サービス！';
+
+        if (isAlreadyClaimed) {
+          return `
+            <div class="coupon-select-item" style="opacity:0.5; cursor:not-allowed; background:rgba(0,0,0,0.3);">
+              <input type="checkbox" disabled checked />
+              <div class="coupon-select-item-info">
+                <div class="coupon-select-item-name">🏪 ${s.name} <span style="font-size:11px; color:var(--text-dim);">(${s.area || ''})</span></div>
+                <div class="coupon-select-item-desc text-green">✅ クーポン取得済み（1店舗1枚限り）</div>
+              </div>
+            </div>
+          `;
+        }
+
         return `
           <div class="coupon-select-item ${isChecked ? 'selected' : ''}" data-store-id="${s.id}">
             <input type="checkbox" ${isChecked ? 'checked' : ''} />
             <div class="coupon-select-item-info">
-              <div class="coupon-select-item-name">🏪 ${s.name} <span style="font-size:11px; color:var(--text-dim);">(${s.area})</span></div>
-              <div class="coupon-select-item-desc">🎁 ${desc}</div>
+              <div class="coupon-select-item-name">🏪 ${s.name} <span style="font-size:11px; color:var(--text-dim);">(${s.area || ''})</span></div>
+              <div class="coupon-select-item-desc">🎁 酔いどれ勇者の酒場特典（来店時に提示）</div>
             </div>
           </div>
         `;
@@ -1037,7 +1089,7 @@ class YoidoreQuestApp {
         </div>
         <div style="padding:10px 0; font-size:13px; color:var(--text-yellow);">
           対象店舗の中から <strong>最大 ${maxSelect} 店舗</strong> を選択してください。<br>
-          <span style="font-size:12px; color:var(--text-cyan);">現在 <span id="select-counter">0</span> / ${maxSelect} 店舗 選択中</span>
+          <span style="font-size:12px; color:var(--text-cyan);">現在 <span id="select-counter">0</span> / ${maxSelect} 店舗 選択中（1店舗1枚限り）</span>
         </div>
         <div class="coupon-select-list" id="modal-stores-list">
           ${renderItems()}
@@ -1065,7 +1117,7 @@ class YoidoreQuestApp {
     };
 
     // アイテム選択ハンドリング
-    overlay.querySelectorAll('.coupon-select-item').forEach(item => {
+    overlay.querySelectorAll('.coupon-select-item[data-store-id]').forEach(item => {
       item.addEventListener('click', (e) => {
         const storeId = item.dataset.storeId;
         const checkbox = item.querySelector('input[type="checkbox"]');
@@ -1115,7 +1167,6 @@ class YoidoreQuestApp {
   openRedeemModal(coupon) {
     const storeName = coupon.stores?.name || coupon.store_id;
     const storeArea = coupon.stores?.area || '';
-    const desc = coupon.stores?.coupon_description || '街ぶら達成クーポン特典';
     const isUsed = coupon.status === 'used';
 
     const overlay = document.createElement('div');
@@ -1133,9 +1184,11 @@ class YoidoreQuestApp {
             🏪 ${storeName}
           </div>
           <div style="font-size:13px; color:var(--text-dim); margin-bottom:10px;">エリア: ${storeArea || '-'}</div>
-          <div style="background:#0f152b; border:2px dashed var(--border-gold); padding:12px; border-radius:6px; margin-bottom:14px;">
-            <div style="font-size:12px; color:var(--text-cyan); margin-bottom:4px;">【特典内容】</div>
-            <div style="font-size:15px; font-weight:bold; color:#fff; line-height:1.4;">🎁 ${desc}</div>
+          
+          <div style="background:#0f152b; border:2px dashed var(--border-gold); padding:12px; border-radius:6px; margin-bottom:14px; text-align:center;">
+            <div style="font-size:12px; color:var(--text-cyan); margin-bottom:4px;">【特典チケット】</div>
+            <div style="font-size:16px; font-weight:bold; color:#fff; line-height:1.4;">🎁 酔いどれ勇者の酒場特典</div>
+            <div style="font-size:11px; color:var(--text-dim); margin-top:6px;">※本日のサービス内容はスタッフへご確認ください</div>
           </div>
 
           ${isUsed ? `
@@ -1146,10 +1199,10 @@ class YoidoreQuestApp {
           ` : `
             <div class="staff-warning-banner">
               ⚠️ 【店員専用操作】<br>
-              お会計時またはご注文時に、必ず店舗スタッフが下のボタンをタップして消し込みを行ってください。
+              お会計時またはご注文時に、店舗スタッフへご提示の上、下のボタンをタップして消し込みを行ってください。
             </div>
             <button id="btn-staff-redeem" class="staff-redeem-action-btn">
-              🍺 【店舗スタッフ】使用済みにする
+              🍺 【店舗スタッフ確認】使用済みにする
             </button>
           `}
         </div>
@@ -1201,10 +1254,17 @@ class YoidoreQuestApp {
       alert(res.message || 'チェックインに失敗しました。');
     }
   }
+
+  /* ------------------------------------------------------------------------
+   * 3.2 エリア一覧
+   * ------------------------------------------------------------------------ */
+  renderAreaView(container) {
     this.typeMessage('探したいエリアを選択してください。エリアごとの酒場が表示されます。');
 
-    const areaItems = AREAS_LIST.map(area => {
-      const count = STORES_DATA.filter(s => s.area === area).length;
+    const stores = this.getStores();
+    const areas = this.getAreas();
+    const areaItems = areas.map(area => {
+      const count = stores.filter(s => s.area === area).length;
       return `
         <li class="command-item" data-area="${area}">
           <div class="command-item-left">
@@ -1245,8 +1305,10 @@ class YoidoreQuestApp {
   renderCategoryView(container) {
     this.typeMessage('料理やお店のジャンルを選択してください。');
 
-    const categoryItems = CATEGORIES_LIST.map(cat => {
-      const count = STORES_DATA.filter(s => s.category === cat).length;
+    const stores = this.getStores();
+    const categories = this.getCategories();
+    const categoryItems = categories.map(cat => {
+      const count = stores.filter(s => s.category === cat).length;
       return `
         <li class="command-item" data-category="${cat}">
           <div class="command-item-left">
@@ -1287,9 +1349,10 @@ class YoidoreQuestApp {
   renderStyleView(container) {
     this.typeMessage('お店の席や過ごし方の『スタイル』を選択してください。');
 
-    const stylesList = (typeof STYLES_LIST !== 'undefined') ? STYLES_LIST : [];
+    const stores = this.getStores();
+    const stylesList = this.getStyles();
     const styleItems = stylesList.map(style => {
-      const count = STORES_DATA.filter(s => s.style === style).length;
+      const count = stores.filter(s => s.style === style).length;
       return `
         <li class="command-item" data-style="${style}">
           <div class="command-item-left">
@@ -1330,6 +1393,7 @@ class YoidoreQuestApp {
   renderTypeView(container) {
     this.typeMessage('目的に合わせた『酔いどれタイプ』を選択してください。');
 
+    const stores = this.getStores();
     const OFFICIAL_TYPES = [
       { type: 'サク飲み', desc: 'サクッと1杯飲んで次のお店へ' },
       { type: '腹ごしらえ', desc: 'しっかりご飯・名物料理でお腹を満たす' },
@@ -1338,7 +1402,7 @@ class YoidoreQuestApp {
     ];
 
     const typeItems = OFFICIAL_TYPES.map(item => {
-      const count = STORES_DATA.filter(s => s.type === item.type).length;
+      const count = stores.filter(s => s.type === item.type).length;
 
       return `
         <li class="command-item" data-type="${item.type}">
@@ -1389,21 +1453,24 @@ class YoidoreQuestApp {
                        this.filters.openToday || 
                        this.filters.searchQuery !== '';
 
-    const areaOptions = ['ALL', ...AREAS_LIST].map(a => 
+    const areasList = this.getAreas();
+    const areaOptions = ['ALL', ...areasList].map(a => 
       `<option value="${a}" ${this.filters.area === a ? 'selected' : ''}>${a === 'ALL' ? '全エリア' : a}</option>`
     ).join('');
 
-    const catOptions = ['ALL', ...CATEGORIES_LIST].map(c => 
+    const categoriesList = this.getCategories();
+    const catOptions = ['ALL', ...categoriesList].map(c => 
       `<option value="${c}" ${this.filters.category === c ? 'selected' : ''}>${c === 'ALL' ? '全種類' : c}</option>`
     ).join('');
 
-    const stylesList = (typeof STYLES_LIST !== 'undefined') ? STYLES_LIST : [];
+    const stylesList = this.getStyles();
     const styleOptions = ['ALL', ...stylesList].map(s => 
       `<option value="${s}" ${this.filters.style === s ? 'selected' : ''}>${s === 'ALL' ? '全スタイル' : s}</option>`
     ).join('');
 
+    const typesList = this.getTypes();
     const OFFICIAL_TYPE_NAMES = ['サク飲み', '腹ごしらえ', 'ひと休み', '夜遊び'];
-    const allTypes = Array.from(new Set([...OFFICIAL_TYPE_NAMES, ...TYPES_LIST]));
+    const allTypes = Array.from(new Set([...OFFICIAL_TYPE_NAMES, ...typesList]));
     const typeOptions = ['ALL', ...allTypes].map(t => 
       `<option value="${t}" ${this.filters.type === t ? 'selected' : ''}>${t === 'ALL' ? '全酔いどれタイプ' : t}</option>`
     ).join('');
@@ -1536,7 +1603,8 @@ class YoidoreQuestApp {
             ` : ''}
           </div>
         </div>
-      `).join('') : `
+        `;
+      }).join('') : `
         <div class="rpg-window text-center" style="padding: 20px; color: var(--text-dim);">
           条件に一致する店舗が見つかりませんでした。<br>フィルターを変更してください。
         </div>
@@ -1902,6 +1970,8 @@ class YoidoreQuestApp {
     });
   }
 }
+
+window.YoidoreQuestApp = YoidoreQuestApp;
 
 // ドム読み込み完了時にアプリ起動
 document.addEventListener('DOMContentLoaded', () => {

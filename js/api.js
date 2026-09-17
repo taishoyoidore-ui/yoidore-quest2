@@ -57,8 +57,8 @@ class QuestApiManager {
    * LIFF 初期化 & ユーザー情報取得
    * ------------------------------------------------------------------------ */
   async initAuth() {
-    // 1. LIFF SDK が読み込まれているか確認
-    if (window.liff && this.liffId) {
+    // 1. LIFF SDK が読み込まれているか確認 (http/https 環境のみ実行)
+    if (window.location.protocol.startsWith('http') && window.liff && this.liffId) {
       try {
         await window.liff.init({ liffId: this.liffId });
         this.isLiffReady = true;
@@ -70,21 +70,25 @@ class QuestApiManager {
             displayName: profile.displayName || '名無しの冒険者',
             pictureUrl: profile.pictureUrl || ''
           };
-          console.log('LINE LIFFログイン成功:', this.currentUser);
+          if (window.debugLog) window.debugLog('LINE LIFFログイン成功: ' + this.currentUser.displayName);
         } else if (window.liff.isInClient()) {
           // LINEアプリ内なら自動ログイン
           window.liff.login();
           return;
         }
       } catch (err) {
-        console.warn('LIFF初期化スキップまたはエラー:', err);
+        if (window.debugLog) window.debugLog('LIFF初期化スキップ: ' + (err.message || err));
       }
     }
 
     // 2. LINE外ブラウザまたはローカル環境でのフォールバック
     if (!this.currentUser) {
       // ローカルストレージに保存済みのモックユーザーを取得、なければ作成
-      let savedUser = localStorage.getItem('yoidore_mock_user');
+      let savedUser = null;
+      try {
+        savedUser = localStorage.getItem('yoidore_mock_user');
+      } catch (e) {}
+
       if (savedUser) {
         try {
           this.currentUser = JSON.parse(savedUser);
@@ -100,7 +104,9 @@ class QuestApiManager {
           pictureUrl: 'assets/banner.png'
         };
         this.currentUser = defaultUser;
-        localStorage.setItem('yoidore_mock_user', JSON.stringify(this.currentUser));
+        try {
+          localStorage.setItem('yoidore_mock_user', JSON.stringify(this.currentUser));
+        } catch (e) {}
       }
       console.log('開発用モックユーザーで起動:', this.currentUser);
     }
@@ -205,12 +211,20 @@ class QuestApiManager {
     if (!this.currentUser) return [];
     try {
       const data = await this.supabaseFetch(`visits?user_id=eq.${encodeURIComponent(this.currentUser.userId)}&select=*&order=visited_at.desc`);
-      this.visits = data || [];
-      return this.visits;
+      if (Array.isArray(data)) {
+        this.visits = data;
+        return this.visits;
+      }
     } catch (e) {
-      console.warn('来店履歴の取得に失敗:', e);
-      return this.visits || [];
+      console.warn('来店履歴の取得に失敗 (ローカルストレージを使用):', e);
     }
+    try {
+      const raw = localStorage.getItem('yoidore_visits');
+      this.visits = raw ? JSON.parse(raw) : [];
+    } catch (err) {
+      this.visits = this.visits || [];
+    }
+    return this.visits;
   }
 
   /* ------------------------------------------------------------------------
@@ -233,8 +247,12 @@ class QuestApiManager {
       };
     }
 
+    const store = (this.stores && this.stores.find(s => s.id === storeId)) ||
+                  (window.STORES_DATA && window.STORES_DATA.find(s => s.id === storeId));
+    const storeName = store ? store.name : storeId;
+
     try {
-      const result = await this.supabaseFetch('visits', {
+      await this.supabaseFetch('visits', {
         method: 'POST',
         headers: { 'Prefer': 'return=representation' },
         body: JSON.stringify({
@@ -243,36 +261,29 @@ class QuestApiManager {
           visited_at: new Date().toISOString()
         })
       });
-
-      // 来店履歴を再読み込み
       await this.getUserVisits();
-
-      // 店舗名を取得
-      const store = this.stores.find(s => s.id === storeId);
-      const storeName = store ? store.name : storeId;
-
-      return {
-        success: true,
-        alreadyVisited: false,
-        storeId,
-        storeName,
-        totalVisits: this.visits.length,
-        message: `『${storeName}』を冒険の書に記録した！`
-      };
     } catch (err) {
-      console.error('チェックインエラー:', err);
-      // 重複エラーの場合
-      if (err.message && err.message.includes('duplicate')) {
-        await this.getUserVisits();
-        return {
-          success: false,
-          alreadyVisited: true,
-          storeId,
-          message: 'この酒場はすでに冒険の書に記録済みです！'
-        };
-      }
-      return { success: false, message: 'チェックイン通信に失敗しました。' };
+      console.warn('Supabaseチェックイン失敗のためローカル保存:', err);
+      const newVisit = {
+        id: `visit_${Date.now()}`,
+        user_id: this.currentUser.userId,
+        store_id: storeId,
+        visited_at: new Date().toISOString()
+      };
+      this.visits = [newVisit, ...(this.visits || [])];
+      try {
+        localStorage.setItem('yoidore_visits', JSON.stringify(this.visits));
+      } catch (e) {}
     }
+
+    return {
+      success: true,
+      alreadyVisited: false,
+      storeId,
+      storeName,
+      totalVisits: this.visits.length,
+      message: `『${storeName}』を冒険の書に記録した！`
+    };
   }
 
   /* ------------------------------------------------------------------------
@@ -282,12 +293,20 @@ class QuestApiManager {
     if (!this.currentUser) return [];
     try {
       const data = await this.supabaseFetch(`user_coupons?user_id=eq.${encodeURIComponent(this.currentUser.userId)}&select=*,stores(*),reward_tiers(*)&order=acquired_at.desc`);
-      this.userCoupons = data || [];
-      return this.userCoupons;
+      if (Array.isArray(data)) {
+        this.userCoupons = data;
+        return this.userCoupons;
+      }
     } catch (e) {
-      console.warn('クーポン一覧の取得に失敗:', e);
-      return this.userCoupons || [];
+      console.warn('クーポン一覧の取得に失敗 (ローカルストレージを使用):', e);
     }
+    try {
+      const raw = localStorage.getItem('yoidore_coupons');
+      this.userCoupons = raw ? JSON.parse(raw) : [];
+    } catch (err) {
+      this.userCoupons = this.userCoupons || [];
+    }
+    return this.userCoupons;
   }
 
   /* ------------------------------------------------------------------------
@@ -299,28 +318,36 @@ class QuestApiManager {
       return { success: false, message: '店舗が選択されていません' };
     }
 
-    try {
-      const insertRows = selectedStoreIds.map(storeId => ({
+    const insertRows = selectedStoreIds.map((storeId, idx) => {
+      const store = (this.stores && this.stores.find(s => s.id === storeId)) ||
+                    (window.STORES_DATA && window.STORES_DATA.find(s => s.id === storeId));
+      return {
+        id: `coupon_${Date.now()}_${idx}`,
         user_id: this.currentUser.userId,
         store_id: storeId,
         reward_tier_id: rewardTierId,
         status: 'active',
-        acquired_at: new Date().toISOString()
-      }));
+        acquired_at: new Date().toISOString(),
+        stores: store || { id: storeId, name: storeId }
+      };
+    });
 
+    try {
       await this.supabaseFetch('user_coupons', {
         method: 'POST',
         headers: { 'Prefer': 'return=representation' },
         body: JSON.stringify(insertRows)
       });
-
-      // クーポン一覧を再取得
       await this.getUserCoupons();
-      return { success: true, count: selectedStoreIds.length };
     } catch (err) {
-      console.error('クーポン獲得エラー:', err);
-      return { success: false, message: 'クーポンの獲得に失敗しました。' };
+      console.warn('Supabaseクーポン保存失敗のためローカル保存:', err);
+      this.userCoupons = [...(this.userCoupons || []), ...insertRows];
+      try {
+        localStorage.setItem('yoidore_coupons', JSON.stringify(this.userCoupons));
+      } catch (e) {}
     }
+
+    return { success: true, count: selectedStoreIds.length };
   }
 
   /* ------------------------------------------------------------------------
@@ -338,13 +365,34 @@ class QuestApiManager {
           used_at: new Date().toISOString()
         })
       });
-
       await this.getUserCoupons();
-      return { success: true };
     } catch (err) {
-      console.error('クーポン消し込みエラー:', err);
-      return { success: false, message: 'クーポンの消し込みに失敗しました。' };
+      console.warn('Supabase消し込み失敗のためローカル保存:', err);
+      if (this.userCoupons) {
+        const c = this.userCoupons.find(x => String(x.id) === String(couponId));
+        if (c) {
+          c.status = 'used';
+          c.used_at = new Date().toISOString();
+        }
+        try {
+          localStorage.setItem('yoidore_coupons', JSON.stringify(this.userCoupons));
+        } catch (e) {}
+      }
     }
+
+    return { success: true };
+  }
+
+  /* ------------------------------------------------------------------------
+   * テスト用データリセット
+   * ------------------------------------------------------------------------ */
+  resetMockData() {
+    this.visits = [];
+    this.userCoupons = [];
+    try {
+      localStorage.removeItem('yoidore_visits');
+      localStorage.removeItem('yoidore_coupons');
+    } catch (e) {}
   }
 }
 

@@ -1735,3 +1735,12 @@ function updateDataFromXLSX(arrayBuffer) {
   }
   return false;
 }
+
+if (typeof window !== 'undefined') {
+  window.STORES_DATA = STORES_DATA;
+  window.AREAS_LIST = AREAS_LIST;
+  window.CATEGORIES_LIST = CATEGORIES_LIST;
+  window.STYLES_LIST = STYLES_LIST;
+  window.TYPES_LIST = TYPES_LIST;
+  window.EVENT_PERIOD = EVENT_PERIOD;
+}
