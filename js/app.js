@@ -15,7 +15,9 @@ class YoidoreQuestApp {
     this.filters = {
       area: 'ALL',
       category: 'ALL',
+      style: 'ALL',
       type: 'ALL',
+      takeout: 'ALL',
       openToday: false,
       searchQuery: ''
     };
@@ -32,7 +34,38 @@ class YoidoreQuestApp {
     this.initAudio();
     this.initEvents();
     this.loadXLSXFromDefaultPath();
+    this.initQuestSystem();
     this.render();
+  }
+
+  /* ------------------------------------------------------------------------
+   * Supabase & LIFF クエストシステム初期化
+   * ------------------------------------------------------------------------ */
+  async initQuestSystem() {
+    if (window.questApi) {
+      try {
+        await window.questApi.initAuth();
+        const stores = await window.questApi.getStores();
+        if (stores && stores.length > 0) {
+          if (typeof STORES_DATA !== 'undefined') {
+            window.STORES_DATA = stores;
+          }
+        }
+        await window.questApi.getRewardTiers();
+        await window.questApi.getUserVisits();
+        await window.questApi.getUserCoupons();
+
+        // URLパラメータからのチェックイン検出 (?checkin=store-01 or ?store=store-01)
+        const params = new URLSearchParams(window.location.search);
+        const checkinStore = params.get('checkin') || (params.get('action') === 'checkin' ? params.get('store') : null);
+        if (checkinStore) {
+          await this.handleCheckin(checkinStore);
+        }
+      } catch (e) {
+        console.warn('Quest system initialization failed:', e);
+      }
+      this.render();
+    }
   }
 
   /* ------------------------------------------------------------------------
@@ -200,6 +233,33 @@ class YoidoreQuestApp {
     } catch (e) {}
   }
 
+  playFanfareSE() {
+    if (!this.soundEnabled || !this.audioCtx) return;
+    try {
+      const now = this.audioCtx.currentTime;
+      const notes = [
+        { freq: 523.25, duration: 0.1, delay: 0 },      // C5
+        { freq: 523.25, duration: 0.1, delay: 0.12 },   // C5
+        { freq: 523.25, duration: 0.1, delay: 0.24 },   // C5
+        { freq: 659.25, duration: 0.35, delay: 0.36 },  // E5
+        { freq: 587.33, duration: 0.15, delay: 0.72 },  // D5
+        { freq: 783.99, duration: 0.6, delay: 0.9 }     // G5
+      ];
+      notes.forEach(n => {
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(n.freq, now + n.delay);
+        gain.gain.setValueAtTime(0.12, now + n.delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + n.delay + n.duration);
+        osc.connect(gain);
+        gain.connect(this.audioCtx.destination);
+        osc.start(now + n.delay);
+        osc.stop(now + n.delay + n.duration);
+      });
+    } catch (e) {}
+  }
+
   toggleSound() {
     this.soundEnabled = !this.soundEnabled;
     const btn = document.getElementById('sound-toggle-btn');
@@ -318,7 +378,9 @@ class YoidoreQuestApp {
       const activeTags = [];
       if (this.filters.area !== 'ALL') activeTags.push(`<span class="sticky-tag-item">📍 ${this.filters.area}</span>`);
       if (this.filters.category !== 'ALL') activeTags.push(`<span class="sticky-tag-item">${this.filters.category}</span>`);
+      if (this.filters.style !== 'ALL') activeTags.push(`<span class="sticky-tag-item">🪑 ${this.filters.style}</span>`);
       if (this.filters.type !== 'ALL') activeTags.push(`<span class="sticky-tag-item">🍺 ${this.filters.type}</span>`);
+      if (this.filters.takeout === 'YES') activeTags.push(`<span class="sticky-tag-item">テイクアウト可</span>`);
       if (this.filters.openToday) activeTags.push(`<span class="sticky-tag-item text-green">✓ 営業中</span>`);
       if (this.filters.searchQuery) activeTags.push(`<span class="sticky-tag-item">🔎 ${this.filters.searchQuery}</span>`);
 
@@ -327,7 +389,9 @@ class YoidoreQuestApp {
         count = STORES_DATA.filter(store => {
           if (this.filters.area !== 'ALL' && store.area !== this.filters.area) return false;
           if (this.filters.category !== 'ALL' && store.category !== this.filters.category) return false;
+          if (this.filters.style !== 'ALL' && store.style !== this.filters.style) return false;
           if (this.filters.type !== 'ALL' && store.type !== this.filters.type) return false;
+          if (this.filters.takeout === 'YES' && !store.isTakeout) return false;
           if (this.filters.openToday && !store.isOpenToday) return false;
           if (this.filters.searchQuery) {
             const q = this.filters.searchQuery.toLowerCase().trim();
@@ -347,8 +411,8 @@ class YoidoreQuestApp {
         `;
       } else {
         tagsContainer.innerHTML = `
-          <span class="sticky-icon">📜</span>
-          <span class="sticky-summary-text">全店舗一覧 (${count}件)</span>
+          <span class="sticky-icon">🍺</span>
+          <span>全店舗一覧 (${count}件)</span>
         `;
       }
     }
@@ -394,7 +458,9 @@ class YoidoreQuestApp {
     this.filters = {
       area: 'ALL',
       category: 'ALL',
+      style: 'ALL',
       type: 'ALL',
+      takeout: 'ALL',
       openToday: false,
       searchQuery: ''
     };
@@ -525,11 +591,17 @@ class YoidoreQuestApp {
       case 'top':
         this.renderTopView(container);
         break;
+      case 'quest-book':
+        this.renderQuestBookView(container);
+        break;
       case 'area':
         this.renderAreaView(container);
         break;
       case 'category':
         this.renderCategoryView(container);
+        break;
+      case 'style':
+        this.renderStyleView(container);
         break;
       case 'type':
         this.renderTypeView(container);
@@ -558,7 +630,32 @@ class YoidoreQuestApp {
       }
     }
 
+    const takeoutCount = (typeof STORES_DATA !== 'undefined') ? STORES_DATA.filter(s => s.isTakeout).length : 0;
+    const openCount = (typeof STORES_DATA !== 'undefined') ? STORES_DATA.filter(s => s.isOpenToday).length : 0;
+    const totalCount = (typeof STORES_DATA !== 'undefined') ? STORES_DATA.length : 0;
+    const areaCount = (typeof AREAS_LIST !== 'undefined' && AREAS_LIST.length > 0) ? AREAS_LIST.length : 5;
+    const catCount = (typeof CATEGORIES_LIST !== 'undefined' && CATEGORIES_LIST.length > 0) ? CATEGORIES_LIST.length : 7;
+    const styleCount = (typeof STYLES_LIST !== 'undefined' && STYLES_LIST.length > 0) ? STYLES_LIST.length : 3;
+    const typeCount = (typeof TYPES_LIST !== 'undefined' && TYPES_LIST.length > 0) ? TYPES_LIST.length : 4;
+
+    const visitedCount = (window.questApi && window.questApi.visits) ? window.questApi.visits.length : 0;
+    const couponCount = (window.questApi && window.questApi.userCoupons) ? window.questApi.userCoupons.filter(c => c.status !== 'used').length : 0;
+
     container.innerHTML = `
+      <!-- 冒険の書（クエスト進捗）バナー -->
+      <div class="rpg-window" id="top-quest-banner" style="cursor:pointer; border-color:var(--border-gold); background:linear-gradient(180deg,#1c2340 0%,#090d1f 100%); margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:26px;">📜</span>
+            <div>
+              <div style="font-size:14px; font-weight:bold; color:var(--text-yellow);">冒険の書（街ぶらはしご進捗）</div>
+              <div style="font-size:12px; color:var(--text-green);">制覇数: ${visitedCount} / ${totalCount} 軒 ${couponCount > 0 ? `| クーポン: ${couponCount}枚` : ''}</div>
+            </div>
+          </div>
+          <span style="font-size:12px; color:var(--text-cyan); font-weight:bold;">開く ▶</span>
+        </div>
+      </div>
+
       <div class="rpg-window gold-border">
         <div class="rpg-window-header">
           <span>▶ コマンド選択</span>
@@ -569,28 +666,42 @@ class YoidoreQuestApp {
               <span class="command-cursor">▶</span>
               <span class="command-label">エリアから探す</span>
             </div>
-            <span class="command-badge">5エリア</span>
+            <span class="command-badge">${areaCount}エリア</span>
           </li>
           <li class="command-item" data-action="category">
             <div class="command-item-left">
               <span class="command-cursor">▶</span>
               <span class="command-label">店の種類から探す</span>
             </div>
-            <span class="command-badge">7種類</span>
+            <span class="command-badge">${catCount}種類</span>
+          </li>
+          <li class="command-item" data-action="style">
+            <div class="command-item-left">
+              <span class="command-cursor">▶</span>
+              <span class="command-label">スタイルから探す</span>
+            </div>
+            <span class="command-badge">${styleCount}スタイル</span>
           </li>
           <li class="command-item" data-action="type">
             <div class="command-item-left">
               <span class="command-cursor">▶</span>
               <span class="command-label">酔いどれタイプから探す</span>
             </div>
-            <span class="command-badge">4タイプ</span>
+            <span class="command-badge">${typeCount}タイプ</span>
           </li>
           <li class="command-item" data-action="today">
             <div class="command-item-left">
               <span class="command-cursor">▶</span>
               <span class="command-label">どれクエ対応中のお店</span>
             </div>
-            <span class="command-badge text-green">対応中 ${STORES_DATA.filter(s => s.isOpenToday).length}店舗</span>
+            <span class="command-badge text-green">対応中 ${openCount}店舗</span>
+          </li>
+          <li class="command-item" data-action="takeout">
+            <div class="command-item-left">
+              <span class="command-cursor">▶</span>
+              <span class="command-label">テイクアウトOKなお店</span>
+            </div>
+            <span class="command-badge">${takeoutCount}店舗</span>
           </li>
           <li class="command-item" data-action="map">
             <div class="command-item-left">
@@ -604,7 +715,7 @@ class YoidoreQuestApp {
               <span class="command-cursor">▶</span>
               <span class="command-label">全店舗一覧を見る</span>
             </div>
-            <span class="command-badge">${STORES_DATA.length}店舗</span>
+            <span class="command-badge">${totalCount}店舗</span>
           </li>
         </ul>
       </div>
@@ -618,10 +729,16 @@ class YoidoreQuestApp {
         const action = item.dataset.action;
         if (action === 'area') this.navigateTo('area');
         else if (action === 'category') this.navigateTo('category');
+        else if (action === 'style') this.navigateTo('style');
         else if (action === 'type') this.navigateTo('type');
         else if (action === 'today') {
           this.resetFilters();
           this.filters.openToday = true;
+          this.navigateTo('stores');
+        }
+        else if (action === 'takeout') {
+          this.resetFilters();
+          this.filters.takeout = 'YES';
           this.navigateTo('stores');
         }
         else if (action === 'map') {
@@ -633,12 +750,453 @@ class YoidoreQuestApp {
         }
       });
     });
+
+    const questBanner = document.getElementById('top-quest-banner');
+    if (questBanner) {
+      questBanner.addEventListener('click', () => {
+        this.playSelectSE();
+        this.navigateTo('quest-book');
+      });
+    }
   }
 
   /* ------------------------------------------------------------------------
-   * 3.2 エリア一覧
+   * 冒険の書 (Quest Book / Passport) 画面
    * ------------------------------------------------------------------------ */
-  renderAreaView(container) {
+  renderQuestBookView(container) {
+    const user = (window.questApi && window.questApi.currentUser) || {
+      displayName: '酔いどれ勇者タロウ',
+      pictureUrl: 'assets/banner.png'
+    };
+    const visits = (window.questApi && window.questApi.visits) || [];
+    const stores = (typeof STORES_DATA !== 'undefined') ? STORES_DATA : [];
+    const totalStores = stores.length || 33;
+    const visitedCount = visits.length;
+    const progressPercent = Math.min(100, Math.round((visitedCount / totalStores) * 100));
+
+    // 称号・レベル計算
+    let heroTitle = '駆け出しの呑兵衛';
+    let heroLv = 1;
+    if (visitedCount >= 10) {
+      heroTitle = '大正の伝説マスター';
+      heroLv = 5;
+    } else if (visitedCount >= 5) {
+      heroTitle = '酒場制覇の豪傑';
+      heroLv = 4;
+    } else if (visitedCount >= 3) {
+      heroTitle = 'ほろ酔い冒険者';
+      heroLv = 3;
+    } else if (visitedCount >= 1) {
+      heroTitle = '見習い巡回兵';
+      heroLv = 2;
+    }
+
+    this.typeMessage(`『${user.displayName}』の冒険の書です。店舗を巡ってQRコードを読み取ると制覇数が記録されます。`);
+
+    const rewardTiers = (window.questApi && window.questApi.rewardTiers) || [];
+    const userCoupons = (window.questApi && window.questApi.userCoupons) || [];
+
+    // 獲得済み特典ランクの判定
+    const claimedTierIds = new Set(userCoupons.map(c => c.reward_tier_id));
+
+    // 特典宝箱のレンダリング
+    const tiersHtml = rewardTiers.map(tier => {
+      const isReached = visitedCount >= tier.required_visits;
+      const isClaimed = claimedTierIds.has(tier.id);
+
+      let actionHtml = '';
+      if (isClaimed) {
+        actionHtml = `<div class="treasure-claimed-badge">✅ クーポン獲得済み (${tier.selectable_count}店舗選択)</div>`;
+      } else if (isReached) {
+        actionHtml = `<button class="treasure-claim-btn" data-tier-id="${tier.id}">🎁 宝箱をあける (${tier.selectable_count}店舗選ぶ)</button>`;
+      } else {
+        const remaining = tier.required_visits - visitedCount;
+        actionHtml = `<div style="font-size:12px; color:var(--text-dim);">🔒 あと <strong class="text-yellow">${remaining}軒</strong> 訪問ではしご達成！</div>`;
+      }
+
+      return `
+        <div class="treasure-tier-card ${isReached ? 'unlocked' : ''}">
+          <div class="treasure-tier-header">
+            <span class="treasure-tier-title">🏆 ${tier.title} (必要: ${tier.required_visits}軒)</span>
+            <span style="font-size:18px;">${isClaimed ? '📦' : (isReached ? '✨' : '🔒')}</span>
+          </div>
+          <div class="treasure-tier-desc">${tier.description}</div>
+          <div style="margin-top:6px;">${actionHtml}</div>
+        </div>
+      `;
+    }).join('');
+
+    // 所持クーポン一覧のレンダリング
+    const activeCoupons = userCoupons.filter(c => c.status !== 'used');
+    const usedCoupons = userCoupons.filter(c => c.status === 'used');
+
+    const renderCouponCard = (c, isUsed) => {
+      const storeName = c.stores?.name || c.store_id;
+      const storeArea = c.stores?.area || '';
+      const desc = c.stores?.coupon_description || '街ぶら達成クーポン特典';
+      return `
+        <div class="coupon-ticket ${isUsed ? 'used' : ''}" data-coupon-id="${c.id}">
+          <div class="coupon-ticket-header">
+            <span class="coupon-store-name">🏪 ${storeName} ${storeArea ? `(${storeArea})` : ''}</span>
+            <span class="text-yellow" style="font-size:11px;">${isUsed ? '【利用済み】' : '【利用可能】'}</span>
+          </div>
+          <div class="coupon-desc-text">🎁 ${desc}</div>
+          <div class="coupon-footer">
+            <span>獲得日: ${new Date(c.acquired_at).toLocaleDateString()}</span>
+            <span style="color:var(--text-cyan); font-weight:bold;">${isUsed ? '使用済' : 'タップして提示 ▶'}</span>
+          </div>
+          ${isUsed ? `<div class="coupon-used-stamp">USED</div>` : ''}
+        </div>
+      `;
+    };
+
+    const couponsHtml = (userCoupons.length > 0)
+      ? `
+        <div class="rpg-window">
+          <div class="rpg-window-header">
+            <span>🎟️ 所持クーポン一覧 (${userCoupons.length}枚)</span>
+          </div>
+          <div style="margin-top:10px;">
+            ${activeCoupons.map(c => renderCouponCard(c, false)).join('')}
+            ${usedCoupons.map(c => renderCouponCard(c, true)).join('')}
+          </div>
+        </div>
+      `
+      : `
+        <div class="rpg-window">
+          <div class="rpg-window-header">
+            <span>🎟️ 所持クーポン一覧</span>
+          </div>
+          <div style="padding:15px; text-align:center; color:var(--text-dim); font-size:13px;">
+            現在所持しているクーポンはありません。<br>3軒以上はしごして特典宝箱をアンロックしましょう！
+          </div>
+        </div>
+      `;
+
+    // 訪問済み店舗一覧
+    const visitedStoresHtml = visits.map((v, idx) => {
+      const st = stores.find(s => s.id === v.store_id);
+      const name = st ? st.name : v.store_id;
+      const dateStr = v.visited_at ? new Date(v.visited_at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      return `
+        <li class="command-item" style="cursor:default; padding:8px 10px;">
+          <div class="command-item-left">
+            <span style="color:var(--text-green); font-size:14px;">✅ #${idx + 1}</span>
+            <span class="command-label" style="font-size:13px;">${name}</span>
+          </div>
+          <span style="font-size:11px; color:var(--text-dim);">${dateStr}</span>
+        </li>
+      `;
+    }).join('');
+
+    container.innerHTML = `
+      <div class="quest-book-container">
+        <!-- 勇者ステータス -->
+        <div class="hero-status-card">
+          <img src="${user.pictureUrl || 'assets/banner.png'}" alt="Avatar" class="hero-avatar" onerror="this.src='assets/banner.png';">
+          <div class="hero-info">
+            <div class="hero-name">
+              <span>${user.displayName}</span>
+              <span class="hero-badge text-yellow">Lv.${heroLv}</span>
+            </div>
+            <div class="hero-title">称号: ${heroTitle}</div>
+            <div class="hero-badge-row">
+              <span class="hero-badge text-green">制覇: ${visitedCount}軒</span>
+              <span class="hero-badge text-cyan">クーポン: ${activeCoupons.length}枚</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- クエスト進捗 -->
+        <div class="quest-progress-box">
+          <div class="quest-progress-header">
+            <span class="quest-progress-title">⚔️ 街ぶら はしご進捗</span>
+            <span class="quest-progress-count">${visitedCount} <span style="font-size:13px; color:var(--text-dim);">/ ${totalStores} 軒</span></span>
+          </div>
+          <div class="quest-progress-bar-bg">
+            <div class="quest-progress-bar-fill" style="width: ${progressPercent}%;"></div>
+          </div>
+        </div>
+
+        <!-- 特典宝箱一覧 -->
+        <div class="rpg-window gold-border" style="margin-bottom:12px;">
+          <div class="rpg-window-header">
+            <span>🎁 達成特典・宝箱</span>
+          </div>
+          <div style="margin-top:10px;">
+            ${tiersHtml}
+          </div>
+        </div>
+
+        <!-- クーポン一覧 -->
+        ${couponsHtml}
+
+        <!-- 開発・テスト用チェックインシミュレーター -->
+        <div class="checkin-sim-box">
+          <div class="checkin-sim-title">
+            <span>⚙️ 【開発・テスト用】来店チェックイン実行</span>
+          </div>
+          <p style="font-size:11px; color:var(--text-dim); margin-bottom:8px;">
+            ※本番は店頭QRコードスキャンで自動来店されます。テスト時は以下から店舗を選んで来店記録できます。
+          </p>
+          <div class="checkin-sim-row">
+            <select id="sim-store-select" class="checkin-sim-select">
+              ${stores.map(s => `<option value="${s.id}">${s.id}: ${s.name} (${s.area})</option>`).join('')}
+            </select>
+            <button id="sim-checkin-btn" class="checkin-sim-btn">来店記録！</button>
+          </div>
+        </div>
+
+        <!-- 訪問済み店舗一覧 -->
+        <div class="rpg-window" style="margin-top:14px;">
+          <div class="rpg-window-header">
+            <span>📜 訪問済み酒場リスト (${visitedCount}軒)</span>
+          </div>
+          <ul class="command-list" style="margin-top:8px;">
+            ${visitedStoresHtml || `<li style="padding:15px; text-align:center; color:var(--text-dim); font-size:13px;">まだ訪問記録がありません。酒場を巡りましょう！</li>`}
+          </ul>
+        </div>
+      </div>
+    `;
+
+    // 宝箱を開くボタンのイベント
+    container.querySelectorAll('.treasure-claim-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.playSelectSE();
+        const tierId = parseInt(btn.dataset.tierId, 10);
+        const tier = rewardTiers.find(t => t.id === tierId);
+        if (tier) {
+          this.openCouponSelectModal(tier);
+        }
+      });
+    });
+
+    // クーポンタップで消し込みモーダル表示
+    container.querySelectorAll('.coupon-ticket').forEach(card => {
+      card.addEventListener('click', () => {
+        this.playSelectSE();
+        const couponId = card.dataset.couponId;
+        const coupon = userCoupons.find(c => c.id === couponId);
+        if (coupon) {
+          this.openRedeemModal(coupon);
+        }
+      });
+    });
+
+    // シミュレーターチェックインボタン
+    const simBtn = document.getElementById('sim-checkin-btn');
+    if (simBtn) {
+      simBtn.addEventListener('click', async () => {
+        const select = document.getElementById('sim-store-select');
+        if (select && select.value) {
+          await this.handleCheckin(select.value);
+        }
+      });
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+   * 特典クーポン選択モーダル (達成条件に応じて店舗を選択)
+   * ------------------------------------------------------------------------ */
+  openCouponSelectModal(tier) {
+    const stores = (typeof STORES_DATA !== 'undefined') ? STORES_DATA : [];
+    // クーポン対象店舗のみを抽出
+    const targetStores = stores.filter(s => s.isCouponTarget);
+    const maxSelect = tier.selectable_count || 1;
+    let selectedSet = new Set();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'rpg-modal-overlay';
+    overlay.id = 'coupon-select-modal';
+
+    const renderItems = () => {
+      return targetStores.map(s => {
+        const isChecked = selectedSet.has(s.id);
+        const desc = s.couponDescription || '【街ぶら達成特典】お好きなワンドリンク または 小鉢1品サービス！';
+        return `
+          <div class="coupon-select-item ${isChecked ? 'selected' : ''}" data-store-id="${s.id}">
+            <input type="checkbox" ${isChecked ? 'checked' : ''} />
+            <div class="coupon-select-item-info">
+              <div class="coupon-select-item-name">🏪 ${s.name} <span style="font-size:11px; color:var(--text-dim);">(${s.area})</span></div>
+              <div class="coupon-select-item-desc">🎁 ${desc}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    };
+
+    overlay.innerHTML = `
+      <div class="rpg-modal-window gold-border" style="max-width:440px; width:92%; max-height:85vh; display:flex; flex-direction:column;">
+        <div class="rpg-window-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <span>🎁 クーポン店舗の選択</span>
+          <button id="modal-close-btn" style="background:none; border:none; color:#fff; font-size:18px; cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:10px 0; font-size:13px; color:var(--text-yellow);">
+          対象店舗の中から <strong>最大 ${maxSelect} 店舗</strong> を選択してください。<br>
+          <span style="font-size:12px; color:var(--text-cyan);">現在 <span id="select-counter">0</span> / ${maxSelect} 店舗 選択中</span>
+        </div>
+        <div class="coupon-select-list" id="modal-stores-list">
+          ${renderItems()}
+        </div>
+        <div style="margin-top:10px; display:flex; gap:8px;">
+          <button id="modal-confirm-btn" class="staff-redeem-action-btn" style="background:linear-gradient(180deg,#1e824c 0%,#145a32 100%); border-color:var(--text-green);" disabled>
+            店舗を選択してください (最大${maxSelect}店舗)
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const updateCounterAndButton = () => {
+      const counterEl = document.getElementById('select-counter');
+      const confirmBtn = document.getElementById('modal-confirm-btn');
+      if (counterEl) counterEl.textContent = selectedSet.size;
+      if (confirmBtn) {
+        confirmBtn.disabled = selectedSet.size === 0;
+        confirmBtn.textContent = (selectedSet.size > 0)
+          ? `選択した ${selectedSet.size} 店舗のクーポンを獲得する！`
+          : `店舗を選択してください (最大${maxSelect}店舗)`;
+      }
+    };
+
+    // アイテム選択ハンドリング
+    overlay.querySelectorAll('.coupon-select-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        const storeId = item.dataset.storeId;
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        if (selectedSet.has(storeId)) {
+          selectedSet.delete(storeId);
+          item.classList.remove('selected');
+          if (checkbox) checkbox.checked = false;
+        } else {
+          if (selectedSet.size >= maxSelect) {
+            alert(`この特典で選択できるのは最大 ${maxSelect} 店舗までです。`);
+            return;
+          }
+          selectedSet.add(storeId);
+          item.classList.add('selected');
+          if (checkbox) checkbox.checked = true;
+        }
+        this.playSelectSE();
+        updateCounterAndButton();
+      });
+    });
+
+    // 閉じるボタン
+    document.getElementById('modal-close-btn').addEventListener('click', () => {
+      this.playBackSE();
+      overlay.remove();
+    });
+
+    // 確定ボタン
+    document.getElementById('modal-confirm-btn').addEventListener('click', async () => {
+      if (selectedSet.size === 0) return;
+      this.playFanfareSE();
+      const storeIds = Array.from(selectedSet);
+      const res = await window.questApi.claimCoupons(tier.id, storeIds);
+      overlay.remove();
+      if (res.success) {
+        alert(`🎉 ${storeIds.length}店舗のクーポンを獲得しました！所持クーポン一覧からいつでも利用できます。`);
+        this.render();
+      } else {
+        alert(res.message || 'クーポンの獲得に失敗しました。');
+      }
+    });
+  }
+
+  /* ------------------------------------------------------------------------
+   * クーポン消し込みモーダル (店舗スタッフ専用)
+   * ------------------------------------------------------------------------ */
+  openRedeemModal(coupon) {
+    const storeName = coupon.stores?.name || coupon.store_id;
+    const storeArea = coupon.stores?.area || '';
+    const desc = coupon.stores?.coupon_description || '街ぶら達成クーポン特典';
+    const isUsed = coupon.status === 'used';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'rpg-modal-overlay';
+    overlay.id = 'coupon-redeem-modal';
+
+    overlay.innerHTML = `
+      <div class="rpg-modal-window gold-border" style="max-width:400px; width:90%;">
+        <div class="rpg-window-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <span>🎟️ クーポン提示画面</span>
+          <button id="redeem-close-btn" style="background:none; border:none; color:#fff; font-size:18px; cursor:pointer;">✕</button>
+        </div>
+        <div class="staff-redeem-box">
+          <div style="font-size:18px; font-weight:bold; color:var(--text-yellow); margin:10px 0;">
+            🏪 ${storeName}
+          </div>
+          <div style="font-size:13px; color:var(--text-dim); margin-bottom:10px;">エリア: ${storeArea || '-'}</div>
+          <div style="background:#0f152b; border:2px dashed var(--border-gold); padding:12px; border-radius:6px; margin-bottom:14px;">
+            <div style="font-size:12px; color:var(--text-cyan); margin-bottom:4px;">【特典内容】</div>
+            <div style="font-size:15px; font-weight:bold; color:#fff; line-height:1.4;">🎁 ${desc}</div>
+          </div>
+
+          ${isUsed ? `
+            <div style="padding:15px; border:2px solid #666; border-radius:6px; background:#111;">
+              <div class="coupon-used-stamp" style="position:static; transform:none; display:inline-block; margin-bottom:6px;">USED / 利用済み</div>
+              <div style="font-size:12px; color:var(--text-dim);">利用日時: ${new Date(coupon.used_at).toLocaleString()}</div>
+            </div>
+          ` : `
+            <div class="staff-warning-banner">
+              ⚠️ 【店員専用操作】<br>
+              お会計時またはご注文時に、必ず店舗スタッフが下のボタンをタップして消し込みを行ってください。
+            </div>
+            <button id="btn-staff-redeem" class="staff-redeem-action-btn">
+              🍺 【店舗スタッフ】使用済みにする
+            </button>
+          `}
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('redeem-close-btn').addEventListener('click', () => {
+      this.playBackSE();
+      overlay.remove();
+    });
+
+    const redeemBtn = document.getElementById('btn-staff-redeem');
+    if (redeemBtn) {
+      redeemBtn.addEventListener('click', async () => {
+        if (!confirm(`【店舗スタッフ確認】\n「${storeName}」のクーポンを使用済みにしますか？`)) {
+          return;
+        }
+        this.playFanfareSE();
+        redeemBtn.disabled = true;
+        redeemBtn.textContent = '消し込み中...';
+        const res = await window.questApi.redeemCoupon(coupon.id);
+        overlay.remove();
+        if (res.success) {
+          alert(`✅ クーポンを「使用済み」に更新しました！ご来店ありがとうございます。`);
+          this.render();
+        } else {
+          alert(res.message || 'クーポンの消し込みに失敗しました。');
+        }
+      });
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+   * 来店チェックイン処理 (QRコード読み取りまたはシミュレーター)
+   * ------------------------------------------------------------------------ */
+  async handleCheckin(storeId) {
+    if (!storeId) return;
+    this.playFanfareSE();
+    const res = await window.questApi.checkInStore(storeId);
+    if (res.success) {
+      alert(`🎉 冒険の書を更新！\n『${res.storeName}』への来店を記録しました！\n（現在の制覇数: ${res.totalVisits}軒）`);
+      this.navigateTo('quest-book');
+    } else if (res.alreadyVisited) {
+      alert(`📜 『${storeId}』はすでに冒険の書に記録済みです！`);
+      this.navigateTo('quest-book');
+    } else {
+      alert(res.message || 'チェックインに失敗しました。');
+    }
+  }
     this.typeMessage('探したいエリアを選択してください。エリアごとの酒場が表示されます。');
 
     const areaItems = AREAS_LIST.map(area => {
@@ -658,6 +1216,7 @@ class YoidoreQuestApp {
       <div class="rpg-window">
         <div class="rpg-window-header">
           <span>▶ エリア選択</span>
+          <span class="header-badge">エリア</span>
         </div>
         <ul class="command-list">
           ${areaItems}
@@ -677,10 +1236,10 @@ class YoidoreQuestApp {
   }
 
   /* ------------------------------------------------------------------------
-   * 3.3 店の種類一覧
+   * 3.3 店の種類 (カテゴリ) 一覧
    * ------------------------------------------------------------------------ */
   renderCategoryView(container) {
-    this.typeMessage('気になる店の種類を選択してください。');
+    this.typeMessage('料理やお店のジャンルを選択してください。');
 
     const categoryItems = CATEGORIES_LIST.map(cat => {
       const count = STORES_DATA.filter(s => s.category === cat).length;
@@ -699,7 +1258,7 @@ class YoidoreQuestApp {
       <div class="rpg-window">
         <div class="rpg-window-header">
           <span>▶ 店の種類選択</span>
-          <span class="header-badge">種類</span>
+          <span class="header-badge">ジャンル</span>
         </div>
         <ul class="command-list">
           ${categoryItems}
@@ -719,17 +1278,59 @@ class YoidoreQuestApp {
   }
 
   /* ------------------------------------------------------------------------
+   * 3.3.5 スタイル一覧
+   * ------------------------------------------------------------------------ */
+  renderStyleView(container) {
+    this.typeMessage('お店の席や過ごし方の『スタイル』を選択してください。');
+
+    const stylesList = (typeof STYLES_LIST !== 'undefined') ? STYLES_LIST : [];
+    const styleItems = stylesList.map(style => {
+      const count = STORES_DATA.filter(s => s.style === style).length;
+      return `
+        <li class="command-item" data-style="${style}">
+          <div class="command-item-left">
+            <span class="command-cursor">▶</span>
+            <span class="command-label">${style}</span>
+          </div>
+          <span class="command-badge">${count}店舗</span>
+        </li>
+      `;
+    }).join('');
+
+    container.innerHTML = `
+      <div class="rpg-window">
+        <div class="rpg-window-header">
+          <span>▶ スタイル選択</span>
+          <span class="header-badge">スタイル</span>
+        </div>
+        <ul class="command-list">
+          ${styleItems}
+        </ul>
+      </div>
+    `;
+
+    container.querySelectorAll('.command-item').forEach(item => {
+      item.addEventListener('mouseenter', () => this.playCursorSE());
+      item.addEventListener('click', () => {
+        this.playSelectSE();
+        this.resetFilters();
+        this.filters.style = item.dataset.style;
+        this.navigateTo('stores');
+      });
+    });
+  }
+
+  /* ------------------------------------------------------------------------
    * 3.4 店舗タイプ一覧
    * ------------------------------------------------------------------------ */
   renderTypeView(container) {
     this.typeMessage('目的に合わせた『酔いどれタイプ』を選択してください。');
 
-    // 正式に規定された4つの酔いどれタイプ（案1）と説明文
     const OFFICIAL_TYPES = [
       { type: 'サク飲み', desc: 'サクッと1杯飲んで次のお店へ' },
-      { type: 'しっかりご飯', desc: 'しっかりご飯・名物料理でお腹を満たす' },
+      { type: '腹ごしらえ', desc: 'しっかりご飯・名物料理でお腹を満たす' },
       { type: 'ひと休み', desc: 'ドリンクや軽食でほっと一息つく' },
-      { type: '遊べる・エンタメ', desc: 'ゲーム・ダーツ・会話や体験を楽しむ' }
+      { type: '夜遊び', desc: 'ゲーム・ダーツ・会話や夜の体験を楽しむ' }
     ];
 
     const typeItems = OFFICIAL_TYPES.map(item => {
@@ -753,7 +1354,7 @@ class YoidoreQuestApp {
       <div class="rpg-window">
         <div class="rpg-window-header">
           <span>▶ 酔いどれタイプ選択</span>
-          <span class="header-badge">スタイル</span>
+          <span class="header-badge">タイプ</span>
         </div>
         <ul class="command-list">
           ${typeItems}
@@ -778,7 +1379,9 @@ class YoidoreQuestApp {
   renderStoresView(container) {
     const isFiltered = this.filters.area !== 'ALL' || 
                        this.filters.category !== 'ALL' || 
+                       this.filters.style !== 'ALL' || 
                        this.filters.type !== 'ALL' || 
+                       this.filters.takeout !== 'ALL' || 
                        this.filters.openToday || 
                        this.filters.searchQuery !== '';
 
@@ -790,7 +1393,12 @@ class YoidoreQuestApp {
       `<option value="${c}" ${this.filters.category === c ? 'selected' : ''}>${c === 'ALL' ? '全種類' : c}</option>`
     ).join('');
 
-    const OFFICIAL_TYPE_NAMES = ['サク飲み', 'しっかりご飯', 'ひと休み', '遊べる・エンタメ'];
+    const stylesList = (typeof STYLES_LIST !== 'undefined') ? STYLES_LIST : [];
+    const styleOptions = ['ALL', ...stylesList].map(s => 
+      `<option value="${s}" ${this.filters.style === s ? 'selected' : ''}>${s === 'ALL' ? '全スタイル' : s}</option>`
+    ).join('');
+
+    const OFFICIAL_TYPE_NAMES = ['サク飲み', '腹ごしらえ', 'ひと休み', '夜遊び'];
     const allTypes = Array.from(new Set([...OFFICIAL_TYPE_NAMES, ...TYPES_LIST]));
     const typeOptions = ['ALL', ...allTypes].map(t => 
       `<option value="${t}" ${this.filters.type === t ? 'selected' : ''}>${t === 'ALL' ? '全酔いどれタイプ' : t}</option>`
@@ -810,12 +1418,18 @@ class YoidoreQuestApp {
             <select id="filter-category" class="filter-select">${catOptions}</select>
           </div>
           <div class="filter-row">
+            <select id="filter-style" class="filter-select">${styleOptions}</select>
             <select id="filter-type" class="filter-select">${typeOptions}</select>
+          </div>
+          <div class="filter-row">
             <input type="text" id="filter-search" class="search-input" placeholder="店舗名・キーワード検索..." value="${this.filters.searchQuery}">
           </div>
           <div class="filter-chip-group">
             <div class="filter-chip ${this.filters.openToday ? 'active' : ''}" id="chip-open-today">
               ${this.filters.openToday ? '✓ どれクエ対応中のみ' : 'どれクエ対象時間内のみ'}
+            </div>
+            <div class="filter-chip ${this.filters.takeout === 'YES' ? 'active' : ''}" id="chip-takeout">
+              ${this.filters.takeout === 'YES' ? '✓ テイクアウト可のみ' : 'テイクアウト可のみ'}
             </div>
           </div>
         </div>
@@ -831,7 +1445,9 @@ class YoidoreQuestApp {
       let filtered = STORES_DATA.filter(store => {
         if (this.filters.area !== 'ALL' && store.area !== this.filters.area) return false;
         if (this.filters.category !== 'ALL' && store.category !== this.filters.category) return false;
+        if (this.filters.style !== 'ALL' && store.style !== this.filters.style) return false;
         if (this.filters.type !== 'ALL' && store.type !== this.filters.type) return false;
+        if (this.filters.takeout === 'YES' && !store.isTakeout) return false;
         if (this.filters.openToday && !store.isOpenToday) return false;
         if (this.filters.searchQuery) {
           const q = this.filters.searchQuery.toLowerCase().trim();
@@ -845,15 +1461,22 @@ class YoidoreQuestApp {
 
       this.typeMessage(`条件に一致する店舗が ${filtered.length} 件見つかりました。カードをタップして詳細を確認できます。`);
 
-      const cardsHtml = filtered.length > 0 ? filtered.map(store => `
-        <div class="store-card" data-id="${store.id}">
+      const cardsHtml = filtered.length > 0 ? filtered.map(store => {
+        const isVisited = window.questApi && window.questApi.visits.some(v => v.store_id === store.id);
+        const isCoupon = Boolean(store.isCouponTarget);
+        return `
+        <div class="store-card ${isVisited ? 'visited' : ''}" data-id="${store.id}">
           <div class="store-card-top-flex">
             <div class="store-card-info-block">
               <div class="store-card-header-row">
                 <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                  ${isVisited ? `<span class="tag" style="background:#155724; color:#d4edda; border-color:#28a745;">✅ 冒険済</span>` : ''}
+                  ${isCoupon ? `<span class="tag" style="background:#4d3800; color:#ffeeba; border-color:#ffc107;">🎁 特典対象</span>` : ''}
                   ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
                   ${store.category ? `<span class="tag">${store.category}</span>` : ''}
+                  ${store.style ? `<span class="tag tag-style">${store.style}</span>` : ''}
                   ${store.type ? `<span class="tag tag-type">${store.type}</span>` : ''}
+                  ${store.isTakeout ? `<span class="tag tag-takeout">${store.takeout}</span>` : ''}
                 </div>
                 <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}">
                   ${store.isOpenToday ? 'どれクエ対応中' : 'どれクエ対象時間外'}
@@ -954,6 +1577,7 @@ class YoidoreQuestApp {
       this.playSelectSE();
       this.filters.area = document.getElementById('filter-area').value;
       this.filters.category = document.getElementById('filter-category').value;
+      this.filters.style = document.getElementById('filter-style').value;
       this.filters.type = document.getElementById('filter-type').value;
       this.lastStoresScrollY = 0;
       updateStoreList();
@@ -961,6 +1585,7 @@ class YoidoreQuestApp {
 
     document.getElementById('filter-area').addEventListener('change', onFilterChange);
     document.getElementById('filter-category').addEventListener('change', onFilterChange);
+    document.getElementById('filter-style').addEventListener('change', onFilterChange);
     document.getElementById('filter-type').addEventListener('change', onFilterChange);
 
     // キーワード検索（IME日本語入力変換対応）
@@ -1002,6 +1627,19 @@ class YoidoreQuestApp {
       this.lastStoresScrollY = 0;
       updateStoreList();
     });
+
+    // テイクアウト可のみチップ
+    document.getElementById('chip-takeout').addEventListener('click', () => {
+      this.playSelectSE();
+      this.filters.takeout = (this.filters.takeout === 'YES') ? 'ALL' : 'YES';
+      const chip = document.getElementById('chip-takeout');
+      if (chip) {
+        chip.classList.toggle('active', this.filters.takeout === 'YES');
+        chip.textContent = (this.filters.takeout === 'YES') ? '✓ テイクアウト可のみ' : 'テイクアウト可のみ';
+      }
+      this.lastStoresScrollY = 0;
+      updateStoreList();
+    });
   }
 
   /* ------------------------------------------------------------------------
@@ -1020,6 +1658,11 @@ class YoidoreQuestApp {
       ? store.paymentMethods.map(p => `<span class="payment-tag">${p}</span>`).join('')
       : '';
 
+    const visitRecord = window.questApi && window.questApi.visits.find(v => v.store_id === store.id);
+    const isVisited = Boolean(visitRecord);
+    const visitedDateStr = visitRecord?.visited_at ? new Date(visitRecord.visited_at).toLocaleString('ja-JP') : '';
+    const isCouponTarget = Boolean(store.isCouponTarget);
+
     container.innerHTML = `
       <div class="detail-section">
         <!-- 1. 店舗基本情報枠 -->
@@ -1028,9 +1671,13 @@ class YoidoreQuestApp {
             <div class="detail-title-block">
               <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
                 <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                  ${isVisited ? `<span class="tag" style="background:#155724; color:#d4edda; border-color:#28a745;">✅ 冒険済</span>` : ''}
+                  ${isCouponTarget ? `<span class="tag" style="background:#4d3800; color:#ffeeba; border-color:#ffc107;">🎁 特典対象</span>` : ''}
                   ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
                   ${store.category ? `<span class="tag">${store.category}</span>` : ''}
+                  ${store.style ? `<span class="tag tag-style">${store.style}</span>` : ''}
                   ${store.type ? `<span class="tag tag-type">${store.type}</span>` : ''}
+                  ${store.takeout ? `<span class="tag tag-takeout">${store.takeout}</span>` : ''}
                 </div>
                 <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}">
                   ${store.isOpenToday ? 'どれクエ対応中' : 'どれクエ対象時間外'}
@@ -1055,6 +1702,43 @@ class YoidoreQuestApp {
           ` : ''}
         </div>
 
+        <!-- 冒険の書 来店記録枠 -->
+        <div class="rpg-window" style="border-color:${isVisited ? 'var(--text-green)' : 'var(--border-gold)'}; background:${isVisited ? '#0a1a10' : '#0a0d1a'};">
+          <div class="rpg-window-header">
+            <span>📜 冒険の書（来店記録）</span>
+          </div>
+          <div style="padding:8px 0; text-align:center;">
+            ${isVisited ? `
+              <div style="font-size:15px; color:var(--text-green); font-weight:bold; margin-bottom:4px;">
+                ✅ この酒場は冒険の書に記録済みです！
+              </div>
+              <div style="font-size:12px; color:var(--text-dim);">記録日時: ${visitedDateStr}</div>
+            ` : `
+              <p style="font-size:12px; color:var(--text-white); margin-bottom:8px;">
+                店頭のQRコードを読み取るか、下のボタンを押して来店を記録できます。
+              </p>
+              <button id="detail-checkin-btn" class="treasure-claim-btn" style="width:100%; font-size:13px; animation:none; background:linear-gradient(180deg,#1e824c 0%,#145a32 100%); border-color:var(--text-green);">
+                🍺 この酒場に来店記録する！
+              </button>
+            `}
+          </div>
+        </div>
+
+        ${isCouponTarget ? `
+          <!-- はしご達成クーポン対象枠 -->
+          <div class="rpg-window gold-border" style="background:#1a1708;">
+            <div class="rpg-window-header">
+              <span>🎁 はしご達成クーポン対象店舗</span>
+            </div>
+            <div style="padding:8px 0;">
+              <div style="font-size:12px; color:var(--text-yellow); font-weight:bold; margin-bottom:4px;">【街ぶら達成時にもらえる特典】</div>
+              <div style="font-size:14px; color:#fff; line-height:1.4;">
+                ${store.couponDescription || '【街ぶら達成特典】お好きなワンドリンク または 小鉢1品サービス！'}
+              </div>
+            </div>
+          </div>
+        ` : ''}
+
         <!-- 2. どれクエ対象時間枠 (店舗名称枠の直下) -->
         <div class="rpg-window">
           <div class="rpg-window-header">
@@ -1077,6 +1761,12 @@ class YoidoreQuestApp {
               <tr>
                 <th>数量限定</th>
                 <td>${store.conditions.limit} ${store.conditions.soldOutEnd ? '（売り切れ次第終了）' : ''}</td>
+              </tr>
+            ` : ''}
+            ${store.takeout ? `
+              <tr>
+                <th>テイクアウト</th>
+                <td>${store.takeout}</td>
               </tr>
             ` : ''}
           </table>
@@ -1193,6 +1883,13 @@ class YoidoreQuestApp {
 
       </div>
     `;
+
+    const detailCheckinBtn = document.getElementById('detail-checkin-btn');
+    if (detailCheckinBtn) {
+      detailCheckinBtn.addEventListener('click', async () => {
+        await this.handleCheckin(store.id);
+      });
+    }
 
     container.querySelectorAll('.external-link-btn').forEach(btn => {
       btn.addEventListener('click', () => {

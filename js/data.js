@@ -15,15 +15,18 @@ const STORES_DATA = [
     "name": "Tようび",
     "area": "三軒家西",
     "category": "おばんざい",
-    "type": "しっかりご飯",
+    "style": "テーブルあり",
+    "type": "腹ごしらえ",
+    "takeout": "テイクアウトOK",
+    "isTakeout": true,
     "isOpenToday": true,
     "isQuestActive": true,
     "quest": {
-      "title": "ジャンケン勝負！",
+      "title": "ジャンケン勝負！勝ったらクーポン進呈！",
       "price": 0,
       "charge": "不要",
-      "content": "ジャンケン勝負！勝ったらクーポン進呈！",
-      "notes": "1名様1日1回まで"
+      "content": "1名様1日1回まで",
+      "notes": ""
     },
     "catchphrase": "牛すじとお酒とおばんざい",
     "yoidoreSet": {
@@ -59,7 +62,10 @@ const STORES_DATA = [
     "name": "バーガー酒場ハンバーガー・ママ",
     "area": "三軒家東",
     "category": "ハンバーガー酒場",
+    "style": "テイクアウト専門",
     "type": "サク飲み",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -99,7 +105,10 @@ const STORES_DATA = [
     "name": "大正焼肉SUNナスビ!!",
     "area": "駅前",
     "category": "焼肉・ホルモン",
-    "type": "しっかりご飯",
+    "style": "テーブルあり",
+    "type": "腹ごしらえ",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -138,8 +147,11 @@ const STORES_DATA = [
     "id": "store-04",
     "name": "大正居酒屋タイガーパンチ",
     "area": "駅前",
-    "category": "立ち飲み",
+    "category": "中華",
+    "style": "立ち飲み",
     "type": "サク飲み",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -179,7 +191,10 @@ const STORES_DATA = [
     "name": "ハイエナハイツ",
     "area": "三軒家西",
     "category": "ジビエ肉",
-    "type": "しっかりご飯",
+    "style": "テーブルあり",
+    "type": "腹ごしらえ",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -219,7 +234,10 @@ const STORES_DATA = [
     "name": "CHWEETS　キイロのお店",
     "area": "三軒家西",
     "category": "カフェ",
+    "style": "テーブルあり",
     "type": "ひと休み",
+    "takeout": "テイクアウト専門",
+    "isTakeout": true,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -259,7 +277,10 @@ const STORES_DATA = [
     "name": "BAR K'S〜ケーズ〜",
     "area": "三軒家西",
     "category": "BAR",
-    "type": "遊べる・エンタメ",
+    "style": "テーブルあり",
+    "type": "夜遊び",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -299,7 +320,10 @@ const STORES_DATA = [
     "name": "Bar Six Nine",
     "area": "三軒家東",
     "category": "BAR",
-    "type": "遊べる・エンタメ",
+    "style": "カウンター",
+    "type": "夜遊び",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -339,7 +363,10 @@ const STORES_DATA = [
     "name": "だしと鶏ちゃぼ大正店",
     "area": "三軒家東",
     "category": "鶏料理",
-    "type": "しっかりご飯",
+    "style": "テーブルあり",
+    "type": "腹ごしらえ",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -379,7 +406,10 @@ const STORES_DATA = [
     "name": "ふじわら君",
     "area": "三軒家西",
     "category": "居酒屋",
-    "type": "しっかりご飯",
+    "style": "テーブルあり",
+    "type": "サク飲み",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -418,8 +448,11 @@ const STORES_DATA = [
     "id": "store-11",
     "name": "大正サロン髭とボヰン",
     "area": "駅前",
-    "category": "立ち飲み",
+    "category": "居酒屋",
+    "style": "立ち飲み",
     "type": "サク飲み",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -459,7 +492,10 @@ const STORES_DATA = [
     "name": "大正バル誠~ｓｅｉ~",
     "area": "三軒家東",
     "category": "居酒屋",
+    "style": "テーブルあり",
     "type": "サク飲み",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -499,7 +535,10 @@ const STORES_DATA = [
     "name": "居酒屋たすいち",
     "area": "駅前",
     "category": "居酒屋",
-    "type": "しっかりご飯",
+    "style": "テーブルあり",
+    "type": "腹ごしらえ",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -539,7 +578,10 @@ const STORES_DATA = [
     "name": "地鶏る",
     "area": "泉尾",
     "category": "鶏料理",
+    "style": "テーブルあり",
     "type": "サク飲み",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -578,8 +620,11 @@ const STORES_DATA = [
     "id": "store-15",
     "name": "沖縄酒場きじむなーの森",
     "area": "三軒家西",
-    "category": "居酒屋",
-    "type": "しっかりご飯",
+    "category": "沖縄料理",
+    "style": "テーブルあり",
+    "type": "サク飲み",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -619,7 +664,10 @@ const STORES_DATA = [
     "name": "ナンチャツ亭のエリー",
     "area": "駅前",
     "category": "おばんざい",
-    "type": "しっかりご飯",
+    "style": "カウンター",
+    "type": "腹ごしらえ",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -659,7 +707,10 @@ const STORES_DATA = [
     "name": "Neboke-ネボケ",
     "area": "三軒家西",
     "category": "BAR",
+    "style": "カウンター",
     "type": "ひと休み",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -699,7 +750,10 @@ const STORES_DATA = [
     "name": "串焼き酒場ニコヤ",
     "area": "三軒家西",
     "category": "串焼き・鉄板焼き",
+    "style": "カウンター",
     "type": "サク飲み",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -739,15 +793,18 @@ const STORES_DATA = [
     "name": "Barカセット",
     "area": "三軒家東",
     "category": "BAR",
-    "type": "遊べる・エンタメ",
+    "style": "カウンター",
+    "type": "夜遊び",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": true,
     "quest": {
-      "title": "",
+      "title": "スタッフと楽しい酔いどれチンチロチャンス！",
       "price": 300,
       "charge": "込",
-      "content": "スタッフと楽しい酔いどれチンチロチャンス！",
-      "notes": "成功：会心の1杯サービス\n失敗：大魔王のショット(ちょっと)"
+      "content": "成功：会心の1杯サービス\n失敗：大魔王のショット(ちょっと)",
+      "notes": ""
     },
     "catchphrase": "80's・ロック・駄菓子",
     "yoidoreSet": {
@@ -779,7 +836,10 @@ const STORES_DATA = [
     "name": "焼肉ホルモンたろちゃん大正橋店",
     "area": "三軒家東",
     "category": "焼肉・ホルモン",
-    "type": "しっかりご飯",
+    "style": "カウンター",
+    "type": "腹ごしらえ",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -819,7 +879,10 @@ const STORES_DATA = [
     "name": "鉄板焼き栄八大阪大正店",
     "area": "三軒家西",
     "category": "串焼き・鉄板焼き",
-    "type": "しっかりご飯",
+    "style": "テーブルあり",
+    "type": "腹ごしらえ",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -859,7 +922,10 @@ const STORES_DATA = [
     "name": "うて食堂 大正BASE",
     "area": "三軒家東",
     "category": "おばんざい",
-    "type": "しっかりご飯",
+    "style": "テーブルあり",
+    "type": "サク飲み",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -899,7 +965,10 @@ const STORES_DATA = [
     "name": "大正焼肉ホルモンK2+",
     "area": "三軒家西",
     "category": "焼肉・ホルモン",
-    "type": "しっかりご飯",
+    "style": "テーブルあり",
+    "type": "腹ごしらえ",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -939,7 +1008,10 @@ const STORES_DATA = [
     "name": "呑み処　三日月",
     "area": "駅前",
     "category": "居酒屋",
+    "style": "カウンター",
     "type": "サク飲み",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -979,7 +1051,10 @@ const STORES_DATA = [
     "name": "呑笑戎屋",
     "area": "駅前",
     "category": "居酒屋",
+    "style": "テーブルあり",
     "type": "サク飲み",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -1019,7 +1094,10 @@ const STORES_DATA = [
     "name": "三ちゃん",
     "area": "三軒家西",
     "category": "居酒屋",
-    "type": "しっかりご飯",
+    "style": "テーブルあり",
+    "type": "サク飲み",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -1059,7 +1137,10 @@ const STORES_DATA = [
     "name": "SoundBar花いち",
     "area": "駅前",
     "category": "スナック",
-    "type": "遊べる・エンタメ",
+    "style": "カウンター",
+    "type": "夜遊び",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -1098,8 +1179,11 @@ const STORES_DATA = [
     "id": "store-28",
     "name": "ザ·沖縄",
     "area": "駅前",
-    "category": "居酒屋",
+    "category": "沖縄料理",
+    "style": "カウンター",
     "type": "サク飲み",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -1138,8 +1222,11 @@ const STORES_DATA = [
     "id": "store-29",
     "name": "魚と沖縄料理 えっせんす",
     "area": "泉尾",
-    "category": "居酒屋",
+    "category": "沖縄料理",
+    "style": "テーブルあり",
     "type": "サク飲み",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -1179,7 +1266,10 @@ const STORES_DATA = [
     "name": "Bar Coco-Color",
     "area": "三軒家西",
     "category": "BAR",
-    "type": "遊べる・エンタメ",
+    "style": "テーブルあり",
+    "type": "夜遊び",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -1219,7 +1309,10 @@ const STORES_DATA = [
     "name": "福人(ふくんちゅ)",
     "area": "三軒家東",
     "category": "居酒屋",
-    "type": "しっかりご飯",
+    "style": "テーブルあり",
+    "type": "サク飲み",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -1258,8 +1351,11 @@ const STORES_DATA = [
     "id": "store-32",
     "name": "TM's DINER",
     "area": "三軒家東",
-    "category": "ダイニング",
+    "category": "イタリアン・メキシカン・アメリカン・和食",
+    "style": "テーブルあり",
     "type": "サク飲み",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -1298,8 +1394,11 @@ const STORES_DATA = [
     "id": "store-33",
     "name": "Pizzeria Legare",
     "area": "平尾",
-    "category": "ダイニング",
-    "type": "しっかりご飯",
+    "category": "イタリアン・ワイン",
+    "style": "テーブルあり",
+    "type": "腹ごしらえ",
+    "takeout": "テイクアウト不可",
+    "isTakeout": false,
     "isOpenToday": true,
     "isQuestActive": false,
     "quest": {
@@ -1347,21 +1446,29 @@ const CATEGORIES_LIST = [
   "おばんざい",
   "ハンバーガー酒場",
   "焼肉・ホルモン",
-  "立ち飲み",
+  "中華",
   "ジビエ肉",
   "カフェ",
   "BAR",
   "鶏料理",
   "居酒屋",
+  "沖縄料理",
   "串焼き・鉄板焼き",
   "スナック",
-  "ダイニング"
+  "イタリアン・メキシカン・アメリカン・和食",
+  "イタリアン・ワイン"
+];
+const STYLES_LIST = [
+  "テーブルあり",
+  "テイクアウト専門",
+  "立ち飲み",
+  "カウンター"
 ];
 const TYPES_LIST = [
-  "しっかりご飯",
+  "腹ごしらえ",
   "サク飲み",
   "ひと休み",
-  "遊べる・エンタメ"
+  "夜遊び"
 ];
 
 /**
@@ -1491,7 +1598,10 @@ function parseXLSXToStoresData(arrayBuffer) {
 
     const area = getVal("エリア", "地域");
     const category = getVal("カテゴリ", "カテゴリー", "ジャンル", "店の種類");
-    const type = getVal("タイプ", "店舗タイプ", "スタイル");
+    const style = getVal("スタイル", "席タイプ", "店舗スタイル");
+    const type = getVal("タイプ", "店舗タイプ", "酔いどれタイプ");
+    const takeoutRaw = getVal("テイクアウト", "持ち帰り", "テイクアウト可否");
+    const isTakeout = Boolean(takeoutRaw) && !takeoutRaw.includes('不可') && !takeoutRaw.includes('なし') && (takeoutRaw.includes('可') || takeoutRaw.toLowerCase().includes('ok') || takeoutRaw.includes('専門') || takeoutRaw.includes('テイクアウト'));
     const catchphrase = getVal("キャッチコピー", "コピー");
 
     const set_title = getVal("酔いどれセット名", "セット名");
@@ -1507,17 +1617,12 @@ function parseXLSXToStoresData(arrayBuffer) {
     const setNotes = getVal("セット備考", "備考・注意事項", "備考", "注意事項");
 
     const questTitle = getVal("クエスト名", "クエストタイトル", "クエスト簡易名");
-    const questPriceStr = getVal("クエスト価格(円)", "クエスト価格", "クエスト金額(円)", "クエスト金額", "金額").replace(/[^\d]/g, '');
+    const questContent = getVal("クエスト内容", "イベント情報", "イベント", "クエスト詳細");
+    const questPriceStr = getVal("クエスト価格(円)", "クエスト価格", "クエスト金額(円)", "クエスト金額").replace(/[^\d]/g, '');
     const questPrice = questPriceStr ? parseInt(questPriceStr, 10) : 0;
     const questChargeStr = getVal("クエストチャージ");
     const questCharge = questChargeStr.includes("込") ? "込" : "不要";
-
-    // R列 (18列目/idx 17) & S列 (19列目/idx 18) の値取得
-    let questContent = (cols.length > 17 && cols[17]) ? cols[17] : getVal("クエスト内容", "イベント情報", "イベント", "クエスト詳細");
-    let questNotes = (cols.length > 18 && cols[18]) ? cols[18] : getVal("クエスト備考", "備考", "注意事項");
-    if (questContent === questTitle) {
-      questContent = (cols.length > 17) ? cols[17] : '';
-    }
+    const questNotes = getVal("クエスト備考", "クエスト注意事項");
     const isQuestActive = !!(questTitle || questContent);
 
     const paymentMethodsRaw = getVal("決済方法", "支払い方法");
@@ -1553,7 +1658,10 @@ function parseXLSXToStoresData(arrayBuffer) {
       name,
       area,
       category,
+      style,
       type,
+      takeout: takeoutRaw,
+      isTakeout,
       isOpenToday: true,
       isQuestActive,
       quest: {
@@ -1609,6 +1717,12 @@ function updateDataFromXLSX(arrayBuffer) {
     if (categories.length > 0) {
       CATEGORIES_LIST.length = 0;
       Array.prototype.push.apply(CATEGORIES_LIST, categories);
+    }
+
+    const styles = Array.from(new Set(STORES_DATA.map(s => s.style))).filter(Boolean);
+    if (styles.length > 0) {
+      STYLES_LIST.length = 0;
+      Array.prototype.push.apply(STYLES_LIST, styles);
     }
 
     const types = Array.from(new Set(STORES_DATA.map(s => s.type))).filter(Boolean);

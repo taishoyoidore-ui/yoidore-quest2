@@ -582,10 +582,22 @@ body {
   border-color: #6d4f18;
 }
 
+.tag.tag-style {
+  background: #0d2826;
+  color: #5eead4;
+  border-color: #134e48;
+}
+
 .tag.tag-type {
   background: #2a1024;
   color: var(--text-pink);
   border-color: #682057;
+}
+
+.tag.tag-takeout {
+  background: #2d1808;
+  color: #fdba74;
+  border-color: #7c2d12;
 }
 
 .event-active-badge {
@@ -1200,5 +1212,419 @@ body {
 
 .filter-reset-btn:hover, .filter-reset-btn:active {
   background: #4a1515;
+}
+
+/* ==========================================================================
+   冒険の書 (Quest Book / Passport) & クーポン関連スタイル
+   ========================================================================== */
+
+/* 勇者ステータスカード */
+.hero-status-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(180deg, #121830 0%, #080a14 100%);
+  border: 2px solid var(--border-gold);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.hero-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 2px solid var(--border-gold);
+  object-fit: cover;
+  background: #000;
+  box-shadow: 0 0 10px rgba(248, 225, 108, 0.4);
+}
+
+.hero-info {
+  flex: 1;
+}
+
+.hero-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--text-yellow);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hero-title {
+  font-size: 12px;
+  color: var(--text-cyan);
+  margin-top: 2px;
+}
+
+.hero-badge-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.hero-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: #1c2340;
+  border: 1px solid var(--border-white);
+}
+
+/* クエスト進捗プログレス */
+.quest-progress-box {
+  background: #000;
+  border: 2px solid var(--border-white);
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 14px;
+}
+
+.quest-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.quest-progress-title {
+  font-size: 14px;
+  color: var(--text-white);
+}
+
+.quest-progress-count {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--text-green);
+  font-family: var(--font-en-pixel);
+}
+
+.quest-progress-bar-bg {
+  width: 100%;
+  height: 14px;
+  background: #1c2035;
+  border: 1px solid var(--border-white);
+  border-radius: 7px;
+  overflow: hidden;
+  position: relative;
+}
+
+.quest-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #52f38d 0%, #5ce1e6 100%);
+  width: 0%;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 8px rgba(82, 243, 141, 0.6);
+}
+
+/* 宝箱・特典ランクカード */
+.treasure-tier-card {
+  background: #0a0d1a;
+  border: 2px solid var(--border-white);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+.treasure-tier-card.unlocked {
+  border-color: var(--border-gold);
+  background: linear-gradient(180deg, #1d1b10 0%, #0a0d1a 100%);
+  box-shadow: 0 0 10px rgba(248, 225, 108, 0.3);
+}
+
+.treasure-tier-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.treasure-tier-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--text-yellow);
+}
+
+.treasure-tier-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.treasure-claim-btn {
+  background: linear-gradient(180deg, #e67e22 0%, #d35400 100%);
+  border: 2px solid var(--border-gold);
+  color: #fff;
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  animation: pulseGold 1.5s infinite;
+}
+
+@keyframes pulseGold {
+  0% { box-shadow: 0 0 4px rgba(248, 225, 108, 0.4); }
+  50% { box-shadow: 0 0 14px rgba(248, 225, 108, 0.9); }
+  100% { box-shadow: 0 0 4px rgba(248, 225, 108, 0.4); }
+}
+
+.treasure-claimed-badge {
+  background: #15221b;
+  border: 1px solid var(--text-green);
+  color: var(--text-green);
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+/* クーポン券カード (チケット風) */
+.coupon-ticket {
+  background: linear-gradient(135deg, #1a1e36 0%, #0d0f1f 100%);
+  border: 2px dashed var(--border-gold);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.coupon-ticket:active {
+  transform: scale(0.98);
+}
+
+.coupon-ticket.used {
+  filter: grayscale(0.85);
+  opacity: 0.6;
+  border-color: #666;
+}
+
+.coupon-ticket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px dashed rgba(255,255,255,0.2);
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+}
+
+.coupon-store-name {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--text-yellow);
+}
+
+.coupon-desc-text {
+  font-size: 13px;
+  color: #fff;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.coupon-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.coupon-used-stamp {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%) rotate(-15deg);
+  border: 3px solid var(--text-red);
+  color: var(--text-red);
+  font-size: 18px;
+  font-weight: bold;
+  padding: 4px 10px;
+  border-radius: 6px;
+  pointer-events: none;
+  font-family: var(--font-en-pixel);
+  letter-spacing: 2px;
+}
+
+/* チェックインテスト用シミュレーター */
+.checkin-sim-box {
+  background: #0f1220;
+  border: 1px solid #2d3558;
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: 14px;
+}
+
+.checkin-sim-title {
+  font-size: 12px;
+  color: var(--text-cyan);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.checkin-sim-row {
+  display: flex;
+  gap: 6px;
+}
+
+.checkin-sim-select {
+  flex: 1;
+  background: #000;
+  color: #fff;
+  border: 1px solid var(--border-white);
+  padding: 6px;
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+.checkin-sim-btn {
+  background: linear-gradient(180deg, #1e824c 0%, #145a32 100%);
+  border: 1px solid var(--text-green);
+  color: #fff;
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* クーポン選択モーダル内の店舗選択リスト */
+.coupon-select-list {
+  max-height: 50vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
+  padding-right: 4px;
+}
+
+.coupon-select-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #101424;
+  border: 1px solid #33406b;
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.coupon-select-item.selected {
+  border-color: var(--border-gold);
+  background: #1c2010;
+}
+
+.coupon-select-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: #f8e16c;
+  cursor: pointer;
+}
+
+.coupon-select-item-info {
+  flex: 1;
+}
+
+.coupon-select-item-name {
+  font-size: 13px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.coupon-select-item-desc {
+  font-size: 11px;
+  color: var(--text-yellow);
+  margin-top: 2px;
+}
+
+/* 店舗スタッフ専用 消し込みモーダル */
+.staff-redeem-box {
+  text-align: center;
+  padding: 8px;
+}
+
+.staff-warning-banner {
+  background: #3a1010;
+  border: 2px solid var(--text-red);
+  color: #ff9999;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.staff-redeem-action-btn {
+  width: 100%;
+  background: linear-gradient(180deg, #c0392b 0%, #962d22 100%);
+  border: 2px solid var(--border-gold);
+  color: #fff;
+  font-family: var(--font-pixel);
+  font-size: 15px;
+  font-weight: bold;
+  padding: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+  margin-top: 10px;
+}
+
+.staff-redeem-action-btn:active {
+  transform: scale(0.97);
+  background: #78241b;
+}
+
+/* RPG風モーダルオーバーレイ */
+.rpg-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  z-index: 20000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  box-sizing: border-box;
+  animation: fadeIn 0.2s ease;
+}
+
+.rpg-modal-window {
+  background: #000;
+  border: 4px double var(--border-white);
+  border-radius: 8px;
+  padding: 14px;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.9), 0 0 15px rgba(247, 208, 112, 0.3);
+  box-sizing: border-box;
+  animation: slideUp 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 

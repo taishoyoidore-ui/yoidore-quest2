@@ -5,7 +5,7 @@ import json
 import openpyxl
 
 VALID_DAYS = {'月', '火', '水', '木', '金', '土', '日'}
-VALID_TYPES = {'サク飲み', 'しっかりご飯', 'ひと休み', '遊べる・エンタメ'}
+VALID_TYPES = {'サク飲み', 'しっかりご飯', '腹ごしらえ', 'ひと休み', '遊べる・エンタメ', '夜遊び'}
 
 def convert_excel_to_js():
     excel_path = os.path.join(os.path.dirname(__file__), 'STORES.xlsx')
@@ -83,37 +83,28 @@ def convert_excel_to_js():
         name_idx = get_col_idx("店舗名", "名", "店名")
         area_idx = get_col_idx("エリア", "地域")
         category_idx = get_col_idx("カテゴリ", "カテゴリー", "ジャンル", "店の種類")
-        type_idx = get_col_idx("酔いどれタイプ", "タイプ", "店舗タイプ", "スタイル", "セットタイプ")
+        style_idx = get_col_idx("スタイル", "席タイプ", "店舗スタイル")
+        type_idx = get_col_idx("酔いどれタイプ", "タイプ", "店舗タイプ", "セットタイプ")
+        takeout_idx = get_col_idx("テイクアウト", "持ち帰り", "テイクアウト可否")
         catchphrase_idx = get_col_idx("キャッチコピー", "コピー")
+
+        days_idx = get_col_idx("提供日")
+        hours_idx = get_col_idx("提供時間")
+        payment_idx = get_col_idx("決済方法", "支払い方法")
 
         set_title_idx = get_col_idx("酔いどれセット名", "セット名")
         set_content_idx = get_col_idx("セット内容", "内容", "セット詳細")
         price_idx = get_col_idx("価格(円)", "価格", "金額", "セット価格(円)", "セット価格", "セット金額", "セット金額(円)")
         charge_idx = get_col_idx("チャージ", "セットチャージ")
-
-        days_idx = get_col_idx("提供日")
-        hours_idx = get_col_idx("提供時間")
         limit_idx = get_col_idx("限定数")
-        set_notes_idx = get_col_idx("セット備考", "備考・注意事項", "備考", "注意事項")
+        set_notes_idx = get_col_idx("セット備考", "備考・注意事項", "セット注意事項")
 
         quest_title_idx = get_col_idx("クエスト名", "クエストタイトル", "クエスト簡易名")
-        quest_price_idx = get_col_idx("クエスト価格(円)", "クエスト価格", "クエスト金額(円)", "クエスト金額", "金額")
+        quest_content_idx = get_col_idx("クエスト内容", "イベント情報", "イベント", "クエスト詳細")
+        quest_price_idx = get_col_idx("クエスト価格(円)", "クエスト価格", "クエスト金額(円)", "クエスト金額")
         quest_charge_idx = get_col_idx("クエストチャージ")
+        quest_notes_idx = get_col_idx("クエスト備考", "クエスト注意事項")
 
-        # R列(インデックス17) & S列(インデックス18) の取得（「クエスト名」「クエスト内容」「クエスト備考」等の重複対応）
-        # R列(17番目): クエスト内容/詳細
-        if len(headers) > 17 and ("クエスト" in str(headers[17]) or "内容" in str(headers[17]) or "イベント" in str(headers[17])):
-            quest_content_idx = 17
-        else:
-            quest_content_idx = get_col_idx("クエスト内容", "イベント情報", "イベント", "クエスト詳細")
-
-        # S列(18番目): クエスト備考/注意事項
-        if len(headers) > 18 and ("内容" in str(headers[18]) or "備考" in str(headers[18]) or "注意事項" in str(headers[18])):
-            quest_notes_idx = 18
-        else:
-            quest_notes_idx = get_col_idx("クエスト備考", "備考", "注意事項")
-
-        payment_idx = get_col_idx("決済方法", "支払い方法")
         map_idx = get_col_idx("google map url", "googlemapurl", "マップurl")
         insta_idx = get_col_idx("instagram url", "instagramurl", "インスタurl")
         photo_idx = get_col_idx("photo", "写真", "画像")
@@ -169,22 +160,30 @@ def convert_excel_to_js():
             # その他のフィールド読み込み（フォールバック補填なし・空欄は空欄のまま保持）
             area = str(row[area_idx] or '').strip() if (area_idx != -1 and area_idx < len(row) and row[area_idx]) else ''
             category = str(row[category_idx] or '').strip() if (category_idx != -1 and category_idx < len(row) and row[category_idx]) else ''
+            style = str(row[style_idx] or '').strip() if (style_idx != -1 and style_idx < len(row) and row[style_idx]) else ''
             store_type = str(row[type_idx] or '').strip() if (type_idx != -1 and type_idx < len(row) and row[type_idx]) else ''
+            takeout_raw = str(row[takeout_idx] or '').strip() if (takeout_idx != -1 and takeout_idx < len(row) and row[takeout_idx]) else ''
+            is_takeout = bool(takeout_raw) and ('不可' not in takeout_raw) and ('なし' not in takeout_raw) and any(kw in takeout_raw.lower() for kw in ('可', 'ok', '専門', 'テイクアウト'))
+
             # 旧表記からの自動変換マッピング
             type_mapping = {
                 'はしご向け': 'サク飲み',
                 'はしご': 'サク飲み',
                 'サク飲み': 'サク飲み',
-                '食事向け': 'しっかりご飯',
-                '食事': 'しっかりご飯',
-                'しっかりご飯': 'しっかりご飯',
+                '食事向け': '腹ごしらえ',
+                '食事': '腹ごしらえ',
+                'しっかりご飯': '腹ごしらえ',
+                '腹ごしらえ': '腹ごしらえ',
                 '休憩向け': 'ひと休み',
                 'カフェ向け': 'ひと休み',
                 'カフェ・ひと休み向け': 'ひと休み',
                 'ひと休み向け': 'ひと休み',
-                'バー・遊べる向け': '遊べる・エンタメ',
-                '遊べる向け': '遊べる・エンタメ',
-                'エンタメ向け': '遊べる・エンタメ'
+                'ひと休み': 'ひと休み',
+                'バー・遊べる向け': '夜遊び',
+                '遊べる向け': '夜遊び',
+                'エンタメ向け': '夜遊び',
+                '遊べる・エンタメ': '夜遊び',
+                '夜遊び': '夜遊び'
             }
             if store_type in type_mapping:
                 store_type = type_mapping[store_type]
@@ -192,7 +191,7 @@ def convert_excel_to_js():
             if store_type and store_type not in VALID_TYPES:
                 errors.append(
                     f"エラー: 店舗 '{store_name}' (行 {row_idx}): 『酔いどれタイプ』の指定 '{store_type}' が不正です。"
-                    f"指定可能なタイプは『サク飲み』『しっかりご飯』『ひと休み』『遊べる・エンタメ』のいずれかです。"
+                    f"指定可能なタイプは『サク飲み』『腹ごしらえ』『ひと休み』『夜遊び』のいずれかです。"
                 )
             catchphrase = str(row[catchphrase_idx] or '').strip() if (catchphrase_idx != -1 and catchphrase_idx < len(row) and row[catchphrase_idx]) else ''
 
@@ -259,7 +258,10 @@ def convert_excel_to_js():
                 "name": store_name,
                 "area": area,
                 "category": category,
+                "style": style,
                 "type": store_type,
+                "takeout": takeout_raw,
+                "isTakeout": is_takeout,
                 "isOpenToday": True,
                 "isQuestActive": is_quest_active,
                 "quest": {
@@ -301,6 +303,7 @@ def convert_excel_to_js():
 
     areas_list = list(dict.fromkeys([s["area"] for s in stores if s["area"]]))
     categories_list = list(dict.fromkeys([s["category"] for s in stores if s["category"]]))
+    styles_list = list(dict.fromkeys([s["style"] for s in stores if s["style"]]))
     types_list = list(dict.fromkeys([s["type"] for s in stores if s["type"]]))
 
     js_content = f"""/**
@@ -315,6 +318,7 @@ const STORES_DATA = {json.dumps(stores, ensure_ascii=False, indent=2)};
 
 const AREAS_LIST = {json.dumps(areas_list, ensure_ascii=False, indent=2)};
 const CATEGORIES_LIST = {json.dumps(categories_list, ensure_ascii=False, indent=2)};
+const STYLES_LIST = {json.dumps(styles_list, ensure_ascii=False, indent=2)};
 const TYPES_LIST = {json.dumps(types_list, ensure_ascii=False, indent=2)};
 
 /**
@@ -444,12 +448,15 @@ function parseXLSXToStoresData(arrayBuffer) {{
 
     const area = getVal("エリア", "地域");
     const category = getVal("カテゴリ", "カテゴリー", "ジャンル", "店の種類");
-    const type = getVal("タイプ", "店舗タイプ", "スタイル");
+    const style = getVal("スタイル", "席タイプ", "店舗スタイル");
+    const type = getVal("タイプ", "店舗タイプ", "酔いどれタイプ");
+    const takeoutRaw = getVal("テイクアウト", "持ち帰り", "テイクアウト可否");
+    const isTakeout = Boolean(takeoutRaw) && !takeoutRaw.includes('不可') && !takeoutRaw.includes('なし') && (takeoutRaw.includes('可') || takeoutRaw.toLowerCase().includes('ok') || takeoutRaw.includes('専門') || takeoutRaw.includes('テイクアウト'));
     const catchphrase = getVal("キャッチコピー", "コピー");
 
     const set_title = getVal("酔いどれセット名", "セット名");
     const set_content = getVal("セット内容", "内容", "セット詳細");
-    const priceStr = getVal("価格(円)", "価格", "金額", "セット価格(円)", "セット価格", "セット金額", "セット金額(円)").replace(/[^\\d]/g, '');
+    const priceStr = getVal("価格(円)", "価格", "金額", "セット価格(円)", "セット価格", "セット金額", "セット金額(円)").replace(/[^\d]/g, '');
     const price = priceStr ? parseInt(priceStr, 10) : 0;
     const includeChargeStr = getVal("チャージ", "セットチャージ");
     const setCharge = includeChargeStr.includes("込") ? "込" : "不要";
@@ -460,22 +467,17 @@ function parseXLSXToStoresData(arrayBuffer) {{
     const setNotes = getVal("セット備考", "備考・注意事項", "備考", "注意事項");
 
     const questTitle = getVal("クエスト名", "クエストタイトル", "クエスト簡易名");
-    const questPriceStr = getVal("クエスト価格(円)", "クエスト価格", "クエスト金額(円)", "クエスト金額", "金額").replace(/[^\\d]/g, '');
+    const questContent = getVal("クエスト内容", "イベント情報", "イベント", "クエスト詳細");
+    const questPriceStr = getVal("クエスト価格(円)", "クエスト価格", "クエスト金額(円)", "クエスト金額").replace(/[^\d]/g, '');
     const questPrice = questPriceStr ? parseInt(questPriceStr, 10) : 0;
     const questChargeStr = getVal("クエストチャージ");
     const questCharge = questChargeStr.includes("込") ? "込" : "不要";
-
-    // R列 (18列目/idx 17) & S列 (19列目/idx 18) の値取得
-    let questContent = (cols.length > 17 && cols[17]) ? cols[17] : getVal("クエスト内容", "イベント情報", "イベント", "クエスト詳細");
-    let questNotes = (cols.length > 18 && cols[18]) ? cols[18] : getVal("クエスト備考", "備考", "注意事項");
-    if (questContent === questTitle) {{
-      questContent = (cols.length > 17) ? cols[17] : '';
-    }}
+    const questNotes = getVal("クエスト備考", "クエスト注意事項");
     const isQuestActive = !!(questTitle || questContent);
 
     const paymentMethodsRaw = getVal("決済方法", "支払い方法");
     const paymentMethods = paymentMethodsRaw
-      ? paymentMethodsRaw.split(/[,/、\\s]+/).filter(Boolean)
+      ? paymentMethodsRaw.split(/[,/、\s]+/).filter(Boolean)
       : [];
 
     const googleMapUrl = getVal("Google Map URL", "GoogleMapURL", "マップURL");
@@ -491,7 +493,7 @@ function parseXLSXToStoresData(arrayBuffer) {{
       logoFileName = logoFileName.replace(/^(logo|photo)[/\\\\]/i, '');
     }}
     if (!logoFileName) {{
-      const cleanId = id.replace(/\\D/g, '');
+      const cleanId = id.replace(/\D/g, '');
       if (cleanId) {{
         logoFileName = `${{cleanId.padStart(3, '0')}}.png`;
       }}
@@ -506,7 +508,10 @@ function parseXLSXToStoresData(arrayBuffer) {{
       name,
       area,
       category,
+      style,
       type,
+      takeout: takeoutRaw,
+      isTakeout,
       isOpenToday: true,
       isQuestActive,
       quest: {{
@@ -562,6 +567,12 @@ function updateDataFromXLSX(arrayBuffer) {{
     if (categories.length > 0) {{
       CATEGORIES_LIST.length = 0;
       Array.prototype.push.apply(CATEGORIES_LIST, categories);
+    }}
+
+    const styles = Array.from(new Set(STORES_DATA.map(s => s.style))).filter(Boolean);
+    if (styles.length > 0) {{
+      STYLES_LIST.length = 0;
+      Array.prototype.push.apply(STYLES_LIST, styles);
     }}
 
     const types = Array.from(new Set(STORES_DATA.map(s => s.type))).filter(Boolean);
