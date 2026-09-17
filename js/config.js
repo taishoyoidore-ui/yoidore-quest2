@@ -20,15 +20,6 @@ const APP_CONFIG = {
     id: '2011637649-WWv6pnTL'
   },
 
-  // 開発・テスト用モック設定（LINE外やPCブラウザで動かした際の自動フォールバック）
-  devMock: {
-    enabled: true,
-    defaultUser: {
-      userId: 'mock-hero-001',
-      displayName: '酔いどれ勇者タロウ',
-      pictureUrl: 'assets/banner.png'
-    }
-  },
 
   // 特典ランク・クーポン獲得マイルストーン設定
   // ※はしご達成の必要店舗数（required_visits）や獲得できる店舗数（selectable_count）はここで簡単に変更できます

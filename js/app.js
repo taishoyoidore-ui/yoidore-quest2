@@ -772,7 +772,7 @@ class YoidoreQuestApp {
    * ------------------------------------------------------------------------ */
   renderQuestBookView(container) {
     const user = (window.questApi && window.questApi.currentUser) || {
-      displayName: '酔いどれ勇者タロウ',
+      displayName: '酔いどれ勇者',
       pictureUrl: 'assets/banner.png'
     };
     const visits = (window.questApi && window.questApi.visits) || [];

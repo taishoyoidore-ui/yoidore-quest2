@@ -148,16 +148,9 @@
   </script>
 
   <!-- JS Scripts -->
-  <script>
-    // file:// ローカル起動時はクロスオリジン制約のあるLIFF SDKの読み込みをスキップして高速起動
-    if (window.location.protocol.startsWith('http')) {
-      var liffScript = document.createElement('script');
-      liffScript.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js';
-      document.head.appendChild(liffScript);
-    }
-  </script>
-  <script src="js/config.js?v=2"></script>
-  <script src="js/api.js?v=2"></script>
-  <script src="js/app.js?v=2"></script>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="js/config.js?v=3"></script>
+  <script src="js/api.js?v=3"></script>
+  <script src="js/app.js?v=3"></script>
 </body>
 </html>

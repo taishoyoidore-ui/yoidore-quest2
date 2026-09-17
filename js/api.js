@@ -54,11 +54,20 @@ class QuestApiManager {
   }
 
   /* ------------------------------------------------------------------------
-   * LIFF 初期化 & ユーザー情報取得
+   * LIFF 初期化 & ユーザー情報取得 (LINEログイン 100% 必須)
    * ------------------------------------------------------------------------ */
   async initAuth() {
-    // 1. LIFF SDK が読み込まれているか確認 (http/https 環境のみ実行)
-    if (window.location.protocol.startsWith('http') && window.liff && this.liffId) {
+    // 1. LIFF SDK のロード待機（最大3秒）
+    if (window.location.protocol.startsWith('http')) {
+      let waitCount = 0;
+      while (!window.liff && waitCount < 30) {
+        await new Promise(r => setTimeout(r, 100));
+        waitCount++;
+      }
+    }
+
+    // 2. LIFF SDK による LINE ログイン実行
+    if (window.liff && this.liffId) {
       try {
         await window.liff.init({ liffId: this.liffId });
         this.isLiffReady = true;
@@ -67,52 +76,39 @@ class QuestApiManager {
           const profile = await window.liff.getProfile();
           this.currentUser = {
             userId: profile.userId,
-            displayName: profile.displayName || '名無しの冒険者',
+            displayName: profile.displayName || '酔いどれ勇者',
             pictureUrl: profile.pictureUrl || ''
           };
+          // 実際のLINEユーザー情報をローカルストレージにも安全に保存
+          try {
+            localStorage.setItem('yoidore_line_user', JSON.stringify(this.currentUser));
+          } catch (e) {}
           if (window.debugLog) window.debugLog('LINE LIFFログイン成功: ' + this.currentUser.displayName);
-        } else if (window.liff.isInClient()) {
-          // LINEアプリ内なら自動ログイン
+        } else {
+          // 未ログイン時はLINEログイン画面へリダイレクト
           window.liff.login();
           return;
         }
       } catch (err) {
-        if (window.debugLog) window.debugLog('LIFF初期化スキップ: ' + (err.message || err));
+        console.warn('LIFF初期化エラー:', err);
+        if (window.debugLog) window.debugLog('LIFF初期化エラー: ' + (err.message || err));
       }
     }
 
-    // 2. LINE外ブラウザまたはローカル環境でのフォールバック
+    // 3. 通信遅延等のバックアップ（前回の本物のLINEログイン情報が存在する場合のみ復元）
     if (!this.currentUser) {
-      // ローカルストレージに保存済みのモックユーザーを取得、なければ作成
-      let savedUser = null;
       try {
-        savedUser = localStorage.getItem('yoidore_mock_user');
-      } catch (e) {}
-
-      if (savedUser) {
-        try {
-          this.currentUser = JSON.parse(savedUser);
-        } catch (e) {
-          this.currentUser = null;
+        const saved = localStorage.getItem('yoidore_line_user');
+        if (saved) {
+          this.currentUser = JSON.parse(saved);
         }
-      }
-
-      if (!this.currentUser) {
-        const defaultUser = this.config.devMock?.defaultUser || {
-          userId: 'mock-hero-' + Math.random().toString(36).substring(2, 8),
-          displayName: '酔いどれ勇者タロウ',
-          pictureUrl: 'assets/banner.png'
-        };
-        this.currentUser = defaultUser;
-        try {
-          localStorage.setItem('yoidore_mock_user', JSON.stringify(this.currentUser));
-        } catch (e) {}
-      }
-      console.log('開発用モックユーザーで起動:', this.currentUser);
+      } catch (e) {}
     }
 
-    // 3. Supabaseのusersテーブルにユーザーを保存/更新
-    await this.syncUserToDatabase();
+    // 4. Supabaseのusersテーブルにユーザーを保存/更新
+    if (this.currentUser) {
+      await this.syncUserToDatabase();
+    }
   }
 
   async syncUserToDatabase() {
