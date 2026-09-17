@@ -5,8 +5,14 @@
 const APP_CONFIG = {
   // Supabase 接続設定
   supabase: {
-    url: 'https://fjpvmbzanbuwwpcinajt.supabase.co',
+    url: 'https://fjpvmbzanbuwwpcjnajt.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqcHZtYnphbmJ1d3dwY2puYWp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1ODg5MjYsImV4cCI6MjEwNTE2NDkyNn0.p_RCrxlxsF7HP0J_zgPP_PY5xDMkeDO00A37jvuDxpo'
+  },
+
+  // イベント開催期間
+  eventPeriod: {
+    startDate: '2026-08-01',
+    endDate: '2026-08-31'
   },
 
   // LINE LIFF 設定

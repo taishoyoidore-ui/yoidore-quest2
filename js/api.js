@@ -143,40 +143,56 @@ class QuestApiManager {
         // Supabaseのstoresをフロントエンドのデータ構造に正規化
         this.stores = data.map(s => {
           const raw = s.raw_data || {};
+          const numId = s.id ? s.id.replace(/\D/g, '').padStart(3, '0') : '001';
           return {
             id: s.id,
             name: s.name,
             area: s.area || raw['エリア'] || '',
-            category: raw['カテゴリ'] || '',
-            style: raw['スタイル'] || '',
-            type: raw['タイプ'] || raw['酔いどれタイプ'] || '',
-            takeout: raw['テイクアウト'] || '',
-            catchphrase: raw['キャッチコピー'] || '',
-            days: raw['提供日'] ? raw['提供日'].split(',').map(d => d.trim()) : [],
-            hours: raw['提供時間'] || '',
-            payment: raw['決済方法'] || '',
-            setName: raw['酔いどれセット名'] || '',
-            setContent: raw['セット内容'] || '',
-            price: raw['価格(円)'] || '',
-            charge: raw['チャージ'] || 'なし',
-            limit: raw['限定数'] || 'なし',
-            notes: raw['セット備考'] || '',
-            questTitle: raw['クエスト名'] || '',
-            questContent: raw['クエスト内容'] || '',
-            questPrice: raw['クエスト価格(円)'] || '',
-            questCharge: raw['クエストチャージ'] || '',
-            mapUrl: raw['Google Map URL'] || raw['google map url'] || '',
-            instaUrl: raw['Instagram URL'] || raw['instagram url'] || '',
-            photo: raw['photo'] || 'photo/' + s.id.replace('store-', '') + '.jpg',
-            logo: raw['logo'] || 'logo/' + s.id.replace('store-', '') + '.png',
-            isCouponTarget: Boolean(s.is_coupon_target),
-            couponDescription: s.coupon_description || ''
+            category: raw['カテゴリ'] || raw['category'] || '',
+            style: raw['スタイル'] || raw['style'] || '',
+            type: raw['タイプ'] || raw['酔いどれタイプ'] || raw['type'] || '',
+            takeout: raw['テイクアウト'] || (raw['isTakeout'] ? 'テイクアウトOK' : '不可'),
+            isTakeout: Boolean(raw['isTakeout'] || raw['テイクアウト'] === 'テイクアウトOK' || raw['テイクアウト'] === '可'),
+            isOpenToday: raw['isOpenToday'] !== false,
+            isQuestActive: raw['isQuestActive'] !== false,
+            isCouponTarget: s.is_coupon_target !== false,
+            couponDescription: s.coupon_description || '',
+            catchphrase: raw['キャッチコピー'] || raw['catchphrase'] || '',
+            quest: raw.quest || {
+              title: raw['クエスト名'] || raw['クエストタイトル'] || 'クエスト',
+              price: Number(raw['クエスト価格'] || raw['クエスト価格(円)'] || 0),
+              charge: raw['クエストチャージ'] || '不要',
+              content: raw['クエスト内容'] || '',
+              notes: raw['クエスト備考'] || ''
+            },
+            yoidoreSet: raw.yoidoreSet || {
+              title: raw['酔いどれセット名'] || raw['セット名'] || '酔いどれセット',
+              content: raw['セット内容'] || '',
+              price: Number(raw['価格'] || raw['価格(円)'] || raw['セット価格'] || 0),
+              charge: raw['チャージ'] || raw['チャージ有無'] || '不要',
+              includeCharge: Boolean(raw['チャージ込']),
+              notes: raw['セット備考'] || raw['備考'] || ''
+            },
+            conditions: raw.conditions || {
+              days: raw['提供日'] || '全日',
+              hours: raw['提供時間'] || '営業時間内',
+              limit: raw['限定数'] || 'なし',
+              soldOutEnd: Boolean(raw['売切終了'])
+            },
+            paymentMethods: Array.isArray(raw['paymentMethods']) ? raw['paymentMethods'] : (raw['決済方法'] ? String(raw['決済方法']).split(/[,、]/).map(p => p.trim()) : ['現金']),
+            googleMapUrl: raw['googleMapUrl'] || raw['Google Map URL'] || raw['map_url'] || '',
+            instagramUrl: raw['instagramUrl'] || raw['Instagram URL'] || raw['insta_url'] || '',
+            photoUrl: raw['photoUrl'] || raw['photo'] || `photo/${numId}.jpg`,
+            logoUrl: raw['logoUrl'] || raw['logo'] || `logo/${numId}.png`,
+            mapPos: raw.mapPos || { x: 50, y: 50 }
           };
         });
+        if (window.debugLog) window.debugLog(`📡 Supabaseから店舗データ ${this.stores.length} 件を受信・同期完了！`);
         return this.stores;
       }
     } catch (e) {
       console.warn('Supabaseからの店舗取得に失敗したためローカルデータを使用します:', e);
+      if (window.debugLog) window.debugLog('⚠️ Supabase店舗取得失敗（ローカルデータ利用）: ' + e.message);
     }
 
     // フォールバック: 既存の window.TAISHO_STORES

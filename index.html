@@ -132,14 +132,20 @@
     </nav>
   </main>
 
-  <!-- デバッグ用ログ表示パネル -->
-  <div id="debug-panel" style="position:fixed; bottom:65px; left:10px; right:10px; max-height:120px; background:rgba(0,0,0,0.85); border:1px solid #5ce1e6; border-radius:4px; padding:6px; font-size:11px; font-family:monospace; color:#fff; z-index:999999; overflow-y:auto;">
+  <!-- デバッグ用ログ表示パネル（?debug=1 または重大エラー時のみ表示） -->
+  <div id="debug-panel" style="display:none; position:fixed; bottom:65px; left:10px; right:10px; max-height:120px; background:rgba(0,0,0,0.85); border:1px solid #5ce1e6; border-radius:4px; padding:6px; font-size:11px; font-family:monospace; color:#fff; z-index:999999; overflow-y:auto;">
     <div style="font-weight:bold; color:#f8e16c; margin-bottom:2px; display:flex; justify-content:space-between;">
       <span>🛠️ 動作ログモニター</span>
       <button onclick="document.getElementById('debug-log-inner').innerHTML=''" style="background:#333; color:#fff; border:none; padding:1px 6px; border-radius:2px; cursor:pointer;">クリア</button>
     </div>
-    <div id="debug-log-inner">初期化待機中...</div>
+    <div id="debug-log-inner">初期化完了</div>
   </div>
+  <script>
+    if (window.location.search.includes('debug=1')) {
+      var p = document.getElementById('debug-panel');
+      if (p) p.style.display = 'block';
+    }
+  </script>
 
   <!-- JS Scripts -->
   <script>
@@ -150,10 +156,8 @@
       document.head.appendChild(liffScript);
     }
   </script>
-  <script src="js/xlsx.full.min.js"></script>
-  <script src="js/data.js"></script>
-  <script src="js/config.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/config.js?v=2"></script>
+  <script src="js/api.js?v=2"></script>
+  <script src="js/app.js?v=2"></script>
 </body>
 </html>
