@@ -342,88 +342,46 @@ class QuestApiManager {
   }
 
   /* ------------------------------------------------------------------------
-   * 特典ランク一覧取得
+   * 特典ランク一覧取得 (Supabaseデータベース最優先)
    * ------------------------------------------------------------------------ */
   async getRewardTiers(seasonId = null) {
-    let localTiers = [];
-    try {
-      const local = localStorage.getItem('yoidore_reward_tiers');
-      if (local) {
-        localTiers = JSON.parse(local) || [];
-      }
-    } catch (err) {}
-
-    // store-01 の raw_data からシステム全体のマスタ同期を取得（他端末・シークレット等でも共有）
-    try {
-      if (localTiers.length === 0 && Array.isArray(this.stores)) {
-        const s1 = this.stores.find(s => s.id === 'store-01');
-        if (s1?.raw_data?._system_reward_tiers && Array.isArray(s1.raw_data._system_reward_tiers)) {
-          localTiers = s1.raw_data._system_reward_tiers;
-        }
-      }
-    } catch (e) {}
-
-    if (localTiers.length === 0 && this.config.fallbackRewardTiers) {
-      localTiers = [...this.config.fallbackRewardTiers];
-    }
-
-    let deletedIds = [];
-    try {
-      const del = localStorage.getItem('yoidore_deleted_tier_ids');
-      if (del) deletedIds = JSON.parse(del) || [];
-    } catch (err) {}
-
-    const mergedMap = new Map();
-    // 1. まずローカル / 最新管理設定を最優先で投入
-    localTiers.forEach(t => {
-      const numId = Number(t.id);
-      if (!deletedIds.includes(numId) && !deletedIds.includes(String(numId))) {
-        mergedMap.set(numId, {
-          id: numId,
-          reward_type: t.reward_type || 'store_coupon',
-          title: t.title,
-          required_visits: Number(t.required_visits),
-          selectable_count: Number(t.selectable_count) || 1,
-          goods_name: t.goods_name || null,
-          exchange_location: t.exchange_location || null,
-          exchange_notice: t.exchange_notice || null,
-          description: t.description || ''
-        });
-      }
-    });
-
     try {
       const data = await this.supabaseFetch('reward_tiers?select=*&order=required_visits.asc');
       if (Array.isArray(data) && data.length > 0) {
-        data.forEach(s => {
-          const numId = Number(s.id);
-          if (!deletedIds.includes(numId) && !deletedIds.includes(String(numId))) {
-            const existing = mergedMap.get(numId);
-            if (!existing) {
-              mergedMap.set(numId, {
-                id: numId,
-                title: s.title,
-                required_visits: Number(s.required_visits),
-                selectable_count: Number(s.selectable_count) || 1,
-                description: s.description || '',
-                reward_type: s.reward_type || 'store_coupon',
-                goods_name: s.goods_name || null,
-                exchange_location: s.exchange_location || null,
-                exchange_notice: s.exchange_notice || null
-              });
-            }
-          }
-        });
+        this.rewardTiers = data.map(s => {
+          return {
+            id: Number(s.id),
+            reward_type: s.reward_type || 'store_coupon',
+            title: s.title,
+            required_visits: Number(s.required_visits),
+            selectable_count: Number(s.selectable_count) || 1,
+            goods_name: s.goods_name || null,
+            exchange_location: s.exchange_location || null,
+            exchange_notice: s.exchange_notice || null,
+            description: s.description || ''
+          };
+        }).sort((a, b) => (a.required_visits || 0) - (b.required_visits || 0));
+
+        try {
+          localStorage.setItem('yoidore_reward_tiers', JSON.stringify(this.rewardTiers));
+        } catch (e) {}
+
+        return this.rewardTiers;
       }
     } catch (e) {
-      console.warn('特典ランクのSupabase取得（ローカルデータを使用）:', e);
+      console.warn('特典ランクのSupabase取得失敗 (ローカルキャッシュを使用):', e);
     }
 
-    this.rewardTiers = Array.from(mergedMap.values()).sort((a, b) => (a.required_visits || 0) - (b.required_visits || 0));
+    // Supabaseオフライン時等のフォールバック
     try {
-      localStorage.setItem('yoidore_reward_tiers', JSON.stringify(this.rewardTiers));
-    } catch (e) {}
+      const local = localStorage.getItem('yoidore_reward_tiers');
+      if (local) {
+        this.rewardTiers = JSON.parse(local) || [];
+        if (this.rewardTiers.length > 0) return this.rewardTiers;
+      }
+    } catch (err) {}
 
+    this.rewardTiers = [...(this.config.fallbackRewardTiers || [])];
     return this.rewardTiers;
   }
 
