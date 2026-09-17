@@ -228,10 +228,14 @@ class QuestApiManager {
         this.currentSeason = data[0];
       }
     } catch (e) {
+      // Supabaseにseasonsテーブルが無い場合はlocalStorageから最新データを取得
       try {
         const local = localStorage.getItem('yoidore_current_season');
         if (local) {
-          this.currentSeason = JSON.parse(local);
+          const parsed = JSON.parse(local);
+          if (parsed && parsed.name) {
+            this.currentSeason = { ...this.currentSeason, ...parsed };
+          }
         }
       } catch (err) {}
     }
@@ -276,12 +280,32 @@ class QuestApiManager {
       try {
         const local = localStorage.getItem('yoidore_seasons');
         if (local) {
-          this.seasons = JSON.parse(local);
-          return this.seasons;
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            this.seasons = parsed;
+          }
         }
       } catch (err) {}
     }
-    this.seasons = [this.currentSeason];
+
+    if (!Array.isArray(this.seasons) || this.seasons.length === 0) {
+      this.seasons = [{ ...this.currentSeason }];
+    }
+
+    // 常に最新のcurrentSeasonをseasons配列内に同期
+    if (this.currentSeason && this.currentSeason.id) {
+      const currentIdx = this.seasons.findIndex(s => s.id === this.currentSeason.id);
+      if (currentIdx >= 0) {
+        this.seasons[currentIdx] = { ...this.seasons[currentIdx], ...this.currentSeason };
+      } else {
+        this.seasons.unshift({ ...this.currentSeason });
+      }
+    }
+
+    try {
+      localStorage.setItem('yoidore_seasons', JSON.stringify(this.seasons));
+    } catch (err) {}
+
     return this.seasons;
   }
 
@@ -385,7 +409,7 @@ class QuestApiManager {
     }
     if (!storeId) return { success: false, message: '店舗IDが指定されていません' };
 
-    // 既に訪問済みかチェック
+    // 既にハシゴ済みかチェック
     const existing = (this.visits || []).find(v => v.store_id === storeId);
     if (existing) {
       return {
@@ -598,7 +622,7 @@ class QuestApiManager {
       goods_name: tier?.goods_name || tier?.title || 'オリジナル記念グッズ',
       exchange_location: tier?.exchange_location || '全参加店舗または運営本部にて引換可能',
       exchange_notice: tier?.exchange_notice || '※お会計時またはご注文時に引換画面をスタッフへご提示ください。',
-      title: tier?.title || 'はしご達成記念グッズ引換券',
+      title: tier?.title || 'ハシゴ達成記念グッズ引換券',
       description: tier?.description || '',
       status: 'active',
       acquired_at: new Date().toISOString()
@@ -699,9 +723,22 @@ class QuestApiManager {
 
   // シーズンの新規登録 / 更新
   async adminSaveSeason(seasonData) {
+    if (!this.currentSeason) this.currentSeason = {};
     this.currentSeason = { ...this.currentSeason, ...seasonData };
+
+    if (!Array.isArray(this.seasons)) {
+      this.seasons = [{ ...this.currentSeason }];
+    }
+    const idx = this.seasons.findIndex(s => s.id === seasonData.id);
+    if (idx >= 0) {
+      this.seasons[idx] = { ...this.seasons[idx], ...seasonData };
+    } else {
+      this.seasons.unshift({ ...seasonData });
+    }
+
     try {
       localStorage.setItem('yoidore_current_season', JSON.stringify(this.currentSeason));
+      localStorage.setItem('yoidore_seasons', JSON.stringify(this.seasons));
     } catch (e) {}
 
     try {
@@ -717,6 +754,20 @@ class QuestApiManager {
 
   // アクティブシーズンの切り替え
   async adminSetActiveSeason(seasonId) {
+    if (Array.isArray(this.seasons)) {
+      this.seasons.forEach(s => {
+        s.is_active = (s.id === seasonId);
+      });
+      const active = this.seasons.find(s => s.id === seasonId);
+      if (active) {
+        this.currentSeason = { ...active, is_active: true };
+      }
+      try {
+        localStorage.setItem('yoidore_seasons', JSON.stringify(this.seasons));
+        localStorage.setItem('yoidore_current_season', JSON.stringify(this.currentSeason));
+      } catch (e) {}
+    }
+
     try {
       await this.supabaseFetch('seasons?id=neq.0', {
         method: 'PATCH',

@@ -28,7 +28,7 @@ const APP_CONFIG = {
       id: 1,
       reward_type: 'store_coupon',
       required_visits: 5,
-      title: '5軒はしご達成特典（店舗クーポン）',
+      title: '5軒ハシゴ達成特典（店舗クーポン）',
       selectable_count: 5,
       description: 'クーポン取扱店の中からお好きな5店舗を選んで1杯無料クーポンを獲得！'
     },
@@ -36,7 +36,7 @@ const APP_CONFIG = {
       id: 2,
       reward_type: 'goods',
       required_visits: 10,
-      title: '10軒はしご達成特典（特製トートバッグ）',
+      title: '10軒ハシゴ達成特典（特製トートバッグ）',
       goods_name: '大正酔いどれ特製トートバッグ',
       exchange_location: '全参加店舗または運営本部にて引換可能',
       exchange_notice: '※お会計時またはご注文時に引換画面をスタッフへご提示ください。',
@@ -46,7 +46,7 @@ const APP_CONFIG = {
       id: 3,
       reward_type: 'goods',
       required_visits: 20,
-      title: '20軒はしご達成特典（限定Tシャツ）',
+      title: '20軒ハシゴ達成特典（限定Tシャツ）',
       goods_name: '酔いどれ勇者 限定オリジナルTシャツ',
       exchange_location: '運営指定店舗（大正酒場本部）にて引換',
       exchange_notice: '※サイズ（M/L/XL）は先着順となります。在庫がなくなり次第終了となります。',
@@ -58,8 +58,8 @@ const APP_CONFIG = {
   // ※制覇店舗数（min_visits）に応じて称号とレベルを判定
   fallbackHeroTitles: [
     { level: 1, min_visits: 0, title: '駆け出しの呑兵衛', badge_color: '#94a3b8', description: 'まだ1店舗も巡っていない初期状態' },
-    { level: 2, min_visits: 1, title: '見習い巡回兵', badge_color: '#38bdf8', description: '最初のはしご酒を記録した勇者' },
-    { level: 3, min_visits: 3, title: 'ほろ酔い冒険者', badge_color: '#4ade80', description: '順調にはしご酒を楽しむ冒険者' },
+    { level: 2, min_visits: 1, title: '見習い巡回兵', badge_color: '#38bdf8', description: '最初のハシゴ酒を記録した勇者' },
+    { level: 3, min_visits: 3, title: 'ほろ酔い冒険者', badge_color: '#4ade80', description: '順調にハシゴ酒を楽しむ冒険者' },
     { level: 4, min_visits: 5, title: '酒場制覇の豪傑', badge_color: '#facc15', description: '5店舗を制覇した頼もしい豪傑' },
     { level: 5, min_visits: 10, title: '大正の伝説マスター', badge_color: '#f43f5e', description: '10店舗以上を制覇した伝説の呑兵衛' },
     { level: 6, min_visits: 20, title: '酔いどれ覇王', badge_color: '#c084fc', description: '大正区全域を掌握する至高の覇王' },

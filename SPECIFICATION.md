@@ -82,7 +82,7 @@ sequenceDiagram
         App-->>User: レトロRPGスタート画面（冒険の書オープン）
     end
 
-    Note over User, Shop: 2. 店舗訪問 ＆ 来店証明（チェックイン・サイン代替）
+    Note over User, Shop: 2. ハシゴ証明（チェックイン・サイン代替）
     User->>Shop: 入店・注文（「酔いどれセット」や「店舗クエスト」）
     User->>App: 卓上/レジ横の「店舗QRコード」を読み取る
     App->>DB: 来店ログ記録 (user_id, store_id, season_id, visited_at)

@@ -116,8 +116,19 @@ class YoidoreAdminApp {
     // スマホサイドバーを閉じる
     document.getElementById('sidebar').classList.remove('open');
 
-    // 必要に応じた個別描画
-    if (tabId === 'pop') this.renderPopCards();
+    // タブ切り替え時の再描画
+    if (tabId === 'dashboard') {
+      this.renderStatusBanner();
+      this.renderDashboard();
+    } else if (tabId === 'stores') {
+      this.renderStoresTable();
+    } else if (tabId === 'tiers') {
+      this.renderSeasonSettings();
+    } else if (tabId === 'logs') {
+      this.renderLogs();
+    } else if (tabId === 'pop') {
+      this.renderPopCards();
+    }
   }
 
   /* ------------------------------------------------------------------------
@@ -130,9 +141,9 @@ class YoidoreAdminApp {
 
     try {
       // 1. シーズン情報
-      this.seasons = await this.api.getSeasons();
       const currentSeason = await this.api.getCurrentSeason();
-      if (currentSeason) {
+      this.seasons = await this.api.getSeasons();
+      if (!this.selectedSeasonId && currentSeason) {
         this.selectedSeasonId = currentSeason.id;
       }
 
@@ -240,7 +251,7 @@ class YoidoreAdminApp {
       banner.classList.add('banner-active');
       icon.textContent = '🍺';
       title.textContent = `【本開催中】${current.name}`;
-      desc.textContent = `はしご酒クエスト開催中！ (〜 ${current.end_date} まで)`;
+      desc.textContent = `ハシゴ酒クエスト開催中！ (〜 ${current.end_date} まで)`;
       const days = Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
       timer.textContent = `開催終了まであと ${days} 日`;
     } else if (now <= validUntil) {
@@ -743,7 +754,7 @@ class YoidoreAdminApp {
       tier = {
         id: '',
         reward_type: 'store_coupon',
-        title: `${maxVisits ? maxVisits + 5 : 5}軒はしご達成特典`,
+        title: `${maxVisits ? maxVisits + 5 : 5}軒ハシゴ達成特典`,
         required_visits: maxVisits ? maxVisits + 5 : 5,
         selectable_count: 5,
         goods_name: '',
@@ -984,24 +995,28 @@ class YoidoreAdminApp {
   }
 
   async saveCurrentSeasonDates() {
-    const current = this.seasons.find(s => s.id === this.selectedSeasonId) || this.api.currentSeason;
+    const current = (this.seasons && this.seasons.find(s => s.id === this.selectedSeasonId)) || this.api.currentSeason || { id: 2 };
     const name = document.getElementById('edit-season-name').value.trim();
     const start_date = document.getElementById('edit-season-start').value;
     const end_date = document.getElementById('edit-season-end').value;
     const coupon_valid_until = document.getElementById('edit-season-valid').value;
 
+    const seasonData = {
+      id: current.id || 2,
+      name: name || current.name || '大正酔いどれクエストⅡ',
+      start_date,
+      end_date,
+      coupon_valid_until,
+      is_active: current.is_active !== undefined ? current.is_active : true
+    };
+
     try {
       this.showToast('開催日程を保存中...');
-      await this.api.adminSaveSeason({
-        id: current.id,
-        name,
-        start_date,
-        end_date,
-        coupon_valid_until,
-        is_active: true
-      });
-      this.showToast(`第${current.id}回の開催日程を保存しました！`);
+      await this.api.adminSaveSeason(seasonData);
+      this.selectedSeasonId = seasonData.id;
+      this.showToast(`第${seasonData.id}回の開催日程を保存しました！`);
       await this.loadAllData();
+      this.renderSeasonSettings();
     } catch (err) {
       alert('保存に失敗しました: ' + err.message);
     }
@@ -1314,14 +1329,14 @@ class YoidoreAdminApp {
 
       card.innerHTML = `
         <div class="pop-event-header">
-          <span class="pop-event-badge">大正区はしご酒イベント</span>
+          <span class="pop-event-badge">大正区ハシゴ酒イベント</span>
           <div class="pop-event-title">🍺 ${this.escapeHtml(seasonTitle)} ⚔️</div>
         </div>
         <div class="pop-store-name">${this.escapeHtml(store.name)}</div>
         <div class="pop-store-area">${this.escapeHtml(store.area || '')} 【${this.escapeHtml(store.id)}】</div>
         <div class="pop-qr-wrapper" id="pop-qr-${store.id}"></div>
         <div class="pop-guide-text">📱 スマホのカメラでQRを読み取って<br>【店主サインを受け取る】！</div>
-        <div class="pop-sub-guide">※冒険の書にサインが刻まれ、はしご件数が記録されます</div>
+        <div class="pop-sub-guide">※冒険の書にサインが刻まれ、ハシゴ件数が記録されます</div>
       `;
 
       container.appendChild(card);

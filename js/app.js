@@ -656,7 +656,7 @@ class YoidoreQuestApp {
             <span class="season-notice-icon">🍺</span>
             <div class="season-notice-text">
               <strong>【${this.escapeHtml ? this.escapeHtml(season.name) : season.name} 開催中！】</strong>
-              <div style="font-size:11px; opacity:0.9;">はしご酒で宝箱を解放しよう！ (残り ${info.daysLeft} 日)</div>
+              <div style="font-size:11px; opacity:0.9;">ハシゴ酒で宝箱を解放しよう！ (残り ${info.daysLeft} 日)</div>
             </div>
           </div>
         </div>
@@ -758,7 +758,7 @@ class YoidoreQuestApp {
           <div style="display:flex; align-items:center; gap:10px;">
             <span style="font-size:26px;">📜</span>
             <div>
-              <div style="font-size:14px; font-weight:bold; color:var(--text-yellow);">冒険の書（街ぶらはしご進捗）</div>
+              <div style="font-size:14px; font-weight:bold; color:var(--text-yellow);">冒険の書（街ぶらハシゴ進捗）</div>
               <div style="font-size:12px; color:var(--text-green);">制覇数: ${visitedCount} / ${totalCount} 軒 ${couponCount > 0 ? `| クーポン: ${couponCount}枚` : ''}</div>
             </div>
           </div>
@@ -924,7 +924,7 @@ class YoidoreQuestApp {
         }
       } else {
         const remaining = tier.required_visits - visitedCount;
-        actionHtml = `<div style="font-size:12px; color:var(--text-dim);">🔒 あと <strong class="text-yellow">${remaining}軒</strong> のはしご酒で解放！</div>`;
+        actionHtml = `<div style="font-size:12px; color:var(--text-dim);">🔒 あと <strong class="text-yellow">${remaining}軒</strong> のハシゴ酒で解放！</div>`;
       }
 
       return `
@@ -1004,12 +1004,12 @@ class YoidoreQuestApp {
             <span>🎟️ 所持クーポン・引換券</span>
           </div>
           <div style="padding:15px; text-align:center; color:var(--text-dim); font-size:13px;">
-            現在所持しているクーポン・引換券はありません。<br>酒場をはしごして特典宝箱を解放しましょう！
+            現在所持しているクーポン・引換券はありません。<br>酒場をハシゴして特典宝箱を解放しましょう！
           </div>
         </div>
       `;
 
-    // 訪問済み店舗一覧
+    // ハシゴ済み店舗一覧
     const visitedStoresHtml = visits.map((v, idx) => {
       const st = stores.find(s => s.id === v.store_id);
       const name = st ? st.name : v.store_id;
@@ -1052,7 +1052,7 @@ class YoidoreQuestApp {
         <!-- クエスト進捗 -->
         <div class="quest-progress-box">
           <div class="quest-progress-header">
-            <span class="quest-progress-title">⚔️ 街ぶら はしご進捗</span>
+            <span class="quest-progress-title">⚔️ 止まらないハシゴ進捗</span>
             <span class="quest-progress-count">${visitedCount} <span style="font-size:13px; color:var(--text-dim);">/ ${totalStores} 軒</span></span>
           </div>
           <div class="quest-progress-bar-bg">
@@ -1063,7 +1063,7 @@ class YoidoreQuestApp {
         <!-- 特典宝箱一覧 -->
         <div class="rpg-window gold-border" style="margin-bottom:12px;">
           <div class="rpg-window-header">
-            <span>🎁 はしご達成特典・宝箱</span>
+            <span>🎁 ハシゴ達成特典・宝箱</span>
           </div>
           <div style="margin-top:10px;">
             ${tiersHtml}
@@ -1073,13 +1073,13 @@ class YoidoreQuestApp {
         <!-- 所持クーポン一覧 -->
         ${couponsHtml}
 
-        <!-- 訪問済み店舗一覧 -->
+        <!-- ハシゴ済み店舗一覧 -->
         <div class="rpg-window" style="margin-top:14px;">
           <div class="rpg-window-header">
-            <span>📜 訪問済み酒場リスト (${visitedCount}軒)</span>
+            <span>📜 ハシゴ済みリスト (${visitedCount}軒)</span>
           </div>
           <ul class="command-list" style="margin-top:8px;">
-            ${visitedStoresHtml || `<li style="padding:15px; text-align:center; color:var(--text-dim); font-size:13px;">まだ訪問記録がありません。酒場を巡りましょう！</li>`}
+            ${visitedStoresHtml || `<li style="padding:15px; text-align:center; color:var(--text-dim); font-size:13px;">まだハシゴ記録がありません。酒場を巡りましょう！</li>`}
           </ul>
         </div>
 
@@ -1152,7 +1152,7 @@ class YoidoreQuestApp {
 
     // 共通テストサイン実行関数
     const handleTestVisits = async (count, btnEl) => {
-      if (!confirm(`【テスト実行】未訪問の酒場から新たに【${count}店舗】の店主サインを冒険の書に記録しますか？`)) {
+      if (!confirm(`【テスト実行】新たに【${count}店舗】の店主サインを冒険の書に記録しますか？`)) {
         return;
       }
       this.playFanfareSE();
@@ -1559,7 +1559,7 @@ class YoidoreQuestApp {
     document.getElementById('qr-modal-cancel-btn').addEventListener('click', closeModal);
 
     const handleQrTest = async (count) => {
-      if (!confirm(`【テスト実行】未訪問の酒場から新たに【${count}店舗】の店主サインを記録しますか？`)) return;
+      if (!confirm(`【テスト実行】新たに【${count}店舗】の店主サインを記録しますか？`)) return;
       this.playFanfareSE();
       const res = await window.questApi.recordMultipleVisitsForTest(count);
       await closeModal();
@@ -1741,7 +1741,7 @@ class YoidoreQuestApp {
         <p style="font-size:13px; color:#cbd5e1; line-height:1.6; margin-bottom:14px;">
           『<strong>${this.escapeHtml ? this.escapeHtml(storeName) : storeName}</strong>』は<br>
           今シーズンすでに冒険の書に記録されています。<br>
-          <span style="font-size:11px; color:var(--text-dim);">※はしご制覇カウントは1店舗につき1回となります</span>
+          <span style="font-size:11px; color:var(--text-dim);">※ハシゴ制覇カウントは1店舗につき1回となります</span>
         </p>
         <button id="btn-close-already-modal" class="treasure-claim-btn" style="width:100%; font-size:13px; padding:8px; background:#334155; border-color:#64748b;">
           OK (冒険を続ける)
@@ -2277,10 +2277,10 @@ class YoidoreQuestApp {
         </div>
 
         ${isCouponTarget ? `
-          <!-- はしご達成クーポン対象枠 -->
+          <!-- ハシゴ達成クーポン対象枠 -->
           <div class="rpg-window gold-border" style="background:#1a1708;">
             <div class="rpg-window-header">
-              <span>🎁 はしご達成クーポン対象店舗</span>
+              <span>🎁 ハシゴ達成クーポン対象店舗</span>
             </div>
             <div style="padding:8px 0;">
               <div style="font-size:12px; color:var(--text-yellow); font-weight:bold; margin-bottom:4px;">【街ぶら達成時にもらえる特典】</div>
