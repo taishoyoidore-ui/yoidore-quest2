@@ -517,33 +517,42 @@ class YoidoreAdminApp {
       };
     }
 
+    const raw = store.raw_data || {};
+    const quest = raw.quest || {};
+    const yoidoreSet = raw.yoidoreSet || {};
+    const conditions = raw.conditions || {};
+    const numId = (store.id || '').replace(/\D/g, '').padStart(3, '0');
+
     document.getElementById('edit-store-id').value = store.id || '';
     document.getElementById('edit-store-name').value = store.name || '';
-    document.getElementById('edit-store-area').value = store.area || '';
-    document.getElementById('edit-store-category').value = store.category || '';
-    document.getElementById('edit-store-style').value = store.style || '';
-    document.getElementById('edit-store-type').value = store.yoidore_type || store.type || '';
-    document.getElementById('edit-store-takeout').value = store.takeout ? 'true' : 'false';
-    document.getElementById('edit-store-catchphrase').value = store.catchphrase || '';
-    document.getElementById('edit-store-days').value = store.days || '';
-    document.getElementById('edit-store-hours').value = store.hours || '';
-    document.getElementById('edit-store-payment').value = store.payment || '';
+    document.getElementById('edit-store-area').value = store.area || raw['エリア'] || '';
+    document.getElementById('edit-store-category').value = store.category || raw['カテゴリ'] || raw['category'] || '';
+    document.getElementById('edit-store-style').value = store.style || raw['スタイル'] || raw['style'] || '';
+    document.getElementById('edit-store-type').value = store.yoidore_type || store.type || raw['タイプ'] || raw['酔いどれタイプ'] || raw['type'] || '';
+    
+    const isTakeout = store.takeout === true || store.takeout === 'テイクアウトOK' || store.takeout === '可能' || store.isTakeout || raw['テイクアウト'] === 'テイクアウトOK' || raw['テイクアウト'] === '可' || raw.isTakeout;
+    document.getElementById('edit-store-takeout').value = isTakeout ? 'true' : 'false';
 
-    document.getElementById('edit-store-set-name').value = store.set_name || '';
-    document.getElementById('edit-store-set-price').value = store.set_price || 1000;
-    document.getElementById('edit-store-set-content').value = store.set_content || '';
-    document.getElementById('edit-store-set-charge').value = store.set_charge || '';
-    document.getElementById('edit-store-set-limit').value = store.set_limit || '';
-    document.getElementById('edit-store-set-notes').value = store.set_notes || '';
+    document.getElementById('edit-store-catchphrase').value = store.catchphrase || raw['キャッチコピー'] || raw['catchphrase'] || '';
+    document.getElementById('edit-store-days').value = store.days || conditions.days || raw['提供日'] || '';
+    document.getElementById('edit-store-hours').value = store.hours || conditions.hours || raw['提供時間'] || raw['営業時間'] || '';
+    document.getElementById('edit-store-payment').value = store.payment || (Array.isArray(raw.paymentMethods) ? raw.paymentMethods.join(', ') : (raw['決済方法'] || ''));
 
-    document.getElementById('edit-store-quest-name').value = store.quest_name || '';
-    document.getElementById('edit-store-quest-price').value = store.quest_price || 0;
-    document.getElementById('edit-store-quest-content').value = store.quest_content || '';
+    document.getElementById('edit-store-set-name').value = store.set_name || yoidoreSet.title || raw['酔いどれセット名'] || raw['セット名'] || '';
+    document.getElementById('edit-store-set-price').value = store.set_price !== undefined ? store.set_price : (yoidoreSet.price || raw['価格'] || raw['セット価格'] || 1000);
+    document.getElementById('edit-store-set-content').value = store.set_content || yoidoreSet.content || raw['セット内容'] || '';
+    document.getElementById('edit-store-set-charge').value = store.set_charge || yoidoreSet.charge || raw['チャージ'] || raw['チャージ有無'] || '';
+    document.getElementById('edit-store-set-limit').value = store.set_limit || conditions.limit || raw['限定数'] || '';
+    document.getElementById('edit-store-set-notes').value = store.set_notes || yoidoreSet.notes || raw['セット備考'] || raw['備考'] || '';
 
-    document.getElementById('edit-store-map-url').value = store.map_url || '';
-    document.getElementById('edit-store-insta-url').value = store.insta_url || '';
-    document.getElementById('edit-store-photo-url').value = store.photo_url || '';
-    document.getElementById('edit-store-logo-url').value = store.logo_url || '';
+    document.getElementById('edit-store-quest-name').value = store.quest_name || quest.title || raw['クエスト名'] || raw['クエストタイトル'] || '';
+    document.getElementById('edit-store-quest-price').value = store.quest_price !== undefined ? store.quest_price : (quest.price || raw['クエスト価格'] || 0);
+    document.getElementById('edit-store-quest-content').value = store.quest_content || quest.content || raw['クエスト内容'] || '';
+
+    document.getElementById('edit-store-map-url').value = store.map_url || raw.googleMapUrl || raw['Google Map URL'] || raw['map_url'] || '';
+    document.getElementById('edit-store-insta-url').value = store.insta_url || raw.instagramUrl || raw['Instagram URL'] || raw['insta_url'] || '';
+    document.getElementById('edit-store-photo-url').value = store.photo_url || store.photoUrl || raw['photoUrl'] || raw['photo'] || (numId ? `photo/${numId}.jpg` : '');
+    document.getElementById('edit-store-logo-url').value = store.logo_url || store.logoUrl || raw['logoUrl'] || raw['logo'] || (numId ? `logo/${numId}.png` : '');
     document.getElementById('edit-store-coupon-target').checked = store.is_coupon_target !== false;
 
     document.getElementById('store-modal').style.display = 'flex';

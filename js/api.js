@@ -65,78 +65,66 @@ class QuestApiManager {
   }
 
   /* ------------------------------------------------------------------------
-   * LIFF 初期化 & ユーザー情報取得 (LINEログイン 100% 必須)
+   * LIFF 初期化 & ユーザー情報取得 (LINE公式ログイン 100% 必須)
    * ------------------------------------------------------------------------ */
   async initAuth() {
     // 1. LIFF SDK のロード待機（最大3秒）
-    if (window.location.protocol.startsWith('http')) {
-      let waitCount = 0;
-      while (!window.liff && waitCount < 30) {
-        await new Promise(r => setTimeout(r, 100));
-        waitCount++;
+    let waitCount = 0;
+    while (!window.liff && waitCount < 30) {
+      await new Promise(r => setTimeout(r, 100));
+      waitCount++;
+    }
+
+    if (!window.liff || !this.liffId) {
+      console.error('LIFF SDK または LIFF ID が設定されていません');
+      if (window.debugLog) window.debugLog('LIFF SDK または LIFF ID が未設定');
+      return;
+    }
+
+    // 2. LIFF SDK による初期化 & LINE ログイン実行
+    try {
+      await window.liff.init({ liffId: this.liffId });
+      this.isLiffReady = true;
+
+      if (!window.liff.isLoggedIn()) {
+        // 未ログイン時はLINE公式ログイン画面へ即時リダイレクト
+        window.liff.login();
+        return;
       }
-    }
 
-    // 2. LIFF SDK による LINE ログイン実行
-    if (window.liff && this.liffId) {
-      try {
-        await window.liff.init({ liffId: this.liffId });
-        this.isLiffReady = true;
+      // 3. LINE公式プロフィール情報の取得
+      const profile = await window.liff.getProfile();
+      this.currentUser = {
+        userId: profile.userId,
+        displayName: profile.displayName || '酔いどれ勇者',
+        pictureUrl: profile.pictureUrl || ''
+      };
 
-        if (window.liff.isLoggedIn()) {
-          const profile = await window.liff.getProfile();
-          this.currentUser = {
-            userId: profile.userId,
-            displayName: profile.displayName || '酔いどれ勇者',
-            pictureUrl: profile.pictureUrl || ''
-          };
-          // 実際のLINEユーザー情報をローカルストレージにも安全に保存
-          try {
-            localStorage.setItem('yoidore_line_user', JSON.stringify(this.currentUser));
-          } catch (e) {}
-          if (window.debugLog) window.debugLog('LINE LIFFログイン成功: ' + this.currentUser.displayName);
-        } else {
-          // 未ログイン時はLINEログイン画面へリダイレクト
-          window.liff.login();
-          return;
-        }
-      } catch (err) {
-        console.warn('LIFF初期化エラー:', err);
-        if (window.debugLog) window.debugLog('LIFF初期化エラー: ' + (err.message || err));
-      }
-    }
+      if (window.debugLog) window.debugLog('LINE LIFFログイン成功: ' + this.currentUser.displayName + ' (' + this.currentUser.userId + ')');
 
-    // 3. 通信遅延等のバックアップ（前回の本物のLINEログイン情報が存在する場合のみ復元）
-    if (!this.currentUser) {
-      try {
-        const saved = localStorage.getItem('yoidore_line_user');
-        if (saved) {
-          this.currentUser = JSON.parse(saved);
-        }
-      } catch (e) {}
-    }
-
-    // 4. Supabaseのusersテーブルにユーザーを保存/更新
-    if (this.currentUser) {
+      // 4. SupabaseのusersテーブルにLINEユーザー情報を確実に同期（UPSERT）
       await this.syncUserToDatabase();
+    } catch (err) {
+      console.error('LIFF初期化/LINEログインエラー:', err);
+      if (window.debugLog) window.debugLog('LIFF初期化/LINEログインエラー: ' + (err.message || err));
     }
   }
 
   async syncUserToDatabase() {
-    if (!this.currentUser) return;
+    if (!this.currentUser || !this.currentUser.userId) return;
     try {
       await this.supabaseFetch('users', {
         method: 'POST',
         headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
         body: JSON.stringify({
           line_user_id: this.currentUser.userId,
-          display_name: this.currentUser.displayName,
-          picture_url: this.currentUser.pictureUrl,
+          display_name: this.currentUser.displayName || '酔いどれ勇者',
+          picture_url: this.currentUser.pictureUrl || '',
           last_active_at: new Date().toISOString()
         })
       });
     } catch (e) {
-      console.warn('ユーザー同期に失敗（オフラインの可能性）:', e);
+      console.error('ユーザー情報のSupabase同期に失敗:', e);
     }
   }
 
@@ -355,7 +343,7 @@ class QuestApiManager {
    * ユーザーの来店ログ取得 (visits)
    * ------------------------------------------------------------------------ */
   async getUserVisits() {
-    if (!this.currentUser) return [];
+    if (!this.currentUser || !this.currentUser.userId) return [];
     const seasonId = this.currentSeason?.id || 2;
     try {
       const data = await this.supabaseFetch(`visits?user_id=eq.${encodeURIComponent(this.currentUser.userId)}&season_id=eq.${seasonId}&select=*&order=visited_at.desc`);
@@ -364,30 +352,30 @@ class QuestApiManager {
         return this.visits;
       }
     } catch (e) {
-      console.warn('来店履歴の取得に失敗 (ローカルストレージを使用):', e);
+      console.error('Supabaseからの来店履歴取得エラー:', e);
     }
-    try {
-      const raw = localStorage.getItem(`yoidore_visits_s${seasonId}`);
-      this.visits = raw ? JSON.parse(raw) : [];
-    } catch (err) {
-      this.visits = this.visits || [];
-    }
-    return this.visits;
+    return this.visits || [];
   }
 
   /* ------------------------------------------------------------------------
    * 来店チェックイン実行 (QRコード読み取り時)
    * ------------------------------------------------------------------------ */
   async checkInStore(storeId) {
-    if (!this.currentUser) {
+    if (!this.currentUser || !this.currentUser.userId) {
       await this.initAuth();
+    }
+    if (!this.currentUser || !this.currentUser.userId) {
+      return {
+        success: false,
+        message: 'LINEログインが必要です。LINE公式アカウントまたはLINEアプリ内からアクセスしてください。'
+      };
     }
     if (!storeId) return { success: false, message: '店舗IDが指定されていません' };
 
     const seasonId = this.currentSeason?.id || 2;
 
     // 既に訪問済みかチェック
-    const existing = this.visits.find(v => v.store_id === storeId);
+    const existing = (this.visits || []).find(v => v.store_id === storeId);
     if (existing) {
       return {
         success: false,
@@ -402,6 +390,8 @@ class QuestApiManager {
     const storeName = store ? store.name : storeId;
 
     try {
+      // 外部キー制約のためユーザーを確実に同期
+      await this.syncUserToDatabase();
       await this.supabaseFetch('visits', {
         method: 'POST',
         headers: { 'Prefer': 'return=representation' },
@@ -414,18 +404,11 @@ class QuestApiManager {
       });
       await this.getUserVisits();
     } catch (err) {
-      console.warn('Supabaseチェックイン失敗のためローカル保存:', err);
-      const newVisit = {
-        id: `visit_${Date.now()}`,
-        user_id: this.currentUser.userId,
-        store_id: storeId,
-        season_id: seasonId,
-        visited_at: new Date().toISOString()
+      console.error('Supabaseチェックイン保存エラー:', err);
+      return {
+        success: false,
+        message: 'チェックインの保存に失敗しました: ' + (err.message || '通信エラー')
       };
-      this.visits = [newVisit, ...(this.visits || [])];
-      try {
-        localStorage.setItem(`yoidore_visits_s${seasonId}`, JSON.stringify(this.visits));
-      } catch (e) {}
     }
 
     return {
@@ -433,7 +416,7 @@ class QuestApiManager {
       alreadyVisited: false,
       storeId,
       storeName,
-      totalVisits: this.visits.length,
+      totalVisits: (this.visits || []).length,
       message: `『${storeName}』を冒険の書に記録した！`
     };
   }
@@ -442,7 +425,7 @@ class QuestApiManager {
    * ユーザーの獲得クーポン一覧取得 (user_coupons)
    * ------------------------------------------------------------------------ */
   async getUserCoupons() {
-    if (!this.currentUser) return [];
+    if (!this.currentUser || !this.currentUser.userId) return [];
     const seasonId = this.currentSeason?.id || 2;
     try {
       const data = await this.supabaseFetch(`user_coupons?user_id=eq.${encodeURIComponent(this.currentUser.userId)}&season_id=eq.${seasonId}&select=*,stores(*),reward_tiers(*)&order=acquired_at.desc`);
@@ -451,56 +434,52 @@ class QuestApiManager {
         return this.userCoupons;
       }
     } catch (e) {
-      console.warn('クーポン一覧の取得に失敗 (ローカルストレージを使用):', e);
+      console.error('Supabaseからのクーポン一覧取得エラー:', e);
     }
-    try {
-      const raw = localStorage.getItem(`yoidore_coupons_s${seasonId}`);
-      this.userCoupons = raw ? JSON.parse(raw) : [];
-    } catch (err) {
-      this.userCoupons = this.userCoupons || [];
-    }
-    return this.userCoupons;
+    return this.userCoupons || [];
   }
 
   /* ------------------------------------------------------------------------
    * クーポン選択・獲得 (達成した特典から店舗を選んで保存)
    * ------------------------------------------------------------------------ */
   async claimCoupons(rewardTierId, selectedStoreIds) {
-    if (!this.currentUser) return { success: false, message: 'ログインしていません' };
+    if (!this.currentUser || !this.currentUser.userId) {
+      return { success: false, message: 'LINEログインが必要です' };
+    }
     if (!selectedStoreIds || selectedStoreIds.length === 0) {
       return { success: false, message: '店舗が選択されていません' };
     }
 
     const seasonId = this.currentSeason?.id || 2;
 
-    const insertRows = selectedStoreIds.map((storeId, idx) => {
-      const store = (this.stores && this.stores.find(s => s.id === storeId)) ||
-                    (window.STORES_DATA && window.STORES_DATA.find(s => s.id === storeId));
-      return {
-        id: `coupon_${Date.now()}_${idx}`,
+    const dbRows = selectedStoreIds.map(storeId => {
+      const row = {
         user_id: this.currentUser.userId,
         store_id: storeId,
-        reward_tier_id: rewardTierId,
         season_id: seasonId,
         status: 'active',
-        acquired_at: new Date().toISOString(),
-        stores: store || { id: storeId, name: storeId }
+        acquired_at: new Date().toISOString()
       };
+      if (rewardTierId && !isNaN(Number(rewardTierId))) {
+        row.reward_tier_id = parseInt(rewardTierId, 10);
+      }
+      return row;
     });
 
     try {
+      await this.syncUserToDatabase();
       await this.supabaseFetch('user_coupons', {
         method: 'POST',
         headers: { 'Prefer': 'return=representation' },
-        body: JSON.stringify(insertRows)
+        body: JSON.stringify(dbRows)
       });
       await this.getUserCoupons();
     } catch (err) {
-      console.warn('Supabaseクーポン保存失敗のためローカル保存:', err);
-      this.userCoupons = [...(this.userCoupons || []), ...insertRows];
-      try {
-        localStorage.setItem(`yoidore_coupons_s${seasonId}`, JSON.stringify(this.userCoupons));
-      } catch (e) {}
+      console.error('Supabaseクーポン保存エラー:', err);
+      return {
+        success: false,
+        message: 'クーポンの保存に失敗しました: ' + (err.message || '通信エラー')
+      };
     }
 
     return { success: true, count: selectedStoreIds.length };
@@ -513,7 +492,7 @@ class QuestApiManager {
     if (!couponId) return { success: false, message: 'クーポンIDが指定されていません' };
 
     try {
-      await this.supabaseFetch(`user_coupons?id=eq.${couponId}`, {
+      await this.supabaseFetch(`user_coupons?id=eq.${encodeURIComponent(couponId)}`, {
         method: 'PATCH',
         headers: { 'Prefer': 'return=representation' },
         body: JSON.stringify({
@@ -523,18 +502,11 @@ class QuestApiManager {
       });
       await this.getUserCoupons();
     } catch (err) {
-      console.warn('Supabase消し込み失敗のためローカル保存:', err);
-      if (this.userCoupons) {
-        const c = this.userCoupons.find(x => String(x.id) === String(couponId));
-        if (c) {
-          c.status = 'used';
-          c.used_at = new Date().toISOString();
-        }
-        try {
-          const seasonId = this.currentSeason?.id || 2;
-          localStorage.setItem(`yoidore_coupons_s${seasonId}`, JSON.stringify(this.userCoupons));
-        } catch (e) {}
-      }
+      console.error('Supabaseクーポン消し込みエラー:', err);
+      return {
+        success: false,
+        message: 'クーポンの消し込みに失敗しました: ' + (err.message || '通信エラー')
+      };
     }
 
     return { success: true };

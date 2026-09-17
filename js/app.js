@@ -935,8 +935,9 @@ class YoidoreQuestApp {
     const usedCoupons = userCoupons.filter(c => c.status === 'used');
 
     const renderCouponCard = (c, isUsed) => {
-      const storeName = c.stores?.name || c.store_id;
-      const storeArea = c.stores?.area || '';
+      const st = stores.find(s => s.id === c.store_id) || c.stores || {};
+      const storeName = st.name || c.stores?.name || c.store_id;
+      const storeArea = st.area || c.stores?.area || '';
       return `
         <div class="coupon-ticket ${isUsed ? 'used' : ''}" data-coupon-id="${c.id}">
           <div class="coupon-ticket-header">
@@ -1016,12 +1017,6 @@ class YoidoreQuestApp {
           </div>
         </div>
 
-        <!-- 店頭QRスキャンチェックインボタン -->
-        <button id="btn-questbook-qr" class="qr-scan-hero-btn" type="button">
-          <span style="font-size:18px;">📷</span>
-          <span>店頭QRコードを読み取る (チェックイン)</span>
-        </button>
-
         <!-- クエスト進捗 -->
         <div class="quest-progress-box">
           <div class="quest-progress-header">
@@ -1057,14 +1052,6 @@ class YoidoreQuestApp {
         </div>
       </div>
     `;
-
-    // 店頭QRコード読み取りボタン
-    const qrBtn = document.getElementById('btn-questbook-qr');
-    if (qrBtn) {
-      qrBtn.addEventListener('click', () => {
-        this.openQrScannerModal();
-      });
-    }
 
     // 宝箱を開くボタンのイベント
     container.querySelectorAll('.treasure-claim-btn').forEach(btn => {
@@ -1406,7 +1393,7 @@ class YoidoreQuestApp {
         const onScanSuccess = async (decodedText) => {
           if (isScanned) return;
           isScanned = true;
-          this.playFanfareSE();
+          this.playSelectSE(); // QR検出時は軽快なSE
 
           if (statusEl) statusEl.textContent = '✅ QRコードを検出しました！';
 
