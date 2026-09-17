@@ -48,6 +48,16 @@ class YoidoreQuestApp {
     }
   }
 
+  escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   getStores() {
     if (window.questApi && window.questApi.stores && window.questApi.stores.length > 0) {
       return window.questApi.stores;
