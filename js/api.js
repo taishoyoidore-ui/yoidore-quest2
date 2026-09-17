@@ -219,25 +219,56 @@ class QuestApiManager {
   }
 
   /* ------------------------------------------------------------------------
+   * システム共有設定（特典・称号・シーズン）のクラウド取得・保存
+   * （Supabase usersテーブルの特別レコード __system_config__ を介して全端末リアルタイム同期）
+   * ------------------------------------------------------------------------ */
+  async fetchSystemConfig() {
+    try {
+      const res = await this.supabaseFetch('users?line_user_id=eq.__system_config__&select=*');
+      if (Array.isArray(res) && res.length > 0 && res[0].display_name) {
+        const config = JSON.parse(res[0].display_name);
+        return config;
+      }
+    } catch (e) {
+      console.warn('システム共有設定のSupabase取得失敗:', e);
+    }
+    return null;
+  }
+
+  async saveSystemConfig(partialConfig) {
+    try {
+      let current = (await this.fetchSystemConfig()) || {};
+      const updated = { ...current, ...partialConfig };
+
+      await this.supabaseFetch('users', {
+        method: 'POST',
+        headers: {
+          'Prefer': 'resolution=merge-duplicates,return=representation'
+        },
+        body: JSON.stringify({
+          line_user_id: '__system_config__',
+          display_name: JSON.stringify(updated),
+          picture_url: 'system',
+          last_active_at: new Date().toISOString()
+        })
+      });
+      return true;
+    } catch (e) {
+      console.warn('システム共有設定のSupabase保存失敗:', e);
+      return false;
+    }
+  }
+
+  /* ------------------------------------------------------------------------
    * シーズン情報取得 & 開催状態判定
    * ------------------------------------------------------------------------ */
   async getCurrentSeason() {
-    try {
-      const data = await this.supabaseFetch('seasons?is_active=eq.true&select=*&limit=1');
-      if (Array.isArray(data) && data.length > 0) {
-        this.currentSeason = data[0];
-      }
-    } catch (e) {
-      // Supabaseにseasonsテーブルが無い場合はlocalStorageから最新データを取得
-      try {
-        const local = localStorage.getItem('yoidore_current_season');
-        if (local) {
-          const parsed = JSON.parse(local);
-          if (parsed && parsed.name) {
-            this.currentSeason = { ...this.currentSeason, ...parsed };
-          }
-        }
-      } catch (err) {}
+    const cloudConfig = await this.fetchSystemConfig();
+    if (cloudConfig && cloudConfig.seasons && Array.isArray(cloudConfig.seasons)) {
+      const active = cloudConfig.seasons.find(s => s.is_active);
+      if (active) this.currentSeason = active;
+    } else if (cloudConfig && cloudConfig.current_season) {
+      this.currentSeason = cloudConfig.current_season;
     }
 
     const now = new Date();
@@ -284,22 +315,10 @@ class QuestApiManager {
   }
 
   async getSeasons() {
-    try {
-      const data = await this.supabaseFetch('seasons?select=*&order=id.desc');
-      if (Array.isArray(data) && data.length > 0) {
-        this.seasons = data;
-        return this.seasons;
-      }
-    } catch (e) {
-      try {
-        const local = localStorage.getItem('yoidore_seasons');
-        if (local) {
-          const parsed = JSON.parse(local);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            this.seasons = parsed;
-          }
-        }
-      } catch (err) {}
+    const cloudConfig = await this.fetchSystemConfig();
+    if (cloudConfig && Array.isArray(cloudConfig.seasons) && cloudConfig.seasons.length > 0) {
+      this.seasons = cloudConfig.seasons;
+      return this.seasons;
     }
 
     if (!Array.isArray(this.seasons) || this.seasons.length === 0) {
@@ -316,20 +335,15 @@ class QuestApiManager {
       }
     }
 
-    try {
-      localStorage.setItem('yoidore_seasons', JSON.stringify(this.seasons));
-    } catch (err) {}
-
     return this.seasons;
   }
 
   /* ------------------------------------------------------------------------
-   * リピーター（歴戦の古参勇者）判定
+   * リピーター判定
    * ------------------------------------------------------------------------ */
   async checkIsVeteranUser() {
     if (!this.currentUser) return { isVeteran: false, previousVisitsCount: 0 };
     try {
-      const currentSeasonId = this.currentSeason?.id || 2;
       const data = await this.supabaseFetch(`visits?user_id=eq.${encodeURIComponent(this.currentUser.userId)}&select=id`);
       const count = Array.isArray(data) ? data.length : 0;
       return {
@@ -342,146 +356,47 @@ class QuestApiManager {
   }
 
   /* ------------------------------------------------------------------------
-   * 特典ランク一覧取得 (Supabaseデータベース最優先)
+   * 特典ランク一覧取得 (直接データベースから取得)
    * ------------------------------------------------------------------------ */
   async getRewardTiers(seasonId = null) {
-    let localTiers = [];
-    try {
-      const local = localStorage.getItem('yoidore_reward_tiers');
-      if (local) localTiers = JSON.parse(local) || [];
-    } catch (err) {}
+    // 1. データベースのクラウド共有設定 (__system_config__) を取得
+    const cloudConfig = await this.fetchSystemConfig();
+    if (cloudConfig && Array.isArray(cloudConfig.reward_tiers) && cloudConfig.reward_tiers.length > 0) {
+      this.rewardTiers = cloudConfig.reward_tiers.map(s => ({
+        id: Number(s.id),
+        reward_type: s.reward_type || 'store_coupon',
+        title: s.title,
+        required_visits: Number(s.required_visits),
+        selectable_count: Number(s.selectable_count) || 1,
+        goods_name: s.goods_name || null,
+        exchange_location: s.exchange_location || null,
+        exchange_notice: s.exchange_notice || null,
+        description: s.description || ''
+      })).sort((a, b) => (a.required_visits || 0) - (b.required_visits || 0));
 
-    if (localTiers.length === 0 && this.config.fallbackRewardTiers) {
-      localTiers = [...this.config.fallbackRewardTiers];
+      return this.rewardTiers;
     }
 
-    let deletedIds = [];
-    try {
-      const del = localStorage.getItem('yoidore_deleted_tier_ids');
-      if (del) deletedIds = (JSON.parse(del) || []).map(Number);
-    } catch (err) {}
-
-    // store-01 の raw_data._system_reward_tiers からの補完データ取得
-    let sharedTiers = [];
-    try {
-      const s1 = (this.stores || []).find(s => s.id === 'store-01');
-      if (s1 && s1.raw_data && Array.isArray(s1.raw_data._system_reward_tiers)) {
-        sharedTiers = s1.raw_data._system_reward_tiers;
-      }
-    } catch (e) {}
-
-    try {
-      const data = await this.supabaseFetch('reward_tiers?select=*&order=required_visits.asc');
-      if (Array.isArray(data) && data.length > 0) {
-        const mergedMap = new Map();
-
-        // 1. まずローカル設定・初期フォールバックをマップにセット
-        localTiers.forEach(t => {
-          const key = Number(t.id);
-          if (!deletedIds.includes(key)) {
-            mergedMap.set(key, { ...t, id: key });
-          }
-        });
-
-        // 2. store-01経由の共有設定で上書き・補完
-        sharedTiers.forEach(t => {
-          const key = Number(t.id);
-          if (!deletedIds.includes(key)) {
-            mergedMap.set(key, { ...(mergedMap.get(key) || {}), ...t, id: key });
-          }
-        });
-
-        // 3. Supabaseのreward_tiersテーブルデータをマージ
-        data.forEach(s => {
-          const key = Number(s.id);
-          if (!deletedIds.includes(key)) {
-            const existing = mergedMap.get(key) || {};
-            mergedMap.set(key, {
-              id: key,
-              reward_type: s.reward_type || existing.reward_type || 'store_coupon',
-              title: s.title || existing.title,
-              required_visits: Number(s.required_visits || existing.required_visits),
-              selectable_count: Number(s.selectable_count || existing.selectable_count) || 1,
-              goods_name: s.goods_name || existing.goods_name || null,
-              exchange_location: s.exchange_location || existing.exchange_location || null,
-              exchange_notice: s.exchange_notice || existing.exchange_notice || null,
-              description: s.description || existing.description || ''
-            });
-          }
-        });
-
-        this.rewardTiers = Array.from(mergedMap.values()).sort((a, b) => (a.required_visits || 0) - (b.required_visits || 0));
-
-        try {
-          localStorage.setItem('yoidore_reward_tiers', JSON.stringify(this.rewardTiers));
-        } catch (e) {}
-
-        return this.rewardTiers;
-      }
-    } catch (e) {
-      console.warn('特典ランクのSupabase取得失敗 (ローカルキャッシュを使用):', e);
-    }
-
-    // Supabase通信失敗時のフォールバック処理
-    const fallbackMap = new Map();
-    localTiers.forEach(t => {
-      const key = Number(t.id);
-      if (!deletedIds.includes(key)) fallbackMap.set(key, t);
-    });
-    sharedTiers.forEach(t => {
-      const key = Number(t.id);
-      if (!deletedIds.includes(key)) fallbackMap.set(key, { ...(fallbackMap.get(key) || {}), ...t });
-    });
-
-    this.rewardTiers = Array.from(fallbackMap.values()).sort((a, b) => (a.required_visits || 0) - (b.required_visits || 0));
+    // 2. DB未設定時の初期フォールバック
+    this.rewardTiers = [...(this.config.fallbackRewardTiers || [])];
+    await this.saveSystemConfig({ reward_tiers: this.rewardTiers });
     return this.rewardTiers;
   }
 
   /* ------------------------------------------------------------------------
-   * 勇者レベル・称号マスタ一覧取得
+   * 勇者レベル・称号マスタ一覧取得 (直接データベースから取得)
    * ------------------------------------------------------------------------ */
   async getHeroTitles() {
-    let localTitles = [];
-    try {
-      const local = localStorage.getItem('yoidore_hero_titles');
-      if (local) localTitles = JSON.parse(local) || [];
-    } catch (err) {}
-
-    if (localTitles.length === 0 && this.config.fallbackHeroTitles) {
-      localTitles = [...this.config.fallbackHeroTitles];
+    // 1. データベースのクラウド共有設定から取得
+    const cloudConfig = await this.fetchSystemConfig();
+    if (cloudConfig && Array.isArray(cloudConfig.hero_titles) && cloudConfig.hero_titles.length > 0) {
+      this.heroTitles = cloudConfig.hero_titles.sort((a, b) => (a.min_visits || 0) - (b.min_visits || 0));
+      return this.heroTitles;
     }
 
-    let deletedIds = [];
-    try {
-      const del = localStorage.getItem('yoidore_deleted_hero_ids');
-      if (del) deletedIds = JSON.parse(del) || [];
-    } catch (err) {}
-
-    try {
-      const data = await this.supabaseFetch('hero_titles?select=*&order=min_visits.asc');
-      if (Array.isArray(data) && data.length > 0) {
-        const mergedMap = new Map();
-        localTitles.forEach(t => {
-          const key = Number(t.id) || t.level;
-          if (!deletedIds.includes(t.id) && !deletedIds.includes(String(t.id))) {
-            mergedMap.set(key, t);
-          }
-        });
-        data.forEach(s => {
-          const key = Number(s.id) || s.level;
-          if (!deletedIds.includes(s.id) && !deletedIds.includes(String(s.id))) {
-            mergedMap.set(key, { ...(mergedMap.get(key) || {}), ...s });
-          }
-        });
-        this.heroTitles = Array.from(mergedMap.values()).sort((a, b) => (a.min_visits || 0) - (b.min_visits || 0));
-        try {
-          localStorage.setItem('yoidore_hero_titles', JSON.stringify(this.heroTitles));
-        } catch (e) {}
-        return this.heroTitles;
-      }
-    } catch (e) {}
-
-    this.heroTitles = localTitles.filter(t => !deletedIds.includes(t.id) && !deletedIds.includes(String(t.id))).sort((a, b) => (a.min_visits || 0) - (b.min_visits || 0));
+    // 2. DB未設定時の初期フォールバック
+    this.heroTitles = [...(this.config.fallbackHeroTitles || [])];
+    await this.saveSystemConfig({ hero_titles: this.heroTitles });
     return this.heroTitles;
   }
 
@@ -628,7 +543,6 @@ class QuestApiManager {
     try {
       await this.supabaseFetch(`visits?user_id=eq.${encodeURIComponent(uid)}`, { method: 'DELETE' });
       await this.supabaseFetch(`user_coupons?user_id=eq.${encodeURIComponent(uid)}`, { method: 'DELETE' });
-      localStorage.removeItem(`yoidore_goods_vouchers_${uid}`);
       this.visits = [];
       this.userCoupons = [];
       await this.getUserVisits();
@@ -641,35 +555,39 @@ class QuestApiManager {
   }
 
   /* ------------------------------------------------------------------------
-   * ユーザーの獲得クーポン・グッズ引換券一覧取得 (user_coupons & local goods)
+   * ユーザーの獲得クーポン・グッズ引換券一覧取得 (全てデータベースから直接取得)
    * ------------------------------------------------------------------------ */
   async getUserCoupons() {
     if (!this.currentUser || !this.currentUser.userId) return [];
     let coupons = [];
     try {
-      const data = await this.supabaseFetch(`user_coupons?user_id=eq.${encodeURIComponent(this.currentUser.userId)}&select=*,stores(*),reward_tiers(*)&order=acquired_at.desc`);
+      const data = await this.supabaseFetch(`user_coupons?user_id=eq.${encodeURIComponent(this.currentUser.userId)}&select=*,stores(*)&order=acquired_at.desc`);
       if (Array.isArray(data)) {
-        coupons = data;
+        // 特典マスタ（reward_tiers）と照合してグッズ型/店舗クーポン型の情報を付与
+        const tiers = await this.getRewardTiers();
+        coupons = data.map(c => {
+          const matchedTier = tiers.find(t => Number(t.id) === Number(c.reward_tier_id)) || {};
+          const isGoods = matchedTier.reward_type === 'goods';
+          return {
+            ...c,
+            reward_type: isGoods ? 'goods' : (c.reward_type || 'store_coupon'),
+            goods_name: matchedTier.goods_name || c.goods_name || matchedTier.title || null,
+            exchange_location: matchedTier.exchange_location || c.exchange_location || null,
+            exchange_notice: matchedTier.exchange_notice || c.exchange_notice || null,
+            title: matchedTier.title || c.title || ''
+          };
+        });
       }
     } catch (e) {
-      console.error('Supabaseからのクーポン一覧取得エラー:', e);
+      console.error('データベースからのクーポン一覧取得エラー:', e);
     }
-
-    // グッズ引換券（ローカル永続化分）の統合
-    try {
-      const localGoodsKey = `yoidore_goods_vouchers_${this.currentUser.userId}`;
-      const localGoods = JSON.parse(localStorage.getItem(localGoodsKey) || '[]');
-      if (Array.isArray(localGoods) && localGoods.length > 0) {
-        coupons = [...localGoods, ...coupons];
-      }
-    } catch (e) {}
 
     this.userCoupons = coupons;
     return this.userCoupons;
   }
 
   /* ------------------------------------------------------------------------
-   * クーポン選択・獲得 (達成した特典から店舗を選んで保存)
+   * クーポン選択・獲得 (達成した特典から店舗を選んでデータベースに保存)
    * ------------------------------------------------------------------------ */
   async claimCoupons(rewardTierId, selectedStoreIds) {
     if (!this.currentUser || !this.currentUser.userId) {
@@ -701,7 +619,7 @@ class QuestApiManager {
       });
       await this.getUserCoupons();
     } catch (err) {
-      console.error('Supabaseクーポン保存エラー:', err);
+      console.error('データベースへのクーポン保存エラー:', err);
       return {
         success: false,
         message: 'クーポンの保存に失敗しました: ' + (err.message || '通信エラー')
@@ -712,68 +630,51 @@ class QuestApiManager {
   }
 
   /* ------------------------------------------------------------------------
-   * グッズ・記念品引換券の即時獲得 (店舗選択不要)
+   * グッズ・記念品引換券の即時獲得 (直接データベースに保存)
    * ------------------------------------------------------------------------ */
   async claimGoodsReward(rewardTierId) {
     if (!this.currentUser || !this.currentUser.userId) {
       return { success: false, message: 'LINEログインが必要です' };
     }
 
-    const tiers = await this.getRewardTiers();
-    const tier = tiers.find(t => t.id === Number(rewardTierId) || String(t.id) === String(rewardTierId));
+    await this.getUserCoupons();
+    if (this.userCoupons.some(c => Number(c.reward_tier_id) === Number(rewardTierId))) {
+      return { success: false, message: '既にこのグッズ引換券は獲得済みです。' };
+    }
 
-    const goodsVoucher = {
-      id: `goods-${rewardTierId}-${Date.now()}`,
-      user_id: this.currentUser.userId,
-      reward_tier_id: parseInt(rewardTierId, 10) || null,
-      reward_type: 'goods',
-      goods_name: tier?.goods_name || tier?.title || 'オリジナル記念グッズ',
-      exchange_location: tier?.exchange_location || '全参加店舗または運営本部にて引換可能',
-      exchange_notice: tier?.exchange_notice || '※お会計時またはご注文時に引換画面をスタッフへご提示ください。',
-      title: tier?.title || 'ハシゴ達成記念グッズ引換券',
-      description: tier?.description || '',
-      status: 'active',
-      acquired_at: new Date().toISOString()
-    };
+    const tiers = await this.getRewardTiers();
+    const tier = tiers.find(t => Number(t.id) === Number(rewardTierId));
 
     try {
-      const localGoodsKey = `yoidore_goods_vouchers_${this.currentUser.userId}`;
-      const currentList = JSON.parse(localStorage.getItem(localGoodsKey) || '[]');
-      if (currentList.some(v => Number(v.reward_tier_id) === Number(rewardTierId))) {
-        return { success: false, message: '既にこのグッズ引換券は獲得済みです。' };
+      await this.syncUserToDatabase();
+      const insertRow = {
+        user_id: this.currentUser.userId,
+        store_id: 'store-01', // 共通デフォルト店舗
+        status: 'active',
+        acquired_at: new Date().toISOString()
+      };
+      if (rewardTierId && !isNaN(Number(rewardTierId))) {
+        insertRow.reward_tier_id = parseInt(rewardTierId, 10);
       }
-      currentList.unshift(goodsVoucher);
-      localStorage.setItem(localGoodsKey, JSON.stringify(currentList));
+
+      await this.supabaseFetch('user_coupons', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify(insertRow)
+      });
       await this.getUserCoupons();
-      return { success: true, goods: goodsVoucher };
+      return { success: true, goods: { ...insertRow, goods_name: tier?.goods_name || tier?.title } };
     } catch (e) {
+      console.error('グッズ引換券のデータベース保存エラー:', e);
       return { success: false, message: 'グッズ引換券の発行に失敗しました: ' + e.message };
     }
   }
 
   /* ------------------------------------------------------------------------
-   * クーポン・引換券の消し込み（店舗・運営スタッフ操作）
+   * クーポン・引換券の消し込み（直接データベースを更新）
    * ------------------------------------------------------------------------ */
   async redeemCoupon(couponId) {
     if (!couponId) return { success: false, message: 'クーポン・引換券IDが指定されていません' };
-
-    // グッズ引換券の場合
-    if (String(couponId).startsWith('goods-')) {
-      try {
-        const localGoodsKey = `yoidore_goods_vouchers_${this.currentUser.userId}`;
-        const currentList = JSON.parse(localStorage.getItem(localGoodsKey) || '[]');
-        const target = currentList.find(c => c.id === couponId);
-        if (target) {
-          target.status = 'used';
-          target.used_at = new Date().toISOString();
-          localStorage.setItem(localGoodsKey, JSON.stringify(currentList));
-        }
-        await this.getUserCoupons();
-        return { success: true };
-      } catch (e) {
-        return { success: false, message: '引換券の消し込みに失敗しました: ' + e.message };
-      }
-    }
 
     try {
       await this.supabaseFetch(`user_coupons?id=eq.${encodeURIComponent(couponId)}`, {
@@ -786,10 +687,10 @@ class QuestApiManager {
       });
       await this.getUserCoupons();
     } catch (err) {
-      console.error('Supabaseクーポン消し込みエラー:', err);
+      console.error('データベースのクーポン消し込みエラー:', err);
       return {
         success: false,
-        message: 'クーポンの消し込みに失敗しました: ' + (err.message || '通信エラー')
+        message: '消し込みに失敗しました: ' + (err.message || '通信エラー')
       };
     }
 
@@ -801,6 +702,7 @@ class QuestApiManager {
    * ------------------------------------------------------------------------ */
   // ユーザーの完全削除 (カスケードでvisits/couponsも削除)
   async adminDeleteUser(userId) {
+    if (!userId || userId.startsWith('__')) return;
     // 関連データの明示的クリーンアップ
     try {
       await this.supabaseFetch(`visits?user_id=eq.${encodeURIComponent(userId)}`, { method: 'DELETE' });
@@ -847,20 +749,10 @@ class QuestApiManager {
       this.seasons.unshift({ ...seasonData });
     }
 
-    try {
-      localStorage.setItem('yoidore_current_season', JSON.stringify(this.currentSeason));
-      localStorage.setItem('yoidore_seasons', JSON.stringify(this.seasons));
-    } catch (e) {}
+    // Supabaseクラウド共有設定へ確実に永続化同期
+    await this.saveSystemConfig({ seasons: this.seasons, current_season: this.currentSeason });
 
-    try {
-      return await this.supabaseFetch('seasons', {
-        method: 'POST',
-        headers: { 'Prefer': 'resolution=merge-duplicates' },
-        body: JSON.stringify(seasonData)
-      });
-    } catch (err) {
-      console.warn('Supabase seasons保存（ローカルストレージに保存済）:', err);
-    }
+    return seasonData;
   }
 
   // アクティブシーズンの切り替え
@@ -873,28 +765,17 @@ class QuestApiManager {
       if (active) {
         this.currentSeason = { ...active, is_active: true };
       }
-      try {
-        localStorage.setItem('yoidore_seasons', JSON.stringify(this.seasons));
-        localStorage.setItem('yoidore_current_season', JSON.stringify(this.currentSeason));
-      } catch (e) {}
     }
 
-    try {
-      await this.supabaseFetch('seasons?id=neq.0', {
-        method: 'PATCH',
-        body: JSON.stringify({ is_active: false })
-      });
-      await this.supabaseFetch(`seasons?id=eq.${seasonId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ is_active: true })
-      });
-    } catch (e) {}
+    // Supabaseクラウド共有設定へ確実に永続化同期
+    await this.saveSystemConfig({ seasons: this.seasons, current_season: this.currentSeason });
     await this.getCurrentSeason();
   }
 
   // 特典ランク (reward_tiers) の新規登録 / 更新
   async adminSaveRewardTier(tierData) {
     const cleanData = {
+      season_id: Number(tierData.season_id) || 2,
       reward_type: tierData.reward_type || 'store_coupon',
       title: tierData.title,
       required_visits: Number(tierData.required_visits),
@@ -908,19 +789,11 @@ class QuestApiManager {
     let targetId = tierData.id ? Number(tierData.id) : null;
     if (!targetId) {
       const maxId = (this.rewardTiers && this.rewardTiers.length > 0) ? 
-        this.rewardTiers.reduce((max, t) => Math.max(max, Number(t.id) || 0), 0) : 2;
+        this.rewardTiers.reduce((max, t) => Math.max(max, Number(t.id) || 0), 0) : 0;
       targetId = maxId + 1;
     }
     cleanData.id = targetId;
 
-    // 削除済みリストから復元（もしあれば）
-    try {
-      let deletedIds = JSON.parse(localStorage.getItem('yoidore_deleted_tier_ids') || '[]');
-      deletedIds = deletedIds.filter(id => id !== targetId && String(id) !== String(targetId));
-      localStorage.setItem('yoidore_deleted_tier_ids', JSON.stringify(deletedIds));
-    } catch (e) {}
-
-    // メモリキャッシュとlocalStorageに即座に反映
     if (!Array.isArray(this.rewardTiers)) this.rewardTiers = [];
     const idx = this.rewardTiers.findIndex(t => Number(t.id) === targetId);
     if (idx !== -1) {
@@ -930,65 +803,8 @@ class QuestApiManager {
     }
     this.rewardTiers.sort((a, b) => (a.required_visits || 0) - (b.required_visits || 0));
 
-    try {
-      localStorage.setItem('yoidore_reward_tiers', JSON.stringify(this.rewardTiers));
-    } catch (e) {}
-
-    // Supabaseへの書き込みを試行 & 全端末共有同期
-    const supabaseClean = {
-      season_id: Number(tierData.season_id) || 2,
-      reward_type: cleanData.reward_type,
-      title: cleanData.title,
-      required_visits: cleanData.required_visits,
-      selectable_count: cleanData.selectable_count,
-      goods_name: cleanData.goods_name,
-      exchange_location: cleanData.exchange_location,
-      exchange_notice: cleanData.exchange_notice,
-      description: cleanData.description
-    };
-    try {
-      if (tierData.id) {
-        await this.supabaseFetch(`reward_tiers?id=eq.${targetId}`, {
-          method: 'PATCH',
-          body: JSON.stringify(supabaseClean)
-        });
-      } else {
-        await this.supabaseFetch('reward_tiers', {
-          method: 'POST',
-          body: JSON.stringify({ id: targetId, ...supabaseClean })
-        });
-      }
-    } catch (e) {
-      console.warn('Supabase reward_tiers拡張保存失敗、基本フィールドで再試行:', e);
-      try {
-        const basicClean = {
-          title: cleanData.title,
-          required_visits: cleanData.required_visits,
-          selectable_count: cleanData.selectable_count,
-          description: cleanData.description
-        };
-        if (tierData.id) {
-          await this.supabaseFetch(`reward_tiers?id=eq.${targetId}`, {
-            method: 'PATCH',
-            body: JSON.stringify(basicClean)
-          });
-        } else {
-          await this.supabaseFetch('reward_tiers', {
-            method: 'POST',
-            body: JSON.stringify({ id: targetId, ...basicClean })
-          });
-        }
-      } catch (err2) {}
-    }
-
-    try {
-      const s1 = (this.stores || []).find(s => s.id === 'store-01');
-      const curRaw = (s1 && s1.raw_data) || {};
-      await this.supabaseFetch('stores?id=eq.store-01', {
-        method: 'PATCH',
-        body: JSON.stringify({ raw_data: { ...curRaw, _system_reward_tiers: this.rewardTiers } })
-      });
-    } catch (e) {}
+    // Supabaseクラウド共有設定へ確実に永続化同期
+    await this.saveSystemConfig({ reward_tiers: this.rewardTiers });
 
     return cleanData;
   }
@@ -996,31 +812,10 @@ class QuestApiManager {
   // 特典ランクの削除
   async adminDeleteRewardTier(tierId) {
     const numId = Number(tierId);
-    try {
-      let deletedIds = JSON.parse(localStorage.getItem('yoidore_deleted_tier_ids') || '[]');
-      if (!deletedIds.includes(numId)) deletedIds.push(numId);
-      localStorage.setItem('yoidore_deleted_tier_ids', JSON.stringify(deletedIds));
-    } catch (e) {}
-
     this.rewardTiers = (this.rewardTiers || []).filter(t => Number(t.id) !== numId);
-    try {
-      localStorage.setItem('yoidore_reward_tiers', JSON.stringify(this.rewardTiers));
-    } catch (e) {}
 
-    try {
-      await this.supabaseFetch(`reward_tiers?id=eq.${numId}`, {
-        method: 'DELETE'
-      });
-    } catch (e) {}
-
-    try {
-      const s1 = (this.stores || []).find(s => s.id === 'store-01');
-      const curRaw = (s1 && s1.raw_data) || {};
-      await this.supabaseFetch('stores?id=eq.store-01', {
-        method: 'PATCH',
-        body: JSON.stringify({ raw_data: { ...curRaw, _system_reward_tiers: this.rewardTiers } })
-      });
-    } catch (e) {}
+    // Supabaseクラウド共有設定へ確実に永続化同期
+    await this.saveSystemConfig({ reward_tiers: this.rewardTiers });
 
     return true;
   }
@@ -1044,12 +839,6 @@ class QuestApiManager {
     }
     cleanData.id = targetId;
 
-    try {
-      let deletedIds = JSON.parse(localStorage.getItem('yoidore_deleted_hero_ids') || '[]');
-      deletedIds = deletedIds.filter(id => id !== targetId && String(id) !== String(targetId));
-      localStorage.setItem('yoidore_deleted_hero_ids', JSON.stringify(deletedIds));
-    } catch (e) {}
-
     if (!Array.isArray(this.heroTitles)) this.heroTitles = [];
     const idx = this.heroTitles.findIndex(t => Number(t.id) === targetId || t.level === cleanData.level);
     if (idx !== -1) {
@@ -1059,25 +848,8 @@ class QuestApiManager {
     }
     this.heroTitles.sort((a, b) => a.min_visits - b.min_visits);
 
-    try {
-      localStorage.setItem('yoidore_hero_titles', JSON.stringify(this.heroTitles));
-    } catch (e) {}
-
-    try {
-      if (titleData.id) {
-        await this.supabaseFetch(`hero_titles?id=eq.${targetId}`, {
-          method: 'PATCH',
-          body: JSON.stringify(cleanData)
-        });
-      } else {
-        await this.supabaseFetch('hero_titles', {
-          method: 'POST',
-          body: JSON.stringify({ id: targetId, ...cleanData })
-        });
-      }
-    } catch (e) {
-      console.warn('Supabase hero_titles保存（ローカルに完全保存完了）:', e);
-    }
+    // Supabaseクラウド共有設定へ確実に永続化同期
+    await this.saveSystemConfig({ hero_titles: this.heroTitles });
 
     return cleanData;
   }
@@ -1085,22 +857,12 @@ class QuestApiManager {
   // 勇者称号の削除
   async adminDeleteHeroTitle(titleId) {
     const numId = Number(titleId);
-    try {
-      let deletedIds = JSON.parse(localStorage.getItem('yoidore_deleted_hero_ids') || '[]');
-      if (!deletedIds.includes(numId)) deletedIds.push(numId);
-      localStorage.setItem('yoidore_deleted_hero_ids', JSON.stringify(deletedIds));
-    } catch (e) {}
+    this.heroTitles = (this.heroTitles || []).filter(t => Number(t.id) !== numId && t.level !== numId);
 
-    this.heroTitles = (this.heroTitles || []).filter(t => Number(t.id) !== numId);
-    try {
-      localStorage.setItem('yoidore_hero_titles', JSON.stringify(this.heroTitles));
-    } catch (e) {}
+    // Supabaseクラウド共有設定へ確実に永続化同期
+    await this.saveSystemConfig({ hero_titles: this.heroTitles });
 
-    try {
-      await this.supabaseFetch(`hero_titles?id=eq.${encodeURIComponent(titleId)}`, { method: 'DELETE' });
-    } catch (e) {
-      console.warn('Supabase hero_titles削除:', e);
-    }
+    return true;
   }
 
   /* ------------------------------------------------------------------------
@@ -1109,13 +871,9 @@ class QuestApiManager {
   resetMockData() {
     this.visits = [];
     this.userCoupons = [];
-    try {
-      const seasonId = this.currentSeason?.id || 2;
-      localStorage.removeItem(`yoidore_visits_s${seasonId}`);
-      localStorage.removeItem(`yoidore_coupons_s${seasonId}`);
-    } catch (e) {}
   }
 }
 
 // グローバルインスタンス
+window.QuestApiManager = QuestApiManager;
 window.questApi = new QuestApiManager();

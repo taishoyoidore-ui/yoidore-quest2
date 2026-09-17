@@ -34,9 +34,17 @@ const APP_CONFIG = {
     },
     {
       id: 2,
-      reward_type: 'goods',
+      reward_type: 'store_coupon',
       required_visits: 10,
-      title: '10軒はしご達成記念品',
+      title: '10軒はしご達成特典',
+      selectable_count: 5,
+      description: 'クーポン取扱店の中からさらにお好きな5店舗を選んで特典チケットを獲得！'
+    },
+    {
+      id: 3,
+      reward_type: 'goods',
+      required_visits: 15,
+      title: '15軒完全制覇記念品',
       selectable_count: 1,
       goods_name: '大正酔いどれ特製トートバッグ',
       exchange_location: '全参加店舗または運営本部にて引換可能',

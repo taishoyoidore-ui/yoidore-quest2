@@ -158,7 +158,8 @@ class YoidoreAdminApp {
 
       // 4. ユーザー一覧
       try {
-        this.users = await this.api.supabaseFetch('users?select=*&order=created_at.desc');
+        const rawUsers = await this.api.supabaseFetch('users?select=*&order=created_at.desc');
+        this.users = Array.isArray(rawUsers) ? rawUsers.filter(u => !u.line_user_id?.startsWith('__')) : [];
       } catch (e) {
         this.users = [];
       }
