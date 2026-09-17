@@ -120,15 +120,6 @@ class YoidoreQuestApp {
         await window.questApi.getUserVisits();
         await window.questApi.getUserCoupons();
 
-        // 歴戦の古参勇者（リピーター）判定と初回歓迎演出
-        const veteranInfo = await window.questApi.checkIsVeteranUser();
-        if (veteranInfo.isVeteran && !sessionStorage.getItem('yoidore_veteran_welcomed')) {
-          sessionStorage.setItem('yoidore_veteran_welcomed', 'true');
-          setTimeout(() => {
-            this.showVeteranWelcomeModal(veteranInfo.previousVisitsCount);
-          }, 800);
-        }
-
         // URLパラメータからのチェックイン検出 (?checkin=store-01 or ?store=store-01)
         const params = new URLSearchParams(window.location.search);
         const checkinStore = params.get('checkin') || (params.get('action') === 'checkin' ? params.get('store') : null);
@@ -698,40 +689,7 @@ class YoidoreQuestApp {
     }
   }
 
-  /* ------------------------------------------------------------------------
-   * リピーター（歴戦の古参勇者）歓迎演出モーダル
-   * ------------------------------------------------------------------------ */
-  showVeteranWelcomeModal(prevCount) {
-    this.playFanfareSE();
-    const overlay = document.createElement('div');
-    overlay.className = 'rpg-modal-overlay';
-    overlay.id = 'veteran-welcome-modal';
 
-    overlay.innerHTML = `
-      <div class="rpg-modal-window gold-border" style="max-width:380px; width:90%; text-align:center;">
-        <div style="font-size:36px; margin-bottom:8px;">🎖️✨👑</div>
-        <h3 style="color:var(--text-yellow); margin-bottom:10px; font-size:18px;">
-          おかえりなさい！歴戦の勇者よ！
-        </h3>
-        <p style="font-size:13px; color:#e2e8f0; line-height:1.6; margin-bottom:14px;">
-          過去の酔いどれクエスト参戦を確認しました！<br>
-          酒場を愛するあなたに、冒険の書へ<br>
-          <strong style="color:var(--text-yellow); font-size:14px;">【🎖️ 歴戦の古参勇者】</strong><br>
-          の限定称号を授与します！
-        </p>
-        <button id="btn-close-veteran" class="treasure-claim-btn" style="width:100%; font-size:14px; padding:10px;">
-          ⚔️ 新たなクエストに出発する！
-        </button>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-
-    document.getElementById('btn-close-veteran').addEventListener('click', () => {
-      this.playSelectSE();
-      overlay.remove();
-    });
-  }
 
   /* ------------------------------------------------------------------------
    * 3.1 トップ画面 (酒場案内所)
@@ -1082,8 +1040,6 @@ class YoidoreQuestApp {
       `;
     }).join('');
 
-    const isVeteran = (window.questApi && window.questApi.currentUser && sessionStorage.getItem('yoidore_veteran_welcomed') === 'true');
-
     container.innerHTML = `
       <div class="quest-book-container">
         <!-- 開催フェーズ動的告知バナー -->
@@ -1099,7 +1055,6 @@ class YoidoreQuestApp {
             </div>
             <div class="hero-title">称号: ${heroTitle}</div>
             <div class="hero-badge-row">
-              ${isVeteran ? '<span class="hero-badge" style="background:#78350f; color:#fef08a; border:1px solid #f59e0b;">🎖️ 歴戦の古参勇者</span>' : ''}
               <span class="hero-badge text-green">制覇: ${visitedCount}軒</span>
               <span class="hero-badge text-cyan">クーポン: ${activeCoupons.length}枚</span>
             </div>

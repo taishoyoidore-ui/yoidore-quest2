@@ -344,23 +344,72 @@ class QuestApiManager {
   /* ------------------------------------------------------------------------
    * 特典ランク一覧取得 (Supabaseデータベース最優先)
    * ------------------------------------------------------------------------ */
-  async getRewardTiers(seasonId = null) {
+    let localTiers = [];
+    try {
+      const local = localStorage.getItem('yoidore_reward_tiers');
+      if (local) localTiers = JSON.parse(local) || [];
+    } catch (err) {}
+
+    if (localTiers.length === 0 && this.config.fallbackRewardTiers) {
+      localTiers = [...this.config.fallbackRewardTiers];
+    }
+
+    let deletedIds = [];
+    try {
+      const del = localStorage.getItem('yoidore_deleted_tier_ids');
+      if (del) deletedIds = (JSON.parse(del) || []).map(Number);
+    } catch (err) {}
+
+    // store-01 の raw_data._system_reward_tiers からの補完データ取得
+    let sharedTiers = [];
+    try {
+      const s1 = (this.stores || []).find(s => s.id === 'store-01');
+      if (s1 && s1.raw_data && Array.isArray(s1.raw_data._system_reward_tiers)) {
+        sharedTiers = s1.raw_data._system_reward_tiers;
+      }
+    } catch (e) {}
+
     try {
       const data = await this.supabaseFetch('reward_tiers?select=*&order=required_visits.asc');
       if (Array.isArray(data) && data.length > 0) {
-        this.rewardTiers = data.map(s => {
-          return {
-            id: Number(s.id),
-            reward_type: s.reward_type || 'store_coupon',
-            title: s.title,
-            required_visits: Number(s.required_visits),
-            selectable_count: Number(s.selectable_count) || 1,
-            goods_name: s.goods_name || null,
-            exchange_location: s.exchange_location || null,
-            exchange_notice: s.exchange_notice || null,
-            description: s.description || ''
-          };
-        }).sort((a, b) => (a.required_visits || 0) - (b.required_visits || 0));
+        const mergedMap = new Map();
+
+        // 1. まずローカル設定・初期フォールバックをマップにセット
+        localTiers.forEach(t => {
+          const key = Number(t.id);
+          if (!deletedIds.includes(key)) {
+            mergedMap.set(key, { ...t, id: key });
+          }
+        });
+
+        // 2. store-01経由の共有設定で上書き・補完
+        sharedTiers.forEach(t => {
+          const key = Number(t.id);
+          if (!deletedIds.includes(key)) {
+            mergedMap.set(key, { ...(mergedMap.get(key) || {}), ...t, id: key });
+          }
+        });
+
+        // 3. Supabaseのreward_tiersテーブルデータをマージ
+        data.forEach(s => {
+          const key = Number(s.id);
+          if (!deletedIds.includes(key)) {
+            const existing = mergedMap.get(key) || {};
+            mergedMap.set(key, {
+              id: key,
+              reward_type: s.reward_type || existing.reward_type || 'store_coupon',
+              title: s.title || existing.title,
+              required_visits: Number(s.required_visits || existing.required_visits),
+              selectable_count: Number(s.selectable_count || existing.selectable_count) || 1,
+              goods_name: s.goods_name || existing.goods_name || null,
+              exchange_location: s.exchange_location || existing.exchange_location || null,
+              exchange_notice: s.exchange_notice || existing.exchange_notice || null,
+              description: s.description || existing.description || ''
+            });
+          }
+        });
+
+        this.rewardTiers = Array.from(mergedMap.values()).sort((a, b) => (a.required_visits || 0) - (b.required_visits || 0));
 
         try {
           localStorage.setItem('yoidore_reward_tiers', JSON.stringify(this.rewardTiers));
@@ -372,16 +421,18 @@ class QuestApiManager {
       console.warn('特典ランクのSupabase取得失敗 (ローカルキャッシュを使用):', e);
     }
 
-    // Supabaseオフライン時等のフォールバック
-    try {
-      const local = localStorage.getItem('yoidore_reward_tiers');
-      if (local) {
-        this.rewardTiers = JSON.parse(local) || [];
-        if (this.rewardTiers.length > 0) return this.rewardTiers;
-      }
-    } catch (err) {}
+    // Supabase通信失敗時のフォールバック処理
+    const fallbackMap = new Map();
+    localTiers.forEach(t => {
+      const key = Number(t.id);
+      if (!deletedIds.includes(key)) fallbackMap.set(key, t);
+    });
+    sharedTiers.forEach(t => {
+      const key = Number(t.id);
+      if (!deletedIds.includes(key)) fallbackMap.set(key, { ...(fallbackMap.get(key) || {}), ...t });
+    });
 
-    this.rewardTiers = [...(this.config.fallbackRewardTiers || [])];
+    this.rewardTiers = Array.from(fallbackMap.values()).sort((a, b) => (a.required_visits || 0) - (b.required_visits || 0));
     return this.rewardTiers;
   }
 
@@ -687,6 +738,9 @@ class QuestApiManager {
     try {
       const localGoodsKey = `yoidore_goods_vouchers_${this.currentUser.userId}`;
       const currentList = JSON.parse(localStorage.getItem(localGoodsKey) || '[]');
+      if (currentList.some(v => Number(v.reward_tier_id) === Number(rewardTierId))) {
+        return { success: false, message: '既にこのグッズ引換券は獲得済みです。' };
+      }
       currentList.unshift(goodsVoucher);
       localStorage.setItem(localGoodsKey, JSON.stringify(currentList));
       await this.getUserCoupons();
@@ -881,9 +935,14 @@ class QuestApiManager {
 
     // Supabaseへの書き込みを試行 & 全端末共有同期
     const supabaseClean = {
+      season_id: Number(tierData.season_id) || 2,
+      reward_type: cleanData.reward_type,
       title: cleanData.title,
       required_visits: cleanData.required_visits,
       selectable_count: cleanData.selectable_count,
+      goods_name: cleanData.goods_name,
+      exchange_location: cleanData.exchange_location,
+      exchange_notice: cleanData.exchange_notice,
       description: cleanData.description
     };
     try {
@@ -899,7 +958,26 @@ class QuestApiManager {
         });
       }
     } catch (e) {
-      console.warn('Supabase reward_tiers保存（ローカルに完全保存完了）:', e);
+      console.warn('Supabase reward_tiers拡張保存失敗、基本フィールドで再試行:', e);
+      try {
+        const basicClean = {
+          title: cleanData.title,
+          required_visits: cleanData.required_visits,
+          selectable_count: cleanData.selectable_count,
+          description: cleanData.description
+        };
+        if (tierData.id) {
+          await this.supabaseFetch(`reward_tiers?id=eq.${targetId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(basicClean)
+          });
+        } else {
+          await this.supabaseFetch('reward_tiers', {
+            method: 'POST',
+            body: JSON.stringify({ id: targetId, ...basicClean })
+          });
+        }
+      } catch (err2) {}
     }
 
     try {
