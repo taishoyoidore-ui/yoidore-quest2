@@ -353,6 +353,16 @@ class QuestApiManager {
       }
     } catch (err) {}
 
+    // store-01 の raw_data からシステム全体のマスタ同期を取得（他端末・シークレット等でも共有）
+    try {
+      if (localTiers.length === 0 && Array.isArray(this.stores)) {
+        const s1 = this.stores.find(s => s.id === 'store-01');
+        if (s1?.raw_data?._system_reward_tiers && Array.isArray(s1.raw_data._system_reward_tiers)) {
+          localTiers = s1.raw_data._system_reward_tiers;
+        }
+      }
+    } catch (e) {}
+
     if (localTiers.length === 0 && this.config.fallbackRewardTiers) {
       localTiers = [...this.config.fallbackRewardTiers];
     }
@@ -363,47 +373,57 @@ class QuestApiManager {
       if (del) deletedIds = JSON.parse(del) || [];
     } catch (err) {}
 
+    const mergedMap = new Map();
+    // 1. まずローカル / 最新管理設定を最優先で投入
+    localTiers.forEach(t => {
+      const numId = Number(t.id);
+      if (!deletedIds.includes(numId) && !deletedIds.includes(String(numId))) {
+        mergedMap.set(numId, {
+          id: numId,
+          reward_type: t.reward_type || 'store_coupon',
+          title: t.title,
+          required_visits: Number(t.required_visits),
+          selectable_count: Number(t.selectable_count) || 1,
+          goods_name: t.goods_name || null,
+          exchange_location: t.exchange_location || null,
+          exchange_notice: t.exchange_notice || null,
+          description: t.description || ''
+        });
+      }
+    });
+
     try {
       const data = await this.supabaseFetch('reward_tiers?select=*&order=required_visits.asc');
       if (Array.isArray(data) && data.length > 0) {
-        const mergedMap = new Map();
-        
-        // 1. ローカルデータをまず投入
-        localTiers.forEach(t => {
-          const numId = Number(t.id);
-          if (!deletedIds.includes(numId) && !deletedIds.includes(String(numId))) {
-            mergedMap.set(numId, t);
-          }
-        });
-
-        // 2. Supabaseデータをマージ
         data.forEach(s => {
           const numId = Number(s.id);
           if (!deletedIds.includes(numId) && !deletedIds.includes(String(numId))) {
-            const existing = mergedMap.get(numId) || {};
-            mergedMap.set(numId, {
-              ...existing,
-              id: numId,
-              title: s.title || existing.title,
-              required_visits: s.required_visits !== undefined ? Number(s.required_visits) : existing.required_visits,
-              selectable_count: s.selectable_count !== undefined ? Number(s.selectable_count) : existing.selectable_count,
-              description: s.description !== undefined ? s.description : existing.description,
-              reward_type: existing.reward_type || (s.reward_type || 'store_coupon')
-            });
+            const existing = mergedMap.get(numId);
+            if (!existing) {
+              mergedMap.set(numId, {
+                id: numId,
+                title: s.title,
+                required_visits: Number(s.required_visits),
+                selectable_count: Number(s.selectable_count) || 1,
+                description: s.description || '',
+                reward_type: s.reward_type || 'store_coupon',
+                goods_name: s.goods_name || null,
+                exchange_location: s.exchange_location || null,
+                exchange_notice: s.exchange_notice || null
+              });
+            }
           }
         });
-
-        this.rewardTiers = Array.from(mergedMap.values()).sort((a, b) => (a.required_visits || 0) - (b.required_visits || 0));
-        try {
-          localStorage.setItem('yoidore_reward_tiers', JSON.stringify(this.rewardTiers));
-        } catch (e) {}
-        return this.rewardTiers;
       }
     } catch (e) {
       console.warn('特典ランクのSupabase取得（ローカルデータを使用）:', e);
     }
 
-    this.rewardTiers = localTiers.filter(t => !deletedIds.includes(Number(t.id)) && !deletedIds.includes(String(t.id))).sort((a, b) => (a.required_visits || 0) - (b.required_visits || 0));
+    this.rewardTiers = Array.from(mergedMap.values()).sort((a, b) => (a.required_visits || 0) - (b.required_visits || 0));
+    try {
+      localStorage.setItem('yoidore_reward_tiers', JSON.stringify(this.rewardTiers));
+    } catch (e) {}
+
     return this.rewardTiers;
   }
 
@@ -901,7 +921,7 @@ class QuestApiManager {
       localStorage.setItem('yoidore_reward_tiers', JSON.stringify(this.rewardTiers));
     } catch (e) {}
 
-    // Supabaseへの書き込みを試行
+    // Supabaseへの書き込みを試行 & 全端末共有同期
     const supabaseClean = {
       title: cleanData.title,
       required_visits: cleanData.required_visits,
@@ -924,6 +944,15 @@ class QuestApiManager {
       console.warn('Supabase reward_tiers保存（ローカルに完全保存完了）:', e);
     }
 
+    try {
+      const s1 = (this.stores || []).find(s => s.id === 'store-01');
+      const curRaw = (s1 && s1.raw_data) || {};
+      await this.supabaseFetch('stores?id=eq.store-01', {
+        method: 'PATCH',
+        body: JSON.stringify({ raw_data: { ...curRaw, _system_reward_tiers: this.rewardTiers } })
+      });
+    } catch (e) {}
+
     return cleanData;
   }
 
@@ -942,10 +971,21 @@ class QuestApiManager {
     } catch (e) {}
 
     try {
-      await this.supabaseFetch(`reward_tiers?id=eq.${encodeURIComponent(tierId)}`, { method: 'DELETE' });
-    } catch (e) {
-      console.warn('Supabase reward_tiers削除:', e);
-    }
+      await this.supabaseFetch(`reward_tiers?id=eq.${numId}`, {
+        method: 'DELETE'
+      });
+    } catch (e) {}
+
+    try {
+      const s1 = (this.stores || []).find(s => s.id === 'store-01');
+      const curRaw = (s1 && s1.raw_data) || {};
+      await this.supabaseFetch('stores?id=eq.store-01', {
+        method: 'PATCH',
+        body: JSON.stringify({ raw_data: { ...curRaw, _system_reward_tiers: this.rewardTiers } })
+      });
+    } catch (e) {}
+
+    return true;
   }
 
   // 勇者レベル・称号 (hero_titles) の新規登録 / 更新

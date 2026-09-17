@@ -78,10 +78,19 @@ SET level = EXCLUDED.level,
     description = EXCLUDED.description,
     display_order = EXCLUDED.display_order;
 
--- 4. 既存テーブルへの season_id 追加
+-- 4. 既存テーブルへの season_id およびグッズ引換カラムの追加
 ALTER TABLE public.visits ADD COLUMN IF NOT EXISTS season_id INT DEFAULT 2;
-ALTER TABLE public.user_coupons ADD COLUMN IF NOT EXISTS season_id INT DEFAULT 2;
 ALTER TABLE public.reward_tiers ADD COLUMN IF NOT EXISTS season_id INT DEFAULT 2;
+ALTER TABLE public.reward_tiers ADD COLUMN IF NOT EXISTS reward_type TEXT DEFAULT 'store_coupon'; -- store_coupon or goods
+ALTER TABLE public.reward_tiers ADD COLUMN IF NOT EXISTS goods_name TEXT;
+ALTER TABLE public.reward_tiers ADD COLUMN IF NOT EXISTS exchange_location TEXT;
+ALTER TABLE public.reward_tiers ADD COLUMN IF NOT EXISTS exchange_notice TEXT;
+
+ALTER TABLE public.user_coupons ADD COLUMN IF NOT EXISTS season_id INT DEFAULT 2;
+ALTER TABLE public.user_coupons ADD COLUMN IF NOT EXISTS reward_type TEXT DEFAULT 'store_coupon';
+ALTER TABLE public.user_coupons ADD COLUMN IF NOT EXISTS goods_name TEXT;
+ALTER TABLE public.user_coupons ADD COLUMN IF NOT EXISTS exchange_location TEXT;
+ALTER TABLE public.user_coupons ADD COLUMN IF NOT EXISTS exchange_notice TEXT;
 
 -- 5. RLS (Row Level Security) の設定
 ALTER TABLE public.seasons ENABLE ROW LEVEL SECURITY;

@@ -900,13 +900,13 @@ class YoidoreQuestApp {
     const rewardTiers = (window.questApi && window.questApi.rewardTiers) || [];
     const userCoupons = (window.questApi && window.questApi.userCoupons) || [];
 
-    // 獲得済み特典ランクの判定
-    const claimedTierIds = new Set(userCoupons.map(c => c.reward_tier_id));
+    // 獲得済み特典ランクの判定 (数値・文字列両対応)
+    const claimedTierIds = new Set(userCoupons.map(c => Number(c.reward_tier_id)));
 
     // 特典宝箱のレンダリング
     const tiersHtml = rewardTiers.map(tier => {
       const isReached = visitedCount >= tier.required_visits;
-      const isClaimed = claimedTierIds.has(tier.id);
+      const isClaimed = claimedTierIds.has(Number(tier.id));
       const isGoods = tier.reward_type === 'goods';
 
       let actionHtml = '';
@@ -930,16 +930,33 @@ class YoidoreQuestApp {
       return `
         <div class="treasure-tier-card ${isReached ? 'unlocked' : ''}">
           <div class="treasure-tier-header">
-            <span class="treasure-tier-title">🏆 ${tier.title} (必要: ${tier.required_visits}軒)</span>
+            <div>
+              <span class="treasure-tier-title">🏆 ${this.escapeHtml(tier.title)}</span>
+              <span class="tag" style="background:${isGoods ? '#451a03' : '#1e3a8a'}; color:${isGoods ? '#fde68a' : '#bfdbfe'}; border:1px solid ${isGoods ? '#f59e0b' : '#3b82f6'}; font-size:10px; margin-left:6px; padding:2px 6px; border-radius:4px;">
+                ${isGoods ? '🎁 グッズ引換' : '🍺 店舗クーポン'}
+              </span>
+            </div>
             <span style="font-size:18px;">${isClaimed ? '📦' : (isReached ? '✨' : '🔒')}</span>
           </div>
+          <div style="font-size:12px; color:var(--text-dim); margin:4px 0 6px 0;">
+            <i class="fa-solid fa-beer-mug-empty"></i> 必要制覇数: <strong class="text-yellow">${tier.required_visits}軒</strong>
+            ${isGoods ? 
+              ` | 🎁 引換品: <strong style="color:#fff;">${this.escapeHtml(tier.goods_name || 'オリジナル記念品')}</strong>` : 
+              ` | 🎟️ 特典数: <strong style="color:#fff;">${tier.selectable_count}店舗選択</strong>`
+            }
+          </div>
           ${isGoods && tier.exchange_location ? `
-            <div style="font-size:11px; color:var(--text-yellow); margin-bottom:4px;">
-              📍 引換場所: ${this.escapeHtml(tier.exchange_location)}
+            <div style="font-size:11px; color:#fde68a; margin-bottom:4px; background:rgba(245,158,11,0.1); padding:4px 8px; border-radius:4px; border:1px dashed #d97706;">
+              📍 <strong>引換場所:</strong> ${this.escapeHtml(tier.exchange_location)}
             </div>
           ` : ''}
-          <div class="treasure-tier-desc">${tier.description}</div>
-          <div style="margin-top:6px;">${actionHtml}</div>
+          ${isGoods && tier.exchange_notice ? `
+            <div style="font-size:10px; color:var(--text-dim); margin-bottom:4px;">
+              ⚠️ ${this.escapeHtml(tier.exchange_notice)}
+            </div>
+          ` : ''}
+          <div class="treasure-tier-desc">${this.escapeHtml(tier.description || '')}</div>
+          <div style="margin-top:8px;">${actionHtml}</div>
         </div>
       `;
     }).join('');
@@ -1736,10 +1753,13 @@ class YoidoreQuestApp {
           <div style="background:linear-gradient(135deg, #78350f 0%, #451a03 100%); border:2px solid var(--border-gold); border-radius:6px; padding:12px; margin-bottom:14px; animation:pulseGold 1.5s infinite;">
             <div style="font-size:18px; margin-bottom:4px;">🎁✨</div>
             <div style="font-size:14px; font-weight:bold; color:var(--text-yellow);">
-              【${unlockedTier.title}】解放！
+              【${this.escapeHtml ? this.escapeHtml(unlockedTier.title) : unlockedTier.title}】解放！
             </div>
             <div style="font-size:12px; color:#fed7aa; margin-top:4px;">
-              対象店舗からお好きなクーポンを ${unlockedTier.selectable_count} 店舗獲得できます！
+              ${unlockedTier.reward_type === 'goods' ? 
+                `🎁 記念品・グッズ引換券（${this.escapeHtml ? this.escapeHtml(unlockedTier.goods_name || unlockedTier.title) : (unlockedTier.goods_name || unlockedTier.title)}）を獲得できます！` : 
+                `対象店舗からお好きなクーポンを ${unlockedTier.selectable_count} 店舗獲得できます！`
+              }
             </div>
           </div>
         ` : ''}
@@ -2321,9 +2341,8 @@ class YoidoreQuestApp {
               <span>🎁 ハシゴ達成クーポン対象店舗</span>
             </div>
             <div style="padding:8px 0;">
-              <div style="font-size:12px; color:var(--text-yellow); font-weight:bold; margin-bottom:4px;">【街ぶら達成時にもらえる特典】</div>
               <div style="font-size:14px; color:#fff; line-height:1.4;">
-                ${store.couponDescription || '【街ぶら達成特典】お好きなワンドリンク または 小鉢1品サービス！'}
+                ${this.escapeHtml((store.couponDescription || 'お好きなワンドリンク または 小鉢1品サービス！').replace(/^【街ぶら達成特典】/, '').trim())}
               </div>
             </div>
           </div>
