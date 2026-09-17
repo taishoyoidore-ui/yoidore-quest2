@@ -375,6 +375,20 @@ body {
   border-color: var(--border-gold);
 }
 
+.rpg-window.window-gold {
+  border-color: var(--border-gold);
+  background: linear-gradient(180deg, #18140a 0%, #0d0c08 100%);
+}
+
+.rpg-window.window-purple {
+  border-color: #a855f7;
+  background: linear-gradient(180deg, #180d22 0%, #0c0712 100%);
+}
+
+.rpg-window.window-green {
+  border-color: #10b981;
+}
+
 /* 青いタイトルバー付きウィンドウ */
 .rpg-window-header {
   background: linear-gradient(180deg, var(--title-blue-start) 0%, var(--title-blue-end) 100%);
@@ -388,6 +402,25 @@ body {
   align-items: center;
   margin: -12px -12px 12px -12px;
   text-shadow: 1px 1px 0px #000;
+}
+
+/* ウィンドウヘッダーカラーバリエーション */
+.rpg-window-header.header-gold {
+  background: linear-gradient(180deg, #b45309 0%, #78350f 100%);
+  border-color: var(--border-gold);
+  color: #fffbeb;
+}
+
+.rpg-window-header.header-purple {
+  background: linear-gradient(180deg, #7e22ce 0%, #4c1d95 100%);
+  border-color: #d8b4fe;
+  color: #faf5ff;
+}
+
+.rpg-window-header.header-green {
+  background: linear-gradient(180deg, #047857 0%, #064e3b 100%);
+  border-color: #6ee7b7;
+  color: #ecfdf5;
 }
 
 .rpg-window-header .header-badge {
