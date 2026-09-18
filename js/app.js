@@ -597,7 +597,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.18.24';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.18.25';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエストⅡ 公式ガイド</div>
@@ -1046,19 +1046,35 @@ class YoidoreQuestApp {
         </div>
       `;
 
-    // ハシゴ済み酒場一覧
-    const visitedStoresHtml = visits.map((v, idx) => {
-      const st = stores.find(s => s.id === v.store_id);
-      const name = st ? st.name : v.store_id;
-      const dateStr = v.visited_at ? new Date(v.visited_at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+    // 全酒場を連番順（store-01, store-02...）にソート
+    const sortedStores = [...stores].sort((a, b) => {
+      const numA = parseInt(String(a.id).replace(/\D/g, ''), 10) || 0;
+      const numB = parseInt(String(b.id).replace(/\D/g, ''), 10) || 0;
+      if (numA !== numB) return numA - numB;
+      return (a.name || '').localeCompare(b.name || '', 'ja');
+    });
+
+    const visitedMap = new Map();
+    visits.forEach(v => {
+      visitedMap.set(v.store_id, v);
+    });
+
+    // 酒場ロゴコレクション（図鑑風タイルグリッド）の生成
+    // ※通し番号や店舗名、日時はタイル上に表示せず、ロゴ画像のみを配置
+    const stampGridHtml = sortedStores.map(st => {
+      const isVisited = visitedMap.has(st.id);
+      const logoUrl = st.logoUrl || st.logo_url || '';
+      const initialChar = this.escapeHtml((st.name || '酒').slice(0, 1));
+
       return `
-        <li class="command-item" style="cursor:default; padding:8px 10px;">
-          <div class="command-item-left">
-            <span style="color:var(--text-green); font-size:14px; font-weight:bold; min-width:28px;">#${idx + 1}</span>
-            <span class="command-label" style="font-size:14px;">${name}</span>
-          </div>
-          <span style="font-size:12px; color:#93c5fd; font-weight:bold;">${dateStr}</span>
-        </li>
+        <div class="quest-stamp-item ${isVisited ? 'visited' : 'unvisited'}" data-store-id="${st.id}" title="${this.escapeHtml(st.name)}">
+          ${logoUrl ? `
+            <img src="${logoUrl}" alt="${this.escapeHtml(st.name)}" class="quest-stamp-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="quest-stamp-fallback" style="display:none;">${initialChar}</div>
+          ` : `
+            <div class="quest-stamp-fallback">${initialChar}</div>
+          `}
+        </div>
       `;
     }).join('');
 
@@ -1094,14 +1110,14 @@ class YoidoreQuestApp {
           </div>
         </div>
 
-        <!-- 3. ハシゴ済み酒場一覧 (進捗の直下) -->
+        <!-- 3. 酒場コレクション (全店舗の図鑑風ロゴタイル) -->
         <div class="rpg-window window-green" style="margin-bottom:14px;">
           <div class="rpg-window-header header-green">
-            <span>📜 ハシゴ済み酒場 (${visitedCount}軒)</span>
+            <span>📜 酒場コレクション (${visitedCount} / ${totalStores}軒)</span>
           </div>
-          <ul class="command-list" style="margin-top:8px;">
-            ${visitedStoresHtml || `<li style="padding:15px; text-align:center; color:#e2e8f0; font-size:14px;">まだハシゴ記録がありません。酒場を巡りましょう！</li>`}
-          </ul>
+          <div class="quest-stamp-grid">
+            ${stampGridHtml || `<div style="padding:15px; text-align:center; color:#e2e8f0; font-size:14px; grid-column: 1 / -1;">酒場マスターを読み込み中です。</div>`}
+          </div>
         </div>
 
         <!-- 4. 特典宝箱一覧 (目標・チャレンジ) -->
@@ -1143,6 +1159,18 @@ class YoidoreQuestApp {
         ${this.getFooterVersionHTML()}
       </div>
     `;
+
+    // 酒場ロゴタイルタップで店舗詳細確認モーダル表示
+    container.querySelectorAll('.quest-stamp-item').forEach(tile => {
+      tile.addEventListener('click', () => {
+        this.playSelectSE();
+        const storeId = tile.dataset.storeId;
+        const store = stores.find(s => s.id === storeId);
+        if (!store) return;
+        const visitInfo = visitedMap.get(storeId);
+        this.showStoreStampModal(store, visitInfo);
+      });
+    });
 
     // 宝箱を開くボタンのイベント
     container.querySelectorAll('.treasure-claim-btn').forEach(btn => {
@@ -1241,6 +1269,83 @@ class YoidoreQuestApp {
         }
       });
     }
+  }
+
+  /* ------------------------------------------------------------------------
+   * 冒険の書: 酒場ロゴタイルタップ時の店舗確認モーダル
+   * ------------------------------------------------------------------------ */
+  showStoreStampModal(store, visitInfo) {
+    const isVisited = !!visitInfo;
+    const logoUrl = store.logoUrl || store.logo_url || '';
+    const dateStr = (visitInfo && visitInfo.visited_at)
+      ? new Date(visitInfo.visited_at).toLocaleString('ja-JP', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : '';
+
+    const modalId = 'store-stamp-modal-' + Date.now();
+    const modalHtml = `
+      <div id="${modalId}" class="stamp-modal-overlay">
+        <div class="stamp-modal-content">
+          <div class="stamp-modal-header">
+            <span class="stamp-modal-title">📜 酒場コレクション</span>
+            <button class="stamp-modal-close-btn" aria-label="閉じる">&times;</button>
+          </div>
+          <div class="stamp-modal-body">
+            <div class="stamp-modal-logo-box ${isVisited ? 'visited' : ''}">
+              ${logoUrl ? `
+                <img src="${logoUrl}" alt="${this.escapeHtml(store.name)}" class="stamp-modal-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="quest-stamp-fallback" style="display:none; font-size:24px;">${this.escapeHtml((store.name || '酒').slice(0, 1))}</div>
+              ` : `
+                <div class="quest-stamp-fallback" style="font-size:24px;">${this.escapeHtml((store.name || '酒').slice(0, 1))}</div>
+              `}
+            </div>
+            <div class="stamp-modal-store-name">${this.escapeHtml(store.name)}</div>
+            <div class="stamp-modal-meta">
+              📍 ${this.escapeHtml(store.area || '')} ${store.category ? ` / ${this.escapeHtml(store.category)}` : ''}
+            </div>
+            <div>
+              ${isVisited ? `
+                <span class="stamp-modal-status-badge status-visited">
+                  ✨ 制覇済み (${dateStr})
+                </span>
+              ` : `
+                <span class="stamp-modal-status-badge status-unvisited">
+                  🔒 未制覇 (まだサインを受け取っていません)
+                </span>
+              `}
+            </div>
+            <div class="stamp-modal-actions">
+              <button class="command-button btn-go-detail" style="background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%); color: #fff; border: 1px solid #3b82f6; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer;">
+                🏮 酒場詳細を見る
+              </button>
+              <button class="command-button btn-close-modal" style="background: #334155; color: #fff; border: 1px solid #475569; padding: 8px; border-radius: 6px; font-size: 13px; cursor: pointer;">
+                閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modalEl = document.getElementById(modalId);
+    if (!modalEl) return;
+
+    const closeModal = () => {
+      this.playBackSE();
+      modalEl.remove();
+    };
+
+    modalEl.querySelector('.stamp-modal-close-btn').addEventListener('click', closeModal);
+    modalEl.querySelector('.btn-close-modal').addEventListener('click', closeModal);
+    modalEl.addEventListener('click', (e) => {
+      if (e.target === modalEl) closeModal();
+    });
+
+    modalEl.querySelector('.btn-go-detail').addEventListener('click', () => {
+      this.playSelectSE();
+      modalEl.remove();
+      this.navigateTo('detail', { store });
+    });
   }
 
   /* ------------------------------------------------------------------------
