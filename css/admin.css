@@ -1102,3 +1102,106 @@ body {
   color: #000;
 }
 
+/* --------------------------------------------------------------------------
+ * 店舗登録・編集フォームの選択コントロール
+ * -------------------------------------------------------------------------- */
+.day-selector-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #f8fafc;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+}
+
+.day-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.day-checkboxes label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.day-preset-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.day-preset-btn {
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.day-preset-btn:hover {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
+.time-picker-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.time-picker-group input[type="time"] {
+  width: 120px;
+  font-size: 0.9rem;
+}
+
+.payment-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  background: #f8fafc;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+}
+
+.payment-checkboxes label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* Excelインポート用ドラッグ＆ドロップ領域 */
+.import-drop-zone {
+  border: 2px dashed #10b981;
+  background: #f0fdf4;
+  border-radius: var(--radius-lg);
+  padding: 30px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.import-drop-zone:hover,
+.import-drop-zone.dragover {
+  background: #dcfce7;
+  border-color: #059669;
+}
+
+.media-preview-box img {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  object-fit: cover;
+}
+
+
