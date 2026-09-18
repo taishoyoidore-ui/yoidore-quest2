@@ -721,21 +721,47 @@ class YoidoreAdminApp {
     // 写真プレビュー
     const photoBox = document.getElementById('preview-photo-box');
     const photoImg = document.getElementById('preview-photo-img');
+    const photoStatus = document.getElementById('preview-photo-status');
     if (photoVal && photoBox && photoImg) {
-      photoImg.src = photoVal;
       photoBox.style.display = 'block';
+      photoImg.style.display = 'none';
+      if (photoStatus) photoStatus.innerHTML = '<span style="color:#64748b;">⏳ 画像を読み込み中...</span>';
+      
+      photoImg.onload = () => {
+        photoImg.style.display = 'block';
+        if (photoStatus) photoStatus.innerHTML = '<span style="color:#15803d;"><i class="fa-solid fa-check"></i> 画像確認OK</span>';
+      };
+      photoImg.onerror = () => {
+        photoImg.style.display = 'none';
+        if (photoStatus) photoStatus.innerHTML = `<span style="color:#b45309; background:#fef3c7; padding:2px 6px; border-radius:3px;"><i class="fa-solid fa-triangle-exclamation"></i> 画像ファイル未配置 (<code>${photoVal}</code> を配置すると表示されます)</span>`;
+      };
+      photoImg.src = photoVal;
     } else if (photoBox) {
       photoBox.style.display = 'none';
+      if (photoImg) photoImg.src = '';
     }
 
     // ロゴプレビュー
     const logoBox = document.getElementById('preview-logo-box');
     const logoImg = document.getElementById('preview-logo-img');
+    const logoStatus = document.getElementById('preview-logo-status');
     if (logoVal && logoBox && logoImg) {
-      logoImg.src = logoVal;
       logoBox.style.display = 'block';
+      logoImg.style.display = 'none';
+      if (logoStatus) logoStatus.innerHTML = '<span style="color:#64748b;">⏳ 画像を読み込み中...</span>';
+
+      logoImg.onload = () => {
+        logoImg.style.display = 'block';
+        if (logoStatus) logoStatus.innerHTML = '<span style="color:#15803d;"><i class="fa-solid fa-check"></i> ロゴ確認OK</span>';
+      };
+      logoImg.onerror = () => {
+        logoImg.style.display = 'none';
+        if (logoStatus) logoStatus.innerHTML = `<span style="color:#b45309; background:#fef3c7; padding:2px 6px; border-radius:3px;"><i class="fa-solid fa-triangle-exclamation"></i> ロゴ画像未配置 (<code>${logoVal}</code> を配置すると表示されます)</span>`;
+      };
+      logoImg.src = logoVal;
     } else if (logoBox) {
       logoBox.style.display = 'none';
+      if (logoImg) logoImg.src = '';
     }
 
     // Mapボタン

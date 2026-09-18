@@ -12,7 +12,7 @@
 
   <link rel="icon" href="assets/banner.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/admin.css?v=20260918_5">
+  <link rel="stylesheet" href="css/admin.css?v=20260918_6">
   <!-- SheetJS for Excel Import -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- QRCode.js for POP Generation -->
@@ -719,14 +719,16 @@
               <label>写真画像パス / URL</label>
               <input type="text" id="edit-store-photo-url" class="form-control" placeholder="photo/001.jpg または 外部URL" oninput="window.adminApp.updateMediaPreview()">
               <div id="preview-photo-box" class="media-preview-box" style="margin-top:6px; display:none;">
-                <img id="preview-photo-img" src="" alt="写真プレビュー" style="max-height:80px; border-radius:4px; border:1px solid #cbd5e1;">
+                <img id="preview-photo-img" src="" alt="写真プレビュー" style="max-height:80px; border-radius:4px; border:1px solid #cbd5e1; display:none;">
+                <div id="preview-photo-status" style="font-size:11px; color:#64748b; margin-top:2px;"></div>
               </div>
             </div>
             <div class="form-group">
               <label>ロゴ画像パス / URL</label>
               <input type="text" id="edit-store-logo-url" class="form-control" placeholder="logo/001.png または 外部URL" oninput="window.adminApp.updateMediaPreview()">
               <div id="preview-logo-box" class="media-preview-box" style="margin-top:6px; display:none;">
-                <img id="preview-logo-img" src="" alt="ロゴプレビュー" style="max-height:80px; border-radius:4px; border:1px solid #cbd5e1; background:#f8fafc; padding:2px;">
+                <img id="preview-logo-img" src="" alt="ロゴプレビュー" style="max-height:80px; border-radius:4px; border:1px solid #cbd5e1; background:#f8fafc; padding:2px; display:none;">
+                <div id="preview-logo-status" style="font-size:11px; color:#64748b; margin-top:2px;"></div>
               </div>
             </div>
           </div>
@@ -927,8 +929,8 @@
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=20260918_5"></script>
-  <script src="js/api.js?v=20260918_5"></script>
-  <script src="js/admin.js?v=20260918_5"></script>
+  <script src="js/config.js?v=20260918_6"></script>
+  <script src="js/api.js?v=20260918_6"></script>
+  <script src="js/admin.js?v=20260918_6"></script>
 </body>
 </html>
