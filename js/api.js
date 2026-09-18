@@ -133,8 +133,12 @@ class QuestApiManager {
    * ------------------------------------------------------------------------ */
   async getStores() {
     try {
-      // 常に最新データを取得するためキャッシュバスターを付与
-      const data = await this.supabaseFetch(`stores?select=*&order=display_order.asc&_t=${Date.now()}`);
+      const data = await this.supabaseFetch('stores?select=*&order=display_order.asc', {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       if (Array.isArray(data) && data.length > 0) {
         const formatMediaUrl = (val, prefix, fallbackExt, numId) => {
           let target = val;
