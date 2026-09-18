@@ -840,32 +840,76 @@ class YoidoreAdminApp {
     }
     const payment = selectedPayments.join(', ');
 
-    const storeData = {
+    const name = document.getElementById('edit-store-name').value.trim();
+    const catchphrase = document.getElementById('edit-store-catchphrase').value.trim();
+    const setName = document.getElementById('edit-store-set-name').value.trim();
+    const setPrice = parseInt(document.getElementById('edit-store-set-price').value, 10) || 0;
+    const setContent = document.getElementById('edit-store-set-content').value.trim();
+    const setCharge = document.getElementById('edit-store-set-charge').value.trim();
+    const setLimit = document.getElementById('edit-store-set-limit').value.trim();
+    const setNotes = document.getElementById('edit-store-set-notes').value.trim();
+    const questName = document.getElementById('edit-store-quest-name').value.trim();
+    const questPrice = parseInt(document.getElementById('edit-store-quest-price').value, 10) || 0;
+    const questContent = document.getElementById('edit-store-quest-content').value.trim();
+    const mapUrl = document.getElementById('edit-store-map-url').value.trim();
+    const instaUrl = document.getElementById('edit-store-insta-url').value.trim();
+    const photoUrl = document.getElementById('edit-store-photo-url').value.trim();
+    const logoUrl = document.getElementById('edit-store-logo-url').value.trim();
+    const isCouponTarget = document.getElementById('edit-store-coupon-target').checked;
+    const displayOrder = parseInt(storeId.replace(/\D/g, ''), 10) || 0;
+
+    const rawData = {
+      "ID": storeId,
+      "店舗名": name,
+      "エリア": area,
+      "カテゴリ": category,
+      "category": category,
+      "スタイル": style,
+      "style": style,
+      "タイプ": yoidore_type,
+      "yoidore_type": yoidore_type,
+      "type": yoidore_type,
+      "テイクアウト": takeout,
+      "takeout": takeout,
+      "キャッチコピー": catchphrase,
+      "catchphrase": catchphrase,
+      "提供日": days,
+      "days": days,
+      "提供時間": hours,
+      "hours": hours,
+      "決済方法": payment,
+      "payment": payment,
+      "酔いどれセット名": setName,
+      "セット名": setName,
+      "セット内容": setContent,
+      "価格(円)": setPrice,
+      "価格": setPrice,
+      "チャージ": setCharge,
+      "限定数": setLimit,
+      "セット備考": setNotes,
+      "備考": setNotes,
+      "クエスト名": questName,
+      "クエスト内容": questContent,
+      "クエスト価格(円)": questPrice,
+      "Google Map URL": mapUrl,
+      "map_url": mapUrl,
+      "Instagram URL": instaUrl,
+      "insta_url": instaUrl,
+      "photo": photoUrl,
+      "photoUrl": photoUrl,
+      "logo": logoUrl,
+      "logoUrl": logoUrl,
+      "is_coupon_target": isCouponTarget
+    };
+
+    const storePayload = {
       id: storeId,
-      name: document.getElementById('edit-store-name').value.trim(),
-      area,
-      category,
-      style,
-      yoidore_type,
-      takeout,
-      catchphrase: document.getElementById('edit-store-catchphrase').value.trim(),
-      days,
-      hours,
-      payment,
-      set_name: document.getElementById('edit-store-set-name').value.trim(),
-      set_price: parseInt(document.getElementById('edit-store-set-price').value, 10) || 0,
-      set_content: document.getElementById('edit-store-set-content').value.trim(),
-      set_charge: document.getElementById('edit-store-set-charge').value.trim(),
-      set_limit: document.getElementById('edit-store-set-limit').value.trim(),
-      set_notes: document.getElementById('edit-store-set-notes').value.trim(),
-      quest_name: document.getElementById('edit-store-quest-name').value.trim(),
-      quest_price: parseInt(document.getElementById('edit-store-quest-price').value, 10) || 0,
-      quest_content: document.getElementById('edit-store-quest-content').value.trim(),
-      map_url: document.getElementById('edit-store-map-url').value.trim(),
-      insta_url: document.getElementById('edit-store-insta-url').value.trim(),
-      photo_url: document.getElementById('edit-store-photo-url').value.trim(),
-      logo_url: document.getElementById('edit-store-logo-url').value.trim(),
-      is_coupon_target: document.getElementById('edit-store-coupon-target').checked
+      name: name,
+      area: area,
+      is_coupon_target: isCouponTarget,
+      coupon_description: isCouponTarget ? '【街ぶら達成特典】お好きなワンドリンク または 小鉢1品サービス！' : '',
+      display_order: displayOrder,
+      raw_data: rawData
     };
 
     try {
@@ -873,17 +917,17 @@ class YoidoreAdminApp {
       if (isNew) {
         await this.api.supabaseFetch('stores', {
           method: 'POST',
-          body: JSON.stringify(storeData)
+          body: JSON.stringify(storePayload)
         });
       } else {
         await this.api.supabaseFetch(`stores?id=eq.${storeId}`, {
           method: 'PATCH',
-          body: JSON.stringify(storeData)
+          body: JSON.stringify(storePayload)
         });
       }
 
       this.closeStoreModal();
-      this.showToast(`店舗「${storeData.name}」のデータを保存しました！`);
+      this.showToast(`酒場「${name}」のデータを保存しました！`);
       await this.loadAllData();
     } catch (err) {
       alert('保存に失敗しました: ' + err.message);
@@ -1202,37 +1246,68 @@ class YoidoreAdminApp {
 
       for (let i = 0; i < validItems.length; i++) {
         const item = validItems[i];
+        const displayOrder = parseInt(String(item.id).replace(/\D/g, ''), 10) || (i + 1);
+
+        const rawData = {
+          "ID": item.id,
+          "店舗名": item.name,
+          "エリア": item.area,
+          "カテゴリ": item.category,
+          "category": item.category,
+          "スタイル": item.style,
+          "style": item.style,
+          "タイプ": item.yoidore_type,
+          "yoidore_type": item.yoidore_type,
+          "type": item.yoidore_type,
+          "テイクアウト": item.takeout,
+          "takeout": item.takeout,
+          "キャッチコピー": item.catchphrase || '',
+          "catchphrase": item.catchphrase || '',
+          "提供日": item.days,
+          "days": item.days,
+          "提供時間": item.hours,
+          "hours": item.hours,
+          "提供時間に対する補足": item.time_notes || '',
+          "time_notes": item.time_notes || '',
+          "決済方法": item.payment,
+          "payment": item.payment,
+          "酔いどれセット名": item.set_name,
+          "セット名": item.set_name,
+          "セット内容": item.set_content,
+          "価格(円)": item.set_price || 0,
+          "価格": item.set_price || 0,
+          "チャージ": item.set_charge || '不要',
+          "限定数": item.set_limit || '',
+          "セット備考": item.set_notes || '',
+          "備考": item.set_notes || '',
+          "クエスト名": item.quest_name || '',
+          "クエスト内容": item.quest_content || '',
+          "クエスト価格(円)": item.quest_price || 0,
+          "クエストチャージ": item.quest_charge || '不要',
+          "クエスト備考": item.quest_notes || '',
+          "Google Map URL": item.map_url || '',
+          "map_url": item.map_url || '',
+          "Instagram URL": item.insta_url || '',
+          "insta_url": item.insta_url || '',
+          "photo": item.photo_url || '',
+          "photoUrl": item.photo_url || '',
+          "logo": item.logo_url || '',
+          "logoUrl": item.logo_url || '',
+          "is_coupon_target": Boolean(item.is_coupon_target)
+        };
+
         const storePayload = {
           id: item.id,
           name: item.name,
           area: item.area,
-          category: item.category,
-          style: item.style,
-          yoidore_type: item.yoidore_type,
-          takeout: item.takeout,
-          days: item.days,
-          hours: item.hours,
-          payment: item.payment,
-          is_coupon_target: item.is_coupon_target,
-          set_name: item.set_name,
-          set_price: item.set_price,
-          set_content: item.set_content,
-          set_charge: item.set_charge,
-          set_limit: item.set_limit,
-          set_notes: item.set_notes,
-          quest_name: item.quest_name,
-          quest_price: item.quest_price,
-          quest_content: item.quest_content,
-          quest_charge: item.quest_charge,
-          quest_notes: item.quest_notes,
-          map_url: item.map_url,
-          insta_url: item.insta_url,
-          photo_url: item.photo_url,
-          logo_url: item.logo_url
+          is_coupon_target: Boolean(item.is_coupon_target),
+          coupon_description: Boolean(item.is_coupon_target) ? '【街ぶら達成特典】お好きなワンドリンク または 小鉢1品サービス！' : '',
+          display_order: displayOrder,
+          raw_data: rawData
         };
 
         if (item.isExisting) {
-          await this.api.supabaseFetch(`stores?id=eq.${item.id}`, {
+          await this.api.supabaseFetch(`stores?id=eq.${encodeURIComponent(item.id)}`, {
             method: 'PATCH',
             body: JSON.stringify(storePayload)
           });
@@ -1247,7 +1322,7 @@ class YoidoreAdminApp {
       }
 
       this.closeExcelImportModal();
-      this.showToast(`🎉 ${successCount} 件の店舗アンケート情報をSupabaseへ同期・更新しました！`);
+      this.showToast(`🎉 ${successCount} 軒の酒場アンケート情報をSupabaseへ同期・更新しました！`);
       await this.loadAllData();
     } catch (err) {
       alert('インポート途中でエラーが発生しました: ' + err.message);
