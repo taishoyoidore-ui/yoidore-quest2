@@ -12,7 +12,7 @@
 
   <link rel="icon" href="assets/banner.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/admin.css?v=20260918_6">
+  <link rel="stylesheet" href="css/admin.css?v=20260918_12">
   <!-- SheetJS for Excel Import -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- QRCode.js for POP Generation -->
@@ -629,7 +629,8 @@
                 <input type="checkbox" id="edit-store-hours-nextday"> 翌日
               </label>
             </div>
-            <input type="text" id="edit-store-hours-custom" class="form-control" placeholder="変則営業時間や備考 (例: ランチ 11:30〜14:00 / ディナー 17:00〜23:00)" style="margin-top:6px; font-size:12px;">
+            <input type="text" id="edit-store-hours-custom" class="form-control" placeholder="変則営業時間 (例: ランチ 11:30〜14:00 / ディナー 17:00〜23:00)" style="margin-top:6px; font-size:12px;">
+            <input type="text" id="edit-store-time-notes" class="form-control" placeholder="💡 提供時間に対する補足 (例: 土日祝は15時〜22時 / 売切次第終了)" style="margin-top:6px; font-size:12px; border-color:#cbd5e1;">
           </div>
 
           <div class="form-group">
@@ -670,13 +671,13 @@
               <input type="text" id="edit-store-set-limit" class="form-control" placeholder="なし, 1日限定10食等">
             </div>
             <div class="form-group">
-              <label>注意事項</label>
-              <input type="text" id="edit-store-set-notes" class="form-control">
+              <label>注意事項・備考</label>
+              <input type="text" id="edit-store-set-notes" class="form-control" placeholder="セットの注意事項">
             </div>
           </div>
 
           <!-- クエスト情報 -->
-          <div class="form-section-title">⚔️ 店舗クエスト情報</div>
+          <div class="form-section-title">⚔️ 酒場クエスト情報</div>
           <div class="grid-2col">
             <div class="form-group">
               <label>クエスト名</label>
@@ -688,8 +689,18 @@
             </div>
           </div>
           <div class="form-group">
-            <label>クエスト内容</label>
+            <label>クエスト内容 / 報酬</label>
             <textarea id="edit-store-quest-content" class="form-control" rows="2"></textarea>
+          </div>
+          <div class="grid-2col">
+            <div class="form-group">
+              <label>クエスト チャージ料</label>
+              <input type="text" id="edit-store-quest-charge" class="form-control" placeholder="不要, 込, 300円等">
+            </div>
+            <div class="form-group">
+              <label>クエスト 注意事項・備考</label>
+              <input type="text" id="edit-store-quest-notes" class="form-control" placeholder="1人1日1回等">
+            </div>
           </div>
 
           <!-- リンク & フラグ -->
@@ -741,9 +752,16 @@
             </label>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" onclick="window.adminApp.closeStoreModal()">キャンセル</button>
-          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Supabaseに保存</button>
+        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <button type="button" id="btn-delete-store" class="btn btn-danger" style="display: none;" onclick="window.adminApp.deleteStore()">
+              <i class="fa-solid fa-trash-can"></i> 店舗を削除
+            </button>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn-secondary" onclick="window.adminApp.closeStoreModal()">キャンセル</button>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Supabaseに保存</button>
+          </div>
         </div>
       </form>
     </div>
@@ -902,8 +920,9 @@
                 <tr>
                   <th style="width: 80px;">状態</th>
                   <th style="width: 80px;">ID</th>
-                  <th>店舗名</th>
+                  <th>酒場名</th>
                   <th>エリア/ジャンル</th>
+                  <th>提供時間・補足</th>
                   <th>企画</th>
                   <th>セット名 (価格)</th>
                   <th>クエスト名</th>
@@ -929,8 +948,8 @@
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=20260918_8"></script>
-  <script src="js/api.js?v=20260918_8"></script>
-  <script src="js/admin.js?v=20260918_8"></script>
+  <script src="js/config.js?v=20260918_12"></script>
+  <script src="js/api.js?v=20260918_12"></script>
+  <script src="js/admin.js?v=20260918_12"></script>
 </body>
 </html>

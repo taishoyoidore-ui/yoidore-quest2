@@ -551,6 +551,11 @@ class YoidoreAdminApp {
     const idInput = document.getElementById('edit-store-id');
     idInput.readOnly = !isNew;
 
+    const delBtn = document.getElementById('btn-delete-store');
+    if (delBtn) {
+      delBtn.style.display = isNew ? 'none' : 'inline-flex';
+    }
+
     let store = {};
     if (!isNew) {
       store = this.stores.find(s => s.id === storeIdOrMode) || {};
@@ -577,9 +582,9 @@ class YoidoreAdminApp {
     }
 
     const raw = store.raw_data || {};
-    const quest = raw.quest || {};
-    const yoidoreSet = raw.yoidoreSet || {};
-    const conditions = raw.conditions || {};
+    const quest = store.quest || raw.quest || {};
+    const yoidoreSet = store.yoidoreSet || raw.yoidoreSet || {};
+    const conditions = store.conditions || raw.conditions || {};
     const numId = (store.id || '').replace(/\D/g, '').padStart(3, '0');
 
     document.getElementById('edit-store-id').value = store.id || '';
@@ -666,9 +671,13 @@ class YoidoreAdminApp {
       document.getElementById('edit-store-hours-custom').value = currentHours !== '17:00〜23:00' ? currentHours : '';
     }
 
+    // 提供時間に対する補足
+    document.getElementById('edit-store-time-notes').value = store.time_notes || conditions.timeNotes || raw['提供時間に対する補足'] || raw['time_notes'] || raw['時間補足'] || '';
+
     // 8. 決済方法チェックボックス設定
-    const currentPayments = Array.isArray(raw.paymentMethods) ? raw.paymentMethods : 
-      String(store.payment || (raw['決済方法'] ? String(raw['決済方法']) : '現金')).split(/[,、]/).map(p => p.trim());
+    const currentPayments = Array.isArray(store.paymentMethods) ? store.paymentMethods : 
+      (Array.isArray(raw.paymentMethods) ? raw.paymentMethods : 
+        String(store.payment || (raw['決済方法'] ? String(raw['決済方法']) : '現金')).split(/[,、]/).map(p => p.trim()));
     const payCbs = document.querySelectorAll('input[name="store-payment-check"]');
     const otherPayments = [];
     payCbs.forEach(cb => {
@@ -700,9 +709,11 @@ class YoidoreAdminApp {
     document.getElementById('edit-store-quest-name').value = store.quest_name || quest.title || raw['クエスト名'] || raw['クエストタイトル'] || '';
     document.getElementById('edit-store-quest-price').value = store.quest_price !== undefined ? store.quest_price : (quest.price || raw['クエスト価格'] || 0);
     document.getElementById('edit-store-quest-content').value = store.quest_content || quest.content || raw['クエスト内容'] || '';
+    document.getElementById('edit-store-quest-charge').value = store.quest_charge || quest.charge || raw['クエストチャージ'] || '';
+    document.getElementById('edit-store-quest-notes').value = store.quest_notes || quest.notes || raw['クエスト備考'] || '';
 
-    document.getElementById('edit-store-map-url').value = store.map_url || raw.googleMapUrl || raw['Google Map URL'] || raw['map_url'] || '';
-    document.getElementById('edit-store-insta-url').value = store.insta_url || raw.instagramUrl || raw['Instagram URL'] || raw['insta_url'] || '';
+    document.getElementById('edit-store-map-url').value = store.map_url || store.googleMapUrl || raw.googleMapUrl || raw['Google Map URL'] || raw['map_url'] || '';
+    document.getElementById('edit-store-insta-url').value = store.insta_url || store.instagramUrl || raw.instagramUrl || raw['Instagram URL'] || raw['insta_url'] || '';
     document.getElementById('edit-store-photo-url').value = store.photo_url || store.photoUrl || raw['photoUrl'] || raw['photo'] || (numId ? `photo/${numId}.jpg` : '');
     document.getElementById('edit-store-logo-url').value = store.logo_url || store.logoUrl || raw['logoUrl'] || raw['logo'] || (numId ? `logo/${numId}.png` : '');
     document.getElementById('edit-store-coupon-target').checked = store.is_coupon_target !== false;
@@ -748,7 +759,7 @@ class YoidoreAdminApp {
     if (logoVal && logoBox && logoImg) {
       logoBox.style.display = 'block';
       logoImg.style.display = 'none';
-      if (logoStatus) logoStatus.innerHTML = '<span style="color:#64748b;">⏳ 画像を読み込み中...</span>';
+      if (logoStatus) logoStatus.innerHTML = '<span style="color:#64748b;">⏳ ロゴを読み込み中...</span>';
 
       logoImg.onload = () => {
         logoImg.style.display = 'block';
@@ -756,7 +767,7 @@ class YoidoreAdminApp {
       };
       logoImg.onerror = () => {
         logoImg.style.display = 'none';
-        if (logoStatus) logoStatus.innerHTML = `<span style="color:#b45309; background:#fef3c7; padding:2px 6px; border-radius:3px;"><i class="fa-solid fa-triangle-exclamation"></i> ロゴ画像未配置 (<code>${logoVal}</code> を配置すると表示されます)</span>`;
+        if (logoStatus) logoStatus.innerHTML = `<span style="color:#b45309; background:#fef3c7; padding:2px 6px; border-radius:3px;"><i class="fa-solid fa-triangle-exclamation"></i> ロゴ未配置 (<code>${logoVal}</code> を配置すると表示されます)</span>`;
       };
       logoImg.src = logoVal;
     } else if (logoBox) {
@@ -817,14 +828,14 @@ class YoidoreAdminApp {
     document.querySelectorAll('input[name="store-days-check"]:checked').forEach(cb => {
       selectedDays.push(cb.value);
     });
-    const days = selectedDays.join(',');
+    const days = selectedDays.length > 0 ? selectedDays.join(',') : '月,火,水,金,土,日';
 
     // 7. 営業時間取得
     const hStart = document.getElementById('edit-store-hours-start').value;
     const hEnd = document.getElementById('edit-store-hours-end').value;
     const isNextDay = document.getElementById('edit-store-hours-nextday').checked;
     const hCustom = document.getElementById('edit-store-hours-custom').value.trim();
-    let hours = `${hStart}〜${isNextDay ? '翌' : ''}${hEnd}`;
+    let hours = `${hStart || '17:00'}〜${isNextDay ? '翌' : ''}${hEnd || '23:00'}`;
     if (hCustom) {
       hours = `${hours} (${hCustom})`;
     }
@@ -838,10 +849,13 @@ class YoidoreAdminApp {
     if (pOther) {
       selectedPayments.push(pOther);
     }
-    const payment = selectedPayments.join(', ');
+    const payment = selectedPayments.length > 0 ? selectedPayments.join(', ') : '現金';
 
     const name = document.getElementById('edit-store-name').value.trim();
+    if (!name) return alert('店舗名を入力してください');
+
     const catchphrase = document.getElementById('edit-store-catchphrase').value.trim();
+    const timeNotes = document.getElementById('edit-store-time-notes').value.trim();
     const setName = document.getElementById('edit-store-set-name').value.trim();
     const setPrice = parseInt(document.getElementById('edit-store-set-price').value, 10) || 0;
     const setContent = document.getElementById('edit-store-set-content').value.trim();
@@ -851,6 +865,8 @@ class YoidoreAdminApp {
     const questName = document.getElementById('edit-store-quest-name').value.trim();
     const questPrice = parseInt(document.getElementById('edit-store-quest-price').value, 10) || 0;
     const questContent = document.getElementById('edit-store-quest-content').value.trim();
+    const questCharge = document.getElementById('edit-store-quest-charge').value.trim();
+    const questNotes = document.getElementById('edit-store-quest-notes').value.trim();
     const mapUrl = document.getElementById('edit-store-map-url').value.trim();
     const instaUrl = document.getElementById('edit-store-insta-url').value.trim();
     const photoUrl = document.getElementById('edit-store-photo-url').value.trim();
@@ -877,6 +893,8 @@ class YoidoreAdminApp {
       "days": days,
       "提供時間": hours,
       "hours": hours,
+      "提供時間に対する補足": timeNotes,
+      "time_notes": timeNotes,
       "決済方法": payment,
       "payment": payment,
       "酔いどれセット名": setName,
@@ -891,6 +909,10 @@ class YoidoreAdminApp {
       "クエスト名": questName,
       "クエスト内容": questContent,
       "クエスト価格(円)": questPrice,
+      "クエストチャージ": questCharge,
+      "quest_charge": questCharge,
+      "クエスト備考": questNotes,
+      "quest_notes": questNotes,
       "Google Map URL": mapUrl,
       "map_url": mapUrl,
       "Instagram URL": instaUrl,
@@ -914,23 +936,44 @@ class YoidoreAdminApp {
 
     try {
       this.showToast('Supabaseへ保存中...');
-      if (isNew) {
-        await this.api.supabaseFetch('stores', {
-          method: 'POST',
-          body: JSON.stringify(storePayload)
-        });
-      } else {
-        await this.api.supabaseFetch(`stores?id=eq.${storeId}`, {
-          method: 'PATCH',
-          body: JSON.stringify(storePayload)
-        });
-      }
+      // on_conflict=id を指定したPOST (UPSERT) で新規・既存どちらも確実に保存
+      await this.api.supabaseFetch('stores?on_conflict=id', {
+        method: 'POST',
+        headers: {
+          'Prefer': 'resolution=merge-duplicates,return=representation'
+        },
+        body: JSON.stringify(storePayload)
+      });
 
       this.closeStoreModal();
-      this.showToast(`酒場「${name}」のデータを保存しました！`);
+      this.showToast(`酒場「${name}」のデータをSupabaseに保存しました！`);
       await this.loadAllData();
     } catch (err) {
       alert('保存に失敗しました: ' + err.message);
+      console.error(err);
+    }
+  }
+
+  async deleteStore() {
+    const storeId = document.getElementById('edit-store-id').value.trim();
+    const name = document.getElementById('edit-store-name').value.trim();
+    if (!storeId) return;
+
+    if (!confirm(`本当に酒場「${name || storeId}」を削除しますか？\n（Supabaseのデータベースから完全に削除されます）`)) {
+      return;
+    }
+
+    try {
+      this.showToast(`酒場「${name}」を削除中...`);
+      await this.api.supabaseFetch(`stores?id=eq.${storeId}`, {
+        method: 'DELETE'
+      });
+      this.closeStoreModal();
+      this.showToast(`酒場「${name}」を削除しました`);
+      await this.loadAllData();
+    } catch (err) {
+      alert('削除に失敗しました: ' + err.message);
+      console.error(err);
     }
   }
 
@@ -1083,14 +1126,12 @@ class YoidoreAdminApp {
           days = daysList.length > 0 ? daysList.join(',') : '月,火,水,金,土,日';
         }
 
-        // 7. 提供時間
+        // 7. 提供時間 & 提供時間に対する補足
         const hStart = String(row[9] || rowObj['提供時間：開始'] || '17:00:00').substring(0, 5);
         const hEnd = String(row[10] || rowObj['提供時間：終了'] || '23:00:00').substring(0, 5);
         const timeNote = String(row[11] || rowObj['提供時間に対する補足'] || '').trim();
-        let hours = `${hStart || '17:00'}〜${hEnd || '23:00'}`;
-        if (timeNote && timeNote !== 'None') {
-          hours += ` (${timeNote})`;
-        }
+        const cleanTimeNote = (timeNote && timeNote !== 'None') ? timeNote : '';
+        const hours = `${hStart || '17:00'}〜${hEnd || '23:00'}`;
 
         // 8. 決済方法
         let payment = String(row[12] || rowObj['決済方法'] || '現金').trim();
@@ -1153,6 +1194,7 @@ class YoidoreAdminApp {
           takeout,
           days,
           hours,
+          time_notes: cleanTimeNote,
           payment,
           is_coupon_target: isCouponTarget,
           planType,
@@ -1212,12 +1254,15 @@ class YoidoreAdminApp {
           '<span class="badge" style="background:#dcfce7; color:#15803d;">上書き更新</span>' :
           '<span class="badge" style="background:#fef3c7; color:#b45309;">新規追加</span>');
 
+      const timeDisplay = `${item.hours || '-'}${item.time_notes ? `<br><small style="color:#d97706;">💡 ${item.time_notes}</small>` : ''}`;
+
       return `
         <tr style="${item.isSkip ? 'opacity: 0.5; background: #f8fafc;' : ''}">
           <td>${statusBadge}</td>
           <td><code>${item.id}</code></td>
           <td><strong>${item.name}</strong></td>
           <td><span class="badge badge-area">${item.area}</span> <span class="badge">${item.category}</span></td>
+          <td><small>${timeDisplay}</small></td>
           <td><small style="color:#64748b;">${item.planType.includes('両方') ? '両方' : (item.planType.includes('セット') ? 'セットのみ' : 'クエストのみ')}</small></td>
           <td>${item.set_name ? `${item.set_name} (¥${item.set_price.toLocaleString()})` : '-'}</td>
           <td>${item.quest_name || '-'}</td>

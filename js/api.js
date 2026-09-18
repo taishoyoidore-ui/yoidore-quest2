@@ -154,53 +154,106 @@ class QuestApiManager {
         this.stores = data.map(s => {
           const raw = s.raw_data || {};
           const numId = s.id ? s.id.replace(/\D/g, '').padStart(3, '0') : '001';
-          const resolvedPhoto = formatMediaUrl(s.photo_url || raw['photoUrl'] || raw['photo'], 'photo', 'jpg', numId);
-          const resolvedLogo = formatMediaUrl(s.logo_url || raw['logoUrl'] || raw['logo'], 'logo', 'png', numId);
+          const resolvedPhoto = formatMediaUrl(s.photo_url || raw['photoUrl'] || raw['photo'] || raw['photo_url'], 'photo', 'jpg', numId);
+          const resolvedLogo = formatMediaUrl(s.logo_url || raw['logoUrl'] || raw['logo'] || raw['logo_url'], 'logo', 'png', numId);
+
+          const questTitle = s.quest_name || raw.quest?.title || raw['クエスト名'] || raw['クエストタイトル'] || raw['quest_name'] || '';
+          const questPrice = s.quest_price !== undefined ? Number(s.quest_price) : Number(raw.quest?.price || raw['クエスト価格'] || raw['クエスト価格(円)'] || raw['quest_price'] || 0);
+          const questCharge = s.quest_charge || raw.quest?.charge || raw['クエストチャージ'] || raw['quest_charge'] || '不要';
+          const questContent = s.quest_content || raw.quest?.content || raw['クエスト内容'] || raw['quest_content'] || '';
+          const questNotes = s.quest_notes || raw.quest?.notes || raw['クエスト備考'] || raw['quest_notes'] || '';
+
+          const setTitle = s.set_name || raw.yoidoreSet?.title || raw['酔いどれセット名'] || raw['セット名'] || raw['set_name'] || '酔いどれセット';
+          const setContent = s.set_content || raw.yoidoreSet?.content || raw['セット内容'] || raw['set_content'] || '';
+          const setPrice = s.set_price !== undefined ? Number(s.set_price) : Number(raw.yoidoreSet?.price || raw['価格'] || raw['価格(円)'] || raw['セット価格'] || raw['set_price'] || 1000);
+          const setCharge = s.set_charge || raw.yoidoreSet?.charge || raw['チャージ'] || raw['チャージ有無'] || raw['set_charge'] || '不要';
+          const setIncludeCharge = Boolean(setCharge === '込' || raw.yoidoreSet?.includeCharge || raw['チャージ込']);
+          const setNotes = s.set_notes || raw.yoidoreSet?.notes || raw['セット備考'] || raw['備考'] || raw['set_notes'] || '';
+
+          const days = s.days || raw.conditions?.days || raw['提供日'] || raw['提供曜日'] || raw['days'] || '月,火,水,金,土,日';
+          const hours = s.hours || raw.conditions?.hours || raw['提供時間'] || raw['営業時間'] || raw['hours'] || '17:00〜23:00';
+          const timeNotes = s.time_notes || raw.conditions?.timeNotes || raw['提供時間に対する補足'] || raw['時間補足'] || raw['time_notes'] || '';
+          const limit = s.set_limit || raw.conditions?.limit || raw['限定数'] || raw['限定数量'] || raw['set_limit'] || '';
+
+          const paymentMethods = s.payment ? String(s.payment).split(/[,、]/).map(p => p.trim()) : 
+            (Array.isArray(raw['paymentMethods']) ? raw['paymentMethods'] : 
+              (raw['決済方法'] ? String(raw['決済方法']).split(/[,、]/).map(p => p.trim()) : ['現金']));
+          const paymentStr = Array.isArray(paymentMethods) ? paymentMethods.join(', ') : String(s.payment || '現金');
+
+          const mapUrl = s.map_url || raw['googleMapUrl'] || raw['Google Map URL'] || raw['map_url'] || '';
+          const instaUrl = s.insta_url || raw['instagramUrl'] || raw['Instagram URL'] || raw['insta_url'] || '';
+          const catchphrase = s.catchphrase || raw['キャッチコピー'] || raw['catchphrase'] || '';
+          const area = s.area || raw['エリア'] || '';
+          const category = s.category || raw['カテゴリ'] || raw['category'] || '居酒屋';
+          const style = s.style || raw['スタイル'] || raw['style'] || 'テーブルあり';
+          const type = s.yoidore_type || raw['タイプ'] || raw['酔いどれタイプ'] || raw['type'] || 'サク飲み';
 
           return {
             id: s.id,
             name: s.name,
-            area: s.area || raw['エリア'] || '',
-            category: s.category || raw['カテゴリ'] || raw['category'] || '',
-            style: s.style || raw['スタイル'] || raw['style'] || '',
-            type: s.yoidore_type || raw['タイプ'] || raw['酔いどれタイプ'] || raw['type'] || '',
+            area: area,
+            category: category,
+            style: style,
+            type: type,
+            yoidore_type: type,
             takeout: (typeof s.takeout === 'string' && s.takeout) ? s.takeout : (s.takeout === true ? 'テイクアウトOK' : (s.takeout === false ? 'テイクアウト不可' : (raw['テイクアウト'] || (raw['isTakeout'] ? 'テイクアウトOK' : 'テイクアウト不可')))),
             isTakeout: s.takeout === 'テイクアウト専門' || s.takeout === 'テイクアウトOK' || s.takeout === true || Boolean(raw['isTakeout'] || raw['テイクアウト'] === 'テイクアウトOK' || raw['テイクアウト'] === 'テイクアウト専門' || raw['テイクアウト'] === '可'),
             isOpenToday: raw['isOpenToday'] !== false,
             isQuestActive: raw['isQuestActive'] !== false,
             isCouponTarget: s.is_coupon_target !== false,
+            is_coupon_target: s.is_coupon_target !== false,
             couponDescription: s.coupon_description || '',
-            catchphrase: s.catchphrase || raw['キャッチコピー'] || raw['catchphrase'] || '',
+            coupon_description: s.coupon_description || '',
+            catchphrase: catchphrase,
+            // トップレベルエイリアス（管理画面・POP・API相互互換）
+            set_name: setTitle,
+            set_price: setPrice,
+            set_content: setContent,
+            set_charge: setCharge,
+            set_limit: limit,
+            set_notes: setNotes,
+            quest_name: questTitle,
+            quest_price: questPrice,
+            quest_charge: questCharge,
+            quest_content: questContent,
+            quest_notes: questNotes,
+            days: days,
+            hours: hours,
+            time_notes: timeNotes,
+            payment: paymentStr,
+            map_url: mapUrl,
+            insta_url: instaUrl,
             quest: {
-              title: s.quest_name || raw.quest?.title || raw['クエスト名'] || raw['クエストタイトル'] || 'クエスト',
-              price: s.quest_price !== undefined ? Number(s.quest_price) : Number(raw.quest?.price || raw['クエスト価格'] || raw['クエスト価格(円)'] || 0),
-              charge: s.quest_charge || raw.quest?.charge || raw['クエストチャージ'] || '不要',
-              content: s.quest_content || raw.quest?.content || raw['クエスト内容'] || '',
-              notes: s.quest_notes || raw.quest?.notes || raw['クエスト備考'] || ''
+              title: questTitle || 'クエスト',
+              price: questPrice,
+              charge: questCharge,
+              content: questContent,
+              notes: questNotes
             },
             yoidoreSet: {
-              title: s.set_name || raw.yoidoreSet?.title || raw['酔いどれセット名'] || raw['セット名'] || '酔いどれセット',
-              content: s.set_content || raw.yoidoreSet?.content || raw['セット内容'] || '',
-              price: s.set_price !== undefined ? Number(s.set_price) : Number(raw.yoidoreSet?.price || raw['価格'] || raw['価格(円)'] || raw['セット価格'] || 0),
-              charge: s.set_charge || raw.yoidoreSet?.charge || raw['チャージ'] || raw['チャージ有無'] || '不要',
-              includeCharge: Boolean(s.set_charge === '込' || raw.yoidoreSet?.includeCharge || raw['チャージ込']),
-              notes: s.set_notes || raw.yoidoreSet?.notes || raw['セット備考'] || raw['備考'] || ''
+              title: setTitle,
+              content: setContent,
+              price: setPrice,
+              charge: setCharge,
+              includeCharge: setIncludeCharge,
+              notes: setNotes
             },
             conditions: {
-              days: s.days || raw.conditions?.days || raw['提供日'] || '全日',
-              hours: s.hours || raw.conditions?.hours || raw['提供時間'] || raw['営業時間'] || '営業時間内',
-              timeNotes: s.time_notes || raw.conditions?.timeNotes || raw['提供時間に対する補足'] || raw['時間補足'] || '',
-              limit: s.set_limit || raw.conditions?.limit || raw['限定数'] || '',
+              days: days,
+              hours: hours,
+              timeNotes: timeNotes,
+              limit: limit,
               soldOutEnd: Boolean(raw.conditions?.soldOutEnd || raw['売切終了'])
             },
-            paymentMethods: s.payment ? String(s.payment).split(/[,、]/).map(p => p.trim()) : (Array.isArray(raw['paymentMethods']) ? raw['paymentMethods'] : (raw['決済方法'] ? String(raw['決済方法']).split(/[,、]/).map(p => p.trim()) : ['現金'])),
-            googleMapUrl: s.map_url || raw['googleMapUrl'] || raw['Google Map URL'] || raw['map_url'] || '',
-            instagramUrl: s.insta_url || raw['instagramUrl'] || raw['Instagram URL'] || raw['insta_url'] || '',
+            paymentMethods: paymentMethods,
+            googleMapUrl: mapUrl,
+            instagramUrl: instaUrl,
             photoUrl: resolvedPhoto,
             photo_url: resolvedPhoto,
             logoUrl: resolvedLogo,
             logo_url: resolvedLogo,
-            mapPos: raw.mapPos || { x: 50, y: 50 }
+            mapPos: raw.mapPos || { x: 50, y: 50 },
+            raw_data: raw
           };
         });
         if (window.debugLog) window.debugLog(`📡 Supabaseから店舗データ ${this.stores.length} 件を受信・同期完了！`);
