@@ -945,13 +945,10 @@ class YoidoreQuestApp {
       const isGoods = c.reward_type === 'goods';
       if (isGoods) {
         let badge = '<span class="text-yellow" style="font-size:11px;">【引換可能】</span>';
-        let actionTxt = '受取画面を表示 ▶';
         if (isUsed) {
           badge = '<span class="text-dim" style="font-size:11px;">【受取済み】</span>';
-          actionTxt = '受取済み';
         } else if (isExpired) {
           badge = '<span class="text-danger" style="font-size:11px;">【引換終了】</span>';
-          actionTxt = '期限終了';
         }
 
         return `
@@ -961,10 +958,6 @@ class YoidoreQuestApp {
               ${badge}
             </div>
             <div class="coupon-desc-text">📍 受取場所: ${this.escapeHtml(c.exchange_location || '全参加店舗または運営本部')}</div>
-            <div class="coupon-footer">
-              <span>獲得日: ${new Date(c.acquired_at).toLocaleDateString()}</span>
-              <span style="color:var(--text-cyan); font-weight:bold;">${actionTxt}</span>
-            </div>
             ${isUsed ? `<div class="coupon-used-stamp">USED</div>` : ''}
           </div>
         `;
@@ -972,32 +965,23 @@ class YoidoreQuestApp {
 
       const st = stores.find(s => s.id === c.store_id) || c.stores || {};
       const storeName = st.name || c.stores?.name || c.store_id;
-      const storeArea = st.area || c.stores?.area || '';
 
       let badge = '<span class="text-green" style="font-size:11px;">【利用可能】</span>';
-      let actionTxt = 'タップして提示 ▶';
       if (isUsed) {
         badge = '<span class="text-dim" style="font-size:11px;">【使用済み】</span>';
-        actionTxt = '使用済み';
       } else if (isExpired) {
         badge = '<span class="text-danger" style="font-size:11px;">【期限終了】</span>';
-        actionTxt = '期限終了';
       } else if (!isCouponUsable) {
         badge = `<span class="text-yellow" style="font-size:11px;">【${couponStartDateStr ? couponStartDateStr + '〜' : '後日利用可'}】</span>`;
-        actionTxt = '利用前（詳細） ▶';
       }
 
       return `
         <div class="coupon-ticket ${isUsed ? 'used' : ''}" data-coupon-id="${c.id}">
           <div class="coupon-ticket-header">
-            <span class="coupon-store-name">🏪 ${storeName} ${storeArea ? `(${storeArea})` : ''}</span>
+            <span class="coupon-store-name">🏪 ${storeName}</span>
             ${badge}
           </div>
           <div class="coupon-desc-text">🍺 酔いどれ勇者の酒場特典（後夜祭・指定期間に提示）</div>
-          <div class="coupon-footer">
-            <span>獲得日: ${new Date(c.acquired_at).toLocaleDateString()}</span>
-            <span style="color:var(--text-cyan); font-weight:bold;">${actionTxt}</span>
-          </div>
           ${isUsed ? `<div class="coupon-used-stamp">USED</div>` : ''}
         </div>
       `;
@@ -1034,7 +1018,7 @@ class YoidoreQuestApp {
       return `
         <li class="command-item" style="cursor:default; padding:8px 10px;">
           <div class="command-item-left">
-            <span style="color:var(--text-green); font-size:14px;">✅ #${idx + 1}</span>
+            <span style="color:var(--text-green); font-size:13px; font-weight:bold; min-width:28px;">#${idx + 1}</span>
             <span class="command-label" style="font-size:13px;">${name}</span>
           </div>
           <span style="font-size:11px; color:var(--text-dim);">${dateStr}</span>
@@ -1373,7 +1357,6 @@ class YoidoreQuestApp {
   openRedeemModal(coupon) {
     const isGoods = coupon.reward_type === 'goods';
     const storeName = isGoods ? (coupon.goods_name || coupon.title) : (coupon.stores?.name || coupon.store_id);
-    const storeArea = isGoods ? '' : (coupon.stores?.area || '');
     const isUsed = coupon.status === 'used';
 
     const overlay = document.createElement('div');
@@ -1383,30 +1366,30 @@ class YoidoreQuestApp {
     let contentHtml = '';
     if (isGoods) {
       contentHtml = `
-        <div class="staff-redeem-box">
-          <div style="font-size:18px; font-weight:bold; color:var(--text-yellow); margin:10px 0;">
+        <div class="staff-redeem-box" style="padding: 12px 6px;">
+          <div style="font-size: 20px; font-weight: bold; color: var(--text-yellow); margin: 8px 0 12px;">
             🎁 ${this.escapeHtml(coupon.goods_name || coupon.title)}
           </div>
-          <div style="font-size:12px; color:var(--text-cyan); margin-bottom:8px;">
-            📍 引換場所: ${this.escapeHtml(coupon.exchange_location || '全参加店舗または運営本部')}
+          <div style="font-size: 13px; color: var(--text-cyan); margin-bottom: 12px; background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 6px;">
+            📍 <strong>引換場所:</strong> ${this.escapeHtml(coupon.exchange_location || '全参加店舗または運営本部')}
           </div>
           ${coupon.exchange_notice ? `
-            <div style="font-size:11px; color:var(--text-dim); margin-bottom:12px; background:rgba(0,0,0,0.3); padding:8px; border-radius:4px; text-align:left;">
+            <div style="font-size: 12px; color: var(--text-dim); margin-bottom: 14px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; text-align: left; line-height: 1.5;">
               ℹ️ ${this.escapeHtml(coupon.exchange_notice)}
             </div>
           ` : ''}
 
           ${isUsed ? `
-            <div style="padding:15px; border:2px solid #666; border-radius:6px; background:#111;">
-              <div class="coupon-used-stamp" style="position:static; transform:none; display:inline-block; margin-bottom:6px;">USED / 受取済み</div>
-              <div style="font-size:12px; color:var(--text-dim);">受取日時: ${new Date(coupon.used_at).toLocaleString()}</div>
+            <div style="padding: 18px; border: 2px solid #666; border-radius: 8px; background: #111; margin-top: 10px;">
+              <div class="coupon-used-stamp" style="position: static; transform: none; display: inline-block; margin-bottom: 8px; font-size: 16px;">USED / 受取済み</div>
+              <div style="font-size: 13px; color: var(--text-dim);">受取日時: ${new Date(coupon.used_at).toLocaleString()}</div>
             </div>
           ` : `
-            <div class="staff-warning-banner">
-              ⚠️ 【店舗・運営スタッフ専用操作】<br>
+            <div class="staff-warning-banner" style="font-size: 13px; line-height: 1.5; padding: 10px 12px; margin-bottom: 16px;">
+              ⚠️ <strong>【店舗・運営スタッフ専用操作】</strong><br>
               記念品・グッズお渡し時にスタッフへご提示の上、下のボタンをタップして受取消し込みを行ってください。
             </div>
-            <button id="btn-staff-redeem" class="staff-redeem-action-btn" style="background:linear-gradient(180deg,#d97706 0%,#b45309 100%); border-color:#f59e0b;">
+            <button id="btn-staff-redeem" class="staff-redeem-action-btn" style="background: linear-gradient(180deg, #d97706 0%, #b45309 100%); border-color: #f59e0b; padding: 14px; font-size: 16px;">
               🎁 【スタッフ確認】受取済みにする
             </button>
           `}
@@ -1414,42 +1397,41 @@ class YoidoreQuestApp {
       `;
     } else {
       contentHtml = `
-        <div class="staff-redeem-box">
-          <div style="font-size:18px; font-weight:bold; color:var(--text-yellow); margin:10px 0;">
+        <div class="staff-redeem-box" style="padding: 12px 6px;">
+          <div style="font-size: 22px; font-weight: bold; color: var(--text-yellow); margin: 6px 0 14px; line-height: 1.3;">
             🏪 ${storeName}
           </div>
-          <div style="font-size:13px; color:var(--text-dim); margin-bottom:10px;">エリア: ${storeArea || '-'}</div>
           
-          <div style="background:#0f152b; border:2px dashed var(--border-gold); padding:12px; border-radius:6px; margin-bottom:14px; text-align:center;">
-            <div style="font-size:12px; color:var(--text-cyan); margin-bottom:4px;">【特典チケット】</div>
-            <div style="font-size:16px; font-weight:bold; color:#fff; line-height:1.4;">🍺 酔いどれ勇者の酒場特典</div>
-            <div style="font-size:11px; color:var(--text-dim); margin-top:6px;">※本日のサービス内容はスタッフへご確認ください</div>
+          <div style="background: #0f152b; border: 2px dashed var(--border-gold); padding: 16px 12px; border-radius: 8px; margin-bottom: 16px; text-align: center;">
+            <div style="font-size: 13px; color: var(--text-cyan); margin-bottom: 6px; font-weight: bold;">【特典チケット】</div>
+            <div style="font-size: 18px; font-weight: bold; color: #fff; line-height: 1.4;">🍺 酔いどれ勇者の酒場特典</div>
+            <div style="font-size: 12px; color: var(--text-dim); margin-top: 8px;">※本日のサービス内容はスタッフへご確認ください</div>
           </div>
 
           ${isUsed ? `
-            <div style="padding:15px; border:2px solid #666; border-radius:6px; background:#111;">
-              <div class="coupon-used-stamp" style="position:static; transform:none; display:inline-block; margin-bottom:6px;">USED / 使用済み</div>
-              <div style="font-size:12px; color:var(--text-dim);">利用日時: ${new Date(coupon.used_at).toLocaleString()}</div>
+            <div style="padding: 18px; border: 2px solid #666; border-radius: 8px; background: #111; margin-top: 10px;">
+              <div class="coupon-used-stamp" style="position: static; transform: none; display: inline-block; margin-bottom: 8px; font-size: 16px;">USED / 使用済み</div>
+              <div style="font-size: 13px; color: var(--text-dim);">利用日時: ${new Date(coupon.used_at).toLocaleString()}</div>
             </div>
           ` : (window.questApi?.currentSeason?.statusInfo?.isExpired ? `
-            <div style="padding:14px; border:1px solid #ef4444; border-radius:6px; background:#450a0a; color:#fca5a5; font-size:13px; text-align:center;">
+            <div style="padding: 16px; border: 1px solid #ef4444; border-radius: 8px; background: #450a0a; color: #fca5a5; font-size: 14px; text-align: center; line-height: 1.5;">
               🔒 <strong>利用期限終了</strong><br>
               今期のクーポン利用期間（〜 ${window.questApi.currentSeason.coupon_valid_until}）が終了したため、ご利用いただけません。
             </div>
           ` : (!window.questApi?.currentSeason?.statusInfo?.isCouponUsable ? `
-            <div style="padding:16px; border:1px solid #f59e0b; border-radius:6px; background:rgba(245,158,11,0.15); color:#fde68a; font-size:13px; text-align:center; line-height:1.6;">
+            <div style="padding: 18px 14px; border: 1px solid #f59e0b; border-radius: 8px; background: rgba(245,158,11,0.15); color: #fde68a; font-size: 14px; text-align: center; line-height: 1.6;">
               🔒 <strong>クーポン利用期間前</strong><br>
               このクーポンは本開催（ハシゴ酒期間）終了後の<br>
-              <strong style="color:var(--text-yellow); font-size:15px; display:block; margin:6px 0;">📅 ${window.questApi?.currentSeason?.statusInfo?.couponStartDateStr || '翌日'} 〜 ${window.questApi?.currentSeason?.coupon_valid_until || ''}</strong>
+              <strong style="color: var(--text-yellow); font-size: 16px; display: block; margin: 8px 0;">📅 ${window.questApi?.currentSeason?.statusInfo?.couponStartDateStr || '翌日'} 〜 ${window.questApi?.currentSeason?.coupon_valid_until || ''}</strong>
               の期間に各店舗でご利用いただけます。<br>
-              <span style="font-size:11px; color:var(--text-dim);">※本開催期間中はハシゴ酒とサイン集めをお楽しみください！</span>
+              <span style="font-size: 12px; color: var(--text-dim); display: inline-block; margin-top: 4px;">※本開催期間中はハシゴ酒とサイン集めをお楽しみください！</span>
             </div>
           ` : `
-            <div class="staff-warning-banner">
-              ⚠️ 【店員専用操作】<br>
+            <div class="staff-warning-banner" style="font-size: 13px; line-height: 1.5; padding: 10px 12px; margin-bottom: 16px;">
+              ⚠️ <strong>【店員専用操作】</strong><br>
               お会計時またはご注文時に、店舗スタッフへご提示の上、下のボタンをタップして消し込みを行ってください。
             </div>
-            <button id="btn-staff-redeem" class="staff-redeem-action-btn">
+            <button id="btn-staff-redeem" class="staff-redeem-action-btn" style="padding: 14px; font-size: 16px;">
               🍺 【店舗スタッフ確認】使用済みにする
             </button>
           `))}
@@ -1458,10 +1440,10 @@ class YoidoreQuestApp {
     }
 
     overlay.innerHTML = `
-      <div class="rpg-modal-window gold-border" style="max-width:400px; width:90%;">
-        <div class="rpg-window-header" style="display:flex; justify-content:space-between; align-items:center;">
-          <span>${isGoods ? '🎁 記念品・グッズ引換画面' : '🎟️ クーポン提示画面'}</span>
-          <button id="redeem-close-btn" style="background:none; border:none; color:#fff; font-size:18px; cursor:pointer;">✕</button>
+      <div class="rpg-modal-window gold-border" style="max-width: 480px; width: 95%; max-height: 92vh; overflow-y: auto;">
+        <div class="rpg-window-header" style="display:flex; justify-content:space-between; align-items:center; padding: 8px 14px;">
+          <span style="font-size: 16px;">${isGoods ? '🎁 記念品・グッズ引換画面' : '🎟️ クーポン提示画面'}</span>
+          <button id="redeem-close-btn" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer; padding: 0 4px;">✕</button>
         </div>
         ${contentHtml}
       </div>

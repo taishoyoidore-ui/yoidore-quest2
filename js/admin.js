@@ -567,10 +567,12 @@ class YoidoreAdminApp {
     document.getElementById('edit-store-logo-url').value = store.logo_url || store.logoUrl || raw['logoUrl'] || raw['logo'] || (numId ? `logo/${numId}.png` : '');
     document.getElementById('edit-store-coupon-target').checked = store.is_coupon_target !== false;
 
+    document.body.style.overflow = 'hidden';
     document.getElementById('store-modal').style.display = 'flex';
   }
 
   closeStoreModal() {
+    document.body.style.overflow = '';
     document.getElementById('store-modal').style.display = 'none';
   }
 
@@ -781,10 +783,12 @@ class YoidoreAdminApp {
     document.getElementById('edit-tier-exchange-notice').value = tier.exchange_notice || '';
     document.getElementById('edit-tier-desc').value = tier.description || '';
 
+    document.body.style.overflow = 'hidden';
     document.getElementById('tier-modal').style.display = 'flex';
   }
 
   closeTierModal() {
+    document.body.style.overflow = '';
     document.getElementById('tier-modal').style.display = 'none';
   }
 
@@ -935,10 +939,12 @@ class YoidoreAdminApp {
     document.getElementById('edit-title-order').value = item.display_order || (item.level || 1);
     document.getElementById('edit-title-desc').value = item.description || '';
 
+    document.body.style.overflow = 'hidden';
     document.getElementById('hero-title-modal').style.display = 'flex';
   }
 
   closeHeroTitleModal() {
+    document.body.style.overflow = '';
     document.getElementById('hero-title-modal').style.display = 'none';
   }
 
@@ -1031,10 +1037,12 @@ class YoidoreAdminApp {
     document.getElementById('new-season-end').value = new Date().toISOString().slice(0, 10);
     document.getElementById('new-season-valid').value = new Date().toISOString().slice(0, 10);
     document.getElementById('new-season-active').checked = false;
+    document.body.style.overflow = 'hidden';
     document.getElementById('season-modal').style.display = 'flex';
   }
 
   closeSeasonModal() {
+    document.body.style.overflow = '';
     document.getElementById('season-modal').style.display = 'none';
   }
 
