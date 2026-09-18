@@ -2064,12 +2064,12 @@ body {
 
 .coupon-select-item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   background: #101424;
   border: 1px solid #33406b;
   border-radius: 6px;
-  padding: 8px;
+  padding: 8px 10px;
   cursor: pointer;
 }
 
@@ -2081,19 +2081,51 @@ body {
 .coupon-select-item input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  margin-top: 2px;
+  margin: 0;
   accent-color: #f8e16c;
   cursor: pointer;
+  flex-shrink: 0;
+}
+
+.coupon-select-item-logo-box {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 6px;
+  border: 1px solid var(--border-gold);
+  background: #000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 0 5px rgba(247, 208, 112, 0.3);
+  flex-shrink: 0;
+}
+
+.coupon-select-item-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.coupon-select-item-logo-fallback {
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .coupon-select-item-info {
   flex: 1;
+  min-width: 0;
 }
 
 .coupon-select-item-name {
   font-size: 13px;
   font-weight: bold;
   color: #fff;
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .coupon-select-item-desc {

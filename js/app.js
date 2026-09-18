@@ -597,7 +597,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.18.26';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.18.27';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエストⅡ 公式ガイド</div>
@@ -1377,13 +1377,26 @@ class YoidoreQuestApp {
       return targetStores.map(s => {
         const isAlreadyClaimed = alreadyClaimedStoreIds.has(s.id);
         const isChecked = selectedSet.has(s.id);
+        const logoUrl = s.logoUrl || s.logo_url || '';
+
+        const logoHtml = `
+          <div class="coupon-select-item-logo-box">
+            ${logoUrl ? `
+              <img src="${logoUrl}" alt="${this.escapeHtml(s.name)}" class="coupon-select-item-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <span class="coupon-select-item-logo-fallback" style="display:none;">🏪</span>
+            ` : `
+              <span class="coupon-select-item-logo-fallback">🏪</span>
+            `}
+          </div>
+        `;
 
         if (isAlreadyClaimed) {
           return `
             <div class="coupon-select-item" style="opacity:0.5; cursor:not-allowed; background:rgba(0,0,0,0.3);">
               <input type="checkbox" disabled checked />
+              ${logoHtml}
               <div class="coupon-select-item-info">
-                <div class="coupon-select-item-name">🏪 ${this.escapeHtml(s.name)} <span style="font-size:11px; color:var(--text-dim);">(${this.escapeHtml(s.area || '')})</span></div>
+                <div class="coupon-select-item-name">${this.escapeHtml(s.name)} <span style="font-size:11px; color:var(--text-dim);">(${this.escapeHtml(s.area || '')})</span></div>
                 <div class="coupon-select-item-desc text-green">取得済み</div>
               </div>
             </div>
@@ -1393,8 +1406,9 @@ class YoidoreQuestApp {
         return `
           <div class="coupon-select-item ${isChecked ? 'selected' : ''}" data-store-id="${s.id}">
             <input type="checkbox" ${isChecked ? 'checked' : ''} />
+            ${logoHtml}
             <div class="coupon-select-item-info">
-              <div class="coupon-select-item-name">🏪 ${this.escapeHtml(s.name)} <span style="font-size:11px; color:var(--text-dim);">(${this.escapeHtml(s.area || '')})</span></div>
+              <div class="coupon-select-item-name">${this.escapeHtml(s.name)} <span style="font-size:11px; color:var(--text-dim);">(${this.escapeHtml(s.area || '')})</span></div>
             </div>
           </div>
         `;
@@ -1404,11 +1418,11 @@ class YoidoreQuestApp {
     overlay.innerHTML = `
       <div class="rpg-modal-window gold-border" style="max-width:440px; width:92%; max-height:85vh; display:flex; flex-direction:column;">
         <div class="rpg-window-header" style="display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:16px;">🎁 クーポン酒場の選択</span>
+          <span style="font-size:16px;">🎁 クーポンの酒場選択</span>
           <button id="modal-close-btn" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer;">✕</button>
         </div>
         <div style="padding:10px 0; font-size:14px; color:var(--text-yellow);">
-          対象酒場から <strong>${requiredCount} 軒</strong> を選択してください。<br>
+          対象から <strong>${requiredCount} 軒</strong> 選択してください。<br>
           <span style="font-size:13px; color:var(--text-cyan);">選択中: <span id="select-counter" style="font-weight:bold; font-size:15px;">0</span> / ${requiredCount} 軒</span>
         </div>
         <div class="coupon-select-list" id="modal-stores-list">
