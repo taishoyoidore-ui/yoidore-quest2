@@ -240,6 +240,7 @@
                     <th>店舗名</th>
                     <th>エリア</th>
                     <th>ジャンル / 席タイプ</th>
+                    <th>提供時間・補足</th>
                     <th>酔いどれセット</th>
                     <th>クエスト</th>
                     <th style="text-align: center;">クーポン対象</th>
@@ -563,16 +564,26 @@
             </div>
             <div class="form-group">
               <label>席スタイル</label>
-              <select id="edit-store-style" class="form-control">
+              <select id="edit-store-style" class="form-control" onchange="window.adminApp.onStyleChange(this.value)">
                 <option value="テーブルあり">テーブルあり</option>
                 <option value="カウンター">カウンター</option>
                 <option value="立ち飲み">立ち飲み</option>
                 <option value="テイクアウト専門">テイクアウト専門</option>
+                <option value="custom">その他 (直接入力)</option>
               </select>
+              <input type="text" id="edit-store-style-custom" class="form-control" placeholder="席スタイル詳細を入力" style="display:none; margin-top:4px;">
             </div>
           </div>
 
-          <div class="grid-2col">
+          <div class="grid-3col">
+            <div class="form-group">
+              <label>参加企画 (どれクエⅡ)</label>
+              <select id="edit-store-plan-type" class="form-control">
+                <option value="「酔いどれセット」・「店舗クエスト」両方で参加">両方で参加 (セット＋クエスト)</option>
+                <option value="「酔いどれセット」のみで参加">セットのみで参加</option>
+                <option value="「店舗クエスト」のみで参加">クエストのみで参加</option>
+              </select>
+            </div>
             <div class="form-group">
               <label>酔いどれタイプ</label>
               <select id="edit-store-type" class="form-control">
@@ -742,6 +753,11 @@
                 <div id="preview-logo-status" style="font-size:11px; color:#64748b; margin-top:2px;"></div>
               </div>
             </div>
+          </div>
+
+          <div class="form-group">
+            <label>参加証(缶バッチ) 販売希望数 (アンケートAL列)</label>
+            <input type="text" id="edit-store-badge-sales" class="form-control" placeholder="例: 10個, 不要 等">
           </div>
 
           <div class="form-group custom-toggle-box">
@@ -948,8 +964,8 @@
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=20260918_12"></script>
-  <script src="js/api.js?v=20260918_12"></script>
-  <script src="js/admin.js?v=20260918_12"></script>
+  <script src="js/config.js?v=20260918_17"></script>
+  <script src="js/api.js?v=20260918_17"></script>
+  <script src="js/admin.js?v=20260918_17"></script>
 </body>
 </html>

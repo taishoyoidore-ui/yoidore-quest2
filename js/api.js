@@ -133,7 +133,8 @@ class QuestApiManager {
    * ------------------------------------------------------------------------ */
   async getStores() {
     try {
-      const data = await this.supabaseFetch('stores?select=*&order=display_order.asc');
+      // 常に最新データを取得するためキャッシュバスターを付与
+      const data = await this.supabaseFetch(`stores?select=*&order=display_order.asc&_t=${Date.now()}`);
       if (Array.isArray(data) && data.length > 0) {
         const formatMediaUrl = (val, prefix, fallbackExt, numId) => {
           let target = val;
@@ -154,39 +155,41 @@ class QuestApiManager {
         this.stores = data.map(s => {
           const raw = s.raw_data || {};
           const numId = s.id ? s.id.replace(/\D/g, '').padStart(3, '0') : '001';
-          const resolvedPhoto = formatMediaUrl(s.photo_url || raw['photoUrl'] || raw['photo'] || raw['photo_url'], 'photo', 'jpg', numId);
-          const resolvedLogo = formatMediaUrl(s.logo_url || raw['logoUrl'] || raw['logo'] || raw['logo_url'], 'logo', 'png', numId);
+          const resolvedPhoto = formatMediaUrl(s.photo_url || raw['photo_url'] || raw['photoUrl'] || raw['photo'], 'photo', 'jpg', numId);
+          const resolvedLogo = formatMediaUrl(s.logo_url || raw['logo_url'] || raw['logoUrl'] || raw['logo'], 'logo', 'png', numId);
 
-          const questTitle = s.quest_name || raw.quest?.title || raw['クエスト名'] || raw['クエストタイトル'] || raw['quest_name'] || '';
-          const questPrice = s.quest_price !== undefined ? Number(s.quest_price) : Number(raw.quest?.price || raw['クエスト価格'] || raw['クエスト価格(円)'] || raw['quest_price'] || 0);
-          const questCharge = s.quest_charge || raw.quest?.charge || raw['クエストチャージ'] || raw['quest_charge'] || '不要';
-          const questContent = s.quest_content || raw.quest?.content || raw['クエスト内容'] || raw['quest_content'] || '';
-          const questNotes = s.quest_notes || raw.quest?.notes || raw['クエスト備考'] || raw['quest_notes'] || '';
+          const questTitle = s.quest_name || raw['quest_name'] || raw.quest?.title || raw['クエスト名'] || '';
+          const questPrice = s.quest_price !== undefined ? Number(s.quest_price) : Number(raw['quest_price'] || raw.quest?.price || raw['クエスト価格'] || 0);
+          const questCharge = s.quest_charge || raw['quest_charge'] || raw.quest?.charge || raw['クエストチャージ'] || '不要';
+          const questContent = s.quest_content || raw['quest_content'] || raw.quest?.content || raw['クエスト内容'] || '';
+          const questNotes = s.quest_notes || raw['quest_notes'] || raw.quest?.notes || raw['クエスト備考'] || '';
 
-          const setTitle = s.set_name || raw.yoidoreSet?.title || raw['酔いどれセット名'] || raw['セット名'] || raw['set_name'] || '酔いどれセット';
-          const setContent = s.set_content || raw.yoidoreSet?.content || raw['セット内容'] || raw['set_content'] || '';
-          const setPrice = s.set_price !== undefined ? Number(s.set_price) : Number(raw.yoidoreSet?.price || raw['価格'] || raw['価格(円)'] || raw['セット価格'] || raw['set_price'] || 1000);
-          const setCharge = s.set_charge || raw.yoidoreSet?.charge || raw['チャージ'] || raw['チャージ有無'] || raw['set_charge'] || '不要';
+          const setTitle = s.set_name || raw['set_name'] || raw.yoidoreSet?.title || raw['酔いどれセット名'] || raw['セット名'] || '酔いどれセット';
+          const setContent = s.set_content || raw['set_content'] || raw.yoidoreSet?.content || raw['セット内容'] || '';
+          const setPrice = s.set_price !== undefined ? Number(s.set_price) : Number(raw['set_price'] || raw.yoidoreSet?.price || raw['価格'] || 1000);
+          const setCharge = s.set_charge || raw['set_charge'] || raw.yoidoreSet?.charge || raw['チャージ'] || '不要';
           const setIncludeCharge = Boolean(setCharge === '込' || raw.yoidoreSet?.includeCharge || raw['チャージ込']);
-          const setNotes = s.set_notes || raw.yoidoreSet?.notes || raw['セット備考'] || raw['備考'] || raw['set_notes'] || '';
+          const setNotes = s.set_notes || raw['set_notes'] || raw.yoidoreSet?.notes || raw['セット備考'] || '';
 
-          const days = s.days || raw.conditions?.days || raw['提供日'] || raw['提供曜日'] || raw['days'] || '月,火,水,金,土,日';
-          const hours = s.hours || raw.conditions?.hours || raw['提供時間'] || raw['営業時間'] || raw['hours'] || '17:00〜23:00';
-          const timeNotes = s.time_notes || raw.conditions?.timeNotes || raw['提供時間に対する補足'] || raw['時間補足'] || raw['time_notes'] || '';
-          const limit = s.set_limit || raw.conditions?.limit || raw['限定数'] || raw['限定数量'] || raw['set_limit'] || '';
+          const days = s.days || raw['days'] || raw.conditions?.days || raw['提供日'] || '月,火,水,金,土,日';
+          const hours = s.hours || raw['hours'] || raw.conditions?.hours || raw['提供時間'] || '17:00〜23:00';
+          const timeNotes = s.time_notes || raw['time_notes'] || raw.conditions?.timeNotes || raw['提供時間に対する補足'] || '';
+          const limit = s.set_limit || raw['set_limit'] || raw.conditions?.limit || raw['限定数'] || '';
 
           const paymentMethods = s.payment ? String(s.payment).split(/[,、]/).map(p => p.trim()) : 
             (Array.isArray(raw['paymentMethods']) ? raw['paymentMethods'] : 
-              (raw['決済方法'] ? String(raw['決済方法']).split(/[,、]/).map(p => p.trim()) : ['現金']));
+              (raw['payment'] || raw['決済方法'] ? String(raw['payment'] || raw['決済方法']).split(/[,、]/).map(p => p.trim()) : ['現金']));
           const paymentStr = Array.isArray(paymentMethods) ? paymentMethods.join(', ') : String(s.payment || '現金');
 
-          const mapUrl = s.map_url || raw['googleMapUrl'] || raw['Google Map URL'] || raw['map_url'] || '';
-          const instaUrl = s.insta_url || raw['instagramUrl'] || raw['Instagram URL'] || raw['insta_url'] || '';
-          const catchphrase = s.catchphrase || raw['キャッチコピー'] || raw['catchphrase'] || '';
-          const area = s.area || raw['エリア'] || '';
-          const category = s.category || raw['カテゴリ'] || raw['category'] || '居酒屋';
-          const style = s.style || raw['スタイル'] || raw['style'] || 'テーブルあり';
-          const type = s.yoidore_type || raw['タイプ'] || raw['酔いどれタイプ'] || raw['type'] || 'サク飲み';
+          const mapUrl = s.map_url || raw['map_url'] || raw['googleMapUrl'] || raw['Google Map URL'] || '';
+          const instaUrl = s.insta_url || raw['insta_url'] || raw['instagramUrl'] || raw['Instagram URL'] || '';
+          const catchphrase = s.catchphrase || raw['catchphrase'] || raw['キャッチコピー'] || '';
+          const area = s.area || raw['area'] || raw['エリア'] || '';
+          const category = s.category || raw['category'] || raw['カテゴリ'] || '居酒屋';
+          const style = s.style || raw['style'] || raw['スタイル'] || 'テーブルあり';
+          const type = s.yoidore_type || raw['type'] || raw['yoidore_type'] || raw['タイプ'] || 'サク飲み';
+          const planType = raw['plan_type'] || (questTitle ? '両方で参加' : '「酔いどれセット」のみで参加');
+          const badgeSalesCount = raw['badge_sales_count'] || '';
 
           return {
             id: s.id,
@@ -196,8 +199,8 @@ class QuestApiManager {
             style: style,
             type: type,
             yoidore_type: type,
-            takeout: (typeof s.takeout === 'string' && s.takeout) ? s.takeout : (s.takeout === true ? 'テイクアウトOK' : (s.takeout === false ? 'テイクアウト不可' : (raw['テイクアウト'] || (raw['isTakeout'] ? 'テイクアウトOK' : 'テイクアウト不可')))),
-            isTakeout: s.takeout === 'テイクアウト専門' || s.takeout === 'テイクアウトOK' || s.takeout === true || Boolean(raw['isTakeout'] || raw['テイクアウト'] === 'テイクアウトOK' || raw['テイクアウト'] === 'テイクアウト専門' || raw['テイクアウト'] === '可'),
+            takeout: (typeof s.takeout === 'string' && s.takeout) ? s.takeout : (s.takeout === true ? 'テイクアウトOK' : (s.takeout === false ? 'テイクアウト不可' : (raw['takeout'] || raw['テイクアウト'] || 'テイクアウトOK'))),
+            isTakeout: s.takeout === 'テイクアウト専門' || s.takeout === 'テイクアウトOK' || s.takeout === true || Boolean(raw['takeout'] === 'テイクアウトOK' || raw['takeout'] === 'テイクアウト専門' || raw['テイクアウト'] === 'テイクアウトOK' || raw['テイクアウト'] === 'テイクアウト専門'),
             isOpenToday: raw['isOpenToday'] !== false,
             isQuestActive: raw['isQuestActive'] !== false,
             isCouponTarget: s.is_coupon_target !== false,
@@ -205,6 +208,9 @@ class QuestApiManager {
             couponDescription: s.coupon_description || '',
             coupon_description: s.coupon_description || '',
             catchphrase: catchphrase,
+            plan_type: planType,
+            planType: planType,
+            badge_sales_count: badgeSalesCount,
             // トップレベルエイリアス（管理画面・POP・API相互互換）
             set_name: setTitle,
             set_price: setPrice,
@@ -253,6 +259,9 @@ class QuestApiManager {
             logoUrl: resolvedLogo,
             logo_url: resolvedLogo,
             mapPos: raw.mapPos || { x: 50, y: 50 },
+            raw_data: raw
+          };
+        });
             raw_data: raw
           };
         });
