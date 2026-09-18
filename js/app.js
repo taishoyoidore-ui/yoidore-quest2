@@ -597,7 +597,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.18.22';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.18.23';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエストⅡ 公式ガイド</div>
@@ -2012,7 +2012,7 @@ class YoidoreQuestApp {
         <div class="rpg-window-header">
           <span>▶ 絞り込み条件</span>
           <div class="filter-header-action">
-            ${isFiltered ? `<button id="btn-reset-filters" class="filter-reset-btn" type="button">✖ 条件クリア</button>` : ''}
+            <button id="btn-reset-filters" class="filter-reset-btn ${isFiltered ? '' : 'hidden'}" type="button">✖ 条件クリア</button>
           </div>
         </div>
         <div class="filter-box">
@@ -2157,6 +2157,19 @@ class YoidoreQuestApp {
             }
           });
         });
+      }
+
+      // 条件クリアボタンの表示制御
+      const currentFiltered = this.filters.area !== 'ALL' || 
+                              this.filters.category !== 'ALL' || 
+                              this.filters.style !== 'ALL' || 
+                              this.filters.type !== 'ALL' || 
+                              this.filters.takeout !== 'ALL' || 
+                              this.filters.openToday || 
+                              Boolean(this.filters.searchQuery && this.filters.searchQuery.trim());
+      const resetBtnElem = document.getElementById('btn-reset-filters');
+      if (resetBtnElem) {
+        resetBtnElem.classList.toggle('hidden', !currentFiltered);
       }
 
       this.updateStickyFilterBar();
