@@ -597,7 +597,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.18.23';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.18.24';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエストⅡ 公式ガイド</div>
@@ -898,15 +898,15 @@ class YoidoreQuestApp {
       let actionHtml = '';
       if (isClaimed) {
         if (isGoods) {
-          actionHtml = `<div class="treasure-claimed-badge">✅ グッズ引換券獲得済み（${this.escapeHtml(tier.goods_name || tier.title)}）</div>`;
+          actionHtml = `<div class="treasure-claimed-badge">グッズ引換券取得済み</div>`;
         } else {
-          actionHtml = `<div class="treasure-claimed-badge">✅ 特典クーポン獲得済み (${tier.selectable_count}酒場選択)</div>`;
+          actionHtml = `<div class="treasure-claimed-badge">特典クーポン取得済み</div>`;
         }
       } else if (isReached) {
         if (isGoods) {
-          actionHtml = `<button class="treasure-claim-btn" data-tier-id="${tier.id}" data-reward-type="goods">🎁 宝箱を開ける（${this.escapeHtml(tier.goods_name || 'グッズ引換')}）</button>`;
+          actionHtml = `<button class="treasure-claim-btn" data-tier-id="${tier.id}" data-reward-type="goods">宝箱を開ける</button>`;
         } else {
-          actionHtml = `<button class="treasure-claim-btn" data-tier-id="${tier.id}" data-reward-type="store_coupon">🎁 宝箱を開ける (${tier.selectable_count}酒場選ぶ)</button>`;
+          actionHtml = `<button class="treasure-claim-btn" data-tier-id="${tier.id}" data-reward-type="store_coupon">宝箱を開ける</button>`;
         }
       } else {
         actionHtml = `<div style="font-size:14px; color:#e2e8f0; font-weight:bold;">🔒 あと <strong class="text-yellow" style="font-size:16px;">${remainingVisits}軒</strong> のハシゴ酒で解放！</div>`;
@@ -1279,7 +1279,7 @@ class YoidoreQuestApp {
               <input type="checkbox" disabled checked />
               <div class="coupon-select-item-info">
                 <div class="coupon-select-item-name">🏪 ${s.name} <span style="font-size:11px; color:var(--text-dim);">(${s.area || ''})</span></div>
-                <div class="coupon-select-item-desc text-green">✅ クーポン取得済み（1店舗1枚限り）</div>
+                <div class="coupon-select-item-desc text-green">クーポン取得済み（1店舗1枚限り）</div>
               </div>
             </div>
           `;
