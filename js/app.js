@@ -595,6 +595,20 @@ class YoidoreQuestApp {
     }, 25);
   }
 
+  // アプリ共通フッターバージョン表示HTML
+  getFooterVersionHTML() {
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.18.22';
+    return `
+      <div class="app-footer-version">
+        <div>大正酔いどれクエストⅡ 公式ガイド</div>
+        <div class="version-pill">
+          <span>⚙️ app version:</span>
+          <strong style="color:#e2e8f0;">${v}</strong>
+        </div>
+      </div>
+    `;
+  }
+
   /* ------------------------------------------------------------------------
    * メインレンダリングルーティン
    * ------------------------------------------------------------------------ */
@@ -797,6 +811,7 @@ class YoidoreQuestApp {
           </li>
         </ul>
       </div>
+      ${this.getFooterVersionHTML()}
     `;
 
     // コマンドクリックイベント
@@ -873,11 +888,12 @@ class YoidoreQuestApp {
     // 獲得済み特典ランクの判定 (数値・文字列両対応)
     const claimedTierIds = new Set(userCoupons.map(c => Number(c.reward_tier_id)));
 
-    // 特典宝箱のレンダリング
+    // 特典宝箱のレンダリング (案A: RPGクエストカード型)
     const tiersHtml = (rewardTiers.length > 0) ? rewardTiers.map(tier => {
       const isReached = visitedCount >= tier.required_visits;
       const isClaimed = claimedTierIds.has(Number(tier.id));
       const isGoods = tier.reward_type === 'goods';
+      const remainingVisits = tier.required_visits - visitedCount;
 
       let actionHtml = '';
       if (isClaimed) {
@@ -893,40 +909,60 @@ class YoidoreQuestApp {
           actionHtml = `<button class="treasure-claim-btn" data-tier-id="${tier.id}" data-reward-type="store_coupon">🎁 宝箱を開ける (${tier.selectable_count}酒場選ぶ)</button>`;
         }
       } else {
-        const remaining = tier.required_visits - visitedCount;
-        actionHtml = `<div style="font-size:14px; color:#e2e8f0; font-weight:bold;">🔒 あと <strong class="text-yellow" style="font-size:16px;">${remaining}軒</strong> のハシゴ酒で解放！</div>`;
+        actionHtml = `<div style="font-size:14px; color:#e2e8f0; font-weight:bold;">🔒 あと <strong class="text-yellow" style="font-size:16px;">${remainingVisits}軒</strong> のハシゴ酒で解放！</div>`;
+      }
+
+      // ステータス表示
+      let statusBadge = '';
+      if (isClaimed) {
+        statusBadge = '<span class="treasure-tier-status status-claimed">📦 獲得済み</span>';
+      } else if (isReached) {
+        statusBadge = '<span class="treasure-tier-status status-unlocked">✨ 解放可能！</span>';
+      } else {
+        statusBadge = `<span class="treasure-tier-status status-locked">🔒 あと ${remainingVisits}軒</span>`;
       }
 
       return `
         <div class="treasure-tier-card ${isReached ? 'unlocked' : ''}">
-          <div class="treasure-tier-header">
-            <div>
-              <span class="treasure-tier-title">🏆 ${this.escapeHtml(tier.title)}</span>
-              <span class="tag" style="background:${isGoods ? '#451a03' : '#1e3a8a'}; color:${isGoods ? '#fde68a' : '#bfdbfe'}; border:1px solid ${isGoods ? '#f59e0b' : '#3b82f6'}; font-size:12px; margin-left:6px; padding:2px 8px; border-radius:4px;">
-                ${isGoods ? '🎁 グッズ引換' : '🍺 酒場クーポン'}
-              </span>
-            </div>
-            <span style="font-size:22px;">${isClaimed ? '📦' : (isReached ? '✨' : '🔒')}</span>
+          <!-- 1. 最上段: 種別バッジ & 状態ステータス -->
+          <div class="treasure-tier-topbar">
+            <span class="treasure-tier-type-badge ${isGoods ? 'badge-goods' : 'badge-coupon'}">
+              ${isGoods ? '🎁 グッズ引換' : '🍺 酒場クーポン'}
+            </span>
+            ${statusBadge}
           </div>
-          <div style="font-size:14px; color:#e2e8f0; margin:6px 0 8px 0; font-weight:500;">
-            🍺 必要制覇数: <strong class="text-yellow" style="font-size:16px;">${tier.required_visits}軒</strong>
+
+          <!-- 2. タイトル -->
+          <div class="treasure-tier-title-row">
+            <h4 class="treasure-tier-title">🏆 ${this.escapeHtml(tier.title)}</h4>
+          </div>
+
+          <!-- 3. 条件・引換内容 -->
+          <div class="treasure-tier-condition">
+            <span>🍺 必要制覇数: <strong class="text-yellow">${tier.required_visits}軒</strong></span>
             ${isGoods ? 
-              ` | 🎁 <strong style="color:#ffffff;">${this.escapeHtml(tier.goods_name || '記念品')}</strong>` : 
-              ` | 🎟️ <strong style="color:#ffffff;">${tier.selectable_count}酒場選択</strong>`
+              `<span> | 🎁 <strong style="color:#ffffff;">${this.escapeHtml(tier.goods_name || '記念品')}</strong></span>` : 
+              `<span> | 🎟️ <strong style="color:#ffffff;">${tier.selectable_count}酒場選択</strong></span>`
             }
           </div>
+
+          <!-- 4. グッズ時の引換場所・注意事項 (もしあれば) -->
           ${isGoods && tier.exchange_location ? `
-            <div style="font-size:13px; color:#fef08a; margin-bottom:6px; background:rgba(245,158,11,0.15); padding:6px 10px; border-radius:4px; border:1px solid #d97706;">
+            <div class="treasure-tier-location">
               📍 <strong>引換場所:</strong> ${this.escapeHtml(tier.exchange_location)}
             </div>
           ` : ''}
           ${isGoods && tier.exchange_notice ? `
-            <div style="font-size:12px; color:#fde68a; margin-bottom:6px;">
+            <div class="treasure-tier-notice">
               ⚠️ ${this.escapeHtml(tier.exchange_notice)}
             </div>
           ` : ''}
-          <div class="treasure-tier-desc" style="color:#e2e8f0; font-size:13px; line-height:1.5;">${this.escapeHtml(tier.description || '')}</div>
-          <div style="margin-top:10px;">${actionHtml}</div>
+
+          <!-- 5. 説明文 -->
+          ${tier.description ? `<div class="treasure-tier-desc">${this.escapeHtml(tier.description)}</div>` : ''}
+
+          <!-- 6. アクションボタン -->
+          <div class="treasure-tier-action">${actionHtml}</div>
         </div>
       `;
     }).join('') : '<div style="padding:15px; text-align:center; color:#e2e8f0; font-size:14px;">特典マイルストーンを読み込み中です。</div>';
@@ -1104,6 +1140,7 @@ class YoidoreQuestApp {
             </button>
           </div>
         </div>
+        ${this.getFooterVersionHTML()}
       </div>
     `;
 

@@ -59,13 +59,23 @@ class YoidoreAdminApp {
   showAdminApp() {
     document.getElementById('auth-lock-modal').style.display = 'none';
     document.getElementById('admin-app').style.display = 'flex';
+    this.applyVersionBadges();
     this.loadAllData();
+  }
+
+  applyVersionBadges() {
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.18.22';
+    document.querySelectorAll('.app-version-text').forEach(el => {
+      el.textContent = versionStr;
+    });
   }
 
   /* ------------------------------------------------------------------------
    * イベントリスナー設定
    * ------------------------------------------------------------------------ */
   setupEventListeners() {
+    this.applyVersionBadges();
+
     // ナビゲーション切り替え
     document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
       item.addEventListener('click', (e) => {
@@ -78,7 +88,7 @@ class YoidoreAdminApp {
     // ハッシュ変更監視
     window.addEventListener('hashchange', () => {
       const hash = window.location.hash.replace('#', '');
-      if (hash && ['dashboard', 'stores', 'tiers', 'logs', 'pop'].includes(hash)) {
+      if (hash && ['dashboard', 'analytics', 'stores', 'tiers', 'logs', 'pop'].includes(hash)) {
         this.switchTab(hash, false);
       }
     });
