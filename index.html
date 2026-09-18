@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>大正酔いどれクエストⅡ - 酔いどれ公式ガイドブック</title>
-  <meta name="description" content="大正酔いどれクエストⅡの公式ガイドブック案内アプリ。大正区のイベント参加店舗や「酔いどれセット」の内容、店舗クエスト情報をレトロRPG風UIで確認できます。">
+  <meta name="description" content="大正酔いどれクエストⅡの公式ガイドブック案内アプリ。大正区のオモロイ酒場や「酔いどれセット」の内容、酒場クエスト情報をレトロRPG風UIで確認できます。">
   
   <!-- キャッシュ無効化設定（常に最新版をブラウザに取得させる） -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -12,7 +12,7 @@
   <meta http-equiv="Expires" content="0">
   
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=20260918_5">
+  <link rel="stylesheet" href="css/style.css?v=20260918_8">
 
   <!-- エラー検知＆デバッグモニター（画面下のモニターに即時出力） -->
   <script>
@@ -89,12 +89,12 @@
       </div>
     </header>
 
-    <!-- 店舗一覧用 スティッキースマート絞り込みバー (スクロール時に出現) -->
+    <!-- 酒場一覧用 スティッキースマート絞り込みバー (スクロール時に出現) -->
     <aside id="sticky-filter-bar" class="sticky-filter-bar hidden" aria-label="現在の絞り込み条件">
       <div class="sticky-filter-inner">
         <div class="sticky-filter-left" id="sticky-filter-tags">
           <span class="sticky-icon">🔍</span>
-          <span class="sticky-summary-text">全店舗 (33件)</span>
+          <span class="sticky-summary-text">全酒場 (33軒)</span>
         </div>
         <button id="sticky-filter-change-btn" class="sticky-filter-btn" type="button">
           条件変更 ▾
@@ -104,7 +104,7 @@
 
     <!-- メッセージウィンドウ (RPG風テキスト演出) -->
     <section id="message-window-section" class="message-window" aria-live="polite">
-      <div id="rpg-message-text">案内所へようこそ！大正の「オモロイらしい店」を探すコマンドを選択して下さい。</div>
+      <div id="rpg-message-text">大正のオモロイ酒場を探そう！</div>
     </section>
 
     <!-- 動的ビュー描画コンテナ -->
@@ -119,8 +119,8 @@
         <span>案内所</span>
       </a>
       <a href="#" class="nav-item" data-target-view="stores-all" id="nav-btn-stores">
-        <span class="nav-item-icon">🏪</span>
-        <span>店舗一覧</span>
+        <span class="nav-item-icon">🏮</span>
+        <span>酒場一覧</span>
       </a>
       <a href="#" class="nav-item" data-target-view="quest-book" id="nav-btn-quest-book">
         <span class="nav-item-icon">📜</span>
@@ -155,8 +155,8 @@
   <!-- JS Scripts -->
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="js/config.js?v=20260918_5"></script>
-  <script src="js/api.js?v=20260918_5"></script>
-  <script src="js/app.js?v=20260918_5"></script>
+  <script src="js/config.js?v=20260918_8"></script>
+  <script src="js/api.js?v=20260918_8"></script>
+  <script src="js/app.js?v=20260918_8"></script>
 </body>
 </html>
