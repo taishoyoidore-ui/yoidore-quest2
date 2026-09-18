@@ -17,7 +17,6 @@ CREATE TABLE IF NOT EXISTS public.stores (
     name TEXT NOT NULL,
     area TEXT,
     is_coupon_target BOOLEAN DEFAULT true,
-    coupon_description TEXT,
     display_order INT DEFAULT 0,
     raw_data JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW()

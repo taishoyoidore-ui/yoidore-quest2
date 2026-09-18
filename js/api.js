@@ -209,8 +209,6 @@ class QuestApiManager {
             isQuestActive: raw['isQuestActive'] !== false,
             isCouponTarget: s.is_coupon_target !== false,
             is_coupon_target: s.is_coupon_target !== false,
-            couponDescription: s.coupon_description || '',
-            coupon_description: s.coupon_description || '',
             catchphrase: catchphrase,
             plan_type: planType,
             planType: planType,

@@ -597,7 +597,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.18.25';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.18.26';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエストⅡ 公式ガイド</div>
@@ -1383,8 +1383,8 @@ class YoidoreQuestApp {
             <div class="coupon-select-item" style="opacity:0.5; cursor:not-allowed; background:rgba(0,0,0,0.3);">
               <input type="checkbox" disabled checked />
               <div class="coupon-select-item-info">
-                <div class="coupon-select-item-name">🏪 ${s.name} <span style="font-size:11px; color:var(--text-dim);">(${s.area || ''})</span></div>
-                <div class="coupon-select-item-desc text-green">クーポン取得済み（1店舗1枚限り）</div>
+                <div class="coupon-select-item-name">🏪 ${this.escapeHtml(s.name)} <span style="font-size:11px; color:var(--text-dim);">(${this.escapeHtml(s.area || '')})</span></div>
+                <div class="coupon-select-item-desc text-green">取得済み</div>
               </div>
             </div>
           `;
@@ -1394,8 +1394,7 @@ class YoidoreQuestApp {
           <div class="coupon-select-item ${isChecked ? 'selected' : ''}" data-store-id="${s.id}">
             <input type="checkbox" ${isChecked ? 'checked' : ''} />
             <div class="coupon-select-item-info">
-              <div class="coupon-select-item-name">🏪 ${s.name} <span style="font-size:11px; color:var(--text-dim);">(${s.area || ''})</span></div>
-              <div class="coupon-select-item-desc">🎁 酔いどれ勇者の酒場特典（来店時に提示）</div>
+              <div class="coupon-select-item-name">🏪 ${this.escapeHtml(s.name)} <span style="font-size:11px; color:var(--text-dim);">(${this.escapeHtml(s.area || '')})</span></div>
             </div>
           </div>
         `;
@@ -1546,7 +1545,7 @@ class YoidoreQuestApp {
           
           <div style="background: #0f152b; border: 2px dashed var(--border-gold); padding: 16px 12px; border-radius: 8px; margin-bottom: 16px; text-align: center;">
             <div style="font-size: 14px; color: var(--text-cyan); margin-bottom: 6px; font-weight: bold;">【特典チケット】</div>
-            <div style="font-size: 20px; font-weight: bold; color: #fff; line-height: 1.4;">🍺 酔いどれ勇者の酒場特典</div>
+            <div style="font-size: 20px; font-weight: bold; color: #fff; line-height: 1.4;">🍺 ハシゴ達成・酒場特典チケット</div>
           </div>
 
           ${isUsed ? `
@@ -2560,20 +2559,6 @@ class YoidoreQuestApp {
             </div>
             <div class="detail-photo-box">
               <img src="${store.photoUrl || store.photo_url}" alt="${store.name}のオモロイ人写真" class="detail-photo-img" onerror="this.closest('.rpg-window').style.display='none';">
-            </div>
-          </div>
-        ` : ''}
-
-        <!-- 6. ハシゴ達成クーポン対象枠 -->
-        ${isCouponTarget ? `
-          <div class="rpg-window gold-border" style="background:#1a1708;">
-            <div class="rpg-window-header">
-              <span>🎁 ハシゴ酒クーポン対象酒場</span>
-            </div>
-            <div style="padding:8px 0;">
-              <div style="font-size:15px; color:#ffffff; line-height:1.5;">
-                ${this.escapeHtml((store.couponDescription || 'お好きなワンドリンク または 小鉢1品サービス！').replace(/^【街ぶら達成特典】/, '').trim())}
-              </div>
             </div>
           </div>
         ` : ''}

@@ -1558,16 +1558,16 @@ body {
   transform: scale(0.95);
 }
 
-/* 未訪問：暗転・反転・グレースケール */
+/* 未訪問：グレースケール（適度な明るさでロゴを視認可能に） */
 .quest-stamp-item.unvisited {
-  border-color: #1e293b;
-  background: #070a12;
+  border-color: #334155;
+  background: #1e293b;
 }
 
 .quest-stamp-item.unvisited .quest-stamp-logo {
-  filter: grayscale(100%) brightness(35%) contrast(120%);
-  opacity: 0.35;
-  transform: scale(0.92);
+  filter: grayscale(100%) brightness(90%);
+  opacity: 0.75;
+  transform: scale(0.95);
 }
 
 /* 訪問済み：カラー・ゴールド点灯・ネオン発光 */

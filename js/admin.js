@@ -64,7 +64,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.18.25';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.18.26';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -787,7 +787,6 @@ class YoidoreAdminApp {
         },
         body: JSON.stringify({
           is_coupon_target: newStatus,
-          coupon_description: newStatus ? '【街ぶら達成特典】お好きなワンドリンク または 小鉢1品サービス！' : '',
           raw_data: updatedRawData
         })
       });
@@ -1252,7 +1251,6 @@ class YoidoreAdminApp {
       name: name,
       area: area,
       is_coupon_target: isCouponTarget,
-      coupon_description: isCouponTarget ? '【街ぶら達成特典】お好きなワンドリンク または 小鉢1品サービス！' : '',
       display_order: displayOrder,
       raw_data: rawData
     };
@@ -1711,7 +1709,6 @@ class YoidoreAdminApp {
           name: item.name,
           area: item.area,
           is_coupon_target: Boolean(item.is_coupon_target),
-          coupon_description: Boolean(item.is_coupon_target) ? '【街ぶら達成特典】お好きなワンドリンク または 小鉢1品サービス！' : '',
           display_order: displayOrder,
           raw_data: rawData
         };
