@@ -262,9 +262,6 @@ class QuestApiManager {
             raw_data: raw
           };
         });
-            raw_data: raw
-          };
-        });
         if (window.debugLog) window.debugLog(`📡 Supabaseから店舗データ ${this.stores.length} 件を受信・同期完了！`);
         return this.stores;
       }
