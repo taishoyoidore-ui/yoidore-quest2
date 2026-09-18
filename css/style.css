@@ -1869,7 +1869,11 @@ body {
 }
 
 .treasure-tier-action {
-  margin-top: 4px;
+  margin-top: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
 }
 
 /* 詳細画面 テーブルスタイル */
@@ -1910,17 +1914,18 @@ body {
   border: 2px solid var(--border-gold);
   color: #fff;
   font-family: var(--font-pixel);
-  font-size: 13px;
-  padding: 8px 12px;
-  border-radius: 4px;
+  font-size: 14px;
+  padding: 8px 20px;
+  border-radius: 6px;
   cursor: pointer;
   text-align: center;
   box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   animation: pulseGold 1.5s infinite;
+  margin: 0 auto;
 }
 
 @keyframes pulseGold {
