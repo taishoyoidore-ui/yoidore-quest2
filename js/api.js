@@ -164,8 +164,8 @@ class QuestApiManager {
             category: s.category || raw['カテゴリ'] || raw['category'] || '',
             style: s.style || raw['スタイル'] || raw['style'] || '',
             type: s.yoidore_type || raw['タイプ'] || raw['酔いどれタイプ'] || raw['type'] || '',
-            takeout: s.takeout !== undefined ? (s.takeout ? 'テイクアウトOK' : 'テイクアウト不可') : (raw['テイクアウト'] || (raw['isTakeout'] ? 'テイクアウトOK' : '不可')),
-            isTakeout: s.takeout !== undefined ? Boolean(s.takeout) : Boolean(raw['isTakeout'] || raw['テイクアウト'] === 'テイクアウトOK' || raw['テイクアウト'] === '可'),
+            takeout: (typeof s.takeout === 'string' && s.takeout) ? s.takeout : (s.takeout === true ? 'テイクアウトOK' : (s.takeout === false ? 'テイクアウト不可' : (raw['テイクアウト'] || (raw['isTakeout'] ? 'テイクアウトOK' : 'テイクアウト不可')))),
+            isTakeout: s.takeout === 'テイクアウト専門' || s.takeout === 'テイクアウトOK' || s.takeout === true || Boolean(raw['isTakeout'] || raw['テイクアウト'] === 'テイクアウトOK' || raw['テイクアウト'] === 'テイクアウト専門' || raw['テイクアウト'] === '可'),
             isOpenToday: raw['isOpenToday'] !== false,
             isQuestActive: raw['isQuestActive'] !== false,
             isCouponTarget: s.is_coupon_target !== false,
@@ -186,11 +186,12 @@ class QuestApiManager {
               includeCharge: Boolean(s.set_charge === '込' || raw.yoidoreSet?.includeCharge || raw['チャージ込']),
               notes: s.set_notes || raw.yoidoreSet?.notes || raw['セット備考'] || raw['備考'] || ''
             },
-            conditions: raw.conditions || {
-              days: s.days || raw['提供日'] || '全日',
-              hours: s.hours || raw['提供時間'] || '営業時間内',
-              limit: s.set_limit || raw['限定数'] || 'なし',
-              soldOutEnd: Boolean(raw['売切終了'])
+            conditions: {
+              days: s.days || raw.conditions?.days || raw['提供日'] || '全日',
+              hours: s.hours || raw.conditions?.hours || raw['提供時間'] || raw['営業時間'] || '営業時間内',
+              timeNotes: s.time_notes || raw.conditions?.timeNotes || raw['提供時間に対する補足'] || raw['時間補足'] || '',
+              limit: s.set_limit || raw.conditions?.limit || raw['限定数'] || '',
+              soldOutEnd: Boolean(raw.conditions?.soldOutEnd || raw['売切終了'])
             },
             paymentMethods: s.payment ? String(s.payment).split(/[,、]/).map(p => p.trim()) : (Array.isArray(raw['paymentMethods']) ? raw['paymentMethods'] : (raw['決済方法'] ? String(raw['決済方法']).split(/[,、]/).map(p => p.trim()) : ['現金'])),
             googleMapUrl: s.map_url || raw['googleMapUrl'] || raw['Google Map URL'] || raw['map_url'] || '',

@@ -504,27 +504,74 @@ class YoidoreAdminApp {
     }
   }
 
-  openStoreModal(storeId) {
-    const isNew = storeId === 'new';
+  /* ------------------------------------------------------------------------
+   * 店舗フォーム補助 (エリア・カテゴリ・曜日・時間・決済)
+   * ------------------------------------------------------------------------ */
+  onAreaChange(val) {
+    const customInput = document.getElementById('edit-store-area-custom');
+    if (customInput) {
+      customInput.style.display = (val === 'custom') ? 'block' : 'none';
+      if (val === 'custom') customInput.focus();
+    }
+  }
+
+  onCategoryChange(val) {
+    const customInput = document.getElementById('edit-store-category-custom');
+    if (customInput) {
+      customInput.style.display = (val === 'custom') ? 'block' : 'none';
+      if (val === 'custom') customInput.focus();
+    }
+  }
+
+  setDayPresets(preset) {
+    const checkboxes = document.querySelectorAll('input[name="store-days-check"]');
+    const weekdays = ['月', '火', '水', '木', '金'];
+    const weekends = ['土', '日', '祝'];
+
+    checkboxes.forEach(cb => {
+      if (preset === 'all') {
+        cb.checked = true;
+      } else if (preset === 'weekday') {
+        cb.checked = weekdays.includes(cb.value);
+      } else if (preset === 'weekend') {
+        cb.checked = weekends.includes(cb.value);
+      } else if (preset === 'clear') {
+        cb.checked = false;
+      }
+    });
+  }
+
+  openStoreModal(storeIdOrMode) {
+    const isNew = storeIdOrMode === 'new';
     document.getElementById('edit-store-mode').value = isNew ? 'new' : 'edit';
-    document.getElementById('store-modal-title').textContent = isNew ? '新規店舗の登録' : '店舗情報の編集';
-    document.getElementById('edit-store-id').readOnly = !isNew;
+    document.getElementById('store-modal-title').innerHTML = isNew ? 
+      '<i class="fa-solid fa-store"></i> 新規店舗の登録' : 
+      '<i class="fa-solid fa-pen-to-square"></i> 店舗情報の編集';
+
+    const idInput = document.getElementById('edit-store-id');
+    idInput.readOnly = !isNew;
 
     let store = {};
     if (!isNew) {
-      store = this.stores.find(s => s.id === storeId) || {};
+      store = this.stores.find(s => s.id === storeIdOrMode) || {};
     } else {
-      const maxNum = this.stores.reduce((max, s) => {
-        const num = parseInt((s.id || '').replace('store-', ''), 10);
+      const nextNum = (this.stores.reduce((max, s) => {
+        const num = parseInt((s.id || '').replace(/\D/g, ''), 10);
         return isNaN(num) ? max : Math.max(max, num);
-      }, 0);
+      }, 0) || 0) + 1;
+      const nextId = `store-${String(nextNum).padStart(2, '0')}`;
       store = {
-        id: `store-${String(maxNum + 1).padStart(2, '0')}`,
+        id: nextId,
         name: '',
         area: '三軒家西',
         category: '居酒屋',
-        set_price: 1000,
-        quest_price: 0,
+        style: 'テーブルあり',
+        yoidore_type: 'サク飲み',
+        takeout: 'テイクアウト不可',
+        catchphrase: '',
+        days: '月,火,水,金,土,日',
+        hours: '17:00〜23:00',
+        payment: '現金, PayPay, クレジットカード',
         is_coupon_target: true
       };
     }
@@ -537,18 +584,111 @@ class YoidoreAdminApp {
 
     document.getElementById('edit-store-id').value = store.id || '';
     document.getElementById('edit-store-name').value = store.name || '';
-    document.getElementById('edit-store-area').value = store.area || raw['エリア'] || '';
-    document.getElementById('edit-store-category').value = store.category || raw['カテゴリ'] || raw['category'] || '';
-    document.getElementById('edit-store-style').value = store.style || raw['スタイル'] || raw['style'] || '';
-    document.getElementById('edit-store-type').value = store.yoidore_type || store.type || raw['タイプ'] || raw['酔いどれタイプ'] || raw['type'] || '';
-    
-    const isTakeout = store.takeout === true || store.takeout === 'テイクアウトOK' || store.takeout === '可能' || store.isTakeout || raw['テイクアウト'] === 'テイクアウトOK' || raw['テイクアウト'] === '可' || raw.isTakeout;
-    document.getElementById('edit-store-takeout').value = isTakeout ? 'true' : 'false';
+
+    // 1. エリア設定
+    const knownAreas = ['三軒家西', '三軒家東', '駅前', '泉尾', '平尾'];
+    const currentArea = store.area || raw['エリア'] || '三軒家西';
+    const areaSelect = document.getElementById('edit-store-area-select');
+    const areaCustom = document.getElementById('edit-store-area-custom');
+    if (knownAreas.includes(currentArea)) {
+      areaSelect.value = currentArea;
+      areaCustom.style.display = 'none';
+      areaCustom.value = '';
+    } else {
+      areaSelect.value = 'custom';
+      areaCustom.style.display = 'block';
+      areaCustom.value = currentArea;
+    }
+
+    // 2. ジャンル/カテゴリ設定
+    const knownCategories = [
+      '居酒屋', 'おばんざい', '立ち飲み', 'BAR', 'カフェ', '中華',
+      '焼肉・ホルモン', '鶏料理', '沖縄料理', '串焼き・鉄板焼き',
+      'イタリアン・ワイン', 'スナック', 'ハンバーガー酒場', 'ジビエ肉'
+    ];
+    const currentCat = store.category || raw['カテゴリ'] || raw['category'] || '居酒屋';
+    const catSelect = document.getElementById('edit-store-category-select');
+    const catCustom = document.getElementById('edit-store-category-custom');
+    if (knownCategories.includes(currentCat)) {
+      catSelect.value = currentCat;
+      catCustom.style.display = 'none';
+      catCustom.value = '';
+    } else {
+      catSelect.value = 'custom';
+      catCustom.style.display = 'block';
+      catCustom.value = currentCat;
+    }
+
+    // 3. 席スタイル設定
+    const currentStyle = store.style || raw['スタイル'] || raw['style'] || 'テーブルあり';
+    const normalizedStyle = currentStyle === '立ち呑み' ? '立ち飲み' : currentStyle;
+    document.getElementById('edit-store-style').value = 
+      ['テーブルあり', 'カウンター', '立ち飲み', 'テイクアウト専門'].includes(normalizedStyle) ? normalizedStyle : 'テーブルあり';
+
+    // 4. 酔いどれタイプ設定
+    const currentType = store.yoidore_type || store.type || raw['タイプ'] || raw['酔いどれタイプ'] || raw['type'] || 'サク飲み';
+    const normalizedType = currentType === 'サク呑み' ? 'サク飲み' : currentType;
+    document.getElementById('edit-store-type').value = 
+      ['サク飲み', '腹ごしらえ', 'ひと休み', '夜遊び'].includes(normalizedType) ? normalizedType : 'サク飲み';
+
+    // 5. テイクアウト設定
+    let takeoutVal = 'テイクアウト不可';
+    const rawTakeout = store.takeout !== undefined ? store.takeout : (raw['テイクアウト'] || (raw['isTakeout'] ? 'テイクアウトOK' : '不可'));
+    if (rawTakeout === 'テイクアウト専門' || rawTakeout === '専門') {
+      takeoutVal = 'テイクアウト専門';
+    } else if (rawTakeout === true || rawTakeout === 'テイクアウトOK' || rawTakeout === '可能' || rawTakeout === '可' || rawTakeout === 'OK') {
+      takeoutVal = 'テイクアウトOK';
+    }
+    document.getElementById('edit-store-takeout').value = takeoutVal;
 
     document.getElementById('edit-store-catchphrase').value = store.catchphrase || raw['キャッチコピー'] || raw['catchphrase'] || '';
-    document.getElementById('edit-store-days').value = store.days || conditions.days || raw['提供日'] || '';
-    document.getElementById('edit-store-hours').value = store.hours || conditions.hours || raw['提供時間'] || raw['営業時間'] || '';
-    document.getElementById('edit-store-payment').value = store.payment || (Array.isArray(raw.paymentMethods) ? raw.paymentMethods.join(', ') : (raw['決済方法'] || ''));
+
+    // 6. 提供日/営業日チェックボックス設定
+    const currentDays = String(store.days || conditions.days || raw['提供日'] || '月,火,水,金,土,日');
+    const dayCbs = document.querySelectorAll('input[name="store-days-check"]');
+    dayCbs.forEach(cb => {
+      cb.checked = currentDays.includes(cb.value);
+    });
+
+    // 7. 提供時間/営業時間設定
+    const currentHours = String(store.hours || conditions.hours || raw['提供時間'] || raw['営業時間'] || '17:00〜23:00');
+    const timeMatch = currentHours.match(/(\d{1,2}:\d{2})\s*[-〜~]\s*(?:翌)?(\d{1,2}:\d{2})/);
+    if (timeMatch) {
+      document.getElementById('edit-store-hours-start').value = timeMatch[1].padStart(5, '0');
+      document.getElementById('edit-store-hours-end').value = timeMatch[2].padStart(5, '0');
+      document.getElementById('edit-store-hours-nextday').checked = currentHours.includes('翌');
+      const cleaned = currentHours.replace(timeMatch[0], '').replace(/翌/, '').replace(/^[()（）\s]+|[()（）\s]+$/g, '').trim();
+      document.getElementById('edit-store-hours-custom').value = cleaned;
+    } else {
+      document.getElementById('edit-store-hours-start').value = '17:00';
+      document.getElementById('edit-store-hours-end').value = '23:00';
+      document.getElementById('edit-store-hours-nextday').checked = false;
+      document.getElementById('edit-store-hours-custom').value = currentHours !== '17:00〜23:00' ? currentHours : '';
+    }
+
+    // 8. 決済方法チェックボックス設定
+    const currentPayments = Array.isArray(raw.paymentMethods) ? raw.paymentMethods : 
+      String(store.payment || (raw['決済方法'] ? String(raw['決済方法']) : '現金')).split(/[,、]/).map(p => p.trim());
+    const payCbs = document.querySelectorAll('input[name="store-payment-check"]');
+    const otherPayments = [];
+    payCbs.forEach(cb => {
+      cb.checked = false;
+    });
+    currentPayments.forEach(p => {
+      let matched = false;
+      payCbs.forEach(cb => {
+        if (cb.value === p || 
+            (cb.value === 'クレジットカード' && (p === 'クレカ' || p === 'カード' || p === 'VISA' || p === 'Mastercard')) || 
+            (cb.value === '電子マネー・交通系IC' && (p === '電子マネー' || p === '交通系IC' || p === 'ICカード'))) {
+          cb.checked = true;
+          matched = true;
+        }
+      });
+      if (!matched && p && p !== '-') {
+        otherPayments.push(p);
+      }
+    });
+    document.getElementById('edit-store-payment-other').value = otherPayments.join(', ');
 
     document.getElementById('edit-store-set-name').value = store.set_name || yoidoreSet.title || raw['酔いどれセット名'] || raw['セット名'] || '';
     document.getElementById('edit-store-set-price').value = store.set_price !== undefined ? store.set_price : (yoidoreSet.price || raw['価格'] || raw['セット価格'] || 1000);
@@ -567,8 +707,58 @@ class YoidoreAdminApp {
     document.getElementById('edit-store-logo-url').value = store.logo_url || store.logoUrl || raw['logoUrl'] || raw['logo'] || (numId ? `logo/${numId}.png` : '');
     document.getElementById('edit-store-coupon-target').checked = store.is_coupon_target !== false;
 
+    this.updateMediaPreview();
     document.body.style.overflow = 'hidden';
     document.getElementById('store-modal').style.display = 'flex';
+  }
+
+  updateMediaPreview() {
+    const photoVal = (document.getElementById('edit-store-photo-url').value || '').trim();
+    const logoVal = (document.getElementById('edit-store-logo-url').value || '').trim();
+    const mapVal = (document.getElementById('edit-store-map-url').value || '').trim();
+    const instaVal = (document.getElementById('edit-store-insta-url').value || '').trim();
+
+    // 写真プレビュー
+    const photoBox = document.getElementById('preview-photo-box');
+    const photoImg = document.getElementById('preview-photo-img');
+    if (photoVal && photoBox && photoImg) {
+      photoImg.src = photoVal;
+      photoBox.style.display = 'block';
+    } else if (photoBox) {
+      photoBox.style.display = 'none';
+    }
+
+    // ロゴプレビュー
+    const logoBox = document.getElementById('preview-logo-box');
+    const logoImg = document.getElementById('preview-logo-img');
+    if (logoVal && logoBox && logoImg) {
+      logoImg.src = logoVal;
+      logoBox.style.display = 'block';
+    } else if (logoBox) {
+      logoBox.style.display = 'none';
+    }
+
+    // Mapボタン
+    const mapBtn = document.getElementById('btn-check-map');
+    if (mapBtn) {
+      if (mapVal && mapVal.startsWith('http')) {
+        mapBtn.href = mapVal;
+        mapBtn.style.display = 'inline-flex';
+      } else {
+        mapBtn.style.display = 'none';
+      }
+    }
+
+    // Instagramボタン
+    const instaBtn = document.getElementById('btn-check-insta');
+    if (instaBtn) {
+      if (instaVal && instaVal.startsWith('http')) {
+        instaBtn.href = instaVal;
+        instaBtn.style.display = 'inline-flex';
+      } else {
+        instaBtn.style.display = 'none';
+      }
+    }
   }
 
   closeStoreModal() {
@@ -581,18 +771,61 @@ class YoidoreAdminApp {
     const storeId = document.getElementById('edit-store-id').value.trim();
     if (!storeId) return alert('店舗IDは必須です');
 
+    // 1. エリア取得
+    const areaSelect = document.getElementById('edit-store-area-select').value;
+    const area = areaSelect === 'custom' ? (document.getElementById('edit-store-area-custom').value.trim() || '大正') : areaSelect;
+
+    // 2. ジャンル/カテゴリ取得
+    const catSelect = document.getElementById('edit-store-category-select').value;
+    const category = catSelect === 'custom' ? (document.getElementById('edit-store-category-custom').value.trim() || '居酒屋') : catSelect;
+
+    // 3. 席スタイル & 4. 酔いどれタイプ
+    const style = document.getElementById('edit-store-style').value;
+    const yoidore_type = document.getElementById('edit-store-type').value;
+
+    // 5. テイクアウト
+    const takeout = document.getElementById('edit-store-takeout').value;
+
+    // 6. 営業日取得
+    const selectedDays = [];
+    document.querySelectorAll('input[name="store-days-check"]:checked').forEach(cb => {
+      selectedDays.push(cb.value);
+    });
+    const days = selectedDays.join(',');
+
+    // 7. 営業時間取得
+    const hStart = document.getElementById('edit-store-hours-start').value;
+    const hEnd = document.getElementById('edit-store-hours-end').value;
+    const isNextDay = document.getElementById('edit-store-hours-nextday').checked;
+    const hCustom = document.getElementById('edit-store-hours-custom').value.trim();
+    let hours = `${hStart}〜${isNextDay ? '翌' : ''}${hEnd}`;
+    if (hCustom) {
+      hours = `${hours} (${hCustom})`;
+    }
+
+    // 8. 決済方法取得
+    const selectedPayments = [];
+    document.querySelectorAll('input[name="store-payment-check"]:checked').forEach(cb => {
+      selectedPayments.push(cb.value);
+    });
+    const pOther = document.getElementById('edit-store-payment-other').value.trim();
+    if (pOther) {
+      selectedPayments.push(pOther);
+    }
+    const payment = selectedPayments.join(', ');
+
     const storeData = {
       id: storeId,
       name: document.getElementById('edit-store-name').value.trim(),
-      area: document.getElementById('edit-store-area').value.trim(),
-      category: document.getElementById('edit-store-category').value.trim(),
-      style: document.getElementById('edit-store-style').value.trim(),
-      yoidore_type: document.getElementById('edit-store-type').value.trim(),
-      takeout: document.getElementById('edit-store-takeout').value === 'true',
+      area,
+      category,
+      style,
+      yoidore_type,
+      takeout,
       catchphrase: document.getElementById('edit-store-catchphrase').value.trim(),
-      days: document.getElementById('edit-store-days').value.trim(),
-      hours: document.getElementById('edit-store-hours').value.trim(),
-      payment: document.getElementById('edit-store-payment').value.trim(),
+      days,
+      hours,
+      payment,
       set_name: document.getElementById('edit-store-set-name').value.trim(),
       set_price: parseInt(document.getElementById('edit-store-set-price').value, 10) || 0,
       set_content: document.getElementById('edit-store-set-content').value.trim(),
@@ -628,6 +861,371 @@ class YoidoreAdminApp {
       await this.loadAllData();
     } catch (err) {
       alert('保存に失敗しました: ' + err.message);
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+   * Excel / アンケート一括インポート機能
+   * ------------------------------------------------------------------------ */
+  openExcelImportModal() {
+    this.importData = [];
+    const fileInput = document.getElementById('import-file-input');
+    if (fileInput) fileInput.value = '';
+    const resultsArea = document.getElementById('import-results-area');
+    if (resultsArea) resultsArea.style.display = 'none';
+    const executeBtn = document.getElementById('btn-execute-import');
+    if (executeBtn) executeBtn.style.display = 'none';
+
+    document.body.style.overflow = 'hidden';
+    document.getElementById('excel-import-modal').style.display = 'flex';
+
+    // ドラッグ＆ドロップイベントバインド
+    const dropZone = document.getElementById('import-drop-zone');
+    if (dropZone && !dropZone._bound) {
+      dropZone._bound = true;
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+      });
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+      });
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          this.parseExcelFile(e.dataTransfer.files[0]);
+        }
+      });
+    }
+  }
+
+  closeExcelImportModal() {
+    document.body.style.overflow = '';
+    document.getElementById('excel-import-modal').style.display = 'none';
+  }
+
+  handleFileSelected(e) {
+    if (e.target.files && e.target.files[0]) {
+      this.parseExcelFile(e.target.files[0]);
+    }
+  }
+
+  async parseExcelFile(file) {
+    if (!window.XLSX) {
+      alert('Excel解析ライブラリ (SheetJS) が準備できていません。ネットワーク環境をご確認ください。');
+      return;
+    }
+
+    try {
+      this.showToast('ファイルを解析中...');
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: 'array' });
+      const firstSheetName = wb.SheetNames[0];
+      const sheet = wb.Sheets[firstSheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+      if (rows.length < 2) {
+        alert('データ行が見つかりませんでした。有効なアンケート回答ファイルを選択してください。');
+        return;
+      }
+
+      const headers = rows[0].map(h => String(h || '').trim());
+      const dataRows = rows.slice(1);
+
+      // 既存店舗一覧から名前マッチング用マップを作成
+      const existingStoreMap = new Map();
+      let maxNum = 0;
+      this.stores.forEach(s => {
+        const cleanName = s.name ? s.name.replace(/\s+/g, '').toLowerCase() : '';
+        if (cleanName) existingStoreMap.set(cleanName, s);
+        const num = parseInt((s.id || '').replace(/\D/g, ''), 10);
+        if (!isNaN(num)) maxNum = Math.max(maxNum, num);
+      });
+
+      this.importData = [];
+      let newCounter = maxNum + 1;
+
+      dataRows.forEach((row) => {
+        if (row.every(cell => String(cell).trim() === '')) return;
+
+        const rowObj = {};
+        headers.forEach((h, colIdx) => {
+          rowObj[h] = row[colIdx] !== undefined ? row[colIdx] : '';
+        });
+
+        const storeName = String(row[1] || rowObj['店名'] || '').trim();
+        if (!storeName) return;
+
+        const participateAns = String(row[2] || rowObj['大正酔いどれクエストⅡに参加されますか？'] || '').trim();
+        const isSkip = (participateAns === '参加しない' || storeName.includes('テスト'));
+
+        // 既存店舗検索
+        const cleanName = storeName.replace(/\s+/g, '').toLowerCase();
+        const existing = existingStoreMap.get(cleanName);
+        const storeId = existing ? existing.id : `store-${String(newCounter++).padStart(2, '0')}`;
+
+        // 1. エリア
+        let area = String(row[3] || rowObj['エリア'] || rowObj['  エリア  '] || '三軒家西').trim();
+        if (!['三軒家西', '三軒家東', '駅前', '泉尾', '平尾'].includes(area)) {
+          if (area.includes('三軒家西')) area = '三軒家西';
+          else if (area.includes('三軒家東')) area = '三軒家東';
+          else if (area.includes('駅前')) area = '駅前';
+          else if (area.includes('泉尾')) area = '泉尾';
+          else if (area.includes('平尾')) area = '平尾';
+          else area = '三軒家西';
+        }
+
+        // 2. カテゴリ
+        let category = String(row[4] || rowObj['カテゴリ'] || '居酒屋').trim();
+
+        // 3. スタイル (表記ゆれ補正)
+        let style = String(row[5] || rowObj['スタイル'] || 'テーブルあり').trim();
+        if (style.includes('テールブ') || style.includes('テーブル')) style = 'テーブルあり';
+        else if (style.includes('カウンター')) style = 'カウンター';
+        else if (style.includes('立ち')) style = '立ち飲み';
+        else if (style.includes('テイクアウト専門')) style = 'テイクアウト専門';
+        else style = 'テーブルあり';
+
+        // 4. タイプ (表記ゆれ補正)
+        let yoidore_type = String(row[6] || rowObj['タイプ'] || 'サク飲み').trim();
+        if (yoidore_type.includes('サク')) yoidore_type = 'サク飲み';
+        else if (yoidore_type.includes('腹')) yoidore_type = '腹ごしらえ';
+        else if (yoidore_type.includes('休')) yoidore_type = 'ひと休み';
+        else if (yoidore_type.includes('遊')) yoidore_type = '夜遊び';
+
+        // 5. テイクアウト
+        let takeout = String(row[7] || rowObj['テイクアウト'] || 'テイクアウト不可').trim();
+        if (takeout.includes('専門')) takeout = 'テイクアウト専門';
+        else if (takeout.includes('OK') || takeout.includes('可') || takeout.includes('可能')) takeout = 'テイクアウトOK';
+        else takeout = 'テイクアウト不可';
+
+        // 6. 提供曜日
+        let daysRaw = String(row[8] || rowObj['提供曜日'] || '月,火,水,金,土,日').trim();
+        let days = '月,火,水,金,土,日';
+        if (daysRaw.includes('全て') || daysRaw.includes('全日') || daysRaw.includes('毎日')) {
+          days = '月,火,水,木,金,土,日';
+        } else {
+          const daysList = [];
+          ['月', '火', '水', '木', '金', '土', '日', '祝'].forEach(d => {
+            if (daysRaw.includes(d)) daysList.push(d);
+          });
+          days = daysList.length > 0 ? daysList.join(',') : '月,火,水,金,土,日';
+        }
+
+        // 7. 提供時間
+        const hStart = String(row[9] || rowObj['提供時間：開始'] || '17:00:00').substring(0, 5);
+        const hEnd = String(row[10] || rowObj['提供時間：終了'] || '23:00:00').substring(0, 5);
+        const timeNote = String(row[11] || rowObj['提供時間に対する補足'] || '').trim();
+        let hours = `${hStart || '17:00'}〜${hEnd || '23:00'}`;
+        if (timeNote && timeNote !== 'None') {
+          hours += ` (${timeNote})`;
+        }
+
+        // 8. 決済方法
+        let payment = String(row[12] || rowObj['決済方法'] || '現金').trim();
+
+        // 9. クーポン取扱
+        const couponAns = String(row[13] || rowObj['店舗クーポンを希望されますか？'] || '');
+        const isCouponTarget = couponAns.includes('希望します') || couponAns.includes('はい') || couponAns === 'true';
+
+        // 10. 参加企画とセット・クエストの抽出
+        const planType = String(row[14] || rowObj['「どれクエⅡ」にはどの企画で参加されますか？'] || rowObj['  「どれクエⅡ」にはどの企画で参加されますか？  '] || '両方');
+        
+        let setName = '', setContent = '', setNotes = '', setPrice = 0, setCharge = '', setLimit = '';
+        let questName = '', questContent = '', questNotes = '', questPrice = 0, questCharge = '';
+
+        if (planType.includes('セット」のみ')) {
+          setName = String(row[15] || rowObj['  酔いどれセット名  '] || rowObj['酔いどれセット名'] || '').trim();
+          setContent = String(row[16] || rowObj['  酔いどれセット内容  '] || rowObj['酔いどれセット内容'] || '').trim();
+          setNotes = String(row[17] || rowObj['セット内容備考'] || '').trim();
+          setPrice = parseInt(String(row[18] || rowObj['  価格(税込)  '] || rowObj['価格(税込)']).replace(/\D/g, ''), 10) || 1000;
+          setCharge = String(row[19] || rowObj['チャージ料(税込)'] || '').trim();
+          setLimit = String(row[20] || rowObj['限定数量'] || '').trim();
+        } else if (planType.includes('クエスト」のみ')) {
+          questName = String(row[21] || rowObj['クエスト名'] || '').trim();
+          questContent = String(row[22] || rowObj['クエスト内容/報酬'] || '').trim();
+          questPrice = parseInt(String(row[23] || rowObj['クエスト料金(税込)']).replace(/\D/g, ''), 10) || 0;
+          questCharge = String(row[24] || rowObj['クエストチャージ料 (税込)'] || '').trim();
+          questNotes = String(row[25] || rowObj['クエスト備考'] || '').trim();
+        } else {
+          // 両方
+          setName = String(row[26] || rowObj['酔いどれセット名'] || row[15] || '').trim();
+          setContent = String(row[27] || rowObj['  酔いどれセット内容   2'] || row[16] || '').trim();
+          setNotes = String(row[28] || rowObj['セット内容備考 2'] || row[17] || '').trim();
+          setPrice = parseInt(String(row[29] || rowObj['価格(税込)'] || row[18]).replace(/\D/g, ''), 10) || 1000;
+          setCharge = String(row[30] || rowObj['チャージ料(税込) 2'] || row[19] || '').trim();
+          setLimit = String(row[31] || rowObj['限定数量 2'] || row[20] || '').trim();
+
+          questName = String(row[32] || rowObj['クエスト名 2'] || row[21] || '').trim();
+          questContent = String(row[33] || rowObj['クエスト内容/報酬 2'] || row[22] || '').trim();
+          questPrice = parseInt(String(row[34] || rowObj['クエスト料金(税込) 2'] || row[23]).replace(/\D/g, ''), 10) || 0;
+          questCharge = String(row[35] || rowObj['クエストチャージ料 (税込) 2'] || row[24] || '').trim();
+          questNotes = String(row[36] || rowObj['クエスト備考 2'] || row[25] || '').trim();
+        }
+
+        // 既存店舗から引き継ぐ情報（写真・ロゴ・地図URL等）
+        const numId = storeId.replace(/\D/g, '').padStart(3, '0');
+        const map_url = existing?.map_url || existing?.raw_data?.googleMapUrl || '';
+        const insta_url = existing?.insta_url || existing?.raw_data?.instagramUrl || '';
+        const photo_url = existing?.photo_url || (numId ? `photo/${numId}.jpg` : '');
+        const logo_url = existing?.logo_url || (numId ? `logo/${numId}.png` : '');
+
+        const item = {
+          id: storeId,
+          name: storeName,
+          isExisting: Boolean(existing),
+          isSkip,
+          area,
+          category,
+          style,
+          yoidore_type,
+          takeout,
+          days,
+          hours,
+          payment,
+          is_coupon_target: isCouponTarget,
+          planType,
+          set_name: setName || '酔いどれセット',
+          set_content: setContent,
+          set_price: setPrice,
+          set_charge: (setCharge === 'None' || setCharge === '0.0') ? 'なし' : setCharge,
+          set_limit: (setLimit === 'None' || setLimit === '0.0') ? '' : setLimit,
+          set_notes: setNotes === 'None' ? '' : setNotes,
+          quest_name: questName,
+          quest_content: questContent,
+          quest_price: questPrice,
+          quest_charge: (questCharge === 'None' || questCharge === '0.0') ? 'なし' : questCharge,
+          quest_notes: questNotes === 'None' ? '' : questNotes,
+          map_url,
+          insta_url,
+          photo_url,
+          logo_url
+        };
+
+        this.importData.push(item);
+      });
+
+      this.renderImportPreview();
+    } catch (err) {
+      alert('ファイルの解析中にエラーが発生しました: ' + err.message);
+      console.error(err);
+    }
+  }
+
+  renderImportPreview() {
+    const resultsArea = document.getElementById('import-results-area');
+    const executeBtn = document.getElementById('btn-execute-import');
+    const tbody = document.getElementById('import-preview-body');
+
+    if (!resultsArea || !tbody) return;
+
+    let updateCount = 0;
+    let newCount = 0;
+    let skipCount = 0;
+
+    this.importData.forEach(item => {
+      if (item.isSkip) skipCount++;
+      else if (item.isExisting) updateCount++;
+      else newCount++;
+    });
+
+    document.getElementById('import-count-total').textContent = `総件数: ${this.importData.length}件`;
+    document.getElementById('import-count-update').textContent = `既存店舗の上書き: ${updateCount}件`;
+    document.getElementById('import-count-new').textContent = `新規店舗の追加: ${newCount}件`;
+    document.getElementById('import-count-skip').textContent = `除外(不参加/テスト): ${skipCount}件`;
+
+    tbody.innerHTML = this.importData.map((item, idx) => {
+      const statusBadge = item.isSkip ?
+        '<span class="badge" style="background:#f1f5f9; color:#64748b;">除外</span>' :
+        (item.isExisting ?
+          '<span class="badge" style="background:#dcfce7; color:#15803d;">上書き更新</span>' :
+          '<span class="badge" style="background:#fef3c7; color:#b45309;">新規追加</span>');
+
+      return `
+        <tr style="${item.isSkip ? 'opacity: 0.5; background: #f8fafc;' : ''}">
+          <td>${statusBadge}</td>
+          <td><code>${item.id}</code></td>
+          <td><strong>${item.name}</strong></td>
+          <td><span class="badge badge-area">${item.area}</span> <span class="badge">${item.category}</span></td>
+          <td><small style="color:#64748b;">${item.planType.includes('両方') ? '両方' : (item.planType.includes('セット') ? 'セットのみ' : 'クエストのみ')}</small></td>
+          <td>${item.set_name ? `${item.set_name} (¥${item.set_price.toLocaleString()})` : '-'}</td>
+          <td>${item.quest_name || '-'}</td>
+          <td style="text-align: center;">${item.is_coupon_target ? '🎁 対象' : '-'}</td>
+        </tr>
+      `;
+    }).join('');
+
+    resultsArea.style.display = 'block';
+    if (executeBtn) {
+      executeBtn.style.display = (updateCount + newCount > 0) ? 'inline-flex' : 'none';
+      executeBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> ${updateCount + newCount}件をSupabaseに反映する`;
+    }
+  }
+
+  async executeImport() {
+    const validItems = this.importData.filter(d => !d.isSkip);
+    if (validItems.length === 0) return alert('インポート対象の店舗がありません');
+
+    const confirmMsg = `合計 ${validItems.length} 件の店舗データをSupabaseに反映（上書き・新規登録）します。よろしいですか？`;
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      this.showToast(`Supabaseへ一括保存中 (0 / ${validItems.length})...`);
+      let successCount = 0;
+
+      for (let i = 0; i < validItems.length; i++) {
+        const item = validItems[i];
+        const storePayload = {
+          id: item.id,
+          name: item.name,
+          area: item.area,
+          category: item.category,
+          style: item.style,
+          yoidore_type: item.yoidore_type,
+          takeout: item.takeout,
+          days: item.days,
+          hours: item.hours,
+          payment: item.payment,
+          is_coupon_target: item.is_coupon_target,
+          set_name: item.set_name,
+          set_price: item.set_price,
+          set_content: item.set_content,
+          set_charge: item.set_charge,
+          set_limit: item.set_limit,
+          set_notes: item.set_notes,
+          quest_name: item.quest_name,
+          quest_price: item.quest_price,
+          quest_content: item.quest_content,
+          quest_charge: item.quest_charge,
+          quest_notes: item.quest_notes,
+          map_url: item.map_url,
+          insta_url: item.insta_url,
+          photo_url: item.photo_url,
+          logo_url: item.logo_url
+        };
+
+        if (item.isExisting) {
+          await this.api.supabaseFetch(`stores?id=eq.${item.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(storePayload)
+          });
+        } else {
+          await this.api.supabaseFetch('stores', {
+            method: 'POST',
+            body: JSON.stringify(storePayload)
+          });
+        }
+        successCount++;
+        this.showToast(`Supabaseへ保存中 (${successCount} / ${validItems.length})...`);
+      }
+
+      this.closeExcelImportModal();
+      this.showToast(`🎉 ${successCount} 件の店舗アンケート情報をSupabaseへ同期・更新しました！`);
+      await this.loadAllData();
+    } catch (err) {
+      alert('インポート途中でエラーが発生しました: ' + err.message);
+      console.error(err);
     }
   }
 

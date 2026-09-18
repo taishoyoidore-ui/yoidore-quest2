@@ -2291,20 +2291,27 @@ class YoidoreQuestApp {
           <table class="info-table">
             ${store.conditions.days ? `
               <tr>
-                <th>提供日/曜日</th>
-                <td>${store.conditions.days}</td>
+                <th>提供日</th>
+                <td><strong>${store.conditions.days}</strong></td>
               </tr>
             ` : ''}
             ${store.conditions.hours ? `
               <tr>
                 <th>提供時間</th>
-                <td>${store.conditions.hours}</td>
+                <td>
+                  <strong>${store.conditions.hours}</strong>
+                  ${store.conditions.timeNotes ? `
+                    <div style="font-size:12px; color:var(--text-dim); margin-top:3px;">
+                      💡 ${this.escapeHtml(store.conditions.timeNotes)}
+                    </div>
+                  ` : ''}
+                </td>
               </tr>
             ` : ''}
             ${store.conditions.limit ? `
               <tr>
-                <th>数量限定</th>
-                <td>${store.conditions.limit} ${store.conditions.soldOutEnd ? '（売り切れ次第終了）' : ''}</td>
+                <th>限定数</th>
+                <td>${store.conditions.limit} ${store.conditions.soldOutEnd ? '<span style="font-size:11px; color:var(--text-yellow);">（売切終了）</span>' : ''}</td>
               </tr>
             ` : ''}
             ${store.takeout ? `
@@ -2323,31 +2330,36 @@ class YoidoreQuestApp {
               <span>🍺 酔いどれセット情報</span>
             </div>
             <table class="info-table">
-              ${store.yoidoreSet.title ? `
-                <tr>
-                  <th>セット名</th>
-                  <td class="text-yellow" style="font-weight:bold;">${store.yoidoreSet.title}</td>
-                </tr>
-              ` : ''}
+              <tr>
+                <th>セット名</th>
+                <td><span class="text-yellow" style="font-size:15px; font-weight:bold;">${store.yoidoreSet.title}</span></td>
+              </tr>
               ${store.yoidoreSet.content ? `
                 <tr>
                   <th>内容</th>
-                  <td>${store.yoidoreSet.content}</td>
+                  <td style="line-height:1.5;">${store.yoidoreSet.content}</td>
                 </tr>
               ` : ''}
               ${store.yoidoreSet.price > 0 ? `
                 <tr>
                   <th>金額</th>
                   <td>
-                    <strong class="text-green" style="font-size:17px;">¥${store.yoidoreSet.price.toLocaleString()}</strong>
-                    <span style="font-size:13px; color:var(--text-dim); margin-left:6px;">(税込${store.yoidoreSet.charge === '込' ? '・チャージ料込' : ''})</span>
+                    <div style="display:flex; align-items:baseline; gap:6px; flex-wrap:wrap;">
+                      <strong class="text-green" style="font-size:18px;">¥${store.yoidoreSet.price.toLocaleString()}</strong>
+                      <span style="font-size:12px; color:var(--text-dim);">(税込)</span>
+                      ${store.yoidoreSet.charge ? `
+                        <span style="font-size:12px; color:#cbd5e1; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px;">
+                          チャージ: ${store.yoidoreSet.charge === '込' ? '込' : (store.yoidoreSet.charge === '不要' || store.yoidoreSet.charge === '0' || store.yoidoreSet.charge === '無し' ? 'なし' : store.yoidoreSet.charge)}
+                        </span>
+                      ` : ''}
+                    </div>
                   </td>
                 </tr>
               ` : ''}
               ${store.yoidoreSet.notes ? `
                 <tr>
                   <th>備考</th>
-                  <td style="font-size:14px; color:var(--text-dim);">${store.yoidoreSet.notes}</td>
+                  <td style="font-size:13px; color:var(--text-dim); line-height:1.4;">${store.yoidoreSet.notes}</td>
                 </tr>
               ` : ''}
             </table>
@@ -2355,40 +2367,44 @@ class YoidoreQuestApp {
         ` : ''}
 
         <!-- 4. 店舗クエスト情報枠 -->
-        ${store.isQuestActive ? `
+        ${(store.isQuestActive && store.quest && store.quest.title && store.quest.title !== '？？？？？') ? `
           <div class="rpg-window">
             <div class="rpg-window-header">
               <span>⚔️ 店舗クエスト情報</span>
             </div>
             <table class="info-table">
-              ${store.quest.title ? `
-                <tr>
-                  <th>クエスト名</th>
-                  <td><span class="text-yellow" style="font-weight:bold;">${store.quest.title}</span></td>
-                </tr>
-              ` : ''}
+              <tr>
+                <th>クエスト名</th>
+                <td><span class="text-yellow" style="font-size:15px; font-weight:bold;">${store.quest.title}</span></td>
+              </tr>
               ${store.quest.content ? `
                 <tr>
                   <th>内容</th>
-                  <td>${store.quest.content}</td>
+                  <td style="line-height:1.5;">${store.quest.content}</td>
                 </tr>
               ` : ''}
               <tr>
-                <th>金額</th>
+                <th>料金</th>
                 <td>
-                  ${store.quest.price > 0 ? `
-                    <strong class="text-green" style="font-size:17px;">¥${store.quest.price.toLocaleString()}</strong>
-                    <span style="font-size:13px; color:var(--text-dim); margin-left:6px;">(税込${store.quest.charge === '込' ? '・チャージ料込' : ''})</span>
-                  ` : `
-                    <span class="quest-fee-badge">🟢 無料</span>
-                    ${store.quest.charge === '込' ? `<span style="font-size:13px; color:var(--text-dim); margin-left:6px;">(チャージ料込)</span>` : ''}
-                  `}
+                  <div style="display:flex; align-items:baseline; gap:6px; flex-wrap:wrap;">
+                    ${store.quest.price > 0 ? `
+                      <strong class="text-green" style="font-size:18px;">¥${store.quest.price.toLocaleString()}</strong>
+                      <span style="font-size:12px; color:var(--text-dim);">(税込)</span>
+                    ` : `
+                      <span class="quest-fee-badge" style="font-size:12px;">🟢 参加無料</span>
+                    `}
+                    ${store.quest.charge && store.quest.charge !== '不要' && store.quest.charge !== '0' && store.quest.charge !== '無し' ? `
+                      <span style="font-size:12px; color:#cbd5e1; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px;">
+                        チャージ: ${store.quest.charge}
+                      </span>
+                    ` : ''}
+                  </div>
                 </td>
               </tr>
               ${store.quest.notes ? `
                 <tr>
                   <th>備考</th>
-                  <td style="font-size:14px; color:var(--text-dim);">${store.quest.notes}</td>
+                  <td style="font-size:13px; color:var(--text-dim); line-height:1.4;">${store.quest.notes}</td>
                 </tr>
               ` : ''}
             </table>

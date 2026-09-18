@@ -12,7 +12,9 @@
 
   <link rel="icon" href="assets/banner.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/admin.css?v=20260918_3">
+  <link rel="stylesheet" href="css/admin.css?v=20260918_5">
+  <!-- SheetJS for Excel Import -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- QRCode.js for POP Generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -221,7 +223,10 @@
                   <option value="false">クーポン対象外のみ</option>
                 </select>
               </div>
-              <div class="header-actions">
+              <div class="header-actions" style="display:flex; gap:8px;">
+                <button class="btn btn-outline" onclick="window.adminApp.openExcelImportModal()">
+                  <i class="fa-solid fa-file-excel text-green"></i> アンケートExcel取り込み
+                </button>
                 <button class="btn btn-primary" onclick="window.adminApp.openStoreModal('new')">
                   <i class="fa-solid fa-plus"></i> 新規店舗を追加
                 </button>
@@ -525,28 +530,64 @@
           <div class="grid-3col">
             <div class="form-group">
               <label>エリア <span class="required">*</span></label>
-              <input type="text" id="edit-store-area" class="form-control" required placeholder="三軒家西, 泉尾など">
+              <select id="edit-store-area-select" class="form-control" onchange="window.adminApp.onAreaChange(this.value)">
+                <option value="三軒家西">三軒家西</option>
+                <option value="三軒家東">三軒家東</option>
+                <option value="駅前">駅前</option>
+                <option value="泉尾">泉尾</option>
+                <option value="平尾">平尾</option>
+                <option value="custom">その他 (直接入力)</option>
+              </select>
+              <input type="text" id="edit-store-area-custom" class="form-control" placeholder="エリア名を入力" style="display:none; margin-top:4px;">
             </div>
             <div class="form-group">
               <label>ジャンル <span class="required">*</span></label>
-              <input type="text" id="edit-store-category" class="form-control" required placeholder="居酒屋, おばんざいなど">
+              <select id="edit-store-category-select" class="form-control" onchange="window.adminApp.onCategoryChange(this.value)">
+                <option value="居酒屋">居酒屋</option>
+                <option value="おばんざい">おばんざい</option>
+                <option value="立ち飲み">立ち飲み</option>
+                <option value="BAR">BAR</option>
+                <option value="カフェ">カフェ</option>
+                <option value="中華">中華</option>
+                <option value="焼肉・ホルモン">焼肉・ホルモン</option>
+                <option value="鶏料理">鶏料理</option>
+                <option value="沖縄料理">沖縄料理</option>
+                <option value="串焼き・鉄板焼き">串焼き・鉄板焼き</option>
+                <option value="イタリアン・ワイン">イタリアン・ワイン</option>
+                <option value="スナック">スナック</option>
+                <option value="ハンバーガー酒場">ハンバーガー酒場</option>
+                <option value="ジビエ肉">ジビエ肉</option>
+                <option value="custom">その他 (直接入力)</option>
+              </select>
+              <input type="text" id="edit-store-category-custom" class="form-control" placeholder="ジャンルを入力" style="display:none; margin-top:4px;">
             </div>
             <div class="form-group">
               <label>席スタイル</label>
-              <input type="text" id="edit-store-style" class="form-control" placeholder="カウンター, テーブルあり, 立ち呑み">
+              <select id="edit-store-style" class="form-control">
+                <option value="テーブルあり">テーブルあり</option>
+                <option value="カウンター">カウンター</option>
+                <option value="立ち飲み">立ち飲み</option>
+                <option value="テイクアウト専門">テイクアウト専門</option>
+              </select>
             </div>
           </div>
 
           <div class="grid-2col">
             <div class="form-group">
               <label>酔いどれタイプ</label>
-              <input type="text" id="edit-store-type" class="form-control" placeholder="サク飲み, 腹ごしらえなど">
+              <select id="edit-store-type" class="form-control">
+                <option value="サク飲み">サク飲み (ふらっと1杯・アテ)</option>
+                <option value="腹ごしらえ">腹ごしらえ (しっかり食事・お肉等)</option>
+                <option value="ひと休み">ひと休み (カフェ・スイーツ・喫茶)</option>
+                <option value="夜遊び">夜遊び (バー・カラオケ・深夜等)</option>
+              </select>
             </div>
             <div class="form-group">
               <label>テイクアウト</label>
               <select id="edit-store-takeout" class="form-control">
-                <option value="false">不可</option>
-                <option value="true">可能</option>
+                <option value="テイクアウト不可">テイクアウト不可</option>
+                <option value="テイクアウトOK">テイクアウトOK (可能)</option>
+                <option value="テイクアウト専門">テイクアウト専門</option>
               </select>
             </div>
           </div>
@@ -556,20 +597,51 @@
             <input type="text" id="edit-store-catchphrase" class="form-control" placeholder="お店の自慢や特徴">
           </div>
 
-          <div class="grid-2col">
-            <div class="form-group">
-              <label>営業日 / 提供日</label>
-              <input type="text" id="edit-store-days" class="form-control" placeholder="月,火,水,木,金,土,日">
-            </div>
-            <div class="form-group">
-              <label>提供時間 / 営業時間</label>
-              <input type="text" id="edit-store-hours" class="form-control" placeholder="17:00〜23:00">
+          <div class="form-group">
+            <label>営業日 / 提供日</label>
+            <div class="day-selector-group">
+              <div class="day-preset-btns">
+                <button type="button" class="day-preset-btn" onclick="window.adminApp.setDayPresets('all')">全日</button>
+                <button type="button" class="day-preset-btn" onclick="window.adminApp.setDayPresets('weekday')">平日のみ</button>
+                <button type="button" class="day-preset-btn" onclick="window.adminApp.setDayPresets('weekend')">土日祝</button>
+                <button type="button" class="day-preset-btn" onclick="window.adminApp.setDayPresets('clear')">クリア</button>
+              </div>
+              <div class="day-checkboxes">
+                <label><input type="checkbox" name="store-days-check" value="月"> 月</label>
+                <label><input type="checkbox" name="store-days-check" value="火"> 火</label>
+                <label><input type="checkbox" name="store-days-check" value="水"> 水</label>
+                <label><input type="checkbox" name="store-days-check" value="木"> 木</label>
+                <label><input type="checkbox" name="store-days-check" value="金"> 金</label>
+                <label><input type="checkbox" name="store-days-check" value="土"> 土</label>
+                <label><input type="checkbox" name="store-days-check" value="日"> 日</label>
+                <label><input type="checkbox" name="store-days-check" value="祝"> 祝</label>
+              </div>
             </div>
           </div>
 
           <div class="form-group">
+            <label>提供時間 / 営業時間</label>
+            <div class="time-picker-group">
+              <input type="time" id="edit-store-hours-start" class="form-control" value="17:00">
+              <span style="color: #64748b; font-weight: bold;">〜</span>
+              <input type="time" id="edit-store-hours-end" class="form-control" value="23:00">
+              <label style="display:inline-flex; align-items:center; gap:4px; font-size:12px; white-space:nowrap; cursor:pointer; color:#475569;">
+                <input type="checkbox" id="edit-store-hours-nextday"> 翌日
+              </label>
+            </div>
+            <input type="text" id="edit-store-hours-custom" class="form-control" placeholder="変則営業時間や備考 (例: ランチ 11:30〜14:00 / ディナー 17:00〜23:00)" style="margin-top:6px; font-size:12px;">
+          </div>
+
+          <div class="form-group">
             <label>決済方法</label>
-            <input type="text" id="edit-store-payment" class="form-control" placeholder="現金, PayPay, クレジットカード">
+            <div class="payment-checkboxes">
+              <label><input type="checkbox" name="store-payment-check" value="現金"> 現金</label>
+              <label><input type="checkbox" name="store-payment-check" value="クレジットカード"> クレジットカード</label>
+              <label><input type="checkbox" name="store-payment-check" value="PayPay"> PayPay</label>
+              <label><input type="checkbox" name="store-payment-check" value="その他QR決済"> その他QR決済</label>
+              <label><input type="checkbox" name="store-payment-check" value="電子マネー・交通系IC"> 電子マネー/交通系IC</label>
+            </div>
+            <input type="text" id="edit-store-payment-other" class="form-control" placeholder="その他決済 (例: iD, QuickPay, LINE Pay等)" style="margin-top:6px; font-size:12px;">
           </div>
 
           <!-- セット情報 -->
@@ -621,25 +693,41 @@
           </div>
 
           <!-- リンク & フラグ -->
-          <div class="form-section-title">🔗 外部リンク & 特典フラグ</div>
+          <div class="form-section-title">🔗 外部リンク & メディア設定</div>
           <div class="grid-2col">
             <div class="form-group">
-              <label>Google Map URL</label>
-              <input type="url" id="edit-store-map-url" class="form-control">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label style="margin:0;">Google Map URL</label>
+                <a id="btn-check-map" href="#" target="_blank" class="btn btn-outline btn-sm" style="padding:1px 6px; font-size:11px; display:none;">
+                  <i class="fa-solid fa-up-right-from-square"></i> 開いて確認
+                </a>
+              </div>
+              <input type="url" id="edit-store-map-url" class="form-control" placeholder="https://maps.app.goo.gl/..." oninput="window.adminApp.updateMediaPreview()">
             </div>
             <div class="form-group">
-              <label>Instagram URL</label>
-              <input type="url" id="edit-store-insta-url" class="form-control">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label style="margin:0;">Instagram URL</label>
+                <a id="btn-check-insta" href="#" target="_blank" class="btn btn-outline btn-sm" style="padding:1px 6px; font-size:11px; display:none;">
+                  <i class="fa-brands fa-instagram"></i> 開いて確認
+                </a>
+              </div>
+              <input type="url" id="edit-store-insta-url" class="form-control" placeholder="https://instagram.com/..." oninput="window.adminApp.updateMediaPreview()">
             </div>
           </div>
           <div class="grid-2col">
             <div class="form-group">
-              <label>写真画像URL</label>
-              <input type="text" id="edit-store-photo-url" class="form-control">
+              <label>写真画像パス / URL</label>
+              <input type="text" id="edit-store-photo-url" class="form-control" placeholder="photo/001.jpg または 外部URL" oninput="window.adminApp.updateMediaPreview()">
+              <div id="preview-photo-box" class="media-preview-box" style="margin-top:6px; display:none;">
+                <img id="preview-photo-img" src="" alt="写真プレビュー" style="max-height:80px; border-radius:4px; border:1px solid #cbd5e1;">
+              </div>
             </div>
             <div class="form-group">
-              <label>ロゴ画像URL</label>
-              <input type="text" id="edit-store-logo-url" class="form-control">
+              <label>ロゴ画像パス / URL</label>
+              <input type="text" id="edit-store-logo-url" class="form-control" placeholder="logo/001.png または 外部URL" oninput="window.adminApp.updateMediaPreview()">
+              <div id="preview-logo-box" class="media-preview-box" style="margin-top:6px; display:none;">
+                <img id="preview-logo-img" src="" alt="ロゴプレビュー" style="max-height:80px; border-radius:4px; border:1px solid #cbd5e1; background:#f8fafc; padding:2px;">
+              </div>
             </div>
           </div>
 
@@ -781,12 +869,66 @@
     </div>
   </div>
 
+  <!-- Googleフォーム回答Excel一括インポートモーダル -->
+  <div id="excel-import-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-dialog" style="max-width: 900px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-file-excel text-green"></i> Googleフォーム店舗アンケート一括取り込み</h3>
+        <button class="modal-close-btn" onclick="window.adminApp.closeExcelImportModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="import-drop-zone" id="import-drop-zone" onclick="document.getElementById('import-file-input').click()">
+          <i class="fa-solid fa-cloud-arrow-up" style="font-size: 36px; color: #10b981; margin-bottom: 8px;"></i>
+          <p style="font-weight: bold; margin: 0; color: #1e293b;">Googleフォーム回答のExcel / CSVファイルを選択またはドラッグ＆ドロップ</p>
+          <p style="font-size: 12px; color: #64748b; margin-top: 4px;">.xlsx, .xls, .csv 形式に対応（自動で企画分岐・表記ゆれを補正して解析します）</p>
+          <input type="file" id="import-file-input" accept=".xlsx, .xls, .csv" style="display: none;" onchange="window.adminApp.handleFileSelected(event)">
+        </div>
+
+        <div id="import-results-area" style="display: none; margin-top: 16px;">
+          <!-- 解析サマリー -->
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+            <span class="badge" style="background:#e0f2fe; color:#0369a1; padding:6px 12px; font-size:13px;" id="import-count-total">総件数: 0件</span>
+            <span class="badge" style="background:#dcfce7; color:#15803d; padding:6px 12px; font-size:13px;" id="import-count-update">既存店舗の更新: 0件</span>
+            <span class="badge" style="background:#fef3c7; color:#b45309; padding:6px 12px; font-size:13px;" id="import-count-new">新規登録: 0件</span>
+            <span class="badge" style="background:#f1f5f9; color:#475569; padding:6px 12px; font-size:13px;" id="import-count-skip">除外(不参加/テスト): 0件</span>
+          </div>
+
+          <!-- 解析テーブルプレビュー -->
+          <div class="table-responsive" style="max-height: 320px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px;">
+            <table class="data-table" style="font-size: 12px;">
+              <thead>
+                <tr>
+                  <th style="width: 80px;">状態</th>
+                  <th style="width: 80px;">ID</th>
+                  <th>店舗名</th>
+                  <th>エリア/ジャンル</th>
+                  <th>企画</th>
+                  <th>セット名 (価格)</th>
+                  <th>クエスト名</th>
+                  <th style="text-align: center;">クーポン</th>
+                </tr>
+              </thead>
+              <tbody id="import-preview-body">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="window.adminApp.closeExcelImportModal()">閉じる</button>
+        <button type="button" id="btn-execute-import" class="btn btn-primary" style="display: none;" onclick="window.adminApp.executeImport()">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Supabaseに一括反映する
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- トースト通知 -->
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=20260918_3"></script>
-  <script src="js/api.js?v=20260918_3"></script>
-  <script src="js/admin.js?v=20260918_3"></script>
+  <script src="js/config.js?v=20260918_5"></script>
+  <script src="js/api.js?v=20260918_5"></script>
+  <script src="js/admin.js?v=20260918_5"></script>
 </body>
 </html>
