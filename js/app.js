@@ -715,7 +715,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.19.04';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.19.05';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエストⅡ 公式ガイド</div>
@@ -1246,16 +1246,24 @@ class YoidoreQuestApp {
 
         <!-- 1. 勇者ステータス -->
         <div class="hero-status-card">
-          <img src="${user.pictureUrl || 'assets/banner.png'}" alt="Avatar" class="hero-avatar" onerror="this.src='assets/banner.png';">
+          <div class="hero-avatar-wrap">
+            <img src="${user.pictureUrl || 'assets/banner.png'}" alt="Avatar" class="hero-avatar" onerror="this.src='assets/banner.png';">
+            <span class="hero-level-badge">Lv.${heroLv}</span>
+          </div>
           <div class="hero-info">
             <div class="hero-name">
               <span>${user.displayName}</span>
-              <span class="hero-badge text-yellow">Lv.${heroLv}</span>
             </div>
-            <div class="hero-title">称号: ${heroTitle}</div>
+            <div class="hero-title-badge-wrap">
+              <div class="hero-title-badge" style="border-color: ${heroColor};">
+                <i class="fa-solid fa-medal hero-title-icon" style="color: ${heroColor};"></i>
+                <span class="hero-title-label">称号</span>
+                <span class="hero-title-text" style="color: ${heroColor}; text-shadow: 0 0 8px ${heroColor}66;">${heroTitle}</span>
+              </div>
+            </div>
             <div class="hero-badge-row">
-              <span class="hero-badge text-green">制覇: ${visitedCount}軒</span>
-              <span class="hero-badge text-cyan">クーポン: ${activeCoupons.length}枚</span>
+              <span class="hero-badge text-green"><i class="fa-solid fa-flag-checkered"></i> 制覇: <strong>${visitedCount}</strong> 軒</span>
+              <span class="hero-badge text-cyan"><i class="fa-solid fa-ticket"></i> 特典: <strong>${activeCoupons.length}</strong> 枚</span>
             </div>
           </div>
         </div>

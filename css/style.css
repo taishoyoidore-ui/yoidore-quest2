@@ -1421,17 +1421,26 @@ body {
 .hero-status-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: linear-gradient(180deg, #121830 0%, #080a14 100%);
+  gap: 14px;
+  background: linear-gradient(180deg, #182040 0%, #0a0d1c 100%);
   border: 2px solid var(--border-gold);
-  border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 12px;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45), inset 0 0 10px rgba(248, 225, 108, 0.08);
+}
+
+.hero-avatar-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .hero-avatar {
-  width: 54px;
-  height: 54px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   border: 2px solid var(--border-gold);
   object-fit: cover;
@@ -1439,37 +1448,93 @@ body {
   box-shadow: 0 0 10px rgba(248, 225, 108, 0.4);
 }
 
+.hero-level-badge {
+  position: absolute;
+  bottom: -6px;
+  background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+  border: 1.5px solid #fff;
+  color: #fff;
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  font-weight: bold;
+  padding: 1px 6px;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+}
+
 .hero-info {
   flex: 1;
+  min-width: 0;
 }
 
 .hero-name {
   font-size: 16px;
   font-weight: bold;
-  color: var(--text-yellow);
+  color: #ffffff;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
 }
 
-.hero-title {
-  font-size: 12px;
-  color: var(--text-cyan);
-  margin-top: 2px;
+.hero-title-badge-wrap {
+  margin-bottom: 6px;
+}
+
+.hero-title-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1.5px solid #facc15;
+  border-radius: 6px;
+  padding: 3px 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  max-width: 100%;
+}
+
+.hero-title-badge .hero-title-icon {
+  font-size: 14px;
+  color: #facc15;
+}
+
+.hero-title-badge .hero-title-label {
+  font-size: 10px;
+  color: #94a3b8;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.hero-title-badge .hero-title-text {
+  font-size: 14px;
+  font-weight: bold;
+  color: #facc15;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 6px rgba(250, 204, 21, 0.4);
 }
 
 .hero-badge-row {
   display: flex;
   gap: 6px;
-  margin-top: 4px;
+  flex-wrap: wrap;
 }
 
 .hero-badge {
   font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 3px;
-  background: #1c2340;
-  border: 1px solid var(--border-white);
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #e2e8f0;
+}
+
+.hero-badge strong {
+  color: #fff;
 }
 
 /* クエスト進捗プログレス */
