@@ -1884,10 +1884,13 @@ class YoidoreAdminApp {
                   📅 開催: ${s.start_date} 〜 ${s.end_date} ｜ 🎟️ クーポン期限: ${s.coupon_valid_until}
                 </div>
               </div>
-              <div>
+              <div style="display: flex; gap: 8px; align-items: center;">
                 ${!s.is_active ? `
                   <button class="btn btn-sm btn-primary" onclick="window.adminApp.activateSeason(${s.id})">
                     <i class="fa-solid fa-bolt"></i> このイベントを開催中に切替
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.confirmDeleteSeason(${s.id}, '${this.escapeHtml(s.name)}')" title="シーズンを削除">
+                    <i class="fa-solid fa-trash"></i> 削除
                   </button>
                 ` : `
                   <span class="text-success" style="font-weight: bold; font-size: 0.85rem;"><i class="fa-solid fa-check"></i> 現在稼働中</span>
@@ -2356,6 +2359,34 @@ class YoidoreAdminApp {
       await this.loadAllData();
     } catch (err) {
       alert('切り替えに失敗しました: ' + err.message);
+    }
+  }
+
+  async confirmDeleteSeason(seasonId, seasonName) {
+    const targetSeason = this.seasons.find(s => s.id === seasonId);
+    if (targetSeason && targetSeason.is_active) {
+      alert('現在開催中（アクティブ）のシーズンは削除できません。先に別のシーズンを開催中に切り替えてください。');
+      return;
+    }
+
+    if (!confirm(`【確認】シーズン「${seasonName}」を削除しますか？\n\n※この操作を実行すると、このシーズンの開催設定および店舗の参加・企画データ設定が削除されます。\n※よろしければ「OK」を押してください。`)) {
+      return;
+    }
+
+    try {
+      this.showToast(`「${seasonName}」を削除中...`);
+      await this.api.adminDeleteSeason(seasonId);
+      this.showToast(`「${seasonName}」を削除しました。`);
+
+      // 削除したシーズンが選択中だった場合は、残りのアクティブシーズンまたは先頭シーズンに切り替え
+      if (this.selectedSeasonId === seasonId) {
+        const remaining = (this.seasons || []).find(s => s.id !== seasonId);
+        this.selectedSeasonId = remaining ? remaining.id : 2;
+      }
+
+      await this.loadAllData();
+    } catch (err) {
+      alert('シーズン削除に失敗しました: ' + err.message);
     }
   }
 

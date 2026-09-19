@@ -993,6 +993,47 @@ class QuestApiManager {
     await this.getCurrentSeason();
   }
 
+  // シーズンの削除
+  async adminDeleteSeason(seasonId) {
+    const targetId = Number(seasonId);
+    if (Array.isArray(this.seasons)) {
+      this.seasons = this.seasons.filter(s => Number(s.id) !== targetId);
+    }
+    if (this.currentSeason && Number(this.currentSeason.id) === targetId) {
+      const remainingActive = this.seasons.find(s => s.is_active) || this.seasons[0];
+      if (remainingActive) {
+        this.currentSeason = { ...remainingActive };
+      }
+    }
+
+    // Supabaseクラウド共有設定へ確実に永続化同期
+    await this.saveSystemConfig({ seasons: this.seasons, current_season: this.currentSeason });
+
+    // 店舗のシーズン企画データからも該当シーズンを安全にクリーンアップ
+    try {
+      const storesRes = await this.supabaseFetch('stores?select=id,raw_data');
+      if (Array.isArray(storesRes)) {
+        for (const store of storesRes) {
+          if (store.raw_data && store.raw_data.seasons && store.raw_data.seasons[String(targetId)]) {
+            const updatedRaw = { ...store.raw_data };
+            const updatedSeasons = { ...updatedRaw.seasons };
+            delete updatedSeasons[String(targetId)];
+            updatedRaw.seasons = updatedSeasons;
+
+            await this.supabaseFetch(`stores?id=eq.${encodeURIComponent(store.id)}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ raw_data: updatedRaw })
+            });
+          }
+        }
+      }
+    } catch (cleanErr) {
+      console.warn('店舗企画データのシーズンクリーンアップ中に軽微な警告:', cleanErr);
+    }
+
+    return true;
+  }
+
   // 特典ランク (reward_tiers) の新規登録 / 更新 (シーズン完全分離)
   async adminSaveRewardTier(tierData, seasonId = null) {
     const targetSeasonId = Number(seasonId || tierData.season_id || this.currentSeason?.id || 2);
