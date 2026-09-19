@@ -177,6 +177,18 @@ class YoidoreQuestApp {
       .replace(/'/g, '&#039;');
   }
 
+  // 訪問軒数から現在の勇者称号・レベルデータを取得
+  getHeroTitleForVisits(count = 0) {
+    const heroTitles = (window.questApi && window.questApi.heroTitles && window.questApi.heroTitles.length > 0)
+      ? window.questApi.heroTitles
+      : (window.APP_CONFIG?.fallbackHeroTitles || []);
+    const sorted = [...heroTitles].sort((a, b) => (Number(b.min_visits) || 0) - (Number(a.min_visits) || 0));
+    const matched = sorted.find(t => Number(count) >= (Number(t.min_visits) || 0)) ||
+                    sorted[sorted.length - 1] ||
+                    { level: 1, title: '駆け出しの呑兵衛', badge_color: '#94a3b8', min_visits: 0 };
+    return matched;
+  }
+
   getStores(seasonId = null) {
     let list = [];
     if (window.questApi && window.questApi.stores && window.questApi.stores.length > 0) {
@@ -383,6 +395,36 @@ class YoidoreQuestApp {
         osc.type = 'square';
         osc.frequency.setValueAtTime(n.freq, now + n.delay);
         gain.gain.setValueAtTime(0.12, now + n.delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + n.delay + n.duration);
+        osc.connect(gain);
+        gain.connect(this.audioCtx.destination);
+        osc.start(now + n.delay);
+        osc.stop(now + n.delay + n.duration);
+      });
+    } catch (e) {}
+  }
+
+  /* ドラクエ風 8bit レベルアップ・ファンファーレSE */
+  playLevelUpSE() {
+    if (!this.soundEnabled || !this.audioCtx) return;
+    try {
+      const now = this.audioCtx.currentTime;
+      const notes = [
+        { freq: 349.23, duration: 0.08, delay: 0 },      // F4
+        { freq: 392.00, duration: 0.08, delay: 0.08 },   // G4
+        { freq: 440.00, duration: 0.08, delay: 0.16 },   // A4
+        { freq: 466.16, duration: 0.08, delay: 0.24 },   // Bb4
+        { freq: 523.25, duration: 0.12, delay: 0.32 },   // C5
+        { freq: 587.33, duration: 0.12, delay: 0.44 },   // D5
+        { freq: 659.25, duration: 0.16, delay: 0.56 },   // E5
+        { freq: 698.46, duration: 0.75, delay: 0.72 }    // F5
+      ];
+      notes.forEach(n => {
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(n.freq, now + n.delay);
+        gain.gain.setValueAtTime(0.14, now + n.delay);
         gain.gain.exponentialRampToValueAtTime(0.001, now + n.delay + n.duration);
         osc.connect(gain);
         gain.connect(this.audioCtx.destination);
@@ -725,7 +767,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.20.03';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.20.04';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1054,12 +1096,7 @@ class YoidoreQuestApp {
     const progressPercent = Math.min(100, Math.round((visitedCount / totalStores) * 100));
 
     // 称号・レベル計算 (Supabaseマスタ/管理画面設定連動)
-    const heroTitles = (window.questApi && window.questApi.heroTitles) || window.APP_CONFIG.fallbackHeroTitles || [];
-    const sortedTitles = [...heroTitles].sort((a, b) => (Number(b.min_visits) || 0) - (Number(a.min_visits) || 0));
-    const matchedHero = sortedTitles.find(t => visitedCount >= (Number(t.min_visits) || 0)) ||
-                        sortedTitles[sortedTitles.length - 1] ||
-                        { level: 1, title: '駆け出しの呑兵衛', badge_color: '#94a3b8' };
-
+    const matchedHero = this.getHeroTitleForVisits(visitedCount);
     const heroTitle = matchedHero.title || '駆け出しの呑兵衛';
     const heroLv = matchedHero.level || 1;
     const heroColor = matchedHero.badge_color || '#facc15';
@@ -1457,14 +1494,33 @@ class YoidoreQuestApp {
       if (!confirm(`【テスト実行】新たに【${count}店舗】の店主サインを冒険の書に記録しますか？`)) {
         return;
       }
-      this.playFanfareSE();
+      const prevVisits = (window.questApi && window.questApi.visits) ? window.questApi.visits.length : 0;
+      const prevHero = this.getHeroTitleForVisits(prevVisits);
+
       const origText = btnEl.textContent;
       btnEl.disabled = true;
       btnEl.textContent = '記録中...';
       const res = await window.questApi.recordMultipleVisitsForTest(count, seasonId);
       if (res.success) {
-        alert(`🎉【テスト成功】新たに${res.count}店舗の店主サインを記録しました！\n（現在の制覇数: ${res.totalVisits}軒）\n達成した特典宝箱を開けてみましょう！`);
-        this.render();
+        const newHero = this.getHeroTitleForVisits(res.totalVisits);
+        const rewardTiers = window.questApi?.rewardTiers || [];
+        const unlockedTier = rewardTiers.find(t => t.required_visits <= res.totalVisits && t.required_visits > prevVisits);
+
+        await this.render();
+        if (newHero.level > prevHero.level) {
+          this.playLevelUpSE();
+          this.showLevelUpModal({
+            prevHero,
+            newHero,
+            totalVisits: res.totalVisits,
+            storeName: `テスト一括サイン (${res.count}店舗)`,
+            storeArea: '大正エリア一帯',
+            unlockedTier
+          });
+        } else {
+          this.playFanfareSE();
+          alert(`🎉【テスト成功】新たに${res.count}店舗の店主サインを記録しました！\n（現在の制覇数: ${res.totalVisits}軒）\n達成した特典宝箱を開けてみましょう！`);
+        }
       } else {
         alert(res.message || 'テスト記録に失敗しました。');
         btnEl.disabled = false;
@@ -2044,10 +2100,36 @@ class YoidoreQuestApp {
    * ------------------------------------------------------------------------ */
   async handleCheckin(storeId) {
     if (!storeId) return;
+    const prevVisits = (window.questApi && window.questApi.visits) ? window.questApi.visits.length : 0;
+    const prevHero = this.getHeroTitleForVisits(prevVisits);
+
     const res = await window.questApi.recordVisit(storeId);
     if (res.success) {
-      this.playFanfareSE();
-      this.showCheckinSuccessModal(res);
+      const newHero = this.getHeroTitleForVisits(res.totalVisits);
+      const stores = this.getStores();
+      const store = stores.find(s => s.id === res.storeId);
+      const storeName = res.storeName || (store ? store.name : res.storeId);
+      const storeArea = store ? store.area : '';
+
+      const rewardTiers = window.questApi?.rewardTiers || [];
+      const unlockedTier = rewardTiers.find(t => t.required_visits === res.totalVisits);
+
+      if (newHero.level > prevHero.level) {
+        // 🌟 レベルアップ＆新称号昇格ファンファーレ演出
+        this.playLevelUpSE();
+        this.showLevelUpModal({
+          prevHero,
+          newHero,
+          totalVisits: res.totalVisits,
+          storeName,
+          storeArea,
+          unlockedTier
+        });
+      } else {
+        // 通常のサイン完了モーダル
+        this.playFanfareSE();
+        this.showCheckinSuccessModal(res);
+      }
       this.navigateTo('quest-book');
     } else if (res.alreadyVisited) {
       this.playCursorSE();
@@ -2056,6 +2138,89 @@ class YoidoreQuestApp {
     } else {
       alert(res.message || '冒険の書への記録に失敗しました。');
     }
+  }
+
+  /* ------------------------------------------------------------------------
+   * 🌟 ドラクエ風 LEVEL UP!! ＆ 称号昇格 演出モーダル
+   * ------------------------------------------------------------------------ */
+  showLevelUpModal({ prevHero, newHero, totalVisits, storeName, storeArea, unlockedTier }) {
+    const overlay = document.createElement('div');
+    overlay.className = 'rpg-modal-overlay';
+    overlay.id = 'levelup-success-modal';
+
+    const safeStoreName = this.escapeHtml ? this.escapeHtml(storeName) : storeName;
+    const prevLv = prevHero.level || 1;
+    const newLv = newHero.level || 2;
+    const prevTitle = prevHero.title || '駆け出しの呑兵衛';
+    const newTitle = newHero.title || '初陣';
+    const badgeColor = newHero.badge_color || '#facc15';
+
+    overlay.innerHTML = `
+      <div class="rpg-modal-window gold-border levelup-modal-window" style="max-width:390px; width:92%; text-align:center;">
+        <div class="levelup-sunburst"></div>
+        <div class="levelup-content-relative">
+          <div style="font-size:38px; margin-bottom:2px;">✨🍺⚔️</div>
+          <div class="levelup-header-banner">LEVEL UP!!</div>
+          <div style="font-size:12px; color:#fde047; font-weight:bold; letter-spacing:1px; margin-bottom:8px;">
+            勇者ランクが昇格しました！
+          </div>
+
+          <div style="background:rgba(15, 23, 42, 0.9); border:1px solid #334155; border-radius:6px; padding:8px 10px; margin-bottom:10px;">
+            <div style="font-size:12px; color:#94a3b8;">酒場サイン獲得</div>
+            <div style="font-size:15px; color:#fef08a; font-weight:bold;">『${safeStoreName}』</div>
+            ${storeArea ? `<div style="font-size:11px; color:#94a3b8;">(${storeArea})</div>` : ''}
+          </div>
+
+          <!-- レベル・称号 昇格表示 -->
+          <div class="levelup-evolution-box">
+            <div class="levelup-evolution-flow">
+              <div style="opacity:0.6; transform:scale(0.9);">
+                <div style="font-size:11px; color:#94a3b8; font-family:var(--font-en-pixel);">Lv.${prevLv}</div>
+                <span class="hero-title-plate" style="font-size:11px; padding:3px 8px; border-color:#64748b; color:#cbd5e1;">
+                  ${this.escapeHtml(prevTitle)}
+                </span>
+              </div>
+              <div class="levelup-arrow">➔</div>
+              <div style="transform:scale(1.06);">
+                <div style="font-size:12px; color:#fde047; font-weight:bold; font-family:var(--font-en-pixel);">Lv.${newLv}</div>
+                <span class="hero-title-plate" style="font-size:13px; padding:5px 10px; border-color:${badgeColor}; box-shadow:0 0 12px ${badgeColor}66;">
+                  <i class="fa-solid fa-crown" style="color:${badgeColor};"></i> ${this.escapeHtml(newTitle)}
+                </span>
+              </div>
+            </div>
+            <div style="font-size:12px; color:#e2e8f0; margin-top:8px; font-weight:500;">
+              🏆 制覇店舗数: <strong style="color:#4ade80; font-size:15px;">${totalVisits} 軒達成</strong>
+            </div>
+          </div>
+
+          ${unlockedTier ? `
+            <div class="levelup-tier-unlock-box">
+              <div style="font-size:16px; margin-bottom:2px;">🎁✨</div>
+              <div style="font-size:14px; font-weight:bold; color:#fef08a;">
+                【${this.escapeHtml(unlockedTier.title)}】特典宝箱 解放！
+              </div>
+              <div style="font-size:12px; color:#fed7aa; margin-top:3px;">
+                ${unlockedTier.reward_type === 'goods' ? 
+                  `🎁 記念品（${this.escapeHtml(unlockedTier.goods_name || unlockedTier.title)}）引換券を獲得可能！` : 
+                  `お好きな対象店舗クーポンを ${unlockedTier.selectable_count} 軒獲得可能！`
+                }
+              </div>
+            </div>
+          ` : ''}
+
+          <button id="btn-close-levelup-modal" class="treasure-claim-btn" style="width:100%; font-size:14px; padding:11px; margin-top:4px;">
+            📜 昇格した冒険の書を見る ▶
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('btn-close-levelup-modal').addEventListener('click', () => {
+      this.playSelectSE();
+      overlay.remove();
+    });
   }
 
   /* ------------------------------------------------------------------------
