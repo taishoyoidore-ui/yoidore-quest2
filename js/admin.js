@@ -64,7 +64,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.19.03';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.19.04';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -1867,15 +1867,16 @@ class YoidoreAdminApp {
     if (goodsSettings) goodsSettings.style.display = isGoods ? 'block' : 'none';
   }
 
-  openTierModal(tierIdOrMode) {
+  openTierModal(tierIdOrMode, optionalId) {
     const isNew = tierIdOrMode === 'new';
+    const targetId = (tierIdOrMode === 'edit' && optionalId !== undefined) ? optionalId : tierIdOrMode;
     document.getElementById('tier-modal-title').innerHTML = isNew ? 
       '<i class="fa-solid fa-gift"></i> 新規特典ランクの作成' : 
       '<i class="fa-solid fa-pen-to-square"></i> 特典ランクの編集';
 
     let tier = {};
     if (!isNew) {
-      tier = this.tiers.find(t => t.id === Number(tierIdOrMode)) || {};
+      tier = this.tiers.find(t => t.id === Number(targetId)) || {};
     } else {
       const maxVisits = this.tiers.reduce((max, t) => Math.max(max, t.required_visits || 0), 0);
       tier = {
@@ -2031,15 +2032,16 @@ class YoidoreAdminApp {
     `;
   }
 
-  openHeroTitleModal(titleIdOrMode) {
+  openHeroTitleModal(titleIdOrMode, optionalId) {
     const isNew = titleIdOrMode === 'new';
+    const targetId = (titleIdOrMode === 'edit' && optionalId !== undefined) ? optionalId : titleIdOrMode;
     document.getElementById('hero-title-modal-title').innerHTML = isNew ? 
       '<i class="fa-solid fa-medal"></i> 新規勇者称号の追加' : 
       '<i class="fa-solid fa-pen-to-square"></i> 勇者称号・レベルの編集';
 
     let item = {};
     if (!isNew) {
-      item = this.heroTitles.find(t => (t.id && t.id === Number(titleIdOrMode)) || t.level === Number(titleIdOrMode)) || {};
+      item = this.heroTitles.find(t => (t.id && t.id === Number(targetId)) || t.level === Number(targetId)) || {};
     } else {
       const maxLv = this.heroTitles.reduce((max, t) => Math.max(max, t.level || 0), 0);
       const maxMin = this.heroTitles.reduce((max, t) => Math.max(max, t.min_visits || 0), 0);

@@ -715,7 +715,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.19.03';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.19.04';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエストⅡ 公式ガイド</div>

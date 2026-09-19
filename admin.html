@@ -12,7 +12,7 @@
 
   <link rel="icon" href="assets/banner.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/admin.css?v=20260918_26">
+  <link rel="stylesheet" href="css/admin.css?v=20260919_04">
   <!-- SheetJS for Excel Import -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- QRCode.js for POP Generation -->
@@ -37,6 +37,9 @@
           <i class="fa-solid fa-right-to-bracket"></i> 管理画面にログイン
         </button>
       </form>
+      <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 14px;">
+        システムバージョン: <strong class="app-version-text">v2026.09.19.04</strong>
+      </div>
     </div>
   </div>
 
@@ -92,7 +95,7 @@
           <span>Supabase DB 連動中</span>
         </div>
         <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-bottom: 6px;">
-          システムバージョン: <strong class="app-version-text">v2026.09.19.03</strong>
+          システムバージョン: <strong class="app-version-text">v2026.09.19.04</strong>
         </div>
         <button class="btn btn-outline-danger btn-sm btn-block" onclick="window.adminApp.handleLogout()">
           <i class="fa-solid fa-arrow-right-from-bracket"></i> ログアウト
@@ -120,13 +123,13 @@
         </div>
         <div class="header-right">
           <span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:3px 8px; font-weight:bold;">
-            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.09.19.03</span>
+            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.09.19.04</span>
           </span>
           <span id="last-sync-time" class="text-muted"><i class="fa-solid fa-arrows-rotate fa-spin"></i> 同期中...</span>
           <button class="btn btn-secondary btn-sm" onclick="window.adminApp.refreshData()">
             <i class="fa-solid fa-rotate"></i> 最新データ更新
           </button>
-          <a href="index.html?v=20260919_03" target="_blank" class="btn btn-outline btn-sm">
+          <a href="index.html?v=20260919_04" target="_blank" class="btn btn-outline btn-sm">
             <i class="fa-solid fa-up-right-from-square"></i> アプリ実機表示
           </a>
         </div>
@@ -391,92 +394,90 @@
 
         <!-- 3. シーズン・開催設定タブ -->
         <section id="tab-tiers" class="tab-pane">
-          <div class="grid-2col mb-4">
-            <!-- シーズン管理 (第2回、第3回...) -->
-            <div class="card">
-              <div class="card-header">
-                <h3><i class="fa-solid fa-layer-group"></i> 歴代シーズン（開催回）管理</h3>
-                <button class="btn btn-sm btn-primary" onclick="window.adminApp.openSeasonModal('new')">
-                  <i class="fa-solid fa-plus"></i> 新シーズンを作成
-                </button>
-              </div>
-              <div class="card-body">
-                <p class="text-muted mb-3">毎年・毎回のイベント回次を管理します。過去の履歴を保持したまま次回開催へ切り替えられます。</p>
-                <div id="seasons-list" class="seasons-container">
-                  <div class="empty-state">シーズン一覧を読み込み中...</div>
-                </div>
+          <!-- シーズン管理 (第2回、第3回...) -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-layer-group"></i> 歴代シーズン（開催回）管理</h3>
+              <button class="btn btn-sm btn-primary" onclick="window.adminApp.openSeasonModal('new')">
+                <i class="fa-solid fa-plus"></i> 新シーズンを作成
+              </button>
+            </div>
+            <div class="card-body">
+              <p class="text-muted mb-3">毎年・毎回のイベント回次を管理します。過去の履歴を保持したまま次回開催へ切り替えられます。</p>
+              <div id="seasons-list" class="seasons-container">
+                <div class="empty-state">シーズン一覧を読み込み中...</div>
               </div>
             </div>
+          </div>
 
-            <!-- 開催中のシーズン詳細設定 -->
-            <div class="card">
-              <div class="card-header">
-                <h3><i class="fa-solid fa-calendar-days"></i> 選択中シーズンの開催期間・期限設定</h3>
-              </div>
-              <div class="card-body">
-                <form id="season-edit-form" onsubmit="event.preventDefault(); window.adminApp.saveCurrentSeasonDates();">
+          <!-- 開催中のシーズン詳細設定 -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-calendar-days"></i> 選択中シーズンの開催期間・期限＆ガイダンス設定</h3>
+            </div>
+            <div class="card-body">
+              <form id="season-edit-form" onsubmit="event.preventDefault(); window.adminApp.saveCurrentSeasonDates();">
+                <div class="form-group">
+                  <label>シーズン名</label>
+                  <input type="text" id="edit-season-name" class="form-control" required>
+                </div>
+                <div class="grid-2col">
                   <div class="form-group">
-                    <label>シーズン名</label>
-                    <input type="text" id="edit-season-name" class="form-control" required>
+                    <label>イベント開始日</label>
+                    <input type="date" id="edit-season-start" class="form-control" required>
                   </div>
-                  <div class="grid-2col">
-                    <div class="form-group">
-                      <label>イベント開始日</label>
-                      <input type="date" id="edit-season-start" class="form-control" required>
+                  <div class="form-group">
+                    <label>イベント終了日（本開催）</label>
+                    <input type="date" id="edit-season-end" class="form-control" required>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>クーポン最終利用期限（後夜祭終了日）</label>
+                  <input type="date" id="edit-season-valid" class="form-control" required>
+                  <small class="text-muted">この日付を過ぎると、アプリ上のクーポンは自動的に「期限切れ」となり使用できなくなります。</small>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+
+                <h4 style="margin-bottom: 12px; font-size: 15px; color: #1e293b;"><i class="fa-solid fa-scroll"></i> アプリ案内所・ガイダンス設定（ドラクエ風）</h4>
+
+                <div class="form-group">
+                  <label>イベント概要・プロローグ</label>
+                  <textarea id="edit-season-overview" class="form-control" rows="3" placeholder="大正区全域に広がる33の個性豊かな酒場をめぐるハシゴ酒RPG！..."></textarea>
+                  <small class="text-muted">アプリ案内所のトップカードに表示されます。</small>
+                </div>
+
+                <div class="form-group">
+                  <label>はしご酒の導き（クエストの掟・3ステップ）</label>
+                  <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+                    <div>
+                      <div style="font-size: 12px; font-weight: bold; color: #334155; margin-bottom: 4px;">📜 其の一</div>
+                      <input type="text" id="edit-season-step1-title" class="form-control mb-1" placeholder="タイトル（例: 酒場へ突入せよ）">
+                      <input type="text" id="edit-season-step1-desc" class="form-control" placeholder="説明文（例: 気になる酒場へ赴き「どれクエ参加」を伝え、限定メニューを注文！）">
                     </div>
-                    <div class="form-group">
-                      <label>イベント終了日（本開催）</label>
-                      <input type="date" id="edit-season-end" class="form-control" required>
+                    <div>
+                      <div style="font-size: 12px; font-weight: bold; color: #334155; margin-bottom: 4px;">📱 其の二</div>
+                      <input type="text" id="edit-season-step2-title" class="form-control mb-1" placeholder="タイトル（例: 冒険の書に刻印せよ）">
+                      <input type="text" id="edit-season-step2-desc" class="form-control" placeholder="説明文（例: 店内に設置された秘伝のQRコードをカメラで読み取り、制覇スタンプをGET！）">
+                    </div>
+                    <div>
+                      <div style="font-size: 12px; font-weight: bold; color: #334155; margin-bottom: 4px;">🎁 其の三</div>
+                      <input type="text" id="edit-season-step3-title" class="form-control mb-1" placeholder="タイトル（例: 秘宝の宝箱を開放せよ）">
+                      <input type="text" id="edit-season-step3-desc" class="form-control" placeholder="説明文（例: ハシゴ軒数を重ねて宝箱を解放！酒場クーポンや限定オリジナルグッズを獲得！）">
                     </div>
                   </div>
-                  <div class="form-group">
-                    <label>クーポン最終利用期限（後夜祭終了日）</label>
-                    <input type="date" id="edit-season-valid" class="form-control" required>
-                    <small class="text-muted">この日付を過ぎると、アプリ上のクーポンは自動的に「期限切れ」となり使用できなくなります。</small>
-                  </div>
+                </div>
 
-                  <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                <div class="form-group">
+                  <label>冒険の心得（注意事項・ルール）</label>
+                  <textarea id="edit-season-rules" class="form-control" rows="3" placeholder="・飲酒運転および未成年者の飲酒は法律で固く禁じられています。&#10;・お水（チェイサー）を挟みつつ、無理のないペースでハシゴ酒をお楽しみください。"></textarea>
+                  <small class="text-muted">アプリ案内所のアコーディオン内に表示されます。</small>
+                </div>
 
-                  <h4 style="margin-bottom: 12px; font-size: 15px; color: #1e293b;"><i class="fa-solid fa-scroll"></i> アプリ案内所・ガイダンス設定（ドラクエ風）</h4>
-
-                  <div class="form-group">
-                    <label>イベント概要・プロローグ</label>
-                    <textarea id="edit-season-overview" class="form-control" rows="3" placeholder="大正区全域に広がる33の個性豊かな酒場をめぐるハシゴ酒RPG！..."></textarea>
-                    <small class="text-muted">アプリ案内所のトップカードに表示されます。</small>
-                  </div>
-
-                  <div class="form-group">
-                    <label>はしご酒の導き（クエストの掟・3ステップ）</label>
-                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
-                      <div>
-                        <div style="font-size: 12px; font-weight: bold; color: #334155; margin-bottom: 4px;">📜 其の一</div>
-                        <input type="text" id="edit-season-step1-title" class="form-control mb-1" placeholder="タイトル（例: 酒場へ突入せよ）">
-                        <input type="text" id="edit-season-step1-desc" class="form-control" placeholder="説明文（例: 気になる酒場へ赴き「どれクエ参加」を伝え、限定メニューを注文！）">
-                      </div>
-                      <div>
-                        <div style="font-size: 12px; font-weight: bold; color: #334155; margin-bottom: 4px;">📱 其の二</div>
-                        <input type="text" id="edit-season-step2-title" class="form-control mb-1" placeholder="タイトル（例: 冒険の書に刻印せよ）">
-                        <input type="text" id="edit-season-step2-desc" class="form-control" placeholder="説明文（例: 店内に設置された秘伝のQRコードをカメラで読み取り、制覇スタンプをGET！）">
-                      </div>
-                      <div>
-                        <div style="font-size: 12px; font-weight: bold; color: #334155; margin-bottom: 4px;">🎁 其の三</div>
-                        <input type="text" id="edit-season-step3-title" class="form-control mb-1" placeholder="タイトル（例: 秘宝の宝箱を開放せよ）">
-                        <input type="text" id="edit-season-step3-desc" class="form-control" placeholder="説明文（例: ハシゴ軒数を重ねて宝箱を解放！酒場クーポンや限定オリジナルグッズを獲得！）">
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="form-group">
-                    <label>冒険の心得（注意事項・ルール）</label>
-                    <textarea id="edit-season-rules" class="form-control" rows="3" placeholder="・飲酒運転および未成年者の飲酒は法律で固く禁じられています。&#10;・お水（チェイサー）を挟みつつ、無理のないペースでハシゴ酒をお楽しみください。"></textarea>
-                    <small class="text-muted">アプリ案内所のアコーディオン内に表示されます。</small>
-                  </div>
-
-                  <button type="submit" class="btn btn-primary mt-2">
-                    <i class="fa-solid fa-floppy-disk"></i> 開催日程・ガイダンスを保存
-                  </button>
-                </form>
-              </div>
+                <button type="submit" class="btn btn-primary mt-2">
+                  <i class="fa-solid fa-floppy-disk"></i> 開催日程・ガイダンスを保存
+                </button>
+              </form>
             </div>
           </div>
 
@@ -1134,8 +1135,8 @@
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=20260919_03"></script>
-  <script src="js/api.js?v=20260919_03"></script>
-  <script src="js/admin.js?v=20260919_03"></script>
+  <script src="js/config.js?v=20260919_04"></script>
+  <script src="js/api.js?v=20260919_04"></script>
+  <script src="js/admin.js?v=20260919_04"></script>
 </body>
 </html>
