@@ -711,14 +711,18 @@ class YoidoreAdminApp {
     }
 
     tbody.innerHTML = stores.map(store => {
-      const isParticipating = store.is_participating !== false;
-      const isCoupon = store.is_coupon_target !== false;
-      const hoursText = store.hours || '17:00〜23:00';
+      const isParticipating = Boolean(store.is_participating);
+      const isCoupon = Boolean(store.is_coupon_target);
+      const hoursText = store.hours || '-';
       const timeNotes = store.time_notes || store.conditions?.timeNotes || '';
-      const daysText = store.days || '月,火,水,金,土,日';
+      const daysText = store.days || '-';
+      const setNameText = store.set_name || '-';
+      const setPriceText = store.set_price ? `¥${Number(store.set_price).toLocaleString()}` : '-';
+      const questNameText = store.quest_name || '-';
+      const questPriceText = store.quest_price ? `¥${Number(store.quest_price).toLocaleString()}` : '-';
 
       return `
-        <tr style="${!isParticipating ? 'opacity: 0.6; background: #f8fafc;' : ''}">
+        <tr style="${!isParticipating ? 'opacity: 0.65; background: #f8fafc;' : ''}">
           <td><code>${this.escapeHtml(store.id)}</code></td>
           <td>
             <div class="table-store-name" style="display: flex; align-items: center; gap: 6px;">
@@ -740,15 +744,15 @@ class YoidoreAdminApp {
             ${timeNotes ? `<div style="font-size: 11px; color: #b45309; background: #fef3c7; padding: 2px 5px; border-radius: 3px; margin-top: 2px; display: inline-block;">💡 ${this.escapeHtml(timeNotes)}</div>` : ''}
           </td>
           <td>
-            <div style="font-weight: 500;">${this.escapeHtml(store.set_name || '酔いどれセット')}</div>
-            <small style="color: #b45309; font-weight: bold;">¥${(store.set_price || 0).toLocaleString()}</small>
+            <div style="font-weight: 500;">${this.escapeHtml(setNameText)}</div>
+            <small style="color: #b45309; font-weight: bold;">${setPriceText}</small>
           </td>
           <td>
-            <div>${this.escapeHtml(store.quest_name || '-')}</div>
-            <small class="text-muted">¥${(store.quest_price || 0).toLocaleString()}</small>
+            <div>${this.escapeHtml(questNameText)}</div>
+            <small class="text-muted">${questPriceText}</small>
           </td>
           <td style="text-align: center;">
-            <button class="btn btn-sm ${isCoupon ? 'btn-primary' : 'btn-secondary'}" onclick="window.adminApp.toggleCouponTarget('${store.id}')" title="クリックで切替">
+            <button class="btn btn-sm ${isCoupon ? 'btn-primary' : 'btn-secondary'}" onclick="window.adminApp.toggleCouponTarget('${store.id}')" title="クリックで切替" ${!isParticipating ? 'style="opacity:0.6;"' : ''}>
               ${isCoupon ? '✅ 対象' : '❌ 対象外'}
             </button>
           </td>
@@ -776,8 +780,8 @@ class YoidoreAdminApp {
       
       const matchArea = !area || s.area === area;
       const matchCoupon = !couponTarget || 
-        (couponTarget === 'true' && s.is_coupon_target !== false) ||
-        (couponTarget === 'false' && s.is_coupon_target === false);
+        (couponTarget === 'true' && Boolean(s.is_coupon_target)) ||
+        (couponTarget === 'false' && !s.is_coupon_target);
 
       return matchSearch && matchArea && matchCoupon;
     });
@@ -790,35 +794,37 @@ class YoidoreAdminApp {
     if (!store) return;
 
     const targetSeasonId = this.selectedSeasonId || 2;
-    const newStatus = store.is_coupon_target === false ? true : false;
+    const newStatus = !store.is_coupon_target;
     store.is_coupon_target = newStatus;
 
     const existingRaw = store.raw_data || {};
     const existingSeasons = { ...(existingRaw.seasons || {}) };
-    const seasonData = existingSeasons[targetSeasonId] || {};
+    const seasonData = { ...(existingSeasons[targetSeasonId] || {}) };
     seasonData.is_coupon_target = newStatus;
     existingSeasons[targetSeasonId] = seasonData;
 
     const updatedRawData = {
       ...existingRaw,
-      is_coupon_target: newStatus,
       seasons: existingSeasons,
       ...(targetSeasonId === 2 ? { is_coupon_target: newStatus } : {})
     };
 
     try {
+      const updatePayload = {
+        raw_data: updatedRawData
+      };
+      if (targetSeasonId === 2) {
+        updatePayload.is_coupon_target = newStatus;
+      }
       await this.api.supabaseFetch(`stores?id=eq.${storeId}`, {
         method: 'PATCH',
         headers: {
           'Prefer': 'return=representation'
         },
-        body: JSON.stringify({
-          is_coupon_target: newStatus,
-          raw_data: updatedRawData
-        })
+        body: JSON.stringify(updatePayload)
       });
       store.raw_data = updatedRawData;
-      this.showToast(`${store.name} のクーポン取扱を【${newStatus ? '対象' : '対象外'}】に更新しました`);
+      this.showToast(`${store.name} の第${targetSeasonId}回クーポン取扱を【${newStatus ? '対象' : '対象外'}】に更新しました`);
       this.renderStoresTable();
     } catch (err) {
       alert('更新に失敗しました: ' + err.message);
@@ -992,7 +998,7 @@ class YoidoreAdminApp {
     }
 
     // 3.5 参加企画設定
-    const currentPlan = store.plan_type || raw['plan_type'] || (store.quest_name ? '「酔いどれセット」・「店舗クエスト」両方で参加' : '「酔いどれセット」のみで参加');
+    const currentPlan = store.plan_type || (store.quest_name ? '「酔いどれセット」・「店舗クエスト」両方で参加' : '「酔いどれセット」のみで参加');
     const planSelect = document.getElementById('edit-store-plan-type');
     if (planSelect) {
       if (currentPlan.includes('両方') || currentPlan === '両方') {
@@ -1005,14 +1011,14 @@ class YoidoreAdminApp {
     }
 
     // 4. 酔いどれタイプ設定
-    const currentType = store.yoidore_type || store.type || raw['タイプ'] || raw['酔いどれタイプ'] || raw['type'] || 'サク飲み';
+    const currentType = store.yoidore_type || store.type || 'サク飲み';
     const normalizedType = currentType === 'サク呑み' ? 'サク飲み' : currentType;
     document.getElementById('edit-store-type').value = 
       ['サク飲み', '腹ごしらえ', 'ひと休み', '夜遊び'].includes(normalizedType) ? normalizedType : 'サク飲み';
 
     // 5. テイクアウト設定
     let takeoutVal = 'テイクアウト不可';
-    const rawTakeout = store.takeout !== undefined ? store.takeout : (raw['テイクアウト'] || (raw['isTakeout'] ? 'テイクアウトOK' : '不可'));
+    const rawTakeout = store.takeout;
     if (rawTakeout === 'テイクアウト専門' || rawTakeout === '専門') {
       takeoutVal = 'テイクアウト専門';
     } else if (rawTakeout === true || rawTakeout === 'テイクアウトOK' || rawTakeout === '可能' || rawTakeout === '可' || rawTakeout === 'OK') {
@@ -1020,18 +1026,18 @@ class YoidoreAdminApp {
     }
     document.getElementById('edit-store-takeout').value = takeoutVal;
 
-    document.getElementById('edit-store-catchphrase').value = store.catchphrase || raw['キャッチコピー'] || raw['catchphrase'] || '';
+    document.getElementById('edit-store-catchphrase').value = store.catchphrase || '';
 
     // 6. 提供日/営業日チェックボックス設定
-    const currentDays = String(store.days || conditions.days || raw['提供日'] || '月,火,水,金,土,日');
+    const currentDays = String(store.days || '');
     const dayCbs = document.querySelectorAll('input[name="store-days-check"]');
     dayCbs.forEach(cb => {
-      cb.checked = currentDays.includes(cb.value);
+      cb.checked = currentDays ? currentDays.includes(cb.value) : false;
     });
 
     // 7. 提供時間/営業時間設定
-    const currentHours = String(store.hours || conditions.hours || raw['提供時間'] || raw['営業時間'] || '17:00〜23:00');
-    const timeMatch = currentHours.match(/(\d{1,2}:\d{2})\s*[-〜~]\s*(?:翌)?(\d{1,2}:\d{2})/);
+    const currentHours = String(store.hours || '');
+    const timeMatch = currentHours ? currentHours.match(/(\d{1,2}:\d{2})\s*[-〜~]\s*(?:翌)?(\d{1,2}:\d{2})/) : null;
     if (timeMatch) {
       document.getElementById('edit-store-hours-start').value = timeMatch[1].padStart(5, '0');
       document.getElementById('edit-store-hours-end').value = timeMatch[2].padStart(5, '0');
@@ -1039,19 +1045,18 @@ class YoidoreAdminApp {
       const cleaned = currentHours.replace(timeMatch[0], '').replace(/翌/, '').replace(/^[()（）\s]+|[()（）\s]+$/g, '').trim();
       document.getElementById('edit-store-hours-custom').value = cleaned;
     } else {
-      document.getElementById('edit-store-hours-start').value = '17:00';
-      document.getElementById('edit-store-hours-end').value = '23:00';
+      document.getElementById('edit-store-hours-start').value = currentHours ? '17:00' : '';
+      document.getElementById('edit-store-hours-end').value = currentHours ? '23:00' : '';
       document.getElementById('edit-store-hours-nextday').checked = false;
-      document.getElementById('edit-store-hours-custom').value = currentHours !== '17:00〜23:00' ? currentHours : '';
+      document.getElementById('edit-store-hours-custom').value = currentHours;
     }
 
     // 提供時間に対する補足
-    document.getElementById('edit-store-time-notes').value = store.time_notes || conditions.timeNotes || raw['提供時間に対する補足'] || raw['time_notes'] || raw['時間補足'] || '';
+    document.getElementById('edit-store-time-notes').value = store.time_notes || '';
 
     // 8. 決済方法チェックボックス設定
     const currentPayments = Array.isArray(store.paymentMethods) ? store.paymentMethods : 
-      (Array.isArray(raw.paymentMethods) ? raw.paymentMethods : 
-        String(store.payment || (raw['決済方法'] ? String(raw['決済方法']) : '現金')).split(/[,、]/).map(p => p.trim()));
+      String(store.payment || '現金').split(/[,、]/).map(p => p.trim());
     const payCbs = document.querySelectorAll('input[name="store-payment-check"]');
     const otherPayments = [];
     payCbs.forEach(cb => {
@@ -1073,25 +1078,25 @@ class YoidoreAdminApp {
     });
     document.getElementById('edit-store-payment-other').value = otherPayments.join(', ');
 
-    document.getElementById('edit-store-set-name').value = store.set_name || yoidoreSet.title || raw['酔いどれセット名'] || raw['セット名'] || '';
-    document.getElementById('edit-store-set-price').value = store.set_price !== undefined ? store.set_price : (yoidoreSet.price || raw['価格'] || raw['セット価格'] || 1000);
-    document.getElementById('edit-store-set-content').value = store.set_content || yoidoreSet.content || raw['セット内容'] || '';
-    document.getElementById('edit-store-set-charge').value = store.set_charge || yoidoreSet.charge || raw['チャージ'] || raw['チャージ有無'] || '';
-    document.getElementById('edit-store-set-limit').value = store.set_limit || conditions.limit || raw['限定数'] || '';
-    document.getElementById('edit-store-set-notes').value = store.set_notes || yoidoreSet.notes || raw['セット備考'] || raw['備考'] || '';
+    document.getElementById('edit-store-set-name').value = store.set_name || '';
+    document.getElementById('edit-store-set-price').value = store.set_price !== undefined && store.set_price !== null && store.set_price !== 0 ? store.set_price : '';
+    document.getElementById('edit-store-set-content').value = store.set_content || '';
+    document.getElementById('edit-store-set-charge').value = store.set_charge || '';
+    document.getElementById('edit-store-set-limit').value = store.set_limit || '';
+    document.getElementById('edit-store-set-notes').value = store.set_notes || '';
 
-    document.getElementById('edit-store-quest-name').value = store.quest_name || quest.title || raw['クエスト名'] || raw['クエストタイトル'] || '';
-    document.getElementById('edit-store-quest-price').value = store.quest_price !== undefined ? store.quest_price : (quest.price || raw['クエスト価格'] || 0);
-    document.getElementById('edit-store-quest-content').value = store.quest_content || quest.content || raw['クエスト内容'] || '';
-    document.getElementById('edit-store-quest-charge').value = store.quest_charge || quest.charge || raw['クエストチャージ'] || '';
-    document.getElementById('edit-store-quest-notes').value = store.quest_notes || quest.notes || raw['クエスト備考'] || '';
+    document.getElementById('edit-store-quest-name').value = store.quest_name || '';
+    document.getElementById('edit-store-quest-price').value = store.quest_price !== undefined && store.quest_price !== null && store.quest_price !== 0 ? store.quest_price : '';
+    document.getElementById('edit-store-quest-content').value = store.quest_content || '';
+    document.getElementById('edit-store-quest-charge').value = store.quest_charge || '';
+    document.getElementById('edit-store-quest-notes').value = store.quest_notes || '';
 
-    document.getElementById('edit-store-map-url').value = store.map_url || store.googleMapUrl || raw.googleMapUrl || raw['Google Map URL'] || raw['map_url'] || '';
-    document.getElementById('edit-store-insta-url').value = store.insta_url || store.instagramUrl || raw.instagramUrl || raw['Instagram URL'] || raw['insta_url'] || '';
-    document.getElementById('edit-store-photo-url').value = store.photo_url || store.photoUrl || raw['photoUrl'] || raw['photo'] || (numId ? `photo/${numId}.jpg` : '');
-    document.getElementById('edit-store-logo-url').value = store.logo_url || store.logoUrl || raw['logoUrl'] || raw['logo'] || (numId ? `logo/${numId}.png` : '');
-    document.getElementById('edit-store-badge-sales').value = store.badge_sales_count || raw['badge_sales_count'] || '';
-    document.getElementById('edit-store-coupon-target').checked = store.is_coupon_target !== false;
+    document.getElementById('edit-store-map-url').value = store.map_url || store.googleMapUrl || '';
+    document.getElementById('edit-store-insta-url').value = store.insta_url || store.instagramUrl || '';
+    document.getElementById('edit-store-photo-url').value = store.photo_url || store.photoUrl || (numId ? `photo/${numId}.jpg` : '');
+    document.getElementById('edit-store-logo-url').value = store.logo_url || store.logoUrl || (numId ? `logo/${numId}.png` : '');
+    document.getElementById('edit-store-badge-sales').value = store.badge_sales_count || '';
+    document.getElementById('edit-store-coupon-target').checked = Boolean(store.is_coupon_target);
 
     this.updateMediaPreview();
     document.body.style.overflow = 'hidden';
@@ -1330,7 +1335,7 @@ class YoidoreAdminApp {
       id: storeId,
       name: name,
       area: area,
-      is_coupon_target: isCouponTarget,
+      ...(targetSeasonId === 2 ? { is_coupon_target: isCouponTarget } : {}),
       display_order: displayOrder,
       raw_data: rawData
     };

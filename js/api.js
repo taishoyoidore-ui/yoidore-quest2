@@ -173,35 +173,32 @@ class QuestApiManager {
           const resolvedPhoto = formatMediaUrl(s.photo_url || raw['photo_url'] || raw['photoUrl'] || raw['photo'], 'photo', 'jpg', numId);
           const resolvedLogo = formatMediaUrl(s.logo_url || raw['logo_url'] || raw['logoUrl'] || raw['logo'], 'logo', 'png', numId);
 
-          // 参加フラグの判定
-          let isParticipating = true;
+          // 参加フラグの判定（データがないシーズンは未参加）
+          let isParticipating = false;
           if (hasExplicitSeason) {
             isParticipating = Boolean(seasonData?.is_participating);
-          } else if (targetSeasonId !== 2 && Object.keys(seasonsMap).length > 0) {
-            // seasonsMapが定義されているが該当シーズンが無い場合は未参加
-            isParticipating = false;
-          } else if (seasonData) {
-            isParticipating = seasonData.is_participating !== undefined ? Boolean(seasonData.is_participating) : true;
+          } else if (targetSeasonId === 2) {
+            isParticipating = seasonData ? (seasonData.is_participating !== undefined ? Boolean(seasonData.is_participating) : true) : false;
           } else {
             isParticipating = false;
           }
 
-          // シーズン企画データの抽出
+          // シーズン企画データの抽出（seasonDataが無い場合は空値）
           const questTitle = seasonData ? (seasonData.quest_name || seasonData.quest?.title || seasonData['クエスト名'] || (seasonData === raw ? s.quest_name : '') || '') : '';
           const questPrice = seasonData ? (seasonData.quest_price !== undefined ? Number(seasonData.quest_price) : Number(seasonData.quest?.price || seasonData['クエスト価格'] || (seasonData === raw ? s.quest_price : 0) || 0)) : 0;
-          const questCharge = seasonData ? (seasonData.quest_charge || seasonData.quest?.charge || seasonData['クエストチャージ'] || (seasonData === raw ? s.quest_charge : '不要') || '不要') : '不要';
+          const questCharge = seasonData ? (seasonData.quest_charge || seasonData.quest?.charge || seasonData['クエストチャージ'] || (seasonData === raw ? s.quest_charge : '') || '') : '';
           const questContent = seasonData ? (seasonData.quest_content || seasonData.quest?.content || seasonData['クエスト内容'] || (seasonData === raw ? s.quest_content : '') || '') : '';
           const questNotes = seasonData ? (seasonData.quest_notes || seasonData.quest?.notes || seasonData['クエスト備考'] || (seasonData === raw ? s.quest_notes : '') || '') : '';
 
-          const setTitle = seasonData ? (seasonData.set_name || seasonData.yoidoreSet?.title || seasonData['酔いどれセット名'] || seasonData['セット名'] || (seasonData === raw ? s.set_name : '酔いどれセット') || '酔いどれセット') : '酔いどれセット';
+          const setTitle = seasonData ? (seasonData.set_name || seasonData.yoidoreSet?.title || seasonData['酔いどれセット名'] || seasonData['セット名'] || (seasonData === raw ? s.set_name : '') || '') : '';
           const setContent = seasonData ? (seasonData.set_content || seasonData.yoidoreSet?.content || seasonData['セット内容'] || (seasonData === raw ? s.set_content : '') || '') : '';
-          const setPrice = seasonData ? (seasonData.set_price !== undefined ? Number(seasonData.set_price) : Number(seasonData.yoidoreSet?.price || seasonData['価格'] || (seasonData === raw ? s.set_price : 1000) || 1000)) : 1000;
-          const setCharge = seasonData ? (seasonData.set_charge || seasonData.yoidoreSet?.charge || seasonData['チャージ'] || (seasonData === raw ? s.set_charge : '不要') || '不要') : '不要';
+          const setPrice = seasonData ? (seasonData.set_price !== undefined ? Number(seasonData.set_price) : Number(seasonData.yoidoreSet?.price || seasonData['価格'] || (seasonData === raw ? s.set_price : 0) || 0)) : 0;
+          const setCharge = seasonData ? (seasonData.set_charge || seasonData.yoidoreSet?.charge || seasonData['チャージ'] || (seasonData === raw ? s.set_charge : '') || '') : '';
           const setIncludeCharge = Boolean(setCharge === '込' || seasonData?.yoidoreSet?.includeCharge || seasonData?.['チャージ込']);
           const setNotes = seasonData ? (seasonData.set_notes || seasonData.yoidoreSet?.notes || seasonData['セット備考'] || (seasonData === raw ? s.set_notes : '') || '') : '';
 
-          const days = seasonData ? (seasonData.days || seasonData.conditions?.days || seasonData['提供日'] || (seasonData === raw ? s.days : '月,火,水,金,土,日') || '月,火,水,金,土,日') : '月,火,水,金,土,日';
-          const hours = seasonData ? (seasonData.hours || seasonData.conditions?.hours || seasonData['提供時間'] || (seasonData === raw ? s.hours : '17:00〜23:00') || '17:00〜23:00') : '17:00〜23:00';
+          const days = seasonData ? (seasonData.days || seasonData.conditions?.days || seasonData['提供日'] || (seasonData === raw ? s.days : '') || '') : '';
+          const hours = seasonData ? (seasonData.hours || seasonData.conditions?.hours || seasonData['提供時間'] || (seasonData === raw ? s.hours : '') || '') : '';
           const timeNotes = seasonData ? (seasonData.time_notes || seasonData.conditions?.timeNotes || seasonData['提供時間に対する補足'] || (seasonData === raw ? s.time_notes : '') || '') : '';
           const limit = seasonData ? (seasonData.set_limit || seasonData.conditions?.limit || seasonData['限定数'] || (seasonData === raw ? s.set_limit : '') || '') : '';
 
@@ -219,11 +216,11 @@ class QuestApiManager {
           const style = s.style || raw['style'] || raw['スタイル'] || 'テーブルあり';
           const type = s.yoidore_type || raw['type'] || raw['yoidore_type'] || raw['タイプ'] || 'サク飲み';
           
-          const planType = seasonData?.plan_type || (questTitle ? '両方で参加' : '「酔いどれセット」のみで参加');
+          const planType = seasonData ? (seasonData.plan_type || (questTitle ? '両方で参加' : (setTitle ? '「酔いどれセット」のみで参加' : ''))) : '';
           const badgeSalesCount = seasonData?.badge_sales_count || '';
           const hasQuest = Boolean(questTitle && questTitle.trim() !== '' && questTitle !== '？？？？？' && !planType.includes('「酔いどれセット」のみ'));
-          const isCouponTarget = seasonData?.is_coupon_target !== undefined ? Boolean(seasonData.is_coupon_target) : (s.is_coupon_target !== false);
-          const takeout = seasonData?.takeout || (typeof s.takeout === 'string' && s.takeout ? s.takeout : (raw['takeout'] || 'テイクアウトOK'));
+          const isCouponTarget = seasonData ? (seasonData.is_coupon_target !== undefined ? Boolean(seasonData.is_coupon_target) : (targetSeasonId === 2 ? (s.is_coupon_target !== false) : false)) : false;
+          const takeout = seasonData ? (seasonData.takeout || (typeof s.takeout === 'string' && s.takeout ? s.takeout : (raw['takeout'] || ''))) : '';
 
           return {
             id: s.id,
