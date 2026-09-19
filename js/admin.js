@@ -64,7 +64,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.19.05';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.20.03';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -1512,7 +1512,7 @@ class YoidoreAdminApp {
         const storeName = String(row[1] || rowObj['店名'] || '').trim();
         if (!storeName) return;
 
-        const participateAns = String(row[2] || rowObj['大正酔いどれクエストⅡに参加されますか？'] || '').trim();
+        const participateAns = String(row[2] || rowObj['大正酔いどれクエストに参加されますか？'] || rowObj['大正酔いどれクエストⅡに参加されますか？'] || '').trim();
         const isSkip = (participateAns === '参加しない' || storeName.includes('テスト'));
 
         // 既存店舗検索（正規化＆部分一致）
@@ -1603,7 +1603,7 @@ class YoidoreAdminApp {
         const isCouponTarget = couponAns.includes('希望します') || couponAns.includes('はい') || couponAns === 'true' || Boolean(existing?.is_coupon_target);
 
         // 10. 参加企画とセット・クエストの抽出
-        const planType = String(row[14] || rowObj['「どれクエⅡ」にはどの企画で参加されますか？'] || rowObj['  「どれクエⅡ」にはどの企画で参加されますか？  '] || '両方');
+        const planType = String(row[14] || rowObj['「どれクエ」にはどの企画で参加されますか？'] || rowObj['「どれクエⅡ」にはどの企画で参加されますか？'] || rowObj['  「どれクエ」にはどの企画で参加されますか？  '] || rowObj['  「どれクエⅡ」にはどの企画で参加されますか？  '] || '両方');
         
         let setName = '', setContent = '', setNotes = '', setPrice = 0, setCharge = '', setLimit = '';
         let questName = '', questContent = '', questNotes = '', questPrice = 0, questCharge = '';
@@ -2280,7 +2280,7 @@ class YoidoreAdminApp {
 
     const seasonData = {
       id: current.id || 2,
-      name: name || current.name || '大正酔いどれクエストⅡ',
+      name: name || current.name || '大正酔いどれクエスト',
       start_date,
       end_date,
       coupon_valid_until,
@@ -2634,7 +2634,7 @@ class YoidoreAdminApp {
     container.innerHTML = '';
     const liffId = this.api.liffId || '2011637649-WWv6pnTL';
     const currentSeason = this.seasons.find(s => s.id === this.selectedSeasonId) || this.api.currentSeason;
-    const seasonTitle = currentSeason ? currentSeason.name : '大正酔いどれクエストⅡ';
+    const seasonTitle = currentSeason ? currentSeason.name : '大正酔いどれクエスト';
 
     stores.forEach(store => {
       const checkinUrl = `https://liff.line.me/${liffId}?checkin=${store.id}`;

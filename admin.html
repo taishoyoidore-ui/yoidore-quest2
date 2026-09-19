@@ -38,7 +38,7 @@
         </button>
       </form>
       <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 14px;">
-        システムバージョン: <strong class="app-version-text">v2026.09.19.05</strong>
+        システムバージョン: <strong class="app-version-text">v2026.09.20.03</strong>
       </div>
     </div>
   </div>
@@ -95,7 +95,7 @@
           <span>Supabase DB 連動中</span>
         </div>
         <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-bottom: 6px;">
-          システムバージョン: <strong class="app-version-text">v2026.09.19.05</strong>
+          システムバージョン: <strong class="app-version-text">v2026.09.20.03</strong>
         </div>
         <button class="btn btn-outline-danger btn-sm btn-block" onclick="window.adminApp.handleLogout()">
           <i class="fa-solid fa-arrow-right-from-bracket"></i> ログアウト
@@ -117,19 +117,19 @@
           <div class="season-badge-select">
             <i class="fa-solid fa-trophy"></i>
             <select id="season-selector" onchange="window.adminApp.onSeasonSelectChange(this.value)">
-              <option value="2">大正酔いどれクエストⅡ</option>
+              <option value="2">大正酔いどれクエスト</option>
             </select>
           </div>
         </div>
         <div class="header-right">
           <span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:3px 8px; font-weight:bold;">
-            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.09.19.05</span>
+            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.09.20.03</span>
           </span>
           <span id="last-sync-time" class="text-muted"><i class="fa-solid fa-arrows-rotate fa-spin"></i> 同期中...</span>
           <button class="btn btn-secondary btn-sm" onclick="window.adminApp.refreshData()">
             <i class="fa-solid fa-rotate"></i> 最新データ更新
           </button>
-          <a href="index.html?v=20260919_05" target="_blank" class="btn btn-outline btn-sm">
+          <a href="index.html?v=20260920_03" target="_blank" class="btn btn-outline btn-sm">
             <i class="fa-solid fa-up-right-from-square"></i> アプリ実機表示
           </a>
         </div>
@@ -684,7 +684,7 @@
       <div class="modal-header">
         <div>
           <h3 id="store-modal-title" style="margin: 0;">店舗情報の編集</h3>
-          <small id="store-modal-season-badge" style="color: #64748b; font-weight: 500;">対象イベント: 大正酔いどれクエストⅡ</small>
+          <small id="store-modal-season-badge" style="color: #64748b; font-weight: 500;">対象イベント: 大正酔いどれクエスト</small>
         </div>
         <button class="modal-close-btn" onclick="window.adminApp.closeStoreModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>
@@ -760,7 +760,7 @@
 
           <div class="grid-3col">
             <div class="form-group">
-              <label>参加企画 (どれクエⅡ)</label>
+              <label>参加企画 (どれクエ)</label>
               <select id="edit-store-plan-type" class="form-control">
                 <option value="「酔いどれセット」・「店舗クエスト」両方で参加">両方で参加 (セット＋クエスト)</option>
                 <option value="「酔いどれセット」のみで参加">セットのみで参加</option>
@@ -1094,7 +1094,7 @@
       <div class="modal-header">
         <div>
           <h3 style="margin: 0;"><i class="fa-solid fa-file-excel text-green"></i> Googleフォーム店舗アンケート一括取り込み</h3>
-          <small id="import-modal-season-badge" style="color: #64748b; font-weight: 500;">取り込み対象イベント: 大正酔いどれクエストⅡ（店舗マスター更新＋企画データ登録）</small>
+          <small id="import-modal-season-badge" style="color: #64748b; font-weight: 500;">取り込み対象イベント: 大正酔いどれクエスト（店舗マスター更新＋企画データ登録）</small>
         </div>
         <button class="modal-close-btn" onclick="window.adminApp.closeExcelImportModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>

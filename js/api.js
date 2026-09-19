@@ -1,5 +1,5 @@
 /**
- * 大正酔いどれクエストⅡ - API & 認証 & Supabase通信マネージャー
+ * 大正酔いどれクエスト - API & 認証 & Supabase通信マネージャー
  */
 
 class QuestApiManager {
@@ -17,7 +17,7 @@ class QuestApiManager {
     const fallbackGuidance = window.APP_CONFIG?.fallbackSeasonGuidance || {};
     this.currentSeason = {
       id: 2,
-      name: '大正酔いどれクエストⅡ',
+      name: '大正酔いどれクエスト',
       start_date: '2026-08-01',
       end_date: '2026-08-31',
       coupon_valid_until: '2026-09-30',
@@ -161,8 +161,7 @@ class QuestApiManager {
           return `${prefix}/${target}`;
         };
 
-        // Supabaseのstores（基本マスタ）と各シーズンの企画データ（season_stores）をマージ・正規化
-        this.stores = data.map(s => {
+        const mappedStores = data.map(s => {
           const raw = s.raw_data || {};
           const seasonsMap = raw.seasons || {};
           // 指定シーズンの個別企画データ（なければ旧互換で第2回はトップレベルrawを参照）
@@ -294,8 +293,15 @@ class QuestApiManager {
             raw_data: raw
           };
         });
-        if (window.debugLog) window.debugLog(`📡 Supabaseからシーズン${targetSeasonId}の店舗データ ${this.stores.length} 件を受信・同期完了！`);
-        return this.stores;
+
+        const activeSeasonId = Number(this.currentSeason?.id || 2);
+        // アクティブシーズンまたは初回取得時に this.stores を更新
+        if (targetSeasonId === activeSeasonId || !this.stores || this.stores.length === 0) {
+          this.stores = mappedStores;
+        }
+
+        if (window.debugLog) window.debugLog(`📡 Supabaseからシーズン${targetSeasonId}の店舗データ ${mappedStores.length} 件を受信・同期完了！`);
+        return mappedStores;
       }
     } catch (e) {
       console.warn('Supabaseからの店舗取得に失敗したためローカルデータを使用します:', e);
@@ -304,13 +310,17 @@ class QuestApiManager {
 
     // フォールバック: 既存の window.TAISHO_STORES
     if (window.TAISHO_STORES && window.TAISHO_STORES.length > 0) {
-      this.stores = window.TAISHO_STORES.map(s => ({
+      const fallbackStores = window.TAISHO_STORES.map(s => ({
         ...s,
         season_id: targetSeasonId,
         is_participating: true,
         isParticipating: true
       }));
-      return this.stores;
+      const activeSeasonId = Number(this.currentSeason?.id || 2);
+      if (targetSeasonId === activeSeasonId || !this.stores || this.stores.length === 0) {
+        this.stores = fallbackStores;
+      }
+      return fallbackStores;
     }
     return [];
   }
@@ -629,7 +639,6 @@ class QuestApiManager {
         body: JSON.stringify({
           user_id: this.currentUser.userId,
           store_id: storeId,
-          season_id: targetSeasonId,
           visited_at: new Date().toISOString()
         })
       });
@@ -684,7 +693,6 @@ class QuestApiManager {
     const insertRows = storesToAdd.map((s, idx) => ({
       user_id: this.currentUser.userId,
       store_id: s.id,
-      season_id: targetSeasonId,
       visited_at: new Date(now.getTime() - (storesToAdd.length - 1 - idx) * 60000).toISOString()
     }));
 
@@ -798,7 +806,6 @@ class QuestApiManager {
       const row = {
         user_id: this.currentUser.userId,
         store_id: storeId,
-        season_id: targetSeasonId,
         status: 'active',
         acquired_at: new Date().toISOString()
       };
@@ -859,7 +866,6 @@ class QuestApiManager {
       const insertRow = {
         user_id: this.currentUser.userId,
         store_id: 'store-01', // 共通デフォルト店舗
-        season_id: targetSeasonId,
         status: 'active',
         acquired_at: new Date().toISOString()
       };

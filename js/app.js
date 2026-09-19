@@ -178,11 +178,18 @@ class YoidoreQuestApp {
   }
 
   getStores(seasonId = null) {
+    let list = [];
     if (window.questApi && window.questApi.stores && window.questApi.stores.length > 0) {
-      // 参加店舗のみを返す（is_participating !== false）
-      return window.questApi.stores.filter(s => s.is_participating !== false);
+      list = window.questApi.stores;
+    } else if (window.TAISHO_STORES && window.TAISHO_STORES.length > 0) {
+      list = window.TAISHO_STORES;
+    } else if (window.STORES_DATA && window.STORES_DATA.length > 0) {
+      list = window.STORES_DATA;
     }
-    return [];
+    if (seasonId) {
+      return list.filter(s => Number(s.season_id) === Number(seasonId) && s.is_participating !== false);
+    }
+    return list.filter(s => s.is_participating !== false);
   }
 
   getAreas() {
@@ -718,10 +725,10 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.19.05';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.20.03';
     return `
       <div class="app-footer-version">
-        <div>大正酔いどれクエストⅡ 公式ガイド</div>
+        <div>大正酔いどれクエスト 公式ガイド</div>
         <div class="version-pill">
           <span>⚙️ app version:</span>
           <strong style="color:#e2e8f0;">${v}</strong>
@@ -843,10 +850,10 @@ class YoidoreQuestApp {
     const takeoutCount = allStores.filter(s => s.isTakeout).length;
     const openCount = allStores.filter(s => s.isOpenToday).length;
     const totalCount = allStores.length;
-    const areaCount = (typeof AREAS_LIST !== 'undefined' && AREAS_LIST.length > 0) ? AREAS_LIST.length : 5;
-    const catCount = (typeof CATEGORIES_LIST !== 'undefined' && CATEGORIES_LIST.length > 0) ? CATEGORIES_LIST.length : 7;
-    const styleCount = (typeof STYLES_LIST !== 'undefined' && STYLES_LIST.length > 0) ? STYLES_LIST.length : 3;
-    const typeCount = (typeof TYPES_LIST !== 'undefined' && TYPES_LIST.length > 0) ? TYPES_LIST.length : 4;
+    const areaCount = this.getAreas().length;
+    const catCount = this.getCategories().length;
+    const styleCount = this.getStyles().length;
+    const typeCount = this.getTypes().length;
 
     const currentSeason = (window.questApi && window.questApi.currentSeason) || {};
     const fallback = window.APP_CONFIG?.fallbackSeasonGuidance || {};
@@ -1026,7 +1033,7 @@ class YoidoreQuestApp {
       pictureUrl: 'assets/banner.png'
     };
 
-    const activeSeason = window.questApi?.currentSeason || { id: 2, name: '大正酔いどれクエストⅡ' };
+    const activeSeason = window.questApi?.currentSeason || { id: 2, name: '大正酔いどれクエスト' };
     const activeSeasonId = activeSeason.id || 2;
     const seasonId = this.selectedBookSeasonId || activeSeasonId;
     const isCurrentSeason = (seasonId === activeSeasonId);
@@ -1261,7 +1268,7 @@ class YoidoreQuestApp {
     // シーズン切り替えセレクター用オプション
     const seasonsList = (window.questApi && window.questApi.seasons && window.questApi.seasons.length > 0)
       ? window.questApi.seasons
-      : [{ id: 2, name: '大正酔いどれクエストⅡ', is_active: true }];
+      : [{ id: 2, name: '大正酔いどれクエスト', is_active: true }];
 
     const seasonOptionsHtml = seasonsList.map(s => {
       const isSelected = (s.id === seasonId);
