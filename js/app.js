@@ -1265,8 +1265,7 @@ class YoidoreQuestApp {
 
     const seasonOptionsHtml = seasonsList.map(s => {
       const isSelected = (s.id === seasonId);
-      const isAct = (s.id === activeSeasonId);
-      return `<option value="${s.id}" ${isSelected ? 'selected' : ''}>${this.escapeHtml(s.name || 'イベント')}${isAct ? ' 🌟 開催中' : ' 📜 過去回'}</option>`;
+      return `<option value="${s.id}" ${isSelected ? 'selected' : ''}>${this.escapeHtml(s.name || 'イベント')}</option>`;
     }).join('');
 
     container.innerHTML = `
