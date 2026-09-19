@@ -1057,7 +1057,11 @@ class YoidoreQuestApp {
     const heroLv = matchedHero.level || 1;
     const heroColor = matchedHero.badge_color || '#facc15';
 
-    this.typeMessage(`『${user.displayName}』の第${seasonId}回 冒険の書です。`);
+    const allSeasons = window.questApi?.seasons || [];
+    const targetSeasonObj = allSeasons.find(s => s.id === seasonId) || (isCurrentSeason ? activeSeason : { name: '大正酔いどれクエスト' });
+    const seasonName = targetSeasonObj.name || '大正酔いどれクエスト';
+
+    this.typeMessage(`『${user.displayName}』の【${seasonName}】冒険の書です。`);
 
     const rewardTiers = (seasonRewardTiers && seasonRewardTiers.length > 0)
       ? seasonRewardTiers 
@@ -1218,7 +1222,7 @@ class YoidoreQuestApp {
             <span>🎟️ 所持クーポン・引換券</span>
           </div>
           <div style="padding:15px; text-align:center; color:#e2e8f0; font-size:14px; line-height:1.6;">
-            第${seasonId}回で所持しているクーポン・引換券はありません。
+            このイベントで所持しているクーポン・引換券はありません。
           </div>
         </div>
       `;
@@ -1257,12 +1261,12 @@ class YoidoreQuestApp {
     // シーズン切り替えセレクター用オプション
     const seasonsList = (window.questApi && window.questApi.seasons && window.questApi.seasons.length > 0)
       ? window.questApi.seasons
-      : [{ id: 2, name: '第2回 (開催中)', is_active: true }, { id: 1, name: '第1回 (過去回)', is_active: false }];
+      : [{ id: 2, name: '大正酔いどれクエストⅡ', is_active: true }];
 
     const seasonOptionsHtml = seasonsList.map(s => {
       const isSelected = (s.id === seasonId);
       const isAct = (s.id === activeSeasonId);
-      return `<option value="${s.id}" ${isSelected ? 'selected' : ''}>${this.escapeHtml(s.name || `第${s.id}回`)}${isAct ? ' 🌟 開催中' : ' 📜 過去回'}</option>`;
+      return `<option value="${s.id}" ${isSelected ? 'selected' : ''}>${this.escapeHtml(s.name || 'イベント')}${isAct ? ' 🌟 開催中' : ' 📜 過去回'}</option>`;
     }).join('');
 
     container.innerHTML = `
@@ -1273,7 +1277,7 @@ class YoidoreQuestApp {
             <div class="season-notice-inner">
               <span class="season-notice-icon">📜</span>
               <div class="season-notice-text">
-                <strong>【第${seasonId}回 過去の冒険の書（閲覧専用）】</strong>
+                <strong>【${this.escapeHtml(seasonName)} 過去の冒険の書（閲覧専用）】</strong>
                 <div style="font-size:11px; opacity:0.9;">過去の制覇記録・獲得履歴を確認できます</div>
               </div>
             </div>
@@ -1317,7 +1321,7 @@ class YoidoreQuestApp {
         <!-- 2. クエスト進捗 -->
         <div class="quest-progress-box" style="margin-bottom:12px;">
           <div class="quest-progress-header">
-            <span class="quest-progress-title">⚔️ 第${seasonId}回 ハシゴ酒進捗</span>
+            <span class="quest-progress-title">⚔️ ハシゴ酒進捗</span>
             <span class="quest-progress-count">${visitedCount} <span style="font-size:14px; color:#e2e8f0;">/ ${totalStores} 軒</span></span>
           </div>
           <div class="quest-progress-bar-bg">
@@ -1328,17 +1332,17 @@ class YoidoreQuestApp {
         <!-- 3. 酒場コレクション (今期参加店舗のみの図鑑風ロゴタイル) -->
         <div class="rpg-window window-green" style="margin-bottom:14px;">
           <div class="rpg-window-header header-green">
-            <span>📜 第${seasonId}回 酒場コレクション (${visitedCount} / ${totalStores}軒)</span>
+            <span>📜 酒場コレクション (${visitedCount} / ${totalStores}軒)</span>
           </div>
           <div class="quest-stamp-grid">
-            ${stampGridHtml || `<div style="padding:15px; text-align:center; color:#e2e8f0; font-size:14px; grid-column: 1 / -1;">第${seasonId}回の酒場マスターはありません。</div>`}
+            ${stampGridHtml || `<div style="padding:15px; text-align:center; color:#e2e8f0; font-size:14px; grid-column: 1 / -1;">このイベントの参加酒場はありません。</div>`}
           </div>
         </div>
 
         <!-- 4. 特典宝箱一覧 (目標・チャレンジ) -->
         <div class="rpg-window window-gold gold-border" style="margin-bottom:14px;">
           <div class="rpg-window-header header-gold">
-            <span>🎁 第${seasonId}回 ハシゴ達成特典・宝箱</span>
+            <span>🎁 ハシゴ達成特典・宝箱</span>
           </div>
           <div style="margin-top:10px;">
             ${tiersHtml}

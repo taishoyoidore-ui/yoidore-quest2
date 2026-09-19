@@ -231,14 +231,16 @@ class YoidoreAdminApp {
     if (!sel) return;
     sel.innerHTML = this.seasons.map(s => `
       <option value="${s.id}" ${s.id === this.selectedSeasonId ? 'selected' : ''}>
-        第${s.id}回: ${this.escapeHtml(s.name)}${s.is_active ? ' (現在開催中)' : ''}
+        ${this.escapeHtml(s.name)}${s.is_active ? ' (現在開催中)' : ''}
       </option>
     `).join('');
   }
 
   async onSeasonSelectChange(seasonId) {
     this.selectedSeasonId = parseInt(seasonId, 10);
-    this.showToast(`第${this.selectedSeasonId}回のデータに切り替え中...`);
+    const targetSeason = this.seasons.find(s => s.id === this.selectedSeasonId);
+    const seasonName = targetSeason ? targetSeason.name : '選択中イベント';
+    this.showToast(`「${seasonName}」のデータに切り替え中...`);
     await this.loadAllData();
   }
 
@@ -728,8 +730,8 @@ class YoidoreAdminApp {
             <div class="table-store-name" style="display: flex; align-items: center; gap: 6px;">
               <strong>${this.escapeHtml(store.name)}</strong>
               ${isParticipating ? 
-                '<span class="badge" style="background:#dcfce7; color:#15803d; font-size:11px; padding:2px 6px;">第' + this.selectedSeasonId + '回 参加</span>' : 
-                '<span class="badge" style="background:#f1f5f9; color:#64748b; font-size:11px; padding:2px 6px;">今期不参加</span>'}
+                '<span class="badge" style="background:#dcfce7; color:#15803d; font-size:11px; padding:2px 6px;">参加中</span>' : 
+                '<span class="badge" style="background:#f1f5f9; color:#64748b; font-size:11px; padding:2px 6px;">不参加</span>'}
             </div>
             <small class="text-muted">${this.escapeHtml(store.catchphrase || '')}</small>
           </td>
@@ -824,7 +826,7 @@ class YoidoreAdminApp {
         body: JSON.stringify(updatePayload)
       });
       store.raw_data = updatedRawData;
-      this.showToast(`${store.name} の第${targetSeasonId}回クーポン取扱を【${newStatus ? '対象' : '対象外'}】に更新しました`);
+      this.showToast(`${store.name} のクーポン取扱を【${newStatus ? '対象' : '対象外'}】に更新しました`);
       this.renderStoresTable();
     } catch (err) {
       alert('更新に失敗しました: ' + err.message);
@@ -883,15 +885,18 @@ class YoidoreAdminApp {
       '<i class="fa-solid fa-store"></i> 新規店舗の登録' : 
       '<i class="fa-solid fa-pen-to-square"></i> 店舗情報の編集';
 
+    const targetSeason = this.seasons.find(s => s.id === this.selectedSeasonId);
+    const seasonName = targetSeason ? targetSeason.name : '選択中イベント';
+
     const seasonBadge = document.getElementById('store-modal-season-badge');
     if (seasonBadge) {
-      seasonBadge.textContent = `対象シーズン: 第${this.selectedSeasonId}回`;
+      seasonBadge.textContent = `対象イベント: ${seasonName}`;
     }
 
     const participatingCb = document.getElementById('edit-store-participating');
     const participatingLabel = document.getElementById('label-store-participating');
     if (participatingLabel) {
-      participatingLabel.textContent = `✨ この酒場を【第${this.selectedSeasonId}回】に参加させる（冒険者アプリ・POPに表示）`;
+      participatingLabel.textContent = `✨ この酒場を「${seasonName}」に参加させる（冒険者アプリ・POPに表示）`;
     }
 
     const idInput = document.getElementById('edit-store-id');
@@ -1364,7 +1369,7 @@ class YoidoreAdminApp {
       }
 
       this.closeStoreModal();
-      this.showToast(`🎉 酒場「${name}」の第${targetSeasonId}回データをSupabaseに保存しました！`);
+      this.showToast(`🎉 酒場「${name}」の企画データをSupabaseに保存しました！`);
       await this.loadAllData();
     } catch (err) {
       alert('保存に失敗しました: ' + err.message);
@@ -1746,7 +1751,9 @@ class YoidoreAdminApp {
     if (validItems.length === 0) return alert('インポート対象の店舗がありません');
 
     const targetSeasonId = this.selectedSeasonId || 2;
-    const confirmMsg = `合計 ${validItems.length} 件の店舗データを【第${targetSeasonId}回】の企画データとしてSupabaseに反映（店舗マスタ更新＋シーズン参加登録）します。よろしいですか？`;
+    const targetSeason = this.seasons.find(s => s.id === targetSeasonId);
+    const seasonName = targetSeason ? targetSeason.name : '選択中イベント';
+    const confirmMsg = `合計 ${validItems.length} 件の店舗データを「${seasonName}」の企画データとしてSupabaseに反映（店舗マスタ更新＋シーズン参加登録）します。よろしいですか？`;
     if (!confirm(confirmMsg)) return;
 
     try {
@@ -1846,7 +1853,7 @@ class YoidoreAdminApp {
       }
 
       this.closeExcelImportModal();
-      this.showToast(`🎉 ${successCount} 軒の酒場アンケート情報を第${targetSeasonId}回データとしてSupabaseへ同期・更新しました！`);
+      this.showToast(`🎉 ${successCount} 軒の酒場アンケート情報を「${seasonName}」のデータとしてSupabaseへ同期・更新しました！`);
       await this.loadAllData();
     } catch (err) {
       alert('インポート途中でエラーが発生しました: ' + err.message);
@@ -1870,7 +1877,7 @@ class YoidoreAdminApp {
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
               <div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <strong style="font-size: 1.05rem; color: #0f172a;">第${s.id}回: ${this.escapeHtml(s.name)}</strong>
+                  <strong style="font-size: 1.05rem; color: #0f172a;">${this.escapeHtml(s.name)}</strong>
                   ${s.is_active ? '<span class="tag tag-active">開催中</span>' : '<span class="tag tag-area">準備/過去</span>'}
                 </div>
                 <div class="text-muted" style="font-size: 0.85rem; margin-top: 4px;">
@@ -1880,7 +1887,7 @@ class YoidoreAdminApp {
               <div>
                 ${!s.is_active ? `
                   <button class="btn btn-sm btn-primary" onclick="window.adminApp.activateSeason(${s.id})">
-                    <i class="fa-solid fa-bolt"></i> この回を開催中に切替
+                    <i class="fa-solid fa-bolt"></i> このイベントを開催中に切替
                   </button>
                 ` : `
                   <span class="text-success" style="font-weight: bold; font-size: 0.85rem;"><i class="fa-solid fa-check"></i> 現在稼働中</span>
@@ -2284,7 +2291,7 @@ class YoidoreAdminApp {
       this.showToast('開催日程・ガイダンスを保存中...');
       await this.api.adminSaveSeason(seasonData);
       this.selectedSeasonId = seasonData.id;
-      this.showToast(`第${seasonData.id}回の開催日程＆ガイダンス設定を保存しました！`);
+      this.showToast(`「${seasonData.name}」の開催日程＆ガイダンス設定を保存しました！`);
       await this.loadAllData();
       this.renderSeasonSettings();
     } catch (err) {
@@ -2295,7 +2302,7 @@ class YoidoreAdminApp {
   openSeasonModal() {
     const nextId = (this.seasons.reduce((max, s) => Math.max(max, s.id), 0) || 2) + 1;
     document.getElementById('new-season-id').value = nextId;
-    document.getElementById('new-season-name').value = `大正酔いどれクエスト第${nextId}弾`;
+    document.getElementById('new-season-name').value = `大正酔いどれクエスト (新規)`;
     document.getElementById('new-season-start').value = new Date().toISOString().slice(0, 10);
     document.getElementById('new-season-end').value = new Date().toISOString().slice(0, 10);
     document.getElementById('new-season-valid').value = new Date().toISOString().slice(0, 10);
@@ -2336,14 +2343,16 @@ class YoidoreAdminApp {
   }
 
   async activateSeason(seasonId) {
-    if (!confirm(`第${seasonId}回を開催中（アクティブ）に切り替えますか？\n（参加者のアプリが第${seasonId}回モードに切り替わります）`)) {
+    const targetSeason = this.seasons.find(s => s.id === seasonId);
+    const seasonName = targetSeason ? targetSeason.name : '選択中イベント';
+    if (!confirm(`「${seasonName}」を開催中（アクティブ）に切り替えますか？\n（参加者のアプリが「${seasonName}」モードに切り替わります）`)) {
       return;
     }
     try {
-      this.showToast('開催シーズンを切り替え中...');
+      this.showToast('開催イベントを切り替え中...');
       await this.api.adminSetActiveSeason(seasonId);
       this.selectedSeasonId = seasonId;
-      this.showToast(`第${seasonId}回を開催中に切り替えました！`);
+      this.showToast(`「${seasonName}」を開催中に切り替えました！`);
       await this.loadAllData();
     } catch (err) {
       alert('切り替えに失敗しました: ' + err.message);
