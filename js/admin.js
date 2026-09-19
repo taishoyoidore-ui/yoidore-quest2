@@ -64,7 +64,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.18.28';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.19.03';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -1775,11 +1775,34 @@ class YoidoreAdminApp {
 
     // 編集フォーム値
     const current = this.seasons.find(s => s.id === this.selectedSeasonId) || this.api.currentSeason;
+    const fallback = window.APP_CONFIG?.fallbackSeasonGuidance || {};
     if (current) {
       document.getElementById('edit-season-name').value = current.name || '';
       document.getElementById('edit-season-start').value = current.start_date || '2026-08-01';
       document.getElementById('edit-season-end').value = current.end_date || '2026-08-31';
       document.getElementById('edit-season-valid').value = current.coupon_valid_until || '2026-09-30';
+
+      // ガイダンス設定
+      const overviewEl = document.getElementById('edit-season-overview');
+      if (overviewEl) overviewEl.value = current.overview || fallback.overview || '';
+
+      const steps = (current.guide_steps && current.guide_steps.length >= 3) ? current.guide_steps : (fallback.guide_steps || []);
+      const s1Title = document.getElementById('edit-season-step1-title');
+      const s1Desc = document.getElementById('edit-season-step1-desc');
+      const s2Title = document.getElementById('edit-season-step2-title');
+      const s2Desc = document.getElementById('edit-season-step2-desc');
+      const s3Title = document.getElementById('edit-season-step3-title');
+      const s3Desc = document.getElementById('edit-season-step3-desc');
+
+      if (s1Title) s1Title.value = steps[0]?.title || '酒場へ突入せよ';
+      if (s1Desc) s1Desc.value = steps[0]?.desc || '気になる酒場へ赴き「どれクエ参加」を伝え、限定メニューを注文！';
+      if (s2Title) s2Title.value = steps[1]?.title || '冒険の書に刻印せよ';
+      if (s2Desc) s2Desc.value = steps[1]?.desc || '店内に設置された秘伝のQRコードをカメラで読み取り、制覇スタンプをGET！';
+      if (s3Title) s3Title.value = steps[2]?.title || '秘宝の宝箱を開放せよ';
+      if (s3Desc) s3Desc.value = steps[2]?.desc || 'ハシゴ軒数を重ねて宝箱を解放！酒場クーポンや限定オリジナルグッズを獲得！';
+
+      const rulesEl = document.getElementById('edit-season-rules');
+      if (rulesEl) rulesEl.value = current.rules_notes || fallback.rules_notes || '';
     }
 
     // 特典一覧のレンダリング
@@ -1798,45 +1821,42 @@ class YoidoreAdminApp {
 
     if (this.tiers.length === 0) {
       tierElem.innerHTML = '<div class="empty-state text-muted py-3" style="grid-column: 1 / -1;">今シーズンの特典マイルストーンが登録されていません。「＋ 特典ランクを新規作成」から追加してください。</div>';
-      return;
-    }
-
-    tierElem.innerHTML = this.tiers.map(t => {
-      const isGoods = t.reward_type === 'goods';
-      return `
-        <div class="tier-admin-card">
-          <div>
-            <div class="tier-admin-header">
-              <span class="tier-admin-title">🏆 ${this.escapeHtml(t.title)}</span>
+    } else {
+      tierElem.innerHTML = this.tiers.map(t => {
+        const isGoods = t.reward_type === 'goods';
+        return `
+          <div class="tier-card ${isGoods ? 'tier-goods' : ''}">
+            <div class="tier-card-header">
               <span class="tag ${isGoods ? 'tag-warning' : 'tag-active'}" style="font-size: 0.75rem;">
-                ${isGoods ? '🎁 グッズ引換型' : '🍺 店舗クーポン型'}
+                ${isGoods ? '<i class="fa-solid fa-gift"></i> グッズ引換型' : '<i class="fa-solid fa-ticket"></i> クーポン型'}
               </span>
-            </div>
-            <div class="tier-admin-meta">
               <span class="tier-meta-badge"><i class="fa-solid fa-beer-mug-empty"></i> 必要: <strong>${t.required_visits}</strong> 軒</span>
+            </div>
+            <h4 class="tier-title">${this.escapeHtml(t.title)}</h4>
+            <div class="tier-reward-info">
               ${isGoods ? 
                 `<span class="tier-meta-badge"><i class="fa-solid fa-gift"></i> グッズ: <strong>${this.escapeHtml(t.goods_name || 'オリジナル記念品')}</strong></span>` :
                 `<span class="tier-meta-badge"><i class="fa-solid fa-ticket"></i> 獲得: <strong>${t.selectable_count}</strong> 店舗</span>`
               }
             </div>
             ${isGoods && t.exchange_location ? `
-              <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
-                <i class="fa-solid fa-location-dot"></i> 引換場所: ${this.escapeHtml(t.exchange_location)}
+              <div class="tier-location-text">
+                📍 <strong>引換:</strong> ${this.escapeHtml(t.exchange_location)}
               </div>
             ` : ''}
-            <div class="tier-admin-desc">${this.escapeHtml(t.description || '説明なし')}</div>
+            ${t.description ? `<p class="tier-desc">${this.escapeHtml(t.description)}</p>` : ''}
+            <div class="tier-actions">
+              <button class="btn btn-outline btn-sm" onclick="window.adminApp.openTierModal('edit', ${t.id})">
+                <i class="fa-solid fa-pen-to-square"></i> 編集
+              </button>
+              <button class="btn btn-outline-danger btn-sm" onclick="window.adminApp.deleteTier(${t.id}, '${this.escapeHtml(t.title)}')">
+                <i class="fa-solid fa-trash"></i> 削除
+              </button>
+            </div>
           </div>
-          <div class="tier-admin-actions">
-            <button class="btn btn-sm btn-secondary" onclick="window.adminApp.openTierModal(${t.id})">
-              <i class="fa-solid fa-pen"></i> 編集
-            </button>
-            <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.deleteTier(${t.id}, '${this.escapeHtml(t.title)}')">
-              <i class="fa-solid fa-trash"></i> 削除
-            </button>
-          </div>
-        </div>
-      `;
-    }).join('');
+        `;
+      }).join('');
+    }
   }
 
   toggleTierTypeUI() {
@@ -2112,20 +2132,38 @@ class YoidoreAdminApp {
     const end_date = document.getElementById('edit-season-end').value;
     const coupon_valid_until = document.getElementById('edit-season-valid').value;
 
+    const overview = document.getElementById('edit-season-overview')?.value.trim() || '';
+    const s1Title = document.getElementById('edit-season-step1-title')?.value.trim() || '酒場へ突入せよ';
+    const s1Desc = document.getElementById('edit-season-step1-desc')?.value.trim() || '';
+    const s2Title = document.getElementById('edit-season-step2-title')?.value.trim() || '冒険の書に刻印せよ';
+    const s2Desc = document.getElementById('edit-season-step2-desc')?.value.trim() || '';
+    const s3Title = document.getElementById('edit-season-step3-title')?.value.trim() || '秘宝の宝箱を開放せよ';
+    const s3Desc = document.getElementById('edit-season-step3-desc')?.value.trim() || '';
+    const rules_notes = document.getElementById('edit-season-rules')?.value.trim() || '';
+
+    const guide_steps = [
+      { step: '其の一', title: s1Title, desc: s1Desc },
+      { step: '其の二', title: s2Title, desc: s2Desc },
+      { step: '其の三', title: s3Title, desc: s3Desc }
+    ];
+
     const seasonData = {
       id: current.id || 2,
       name: name || current.name || '大正酔いどれクエストⅡ',
       start_date,
       end_date,
       coupon_valid_until,
+      overview,
+      guide_steps,
+      rules_notes,
       is_active: current.is_active !== undefined ? current.is_active : true
     };
 
     try {
-      this.showToast('開催日程を保存中...');
+      this.showToast('開催日程・ガイダンスを保存中...');
       await this.api.adminSaveSeason(seasonData);
       this.selectedSeasonId = seasonData.id;
-      this.showToast(`第${seasonData.id}回の開催日程を保存しました！`);
+      this.showToast(`第${seasonData.id}回の開催日程＆ガイダンス設定を保存しました！`);
       await this.loadAllData();
       this.renderSeasonSettings();
     } catch (err) {

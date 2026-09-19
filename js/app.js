@@ -1,6 +1,124 @@
 /**
- * 大正酔いどれクエストⅡ - メインアプリケーションロジック
+ * 店舗が「現在、どれクエ提供時間内（曜日・時間）」かを動的に判定する関数
+ * @param {Object} store 店舗データ
+ * @param {Date} [now=new Date()] 判定基準日時
+ * @returns {boolean}
  */
+function checkIsOpenToday(store, now = new Date()) {
+  if (!store) return false;
+
+  const rawDays = String(store.days || store.conditions?.days || '').trim();
+  const rawHours = String(store.hours || store.conditions?.hours || '').trim();
+
+  if (!rawDays || !rawHours) return false;
+
+  const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+  const curDayIndex = now.getDay();
+  const curDayName = dayNames[curDayIndex];
+  
+  const yesterdayIndex = (curDayIndex + 6) % 7;
+  const yesterdayName = dayNames[yesterdayIndex];
+
+  // 全角数字・全角コロン等を半角に正規化
+  const normalizeStr = (str) => {
+    return str
+      .replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+      .replace(/：/g, ':')
+      .replace(/[\s\u3000]+/g, ' ');
+  };
+
+  const cleanDays = normalizeStr(rawDays);
+  const cleanHours = normalizeStr(rawHours);
+
+  // 1. 曜日リストの解析
+  const parseAllowedDays = (daysStr) => {
+    if (!daysStr) return [];
+    if (daysStr.includes('全て') || daysStr.includes('全日') || daysStr.includes('毎日')) {
+      return [...dayNames];
+    }
+    
+    // "月〜金" や "月～金" などの範囲指定の展開
+    const rangeMatch = daysStr.match(/([日月火水木金土])\s*[〜～\-–—~]\s*([日月火水木金土])/);
+    const rangeDays = [];
+    if (rangeMatch) {
+      const startIdx = dayNames.indexOf(rangeMatch[1]);
+      const endIdx = dayNames.indexOf(rangeMatch[2]);
+      if (startIdx !== -1 && endIdx !== -1) {
+        let idx = startIdx;
+        while (true) {
+          rangeDays.push(dayNames[idx]);
+          if (idx === endIdx) break;
+          idx = (idx + 1) % 7;
+        }
+      }
+    }
+
+    const matchedDays = new Set(rangeDays);
+    for (const d of dayNames) {
+      const regex = new RegExp(`(?:^|[^日月火水木金土])${d}(?:曜日|曜|(?=[^日月火水木金土]|$))`);
+      if (regex.test(daysStr)) {
+        matchedDays.add(d);
+      }
+    }
+    return Array.from(matchedDays);
+  };
+
+  const allowedDays = parseAllowedDays(cleanDays);
+  if (allowedDays.length === 0) return false;
+
+  // 2. 営業時間帯の解析と判定
+  // 複数時間帯（カンマ、スラッシュ、改行、読点等で分割）
+  const timeSlots = cleanHours.split(/[,、/／\n\r]+/).map(s => s.trim()).filter(Boolean);
+  if (timeSlots.length === 0) return false;
+
+  const curMinutes = now.getHours() * 60 + now.getMinutes();
+
+  for (const slot of timeSlots) {
+    // 例: "17:00〜23:00", "17時〜23時", "17:00 - 翌2:00", "17:00〜26:00", "17:00-02:00", "15:00:00〜22:30:00"
+    const match = slot.match(/(翌)?\s*(\d{1,2})(?::(\d{2})|時(?:(\d{2})分?)?)?(?::\d{2})?\s*[〜～\-–—~]\s*(翌)?\s*(\d{1,2})(?::(\d{2})|時(?:(\d{2})分?)?)?(?::\d{2})?/);
+    if (!match) continue;
+
+    let startH = parseInt(match[2], 10);
+    const startM = parseInt(match[3] || match[4] || '0', 10);
+    const endIsNext = Boolean(match[5]);
+    let endH = parseInt(match[6], 10);
+    const endM = parseInt(match[7] || match[8] || '0', 10);
+
+    if (isNaN(startH) || isNaN(startM) || isNaN(endH) || isNaN(endM)) continue;
+
+    if (endH >= 24) {
+      endH = endH % 24;
+    }
+
+    const startMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+
+    const isOvernight = endIsNext || endMinutes <= startMinutes;
+
+    if (!isOvernight) {
+      if (allowedDays.includes(curDayName)) {
+        if (curMinutes >= startMinutes && curMinutes < endMinutes) {
+          return true;
+        }
+      }
+    } else {
+      if (curMinutes >= startMinutes) {
+        if (allowedDays.includes(curDayName)) {
+          return true;
+        }
+      } else if (curMinutes < endMinutes) {
+        if (allowedDays.includes(yesterdayName)) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+// グローバル公開
+window.checkIsOpenToday = checkIsOpenToday;
 
 class YoidoreQuestApp {
   constructor() {
@@ -399,7 +517,7 @@ class YoidoreQuestApp {
       if (this.filters.style !== 'ALL') activeTags.push(`<span class="sticky-tag-item">🪑 ${this.filters.style}</span>`);
       if (this.filters.type !== 'ALL') activeTags.push(`<span class="sticky-tag-item">🍺 ${this.filters.type}</span>`);
       if (this.filters.takeout === 'YES') activeTags.push(`<span class="sticky-tag-item">テイクアウト可</span>`);
-      if (this.filters.openToday) activeTags.push(`<span class="sticky-tag-item text-green">✓ 営業中</span>`);
+      if (this.filters.openToday) activeTags.push(`<span class="sticky-tag-item text-green">✓ どれクエ対応中</span>`);
       if (this.filters.searchQuery) activeTags.push(`<span class="sticky-tag-item">🔎 ${this.filters.searchQuery}</span>`);
 
       let count = 0;
@@ -597,7 +715,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.18.28';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.19.03';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエストⅡ 公式ガイド</div>
@@ -727,24 +845,60 @@ class YoidoreQuestApp {
     const styleCount = (typeof STYLES_LIST !== 'undefined' && STYLES_LIST.length > 0) ? STYLES_LIST.length : 3;
     const typeCount = (typeof TYPES_LIST !== 'undefined' && TYPES_LIST.length > 0) ? TYPES_LIST.length : 4;
 
-    const visitedCount = (window.questApi && window.questApi.visits) ? window.questApi.visits.length : 0;
-    const couponCount = (window.questApi && window.questApi.userCoupons) ? window.questApi.userCoupons.filter(c => c.status !== 'used').length : 0;
+    const currentSeason = (window.questApi && window.questApi.currentSeason) || {};
+    const fallback = window.APP_CONFIG?.fallbackSeasonGuidance || {};
+    const overview = currentSeason.overview || fallback.overview || '';
+    const guideSteps = (currentSeason.guide_steps && currentSeason.guide_steps.length > 0) ? currentSeason.guide_steps : (fallback.guide_steps || []);
+    const rulesNotes = currentSeason.rules_notes || fallback.rules_notes || '';
 
     container.innerHTML = `
       <!-- 開催フェーズ動的告知バナー -->
       ${this.getSeasonBannerHTML()}
 
-      <!-- 冒険の書（クエスト進捗）バナー -->
-      <div class="rpg-window" id="top-quest-banner" style="cursor:pointer; border-color:var(--border-gold); background:linear-gradient(180deg,#1c2340 0%,#090d1f 100%); margin-bottom:12px;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <span style="font-size:26px;">📜</span>
-            <div>
-              <div style="font-size:15px; font-weight:bold; color:var(--text-yellow);">冒険の書（ハシゴ酒進捗）</div>
-              <div style="font-size:13px; color:var(--text-green);">制覇数: ${visitedCount} / ${totalCount} 軒 ${couponCount > 0 ? `| クーポン: ${couponCount}枚` : ''}</div>
-            </div>
+      <!-- 大正酒場 案内所（ギルド）カード -->
+      <div class="rpg-window gold-border top-guidance-window">
+        <div class="top-guidance-header">
+          <div class="top-guidance-title">
+            <span>🏛️</span>
+            <span>大正酒場 案内所</span>
           </div>
-          <span style="font-size:13px; color:var(--text-cyan); font-weight:bold;">開く ▶</span>
+          <span class="tag tag-area">全${totalCount}酒場 参戦中</span>
+        </div>
+
+        ${overview ? `
+          <div class="top-guidance-overview">
+            ${this.escapeHtml(overview).replace(/\n/g, '<br>')}
+          </div>
+        ` : ''}
+
+        <!-- はしご酒の導き・冒険の心得（アコーディオン） -->
+        <div class="guidance-accordion-wrapper">
+          <button class="guidance-accordion-btn" id="guidance-accordion-toggle" type="button">
+            <span><i class="fa-solid fa-scroll"></i> 📜 はしご酒の導き＆冒険の心得</span>
+            <span id="guidance-accordion-icon" style="font-size:12px; color:var(--text-cyan);">詳しく見る ▼</span>
+          </button>
+          <div id="guidance-accordion-body" class="guidance-accordion-content" style="display:none;">
+            ${guideSteps.map((st, idx) => `
+              <div class="guide-step-card">
+                <div class="guide-step-header">
+                  <span>${idx === 0 ? '⚔️' : (idx === 1 ? '📱' : '🎁')}</span>
+                  <span>${this.escapeHtml(st.step || `其の${idx+1}`)}【${this.escapeHtml(st.title || '')}】</span>
+                </div>
+                <div class="guide-step-desc">${this.escapeHtml(st.desc || '')}</div>
+              </div>
+            `).join('')}
+
+            ${rulesNotes ? `
+              <div class="guide-rules-box">
+                <div class="guide-rules-title">
+                  <i class="fa-solid fa-shield-halved"></i> 冒険の心得（注意事項）
+                </div>
+                <div class="guide-rules-content">
+                  ${this.escapeHtml(rulesNotes).replace(/\n/g, '<br>')}
+                </div>
+              </div>
+            ` : ''}
+          </div>
         </div>
       </div>
 
@@ -844,11 +998,18 @@ class YoidoreQuestApp {
       });
     });
 
-    const questBanner = document.getElementById('top-quest-banner');
-    if (questBanner) {
-      questBanner.addEventListener('click', () => {
+    // アコーディオントグルイベント
+    const accordionBtn = document.getElementById('guidance-accordion-toggle');
+    const accordionBody = document.getElementById('guidance-accordion-body');
+    const accordionIcon = document.getElementById('guidance-accordion-icon');
+    if (accordionBtn && accordionBody) {
+      accordionBtn.addEventListener('click', () => {
         this.playSelectSE();
-        this.navigateTo('quest-book');
+        const isOpen = accordionBody.style.display !== 'none';
+        accordionBody.style.display = isOpen ? 'none' : 'flex';
+        if (accordionIcon) {
+          accordionIcon.textContent = isOpen ? '詳しく見る ▼' : '閉じる ▲';
+        }
       });
     }
   }
@@ -2387,6 +2548,9 @@ class YoidoreQuestApp {
       return;
     }
 
+    // 最新日時に基づき「どれクエ対応中」フラグを動的再計算
+    store.isOpenToday = checkIsOpenToday(store);
+
     this.typeMessage(`「${store.name}」の情報です。`);
 
     const paymentTagsHtml = (store.paymentMethods && store.paymentMethods.length > 0)
@@ -2412,7 +2576,7 @@ class YoidoreQuestApp {
                   ${store.category ? `<span class="tag">${store.category}</span>` : ''}
                   ${store.style ? `<span class="tag tag-style">${store.style}</span>` : ''}
                   ${store.type ? `<span class="tag tag-type">${store.type}</span>` : ''}
-                  ${store.takeout ? `<span class="tag tag-takeout">${store.takeout}</span>` : ''}
+                  ${store.isTakeout ? `<span class="tag tag-takeout">${store.takeout}</span>` : ''}
                 </div>
                 <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}">
                   ${store.isOpenToday ? 'どれクエ対応中' : 'どれクエ対象時間外'}

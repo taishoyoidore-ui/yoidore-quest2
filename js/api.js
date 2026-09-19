@@ -14,13 +14,17 @@ class QuestApiManager {
     this.isOfflineMode = false;
     
     // シーズン管理
+    const fallbackGuidance = window.APP_CONFIG?.fallbackSeasonGuidance || {};
     this.currentSeason = {
       id: 2,
       name: '大正酔いどれクエストⅡ',
       start_date: '2026-08-01',
       end_date: '2026-08-31',
       coupon_valid_until: '2026-09-30',
-      is_active: true
+      is_active: true,
+      overview: fallbackGuidance.overview || '',
+      guide_steps: fallbackGuidance.guide_steps || [],
+      rules_notes: fallbackGuidance.rules_notes || ''
     };
     this.seasons = [];
     
@@ -194,6 +198,7 @@ class QuestApiManager {
           const type = s.yoidore_type || raw['type'] || raw['yoidore_type'] || raw['タイプ'] || 'サク飲み';
           const planType = raw['plan_type'] || (questTitle ? '両方で参加' : '「酔いどれセット」のみで参加');
           const badgeSalesCount = raw['badge_sales_count'] || '';
+          const hasQuest = Boolean(questTitle && questTitle.trim() !== '' && questTitle !== '？？？？？' && !planType.includes('「酔いどれセット」のみ'));
 
           return {
             id: s.id,
@@ -206,7 +211,7 @@ class QuestApiManager {
             takeout: (typeof s.takeout === 'string' && s.takeout) ? s.takeout : (s.takeout === true ? 'テイクアウトOK' : (s.takeout === false ? 'テイクアウト不可' : (raw['takeout'] || raw['テイクアウト'] || 'テイクアウトOK'))),
             isTakeout: s.takeout === 'テイクアウト専門' || s.takeout === 'テイクアウトOK' || s.takeout === true || Boolean(raw['takeout'] === 'テイクアウトOK' || raw['takeout'] === 'テイクアウト専門' || raw['テイクアウト'] === 'テイクアウトOK' || raw['テイクアウト'] === 'テイクアウト専門'),
             isOpenToday: raw['isOpenToday'] !== false,
-            isQuestActive: raw['isQuestActive'] !== false,
+            isQuestActive: raw['isQuestActive'] !== undefined ? (Boolean(raw['isQuestActive']) && hasQuest) : hasQuest,
             isCouponTarget: s.is_coupon_target !== false,
             is_coupon_target: s.is_coupon_target !== false,
             catchphrase: catchphrase,
@@ -331,6 +336,17 @@ class QuestApiManager {
       if (active) this.currentSeason = active;
     } else if (cloudConfig && cloudConfig.current_season) {
       this.currentSeason = cloudConfig.current_season;
+    }
+
+    const fallbackGuidance = window.APP_CONFIG?.fallbackSeasonGuidance || {};
+    if (!this.currentSeason.overview && fallbackGuidance.overview) {
+      this.currentSeason.overview = fallbackGuidance.overview;
+    }
+    if ((!this.currentSeason.guide_steps || this.currentSeason.guide_steps.length === 0) && fallbackGuidance.guide_steps) {
+      this.currentSeason.guide_steps = fallbackGuidance.guide_steps;
+    }
+    if (!this.currentSeason.rules_notes && fallbackGuidance.rules_notes) {
+      this.currentSeason.rules_notes = fallbackGuidance.rules_notes;
     }
 
     const now = new Date();

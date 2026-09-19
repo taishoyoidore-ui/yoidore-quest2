@@ -2280,3 +2280,132 @@ body {
   font-family: monospace;
 }
 
+/* ==========================================================================
+   案内所（ギルド）ガイダンス & はしご酒の導き スタイル
+   ========================================================================== */
+
+.top-guidance-window {
+  margin-bottom: 12px;
+  background: linear-gradient(180deg, #161b2e 0%, #0c101c 100%);
+  border: 2px solid var(--border-gold);
+  position: relative;
+}
+
+.top-guidance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  border-bottom: 1px dashed rgba(248, 225, 108, 0.3);
+  padding-bottom: 6px;
+}
+
+.top-guidance-title {
+  font-size: 15px;
+  font-weight: bold;
+  color: var(--text-yellow);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.top-guidance-meta-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.top-guidance-overview {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #e2e8f0;
+  margin-bottom: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 8px 10px;
+  border-radius: 4px;
+  border-left: 3px solid var(--text-yellow);
+}
+
+/* はしご酒の導き アコーディオン */
+.guidance-accordion-btn {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid var(--border-gold);
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: var(--text-yellow);
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.guidance-accordion-btn:hover, .guidance-accordion-btn:active {
+  background: linear-gradient(90deg, #283548 0%, #162032 100%);
+  border-color: #ffd700;
+  color: #ffffff;
+}
+
+.guidance-accordion-content {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(248, 225, 108, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.guide-step-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+
+.guide-step-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--text-cyan);
+  margin-bottom: 3px;
+}
+
+.guide-step-desc {
+  font-size: 12px;
+  color: #cbd5e1;
+  line-height: 1.4;
+  margin-left: 2px;
+}
+
+.guide-rules-box {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin-top: 4px;
+}
+
+.guide-rules-title {
+  font-size: 12px;
+  font-weight: bold;
+  color: #f87171;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.guide-rules-content {
+  font-size: 11px;
+  color: #e2e8f0;
+  line-height: 1.4;
+}
+
+
