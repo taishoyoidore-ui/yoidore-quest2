@@ -2529,11 +2529,13 @@ body {
 
 .levelup-header-banner {
   font-family: var(--font-en-pixel);
-  font-size: 28px;
+  font-size: clamp(20px, 6.5vw, 28px);
   font-weight: 900;
   color: #fef08a;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
+  white-space: nowrap;
   margin: 4px 0 2px;
+  text-align: center;
   animation: levelUpGlow 1.8s infinite ease-in-out;
 }
 

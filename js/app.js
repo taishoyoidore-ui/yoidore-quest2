@@ -809,7 +809,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.20.06';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.20.07';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -2259,86 +2259,175 @@ class YoidoreQuestApp {
 
     document.body.appendChild(overlay);
 
-    // 🎉 Canvas によるゴールド紙吹雪＆キラキラ星パーティクル描画
+    // 🎆 Canvas による本格的な打ち上げ花火（Fireworks）パーティクル描画
     let animId = null;
     const canvas = document.getElementById('levelup-confetti-canvas');
     if (canvas) {
       const ctx = canvas.getContext('2d');
       const dpr = window.devicePixelRatio || 1;
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
       ctx.scale(dpr, dpr);
 
-      const colors = ['#facc15', '#f59e0b', '#fbbf24', '#fef08a', '#38bdf8', '#f43f5e', '#ffffff'];
-      const particles = [];
-      const particleCount = 70;
+      const colorPalettes = [
+        ['#facc15', '#f59e0b', '#fbbf24', '#fef08a', '#ffffff'], // ゴールド
+        ['#f43f5e', '#fb7185', '#fda4af', '#ffffff', '#facc15'], // ルビーレッド
+        ['#38bdf8', '#0284c7', '#7dd3fc', '#ffffff', '#facc15'], // スカイブルー
+        ['#4ade80', '#22c55e', '#86efac', '#ffffff', '#facc15'], // エメラルドグリーン
+        ['#c084fc', '#a855f7', '#e9d5ff', '#ffffff', '#fb7185']  // パープル＆マゼンタ
+      ];
 
-      for (let i = 0; i < particleCount; i++) {
-        particles.push({
-          x: Math.random() * window.innerWidth,
-          y: Math.random() * -window.innerHeight * 0.8,
-          size: Math.random() * 8 + 5,
-          color: colors[Math.floor(Math.random() * colors.length)],
-          vx: (Math.random() - 0.5) * 3,
-          vy: Math.random() * 3 + 2.5,
-          rot: Math.random() * Math.PI * 2,
-          vRot: (Math.random() - 0.5) * 0.1,
-          isStar: Math.random() > 0.6
-        });
+      const rockets = [];
+      const sparks = [];
+
+      class Rocket {
+        constructor(startX, targetX, targetY, palette) {
+          this.x = startX;
+          this.y = h;
+          this.startX = startX;
+          this.targetX = targetX;
+          this.targetY = targetY;
+          this.palette = palette;
+          this.speed = Math.random() * 3 + 12;
+          this.angle = Math.atan2(targetY - h, targetX - startX);
+          this.vx = Math.cos(this.angle) * this.speed;
+          this.vy = Math.sin(this.angle) * this.speed;
+          this.trail = [];
+          this.exploded = false;
+        }
+
+        update() {
+          this.trail.push({ x: this.x, y: this.y, alpha: 1 });
+          if (this.trail.length > 5) this.trail.shift();
+          this.trail.forEach(t => t.alpha *= 0.65);
+
+          this.x += this.vx;
+          this.y += this.vy;
+
+          if (this.vy < 0 && this.y <= this.targetY) {
+            this.exploded = true;
+            this.createSparks();
+          }
+        }
+
+        createSparks() {
+          const sparkCount = Math.floor(Math.random() * 20) + 40;
+          for (let i = 0; i < sparkCount; i++) {
+            sparks.push(new Spark(this.x, this.y, this.palette));
+          }
+        }
+
+        draw() {
+          for (let i = 0; i < this.trail.length; i++) {
+            const pt = this.trail[i];
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(250, 204, 21, ${pt.alpha})`;
+            ctx.fill();
+          }
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+        }
       }
 
-      const drawStar = (cx, cy, spikes, outerRadius, innerRadius, color) => {
-        let rot = Math.PI / 2 * 3;
-        let x = cx;
-        let y = cy;
-        const step = Math.PI / spikes;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy - outerRadius);
-        for (let i = 0; i < spikes; i++) {
-          x = cx + Math.cos(rot) * outerRadius;
-          y = cy + Math.sin(rot) * outerRadius;
-          ctx.lineTo(x, y);
-          rot += step;
-          x = cx + Math.cos(rot) * innerRadius;
-          y = cy + Math.sin(rot) * innerRadius;
-          ctx.lineTo(x, y);
-          rot += step;
+      class Spark {
+        constructor(x, y, palette) {
+          this.x = x;
+          this.y = y;
+          this.color = palette[Math.floor(Math.random() * palette.length)];
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 5.5 + 1.2;
+          this.vx = Math.cos(angle) * speed;
+          this.vy = Math.sin(angle) * speed;
+          this.friction = 0.955;
+          this.gravity = 0.11;
+          this.alpha = 1;
+          this.decay = Math.random() * 0.016 + 0.012;
+          this.size = Math.random() * 2.5 + 1.5;
+          this.trail = [];
         }
-        ctx.lineTo(cx, cy - outerRadius);
-        ctx.closePath();
-        ctx.fillStyle = color;
-        ctx.fill();
-      };
 
-      const renderParticles = () => {
-        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-        particles.forEach(p => {
-          p.x += p.vx;
-          p.y += p.vy;
-          p.rot += p.vRot;
+        update() {
+          this.trail.push({ x: this.x, y: this.y, alpha: this.alpha });
+          if (this.trail.length > 4) this.trail.shift();
+          this.trail.forEach(t => t.alpha *= 0.72);
 
-          if (p.y > window.innerHeight + 20) {
-            p.y = -20;
-            p.x = Math.random() * window.innerWidth;
+          this.vx *= this.friction;
+          this.vy *= this.friction;
+          this.vy += this.gravity;
+          this.x += this.vx;
+          this.y += this.vy;
+          this.alpha -= this.decay;
+        }
+
+        draw() {
+          for (let i = 0; i < this.trail.length; i++) {
+            const pt = this.trail[i];
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, this.size * 0.55, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.globalAlpha = Math.max(0, pt.alpha * 0.55);
+            ctx.fill();
           }
 
-          ctx.save();
-          ctx.translate(p.x, p.y);
-          ctx.rotate(p.rot);
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fillStyle = this.color;
+          ctx.globalAlpha = Math.max(0, this.alpha);
+          ctx.shadowBlur = 6;
+          ctx.shadowColor = this.color;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.globalAlpha = 1;
+        }
+      }
 
-          if (p.isStar) {
-            drawStar(0, 0, 5, p.size, p.size / 2, p.color);
-          } else {
-            ctx.fillStyle = p.color;
-            ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
-          }
-          ctx.restore();
-        });
-
-        animId = requestAnimationFrame(renderParticles);
+      const launchFirework = (targetX, targetY) => {
+        const startX = w * (0.2 + Math.random() * 0.6);
+        const tx = targetX !== undefined ? targetX : w * (0.15 + Math.random() * 0.7);
+        const ty = targetY !== undefined ? targetY : h * (0.12 + Math.random() * 0.35);
+        const palette = colorPalettes[Math.floor(Math.random() * colorPalettes.length)];
+        rockets.push(new Rocket(startX, tx, ty, palette));
       };
 
-      renderParticles();
+      // 初回発射：左右・中央から即座に打ち上げ
+      launchFirework(w * 0.22, h * 0.22);
+      launchFirework(w * 0.78, h * 0.22);
+      setTimeout(() => launchFirework(w * 0.5, h * 0.16), 220);
+
+      let frameCount = 0;
+      const render = () => {
+        ctx.clearRect(0, 0, w, h);
+
+        frameCount++;
+        if (frameCount % 32 === 0) {
+          launchFirework();
+        }
+
+        for (let i = rockets.length - 1; i >= 0; i--) {
+          rockets[i].update();
+          rockets[i].draw();
+          if (rockets[i].exploded) {
+            rockets.splice(i, 1);
+          }
+        }
+
+        for (let i = sparks.length - 1; i >= 0; i--) {
+          sparks[i].update();
+          sparks[i].draw();
+          if (sparks[i].alpha <= 0) {
+            sparks.splice(i, 1);
+          }
+        }
+
+        animId = requestAnimationFrame(render);
+      };
+
+      render();
     }
 
     document.getElementById('btn-close-levelup-modal').addEventListener('click', () => {
