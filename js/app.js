@@ -1283,7 +1283,7 @@ class YoidoreQuestApp {
       if (isAllUsed) {
         statusBadge = '<span class="treasure-tier-status status-claimed">👑 特典コンプリート</span>';
       } else if (isReached) {
-        statusBadge = `<span class="treasure-tier-status status-unlocked" style="background:#0284c7; border-color:#38bdf8;">✨ 利用可能 (残り ${remainCount} / ${maxCount} 店舗)</span>`;
+        statusBadge = `<span class="treasure-tier-status status-unlocked" style="background:#0284c7; border-color:#38bdf8;">✨ 利用可能</span>`;
       } else {
         statusBadge = `<span class="treasure-tier-status status-locked">🔒 あと ${remainingVisits}軒</span>`;
       }

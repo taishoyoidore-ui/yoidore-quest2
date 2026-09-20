@@ -1080,16 +1080,12 @@ class QuestApiManager {
 
       // スキーマの段階的フォールバック（PGRST204回避）
       try {
-        const fullRow = { ...baseRow, season_id: targetSeasonId };
+        const fullRow = { ...baseRow };
         if (!isNaN(numTierId)) fullRow.reward_tier_id = numTierId;
         await tryInsert(fullRow);
       } catch (err1) {
-        try {
-          const rowWithSeason = { ...baseRow, season_id: targetSeasonId };
-          await tryInsert(rowWithSeason);
-        } catch (err2) {
-          await tryInsert(baseRow);
-        }
+        // 万が一 reward_tier_id カラムがない環境のみ baseRow で保存
+        await tryInsert(baseRow);
       }
 
       await this.getUserCoupons(targetSeasonId);
