@@ -1643,10 +1643,22 @@ class YoidoreQuestApp {
         }
         btnReset.disabled = true;
         btnReset.textContent = 'リセット中...';
-        await window.questApi.resetVisitsAndCoupons();
-        this.playBackSE();
-        alert('冒険の書と獲得クーポンを初期化しました。');
-        await this.render();
+        try {
+          const res = await (window.questApi.resetVisitsAndCoupons ? window.questApi.resetVisitsAndCoupons() : window.questApi.resetUserVisitsAndCouponsForTest());
+          if (res && res.success === false) {
+            alert('初期化に失敗しました: ' + (res.message || '通信エラー'));
+          } else {
+            this.playBackSE();
+            alert('冒険の書と獲得クーポンを初期化しました。');
+            await this.render();
+          }
+        } catch (err) {
+          console.error('Reset error:', err);
+          alert('初期化中にエラーが発生しました: ' + (err.message || '不明なエラー'));
+        } finally {
+          btnReset.disabled = false;
+          btnReset.textContent = '🗑️ 履歴リセット';
+        }
       });
     }
   }

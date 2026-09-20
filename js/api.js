@@ -723,6 +723,11 @@ class QuestApiManager {
     }
   }
 
+  // 互換用エイリアス
+  async addMockVisits(targetCount = 5, seasonId = null) {
+    return this.recordMultipleVisitsForTest(targetCount, seasonId);
+  }
+
   /* ------------------------------------------------------------------------
    * 🧪 開発・テスト用: 自身の来店履歴・クーポン履歴のリセット
    * ------------------------------------------------------------------------ */
@@ -744,6 +749,11 @@ class QuestApiManager {
       console.error('テストデータリセットエラー:', err);
       return { success: false, message: 'リセットに失敗しました: ' + (err.message || '通信エラー') };
     }
+  }
+
+  // 互換用エイリアス
+  async resetVisitsAndCoupons() {
+    return this.resetUserVisitsAndCouponsForTest();
   }
 
   /* ------------------------------------------------------------------------
