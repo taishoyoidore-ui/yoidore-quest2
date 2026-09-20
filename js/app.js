@@ -248,6 +248,7 @@ class YoidoreQuestApp {
       try {
         await window.questApi.initAuth();
         await window.questApi.getCurrentSeason();
+        await window.questApi.getSeasons();
         this.selectedBookSeasonId = window.questApi.currentSeason?.id || 2;
         const stores = await window.questApi.getStores();
         if (stores && stores.length > 0) {
@@ -809,7 +810,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.20.07';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.20.09';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1123,11 +1124,13 @@ class YoidoreQuestApp {
     const isCurrentSeason = (seasonId === activeSeasonId);
 
     // 該当シーズンのデータをAPIから取得
-    const [seasonStores, seasonVisits, seasonRewardTiers, seasonCoupons] = await Promise.all([
+    const [seasonStores, seasonVisits, seasonRewardTiers, seasonCoupons, cloudSeasons, _cloudHeroTitles] = await Promise.all([
       window.questApi ? window.questApi.getStores(seasonId) : Promise.resolve([]),
       window.questApi ? window.questApi.getUserVisits(seasonId) : Promise.resolve([]),
       window.questApi ? window.questApi.getRewardTiers(seasonId) : Promise.resolve([]),
-      window.questApi ? window.questApi.getUserCoupons(seasonId) : Promise.resolve([])
+      window.questApi ? window.questApi.getUserCoupons(seasonId) : Promise.resolve([]),
+      window.questApi ? window.questApi.getSeasons() : Promise.resolve([]),
+      window.questApi ? window.questApi.getHeroTitles() : Promise.resolve([])
     ]);
 
     // 参加店舗のみを対象とする
@@ -1143,9 +1146,11 @@ class YoidoreQuestApp {
     const heroLv = matchedHero.level || 1;
     const heroColor = matchedHero.badge_color || '#facc15';
 
-    const allSeasons = window.questApi?.seasons || [];
-    const targetSeasonObj = allSeasons.find(s => s.id === seasonId) || (isCurrentSeason ? activeSeason : { name: '大正酔いどれクエスト' });
-    const seasonName = targetSeasonObj.name || '大正酔いどれクエスト';
+    const allSeasons = (Array.isArray(cloudSeasons) && cloudSeasons.length > 0)
+      ? cloudSeasons
+      : (window.questApi?.seasons || []);
+    const targetSeasonObj = allSeasons.find(s => s.id === seasonId) || (isCurrentSeason ? activeSeason : { name: activeSeason.name || 'イベント' });
+    const seasonName = targetSeasonObj.name || activeSeason.name || 'イベント';
 
     this.typeMessage(`『${user.displayName}』の【${seasonName}】冒険の書です。`);
 
@@ -1345,9 +1350,9 @@ class YoidoreQuestApp {
     }).join('');
 
     // シーズン切り替えセレクター用オプション
-    const seasonsList = (window.questApi && window.questApi.seasons && window.questApi.seasons.length > 0)
-      ? window.questApi.seasons
-      : [{ id: 2, name: '大正酔いどれクエスト', is_active: true }];
+    const seasonsList = (allSeasons && allSeasons.length > 0)
+      ? allSeasons
+      : (activeSeason ? [activeSeason] : [{ id: 2, name: '大正酔いどれクエスト', is_active: true }]);
 
     const seasonOptionsHtml = seasonsList.map(s => {
       const isSelected = (s.id === seasonId);

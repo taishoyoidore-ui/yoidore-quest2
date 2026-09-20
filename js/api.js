@@ -371,11 +371,15 @@ class QuestApiManager {
    * ------------------------------------------------------------------------ */
   async getCurrentSeason() {
     const cloudConfig = await this.fetchSystemConfig();
-    if (cloudConfig && cloudConfig.seasons && Array.isArray(cloudConfig.seasons)) {
-      const active = cloudConfig.seasons.find(s => s.is_active);
+    if (cloudConfig && cloudConfig.seasons && Array.isArray(cloudConfig.seasons) && cloudConfig.seasons.length > 0) {
+      this.seasons = cloudConfig.seasons;
+      const active = cloudConfig.seasons.find(s => s.is_active) || cloudConfig.seasons[0];
       if (active) this.currentSeason = active;
     } else if (cloudConfig && cloudConfig.current_season) {
       this.currentSeason = cloudConfig.current_season;
+      if (!Array.isArray(this.seasons) || this.seasons.length === 0) {
+        this.seasons = [{ ...this.currentSeason }];
+      }
     }
 
     const fallbackGuidance = window.APP_CONFIG?.fallbackSeasonGuidance || {};
