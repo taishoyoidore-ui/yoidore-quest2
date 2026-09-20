@@ -43,52 +43,55 @@
     </div>
   </div>
 
-  <!-- 管理画面メインレイアウト -->
-  <div id="admin-main-container" class="admin-layout" style="display: none;">
-    <!-- サイドバー -->
-    <aside class="admin-sidebar" id="admin-sidebar">
-      <div class="sidebar-brand">
-        <span class="brand-icon">🍺</span>
-        <div class="brand-text">
-          <span class="brand-title">大正酔いどれクエスト</span>
-          <span class="brand-subtitle">管理バックオフィス</span>
+  <!-- 管理画面メインコンテナ -->
+  <div id="admin-app" class="admin-layout" style="display: none;">
+    <!-- サイドバーナビゲーション (PC) / 上部ヘッダー (スマホ) -->
+    <aside class="admin-sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-title">
+          <span class="brand-icon">🍺</span>
+          <div class="brand-text">
+            <h3>大正酔いどれクエスト</h3>
+            <div style="margin-top: 3px;">
+              <span class="badge badge-admin" style="display: inline-block; font-size: 11px; padding: 2px 8px;">運営本部バックオフィス</span>
+            </div>
+          </div>
         </div>
+        <button class="mobile-close-btn" onclick="window.adminApp.toggleMobileSidebar()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
       </div>
-      
+
       <nav class="sidebar-nav">
         <a href="#dashboard" class="nav-item active" data-tab="dashboard">
-          <i class="fa-solid fa-chart-line"></i>
+          <i class="fa-solid fa-chart-pie"></i>
           <span>ダッシュボード</span>
+        </a>
+        <a href="#analytics" class="nav-item" data-tab="analytics">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>店舗・特典別 集計分析</span>
         </a>
         <a href="#stores" class="nav-item" data-tab="stores">
           <i class="fa-solid fa-store"></i>
-          <span>店舗・企画管理</span>
+          <span>店舗マスター管理</span>
         </a>
-        <a href="#coupons" class="nav-item" data-tab="coupons">
-          <i class="fa-solid fa-ticket"></i>
-          <span>消込・クーポン利用ログ</span>
+        <a href="#tiers" class="nav-item" data-tab="tiers">
+          <i class="fa-solid fa-calendar-check"></i>
+          <span>シーズン・開催設定</span>
         </a>
-        <a href="#seasons" class="nav-item" data-tab="seasons">
-          <i class="fa-solid fa-calendar-days"></i>
-          <span>シーズン・特典設定</span>
+        <a href="#logs" class="nav-item" data-tab="logs">
+          <i class="fa-solid fa-list-check"></i>
+          <span>参加者・データ管理</span>
         </a>
-        <a href="#broadcast" class="nav-item" data-tab="broadcast">
-          <i class="fa-solid fa-bullhorn"></i>
-          <span>全体お知らせ</span>
-        </a>
-        <a href="#analytics" class="nav-item" data-tab="analytics">
-          <i class="fa-solid fa-chart-pie"></i>
-          <span>集計・分析レポート</span>
-        </a>
-        <a href="#qrcodes" class="nav-item" data-tab="qrcodes">
+        <a href="#pop" class="nav-item" data-tab="pop">
           <i class="fa-solid fa-qrcode"></i>
-          <span>卓上POP印刷・QR発行</span>
+          <span>店頭POP・QR一括印刷</span>
         </a>
       </nav>
 
       <div class="sidebar-footer">
-        <div class="db-status-pill online">
-          <span class="status-dot"></span>
+        <div class="db-status-badge">
+          <span class="status-dot online"></span>
           <span>Supabase DB 連動中</span>
         </div>
         <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-bottom: 6px;">
