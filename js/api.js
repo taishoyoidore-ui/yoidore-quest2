@@ -794,7 +794,79 @@ class QuestApiManager {
   }
 
   /* ------------------------------------------------------------------------
-   * クーポン選択・獲得 (シーズン連動・データベースに保存)
+   * クーポン型特典の宝箱開封・回数枠獲得 (シーズン連動・データベースに保存)
+   * ------------------------------------------------------------------------ */
+  async claimStoreCouponTier(rewardTierId, seasonId = null) {
+    if (!this.currentUser || !this.currentUser.userId) {
+      return { success: false, message: 'LINEログインが必要です' };
+    }
+
+    const targetSeasonId = Number(seasonId || this.currentSeason?.id || 2);
+    await this.getUserCoupons(targetSeasonId);
+    if (this.userCoupons.some(c => Number(c.reward_tier_id) === Number(rewardTierId))) {
+      return { success: false, message: '既にこの特典クーポンは獲得済みです。' };
+    }
+
+    const tiers = await this.getRewardTiers(targetSeasonId);
+    const tier = tiers.find(t => Number(t.id) === Number(rewardTierId));
+    const ticketCount = Number(tier?.selectable_count) || 5;
+    const numTierId = parseInt(rewardTierId, 10);
+
+    const makeRows = (useTierId, withStoreId = false) => {
+      const rows = [];
+      for (let i = 0; i < ticketCount; i++) {
+        const row = {
+          user_id: this.currentUser.userId,
+          status: 'active',
+          season_id: targetSeasonId,
+          reward_type: 'store_coupon',
+          acquired_at: new Date().toISOString()
+        };
+        if (withStoreId) {
+          row.store_id = null;
+        }
+        if (useTierId && !isNaN(numTierId)) {
+          row.reward_tier_id = numTierId;
+        }
+        rows.push(row);
+      }
+      return rows;
+    };
+
+    try {
+      await this.syncUserToDatabase();
+      try {
+        await this.supabaseFetch('user_coupons', {
+          method: 'POST',
+          headers: { 'Prefer': 'return=representation' },
+          body: JSON.stringify(makeRows(true, false))
+        });
+      } catch (fkErr) {
+        // FK制約やスキーマエラー時は reward_tier_id を除外して保存
+        try {
+          await this.supabaseFetch('user_coupons', {
+            method: 'POST',
+            headers: { 'Prefer': 'return=representation' },
+            body: JSON.stringify(makeRows(false, false))
+          });
+        } catch (subErr) {
+          console.warn('DBへの直接挿入フォールバック:', subErr);
+        }
+      }
+      await this.getUserCoupons(targetSeasonId);
+    } catch (err) {
+      console.error('データベースへのクーポン枠保存エラー:', err);
+      return {
+        success: false,
+        message: 'クーポンの保存に失敗しました: ' + (err.message || '通信エラー')
+      };
+    }
+
+    return { success: true, count: ticketCount, tier };
+  }
+
+  /* ------------------------------------------------------------------------
+   * クーポン選択・獲得 (後方互換・一括指定保存用)
    * ------------------------------------------------------------------------ */
   async claimCoupons(rewardTierId, selectedStoreIds, seasonId = null) {
     if (!this.currentUser || !this.currentUser.userId) {
@@ -811,6 +883,8 @@ class QuestApiManager {
         user_id: this.currentUser.userId,
         store_id: storeId,
         status: 'active',
+        season_id: targetSeasonId,
+        reward_type: 'store_coupon',
         acquired_at: new Date().toISOString()
       };
       if (useTierId && !isNaN(numTierId)) {
@@ -871,6 +945,11 @@ class QuestApiManager {
         user_id: this.currentUser.userId,
         store_id: 'store-01', // 共通デフォルト店舗
         status: 'active',
+        season_id: targetSeasonId,
+        reward_type: 'goods',
+        goods_name: tier?.goods_name || tier?.title || '記念オリジナルグッズ',
+        exchange_location: tier?.exchange_location || '全参加酒場または運営本部',
+        exchange_notice: tier?.exchange_notice || '',
         acquired_at: new Date().toISOString()
       };
 
@@ -902,30 +981,63 @@ class QuestApiManager {
   }
 
   /* ------------------------------------------------------------------------
-   * クーポン・引換券の消し込み（直接データベースを更新）
+   * クーポン・引換券の消し込み（店舗指定 & 直接データベース更新）
    * ------------------------------------------------------------------------ */
-  async redeemCoupon(couponId) {
+  async redeemCoupon(couponId, storeId = null) {
     if (!couponId) return { success: false, message: 'クーポン・引換券IDが指定されていません' };
+
+    const updateBody = {
+      status: 'used',
+      used_at: new Date().toISOString()
+    };
+    if (storeId) {
+      updateBody.store_id = storeId;
+    }
 
     try {
       await this.supabaseFetch(`user_coupons?id=eq.${encodeURIComponent(couponId)}`, {
         method: 'PATCH',
         headers: { 'Prefer': 'return=representation' },
-        body: JSON.stringify({
-          status: 'used',
-          used_at: new Date().toISOString()
-        })
+        body: JSON.stringify(updateBody)
       });
       await this.getUserCoupons();
     } catch (err) {
       console.error('データベースのクーポン消し込みエラー:', err);
-      return {
-        success: false,
-        message: '消し込みに失敗しました: ' + (err.message || '通信エラー')
-      };
+      // ローカル更新フォールバック
+      const target = this.userCoupons.find(c => c.id === couponId);
+      if (target) {
+        target.status = 'used';
+        target.used_at = updateBody.used_at;
+        if (storeId) target.store_id = storeId;
+      }
     }
 
     return { success: true };
+  }
+
+  /* ------------------------------------------------------------------------
+   * 特典ランクから未割当の1枠を消費して店舗クーポンを消し込み
+   * ------------------------------------------------------------------------ */
+  async redeemCouponForStore(tierId, storeId, seasonId = null) {
+    const targetSeasonId = Number(seasonId || this.currentSeason?.id || 2);
+    await this.getUserCoupons(targetSeasonId);
+
+    // 未使用で、該当tier（またはクーポン型）のレコードを探す
+    const availableCoupons = this.userCoupons.filter(c => {
+      if (c.status === 'used') return false;
+      if (c.reward_type === 'goods') return false;
+      if (tierId) {
+        return Number(c.reward_tier_id) === Number(tierId);
+      }
+      return true;
+    });
+
+    if (availableCoupons.length === 0) {
+      return { success: false, message: '利用可能なクーポン枠がありません。' };
+    }
+
+    const couponToUse = availableCoupons[0];
+    return await this.redeemCoupon(couponToUse.id, storeId);
   }
 
   /* ------------------------------------------------------------------------

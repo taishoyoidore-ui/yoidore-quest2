@@ -2467,7 +2467,10 @@ class YoidoreAdminApp {
     } else {
       couponTbody.innerHTML = this.coupons.map(c => {
         const store = this.stores.find(s => s.id === c.store_id);
-        const storeName = store ? store.name : c.store_id;
+        const isGoods = c.reward_type === 'goods';
+        const storeName = isGoods 
+          ? `🎁 ${this.escapeHtml(c.goods_name || '記念品引換券')}` 
+          : (store ? this.escapeHtml(store.name) : (c.store_id ? this.escapeHtml(c.store_id) : '🎟️ （店舗未選択・利用枠保有中）'));
         const user = this.users.find(u => u.line_user_id === c.user_id);
         const userName = user ? user.display_name : c.user_id;
         const acqStr = c.acquired_at ? new Date(c.acquired_at).toLocaleString('ja-JP') : '-';
@@ -2478,8 +2481,8 @@ class YoidoreAdminApp {
           <tr>
             <td>${acqStr}</td>
             <td><strong>${this.escapeHtml(userName)}</strong></td>
-            <td><strong>${this.escapeHtml(storeName)}</strong></td>
-            <td><span class="tag ${isUsed ? 'tag-active' : 'tag-area'}">${isUsed ? '✅ 利用済' : '未使用'}</span></td>
+            <td><strong>${storeName}</strong></td>
+            <td><span class="tag ${isUsed ? 'tag-active' : 'tag-area'}">${isUsed ? '✅ 利用済' : '未使用・保有中'}</span></td>
             <td>${usedStr}</td>
             <td style="text-align: center;">
               <div style="display: flex; gap: 4px; justify-content: center;">
@@ -2585,11 +2588,14 @@ class YoidoreAdminApp {
         csvContent += `"${v.visited_at || ''}",${v.season_id || this.selectedSeasonId},"${v.user_id}","${(user ? user.display_name : '').replace(/"/g, '""')}","${v.store_id}","${(store ? store.name : '').replace(/"/g, '""')}"\n`;
       });
     } else if (this.activeLogSubTab === 'coupons') {
-      csvContent += '獲得日時,シーズンID,LINE_User_ID,ユーザー名,店舗ID,店舗名,状態,利用消し込み日時\n';
+      csvContent += '獲得日時,シーズンID,LINE_User_ID,ユーザー名,特典種別,店舗ID,店舗名/記念品名,状態,利用消し込み日時\n';
       this.coupons.forEach(c => {
         const store = this.stores.find(s => s.id === c.store_id);
         const user = this.users.find(u => u.line_user_id === c.user_id);
-        csvContent += `"${c.acquired_at || ''}",${c.season_id || this.selectedSeasonId},"${c.user_id}","${(user ? user.display_name : '').replace(/"/g, '""')}","${c.store_id}","${(store ? store.name : '').replace(/"/g, '""')}","${c.status}","${c.used_at || ''}"\n`;
+        const isGoods = c.reward_type === 'goods';
+        const typeStr = isGoods ? 'グッズ引換券' : '酒場クーポン';
+        const targetName = isGoods ? (c.goods_name || '記念品') : (store ? store.name : (c.store_id ? c.store_id : '（店舗未指定・保有枠）'));
+        csvContent += `"${c.acquired_at || ''}",${c.season_id || this.selectedSeasonId},"${c.user_id}","${(user ? user.display_name : '').replace(/"/g, '""')}","${typeStr}","${c.store_id || ''}","${targetName.replace(/"/g, '""')}","${c.status}","${c.used_at || ''}"\n`;
       });
     }
 
