@@ -38,7 +38,7 @@
         </button>
       </form>
       <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 14px;">
-        システムバージョン: <strong class="app-version-text">v2026.09.21.18</strong>
+        システムバージョン: <strong class="app-version-text">v2026.09.21.19</strong>
       </div>
     </div>
   </div>
@@ -95,7 +95,7 @@
           <span>Supabase DB 連動中</span>
         </div>
         <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-bottom: 6px;">
-          システムバージョン: <strong class="app-version-text">v2026.09.21.18</strong>
+          システムバージョン: <strong class="app-version-text">v2026.09.21.19</strong>
         </div>
         <button class="btn btn-outline-danger btn-sm btn-block" onclick="window.adminApp.handleLogout()">
           <i class="fa-solid fa-arrow-right-from-bracket"></i> ログアウト
@@ -123,7 +123,7 @@
         </div>
         <div class="header-right">
           <span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:3px 8px; font-weight:bold;">
-            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.09.21.18</span>
+            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.09.21.19</span>
           </span>
           <span id="last-sync-time" class="text-muted"><i class="fa-solid fa-arrows-rotate fa-spin"></i> 同期中...</span>
           <button class="btn btn-secondary btn-sm" onclick="window.adminApp.refreshData()">
@@ -166,17 +166,17 @@
               </div>
             </div>
             <div class="kpi-card">
-              <div class="kpi-icon icon-yellow"><i class="fa-solid fa-ticket"></i></div>
+              <div class="kpi-icon icon-yellow"><i class="fa-solid fa-wine-glass"></i></div>
               <div class="kpi-info">
-                <div class="kpi-label">獲得クーポン総数</div>
-                <div class="kpi-value" id="kpi-coupons-issued">-</div>
+                <div class="kpi-label">酒場クーポン利用（消込）</div>
+                <div class="kpi-value" id="kpi-coupons-used">-</div>
               </div>
             </div>
             <div class="kpi-card">
-              <div class="kpi-icon icon-purple"><i class="fa-solid fa-stamp"></i></div>
+              <div class="kpi-icon icon-purple"><i class="fa-solid fa-gift"></i></div>
               <div class="kpi-info">
-                <div class="kpi-label">利用（消し込み）済</div>
-                <div class="kpi-value" id="kpi-coupons-used">-</div>
+                <div class="kpi-label">記念品グッズ受取済</div>
+                <div class="kpi-value" id="kpi-goods-used">-</div>
               </div>
             </div>
           </div>
@@ -194,10 +194,10 @@
               </div>
             </div>
 
-            <!-- クーポン交換人気 TOP 5 -->
+            <!-- クーポン利用人気 TOP 5 -->
             <div class="card">
               <div class="card-header">
-                <h3><i class="fa-solid fa-award text-primary"></i> クーポン交換人気店舗 TOP 5</h3>
+                <h3><i class="fa-solid fa-award text-primary"></i> 🍺 クーポン利用人気酒場 TOP 5</h3>
               </div>
               <div class="card-body">
                 <div id="top-coupons-ranking" class="ranking-list">
@@ -226,7 +226,7 @@
           </div>
         </section>
 
-        <!-- 2. 店舗・特典別 集計分析タブ (新規) -->
+        <!-- 2. 店舗・特典別 集計分析タブ -->
         <section id="tab-analytics" class="tab-pane">
           <!-- 集計サマリーKPI -->
           <div class="kpi-grid mb-4">
@@ -238,24 +238,24 @@
               </div>
             </div>
             <div class="kpi-card">
-              <div class="kpi-icon icon-yellow"><i class="fa-solid fa-ticket"></i></div>
+              <div class="kpi-icon icon-yellow"><i class="fa-solid fa-wine-glass"></i></div>
               <div class="kpi-info">
-                <div class="kpi-label">獲得クーポン・引換券総数</div>
-                <div class="kpi-value" id="analytics-total-coupons">0</div>
+                <div class="kpi-label">🍺 酒場クーポン利用総数</div>
+                <div class="kpi-value" id="analytics-total-store-coupons">0</div>
               </div>
             </div>
             <div class="kpi-card">
-              <div class="kpi-icon icon-purple"><i class="fa-solid fa-stamp"></i></div>
+              <div class="kpi-icon icon-purple"><i class="fa-solid fa-gift"></i></div>
               <div class="kpi-info">
-                <div class="kpi-label">消し込み（利用）済総数</div>
-                <div class="kpi-value" id="analytics-total-used">0</div>
+                <div class="kpi-label">🎁 記念品グッズ受取総数</div>
+                <div class="kpi-value" id="analytics-total-goods">0</div>
               </div>
             </div>
             <div class="kpi-card">
-              <div class="kpi-icon icon-blue"><i class="fa-solid fa-percent"></i></div>
+              <div class="kpi-icon icon-blue"><i class="fa-solid fa-store"></i></div>
               <div class="kpi-info">
-                <div class="kpi-label">全体クーポン利用率</div>
-                <div class="kpi-value" id="analytics-usage-rate">0.0%</div>
+                <div class="kpi-label">今期参加酒場数</div>
+                <div class="kpi-value" id="analytics-total-stores">0</div>
               </div>
             </div>
           </div>
@@ -264,12 +264,12 @@
           <div class="card mb-4">
             <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
               <div>
-                <h3 style="margin:0;"><i class="fa-solid fa-store text-primary"></i> 全店舗 実績集計一覧 (<span id="analytics-store-count">0</span>店)</h3>
-                <p style="margin:4px 0 0 0; font-size:12px; color:#64748b;">各店舗のサイン受取（来店）数、クーポン指名獲得数、店頭消し込み（利用）実績</p>
+                <h3 style="margin:0;"><i class="fa-solid fa-store text-primary"></i> 全酒場 実績集計一覧 (<span id="analytics-store-count">0</span>店)</h3>
+                <p style="margin:4px 0 0 0; font-size:12px; color:#64748b;">各酒場のサイン受取（来店）数および酒場クーポン消し込み（利用）実績</p>
               </div>
               <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                 <button class="btn btn-outline btn-sm" onclick="window.adminApp.exportAnalyticsStoresToCSV()">
-                  <i class="fa-solid fa-file-csv"></i> 店舗別集計をCSV出力
+                  <i class="fa-solid fa-file-csv"></i> 酒場別集計をCSV出力
                 </button>
               </div>
             </div>
@@ -277,18 +277,16 @@
               <div class="header-filters" style="margin-bottom: 12px; display:flex; gap:8px; flex-wrap:wrap;">
                 <div class="search-input-wrapper" style="flex:1; min-width:200px;">
                   <i class="fa-solid fa-magnifying-glass"></i>
-                  <input type="text" id="analytics-store-search" placeholder="店舗名・ID・エリアで絞り込み..." oninput="window.adminApp.renderAnalyticsStoreTable()">
+                  <input type="text" id="analytics-store-search" placeholder="酒場名・ID・エリアで絞り込み..." oninput="window.adminApp.renderAnalyticsStoreTable()">
                 </div>
                 <select id="analytics-area-filter" onchange="window.adminApp.renderAnalyticsStoreTable()" style="padding:6px 12px; border-radius:4px; border:1px solid #cbd5e1; font-size:13px;">
                   <option value="">すべてのエリア</option>
                 </select>
                 <select id="analytics-sort-select" onchange="window.adminApp.renderAnalyticsStoreTable()" style="padding:6px 12px; border-radius:4px; border:1px solid #cbd5e1; font-size:13px;">
                   <option value="visits_desc">📷 サイン受取数が多い順</option>
-                  <option value="coupons_desc">🎟️ クーポン獲得数が多い順</option>
                   <option value="used_desc">🍺 クーポン利用数が多い順</option>
-                  <option value="rate_desc">📈 利用率が高い順</option>
-                  <option value="id_asc">🔢 店舗ID順</option>
-                  <option value="name_asc">🔤 店舗名順</option>
+                  <option value="id_asc">🔢 酒場ID順</option>
+                  <option value="name_asc">🔤 酒場名順</option>
                 </select>
               </div>
 
@@ -296,18 +294,17 @@
                 <table class="data-table">
                   <thead>
                     <tr>
-                      <th style="width: 80px;">店舗ID</th>
-                      <th>店舗名</th>
+                      <th style="width: 80px;">酒場ID</th>
+                      <th>酒場名</th>
                       <th style="width: 100px;">エリア</th>
                       <th style="width: 130px;">参加企画</th>
-                      <th style="text-align: right; width: 110px;">📷 サイン受取</th>
-                      <th style="text-align: right; width: 110px;">🎟️ クーポン獲得</th>
-                      <th style="text-align: right; width: 110px;">🍺 利用消込済</th>
-                      <th style="text-align: right; width: 90px;">📈 利用率</th>
+                      <th style="text-align: right; width: 130px;">📷 サイン受取 (来店)</th>
+                      <th style="text-align: right; width: 140px;">🍺 クーポン利用 (消込)</th>
+                      <th style="text-align: center; width: 100px;">🎟️ クーポン対象</th>
                     </tr>
                   </thead>
                   <tbody id="analytics-stores-tbody">
-                    <tr><td colspan="8" class="text-center py-4">データ集計中...</td></tr>
+                    <tr><td colspan="7" class="text-center py-4">データ集計中...</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -530,7 +527,7 @@
                   <i class="fa-solid fa-beer-mug-empty"></i> 来店・サイン記録履歴 (<span id="count-visits">0</span>)
                 </button>
                 <button class="sub-tab" data-sub="coupons" onclick="window.adminApp.switchLogSubTab('coupons')">
-                  <i class="fa-solid fa-stamp"></i> クーポン獲得・消し込み履歴 (<span id="count-coupons">0</span>)
+                  <i class="fa-solid fa-stamp"></i> クーポン・特典利用履歴 (<span id="count-coupons">0</span>)
                 </button>
               </div>
               <div class="export-actions">
@@ -549,7 +546,7 @@
                       <th>ユーザー</th>
                       <th>LINE User ID</th>
                       <th>今期制覇数</th>
-                      <th>獲得クーポン数</th>
+                      <th>特典利用（消込）数</th>
                       <th>初回来店日時</th>
                       <th>最終アクセス</th>
                       <th style="text-align: center; width: 100px;">操作</th>
@@ -570,8 +567,8 @@
                     <tr>
                       <th>来店日時</th>
                       <th>来店ユーザー</th>
-                      <th>店舗ID</th>
-                      <th>店舗名</th>
+                      <th>酒場ID</th>
+                      <th>酒場名</th>
                       <th style="text-align: center; width: 90px;">操作</th>
                     </tr>
                   </thead>
@@ -582,17 +579,17 @@
               </div>
             </div>
 
-            <!-- サブタブ3: クーポン履歴 (消し込み状態切替 & 削除対応) -->
+            <!-- サブタブ3: クーポン・特典履歴 (消し込み状態切替 & 削除対応) -->
             <div id="subtab-coupons" class="subtab-content">
               <div class="table-responsive">
                 <table class="data-table">
                   <thead>
                     <tr>
-                      <th>獲得日時</th>
+                      <th style="width: 140px;">利用/受取日時</th>
+                      <th style="width: 110px;">種別</th>
                       <th>ユーザー</th>
-                      <th>利用対象店舗</th>
-                      <th>状態</th>
-                      <th>消し込み（利用）日時</th>
+                      <th>利用酒場 / 記念品名</th>
+                      <th style="width: 110px;">状態</th>
                       <th style="text-align: center; width: 180px;">操作</th>
                     </tr>
                   </thead>
