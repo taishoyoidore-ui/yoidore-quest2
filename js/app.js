@@ -1608,10 +1608,20 @@ class YoidoreQuestApp {
           const newVisits = (window.questApi && window.questApi.visits) ? window.questApi.visits.length : (prevVisits + count);
           const newHero = this.getHeroTitleForVisits(newVisits);
 
-          this.playFanfareSE();
-          if (newHero.title !== prevHero.title) {
-            this.showLevelUpModal(newHero.title, newHero.level);
+          const rewardTiers = window.questApi?.rewardTiers || [];
+          const unlockedTier = rewardTiers.find(t => Number(t.required_visits) === newVisits);
+
+          if (newHero.level > prevHero.level) {
+            this.playLevelUpSE();
+            this.showLevelUpModal({
+              newHero,
+              totalVisits: newVisits,
+              storeName: `テスト酒場（+${count}店舗）`,
+              storeArea: '大正エリア',
+              unlockedTier
+            });
           } else {
+            this.playFanfareSE();
             alert(`🎉 ${count}店舗の店主サインを記録しました！（合計: ${newVisits}軒）`);
           }
           await this.render();
@@ -2219,15 +2229,19 @@ class YoidoreQuestApp {
   /* ------------------------------------------------------------------------
    * 🌟 ドラクエ風 LEVEL UP!! ＆ 称号昇格 演出モーダル（ゴールド紙吹雪付き）
    * ------------------------------------------------------------------------ */
-  showLevelUpModal({ newHero, totalVisits, storeName, storeArea, unlockedTier }) {
+  showLevelUpModal(params = {}) {
+    // オブジェクト以外で渡された場合の安全チェック
+    const { newHero, totalVisits, storeName, storeArea, unlockedTier } = (typeof params === 'object' && params !== null) ? params : {};
+
     const overlay = document.createElement('div');
     overlay.className = 'rpg-modal-overlay';
     overlay.id = 'levelup-success-modal';
 
-    const safeStoreName = this.escapeHtml ? this.escapeHtml(storeName) : storeName;
-    const newLv = newHero?.level || 2;
-    const newTitle = newHero?.title || '初陣';
+    const safeStoreName = storeName ? (this.escapeHtml ? this.escapeHtml(storeName) : storeName) : '参加酒場';
+    const newLv = newHero?.level ?? '-';
+    const newTitle = newHero?.title ?? '-';
     const badgeColor = newHero?.badge_color || '#facc15';
+    const visitCountDisplay = typeof totalVisits === 'number' ? totalVisits : (Number(totalVisits) || 0);
 
     const user = window.questApi?.currentUser || { displayName: '勇者', pictureUrl: 'assets/banner.png' };
     const avatarUrl = user.pictureUrl || 'assets/banner.png';
@@ -2267,7 +2281,7 @@ class YoidoreQuestApp {
             <div style="font-size:14px; color:#fef08a; font-weight:bold;">『${safeStoreName}』</div>
             ${storeArea ? `<div style="font-size:11px; color:#cbd5e1; margin-bottom:4px;">(${storeArea})</div>` : ''}
             <div style="margin-top:6px; font-size:13px; color:#e2e8f0;">
-              🏆 制覇店舗数: <strong style="color:#4ade80; font-size:16px;">${totalVisits} 軒達成</strong>
+              🏆 制覇店舗数: <strong style="color:#4ade80; font-size:16px;">${visitCountDisplay} 軒達成</strong>
             </div>
           </div>
 
