@@ -816,7 +816,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.14';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.15';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1232,8 +1232,8 @@ class YoidoreQuestApp {
         } else if (isReached) {
           statusBadge = isCurrentSeason ? '<span class="treasure-tier-status status-unlocked">🎁 引換可能</span>' : '<span class="treasure-tier-status status-locked">過去回達成</span>';
           actionHtml = isCurrentSeason ? `
-            <button class="treasure-claim-btn btn-view-goods" data-tier-id="${tier.id}" style="background:linear-gradient(180deg, #d97706 0%, #b45309 100%); border-color:#f59e0b; margin-top:6px;">
-              🎁 記念品を受け取る（店頭提示）
+            <button class="treasure-claim-btn btn-view-goods" data-tier-id="${tier.id}" style="background:linear-gradient(180deg, #d97706 0%, #b45309 100%); border-color:#f59e0b; margin-top:6px; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">
+              🎁 記念品を受け取る
             </button>
           ` : `<div style="font-size:13px; color:#94a3b8;">🔒 過去シーズンのため引換不可</div>`;
         } else {
@@ -1301,7 +1301,7 @@ class YoidoreQuestApp {
 
         historyHtml = `
           <div class="tier-usage-history-box" style="width:100%; box-sizing:border-box; margin-bottom:10px; background:rgba(0,0,0,0.35); border:1px solid rgba(250,204,21,0.25); border-radius:6px; padding:8px 10px;">
-            <div style="color:var(--text-yellow); font-weight:bold; margin-bottom:6px; font-size:12px;">▼ クーポン利用済み（${usedCount} / ${maxCount} 店舗）</div>
+            <div style="color:var(--text-yellow); font-weight:bold; margin-bottom:6px; font-size:12px;">▼ クーポン利用済み（${usedCount} / ${maxCount} 軒）</div>
             <div class="tier-history-list" style="display:flex; flex-direction:column; gap:4px;">
               ${historyItems}
             </div>
@@ -1313,7 +1313,7 @@ class YoidoreQuestApp {
         actionHtml = `
           ${historyHtml}
           <div class="reward-completed-banner" style="width:100%; box-sizing:border-box; padding:10px; background:rgba(34,197,94,0.15); border:1px solid #22c55e; border-radius:6px; color:#86efac; font-size:13px; font-weight:bold; text-align:center;">
-            🎉 ${maxCount}店舗すべてのご利用が完了しました！
+            🎉 ${maxCount}軒すべての酒場のご利用が完了しました！
           </div>
         `;
       } else if (isReached) {
@@ -1324,11 +1324,11 @@ class YoidoreQuestApp {
           `;
         } else {
           const btnText = usedCount === 0 
-            ? `🎁 宝箱を開けて酒場を選ぶ (残り${remainCount}店舗)` 
-            : `🎁 続けてクーポンを使う (残り${remainCount}店舗)`;
+            ? `🎁 宝箱を開けて酒場を選ぶ (残り${remainCount}軒)` 
+            : `🎁 続けてクーポンを使う (残り${remainCount}軒)`;
           actionHtml = `
             ${historyHtml}
-            <button class="treasure-claim-btn btn-direct-open-store-coupon" data-tier-id="${tier.id}" style="width:100%; box-sizing:border-box; display:block; background:linear-gradient(180deg, #eab308 0%, #ca8a04 100%); border-color:#fde047; font-weight:bold; font-size:14px; padding:12px;">
+            <button class="treasure-claim-btn btn-direct-open-store-coupon" data-tier-id="${tier.id}" style="width:100%; box-sizing:border-box; display:block; background:linear-gradient(180deg, #eab308 0%, #ca8a04 100%); border-color:#fde047; font-weight:bold; font-size:13px; padding:11px 8px; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">
               ${btnText}
             </button>
           `;
@@ -1684,31 +1684,30 @@ class YoidoreQuestApp {
         const logoUrl = s.logoUrl || s.logo_url || '';
 
         const logoHtml = `
-          <div class="coupon-select-item-logo-box">
+          <div class="coupon-select-item-logo-box" style="width:34px; height:34px; min-width:34px; border-radius:5px; flex-shrink:0;">
             ${logoUrl ? `
               <img src="${logoUrl}" alt="${this.escapeHtml(s.name)}" class="coupon-select-item-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-              <span class="coupon-select-item-logo-fallback" style="display:none;">🏪</span>
+              <span class="coupon-select-item-logo-fallback" style="display:none; font-size:16px;">🏮</span>
             ` : `
-              <span class="coupon-select-item-logo-fallback">🏪</span>
+              <span class="coupon-select-item-logo-fallback" style="font-size:16px;">🏮</span>
             `}
           </div>
         `;
 
         const metaInfo = [
           s.area ? `📍 ${this.escapeHtml(s.area)}` : '',
-          s.category ? `🍴 ${this.escapeHtml(s.category)}` : '',
-          s.specialty ? `🍺 ${this.escapeHtml(s.specialty)}` : ''
-        ].filter(Boolean).join(' | ');
+          s.category ? `🍴 ${this.escapeHtml(s.category)}` : ''
+        ].filter(Boolean).join(' / ');
 
         if (isUsed) {
           return `
-            <div class="coupon-select-item is-used" style="min-height:56px; box-sizing:border-box; background:rgba(30,41,59,0.7); border:1px solid #475569; border-radius:6px; padding:8px 10px; display:flex; align-items:center; gap:10px; cursor:not-allowed;">
+            <div class="coupon-select-item is-used" style="min-height:48px; box-sizing:border-box; background:rgba(30,41,59,0.7); border:1px solid #475569; border-radius:6px; padding:6px 8px; display:flex; align-items:center; gap:8px; cursor:not-allowed;">
               ${logoHtml}
-              <div class="coupon-select-item-info" style="flex:1; min-width:0;">
-                <div class="coupon-select-item-name" style="font-weight:bold; color:#cbd5e1; font-size:14px; line-height:1.35;">${this.escapeHtml(s.name)}</div>
-                ${metaInfo ? `<div style="font-size:11px; color:#94a3b8; margin-top:2px;">${metaInfo}</div>` : ''}
+              <div class="coupon-select-item-info" style="flex:1; min-width:0; overflow:hidden;">
+                <div class="coupon-select-item-name" style="font-weight:bold; color:#cbd5e1; font-size:13px; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${this.escapeHtml(s.name)}</div>
+                ${metaInfo ? `<div style="font-size:10px; color:#94a3b8; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${metaInfo}</div>` : ''}
               </div>
-              <div style="font-size:11px; color:#f87171; font-weight:bold; white-space:nowrap; padding:4px 8px; border:1px solid #ef4444; border-radius:4px; background:rgba(239,68,68,0.15); letter-spacing:1px; flex-shrink:0;">
+              <div style="font-size:10px; color:#f87171; font-weight:bold; white-space:nowrap; padding:3px 6px; border:1px solid #ef4444; border-radius:4px; background:rgba(239,68,68,0.15); flex-shrink:0;">
                 USED (利用済)
               </div>
             </div>
@@ -1716,13 +1715,13 @@ class YoidoreQuestApp {
         }
 
         return `
-          <div class="coupon-select-item selectable-store-item" data-store-id="${s.id}" style="min-height:56px; box-sizing:border-box; cursor:pointer;">
+          <div class="coupon-select-item selectable-store-item" data-store-id="${s.id}" style="min-height:48px; box-sizing:border-box; background:#101424; border:1px solid #33406b; border-radius:6px; padding:6px 8px; display:flex; align-items:center; gap:8px; cursor:pointer;">
             ${logoHtml}
-            <div class="coupon-select-item-info" style="flex:1; min-width:0;">
-              <div class="coupon-select-item-name" style="font-weight:bold; color:var(--text-yellow); font-size:14px; line-height:1.35;">${this.escapeHtml(s.name)}</div>
-              ${metaInfo ? `<div style="font-size:11px; color:var(--text-cyan); margin-top:2px;">${metaInfo}</div>` : ''}
+            <div class="coupon-select-item-info" style="flex:1; min-width:0; overflow:hidden;">
+              <div class="coupon-select-item-name" style="font-weight:bold; color:var(--text-yellow); font-size:13px; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${this.escapeHtml(s.name)}</div>
+              ${metaInfo ? `<div style="font-size:10px; color:var(--text-cyan); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${metaInfo}</div>` : ''}
             </div>
-            <div style="font-size:12px; color:var(--text-green); font-weight:bold; white-space:nowrap; padding:4px 8px; border:1px solid #22c55e; border-radius:4px; background:rgba(34,197,94,0.15); flex-shrink:0;">
+            <div style="font-size:11px; color:var(--text-green); font-weight:bold; white-space:nowrap; padding:4px 7px; border:1px solid #22c55e; border-radius:4px; background:rgba(34,197,94,0.15); flex-shrink:0;">
               選ぶ ➔
             </div>
           </div>
@@ -1731,19 +1730,19 @@ class YoidoreQuestApp {
     };
 
     overlay.innerHTML = `
-      <div class="rpg-modal-window gold-border" style="max-width:460px; width:92%; max-height:88vh; display:flex; flex-direction:column;">
-        <div class="rpg-window-header" style="display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:15px;">🏮 クーポンを利用する酒場の選択</span>
-          <button id="store-modal-close-btn" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer;">✕</button>
+      <div class="rpg-modal-window gold-border" style="max-width:440px; width:94%; max-height:86vh; display:flex; flex-direction:column; padding:12px 10px;">
+        <div class="rpg-window-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <span style="font-size:15px; font-weight:bold;">🏮 クーポン利用酒場の選択</span>
+          <button id="store-modal-close-btn" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer; padding:0 4px;">✕</button>
         </div>
-        <div style="padding:10px 0 6px; font-size:13px; color:var(--text-yellow); line-height:1.4;">
-          クーポンを利用するお店をタップしてください。<br>
-          <span style="font-size:12px; color:var(--text-dim);">※利用済みのお店は選択できません（1店舗1回まで）。</span>
+        <div style="padding:4px 0 6px; font-size:12px; color:var(--text-yellow); line-height:1.4;">
+          クーポンを利用する酒場を選択してください。<br>
+          <span style="font-size:11px; color:var(--text-dim);">※同一酒場での利用はシーズン中1回限りです。</span>
         </div>
-        <div style="margin-bottom:8px;">
-          <input type="text" id="coupon-store-search-input" placeholder="🔍 店舗名・エリアで検索..." style="width:100%; box-sizing:border-box; padding:8px 10px; background:#0f172a; border:1px solid var(--border-gold); color:#fff; border-radius:6px; font-size:13px;" />
+        <div style="margin-bottom:6px;">
+          <input type="text" id="coupon-store-search-input" placeholder="🔍 酒場名・エリアで検索..." style="width:100%; box-sizing:border-box; padding:7px 10px; background:#0f172a; border:1px solid var(--border-gold); color:#fff; border-radius:6px; font-size:12px;" />
         </div>
-        <div class="coupon-select-list" id="coupon-stores-container" style="flex:1; overflow-y:auto; max-height:55vh;">
+        <div class="coupon-select-list" id="coupon-stores-container" style="flex:1; overflow-y:auto; max-height:54vh; display:flex; flex-direction:column; gap:6px;">
           ${renderStoreList()}
         </div>
       </div>
@@ -1894,34 +1893,34 @@ class YoidoreQuestApp {
     const couponStartDateStr = info?.couponStartDateStr || '翌日';
 
     overlay.innerHTML = `
-      <div class="rpg-modal-window gold-border" style="max-width: 480px; width: 95%; max-height: 92vh; overflow-y: auto;">
-        <div class="rpg-window-header" style="display:flex; justify-content:space-between; align-items:center; padding: 8px 14px;">
-          <span style="font-size: 16px;">🎟️ クーポン店頭提示画面</span>
-          <button id="store-redeem-close-btn" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer; padding: 0 4px;">✕</button>
+      <div class="rpg-modal-window gold-border" style="max-width: 440px; width: 94%; max-height: 90vh; overflow-y: auto; padding: 14px 10px;">
+        <div class="rpg-window-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+          <span style="font-size: 15px; font-weight: bold;">🎟️ 酒場クーポン店頭提示</span>
+          <button id="store-redeem-close-btn" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer; padding: 0 4px;">✕</button>
         </div>
-        <div class="staff-redeem-box" id="store-redeem-content" style="padding: 12px 6px;">
-          <div style="font-size: 24px; font-weight: bold; color: var(--text-yellow); margin: 6px 0 14px; line-height: 1.3;">
+        <div class="staff-redeem-box" id="store-redeem-content" style="padding: 8px 4px;">
+          <div style="font-size: 20px; font-weight: bold; color: var(--text-yellow); margin: 4px 0 10px; line-height: 1.3;">
             🏮 ${this.escapeHtml(store.name)}
           </div>
           
-          <div style="background: #0f152b; border: 2px dashed var(--border-gold); padding: 16px 12px; border-radius: 8px; margin-bottom: 16px; text-align: center;">
-            <div style="font-size: 13px; color: var(--text-cyan); margin-bottom: 4px; font-weight: bold;">【${this.escapeHtml(tier.title || 'ハシゴ酒達成特典')}】</div>
-            <div style="font-size: 20px; font-weight: bold; color: #fff; line-height: 1.4;">🍺 酒場特典チケット</div>
+          <div style="background: #0f152b; border: 2px dashed var(--border-gold); padding: 12px 10px; border-radius: 8px; margin-bottom: 12px; text-align: center;">
+            <div style="font-size: 12px; color: var(--text-cyan); margin-bottom: 2px; font-weight: bold;">【${this.escapeHtml(tier.title || 'ハシゴ酒達成特典')}】</div>
+            <div style="font-size: 18px; font-weight: bold; color: #fff; line-height: 1.3;">🍺 酒場特典チケット</div>
           </div>
 
           ${isExpired ? `
-            <div style="padding: 16px; border: 1px solid #ef4444; border-radius: 8px; background: #450a0a; color: #fca5a5; font-size: 14px; text-align: center; line-height: 1.5;">
+            <div style="padding: 14px 10px; border: 1px solid #ef4444; border-radius: 8px; background: #450a0a; color: #fca5a5; font-size: 13px; text-align: center; line-height: 1.5;">
               🔒 <strong>利用期限終了</strong><br>
               クーポンの利用期限は終了いたしました。
             </div>
           ` : (!isCouponUsable ? `
-            <div style="padding: 16px 12px; border: 1px solid #f59e0b; border-radius: 8px; background: rgba(245,158,11,0.15); color: #fde68a; font-size: 14px; text-align: center; line-height: 1.6;">
+            <div style="padding: 14px 10px; border: 1px solid #f59e0b; border-radius: 8px; background: rgba(245,158,11,0.15); color: #fde68a; font-size: 13px; text-align: center; line-height: 1.5;">
               🔒 <strong>後夜祭期間にご利用いただけます</strong><br>
-              <strong style="color: var(--text-yellow); font-size: 17px; display: block; margin: 8px 0;">📅 ${couponStartDateStr} 〜 ${window.questApi?.currentSeason?.coupon_valid_until || ''}</strong>
-              <span style="font-size:12px; color:#cbd5e1;">※本開催期間中はご利用いただけません。</span>
+              <strong style="color: var(--text-yellow); font-size: 15px; display: block; margin: 6px 0;">📅 ${couponStartDateStr} 〜 ${window.questApi?.currentSeason?.coupon_valid_until || ''}</strong>
+              <span style="font-size:11px; color:#cbd5e1;">※本開催期間中はご利用いただけません。</span>
             </div>
           ` : `
-            <div class="staff-warning-banner" style="font-size: 13px; line-height: 1.5; padding: 8px 10px; margin-bottom: 12px;">
+            <div class="staff-warning-banner" style="font-size: 12px; line-height: 1.4; padding: 8px 10px; margin-bottom: 12px;">
               ⚠️ <strong>【酒場スタッフ専用】</strong><br>
               お会計時にスライドして使用済みにしてください。
             </div>
@@ -1929,7 +1928,7 @@ class YoidoreQuestApp {
               <div class="swipe-track">
                 <div class="swipe-fill"></div>
                 <div class="swipe-text">
-                  <span>👉 スライドして使用済みにする</span>
+                  <span style="white-space:nowrap;">👉 スライドして使用</span>
                 </div>
                 <div class="swipe-thumb">
                   <i class="fa-solid fa-angles-right"></i>
@@ -1967,12 +1966,12 @@ class YoidoreQuestApp {
           if (contentBox) {
             contentBox.innerHTML = `
               <div class="redeem-success-box">
-                <div style="font-size: 44px; margin-bottom: 8px;">🍺</div>
-                <div style="font-size: 20px; font-weight: bold; color: #34d399; margin-bottom: 6px;">クーポン利用完了！</div>
-                <div style="font-size: 14px; color: #e2e8f0; line-height: 1.5;">
+                <div style="font-size: 40px; margin-bottom: 6px;">🍺</div>
+                <div style="font-size: 18px; font-weight: bold; color: #34d399; margin-bottom: 4px;">クーポン利用完了！</div>
+                <div style="font-size: 13px; color: #e2e8f0; line-height: 1.4;">
                   「${this.escapeHtml(store.name)}」でご利用いただきました。<br>ご来店ありがとうございます！
                 </div>
-                <div class="coupon-used-stamp" style="position: static; transform: none; display: inline-block; margin-top: 14px; font-size: 15px;">USED / 利用済</div>
+                <div class="coupon-used-stamp" style="position: static; transform: none; display: inline-block; margin-top: 12px; font-size: 14px;">USED / 利用済</div>
               </div>
             `;
           }
@@ -2000,25 +1999,25 @@ class YoidoreQuestApp {
     const goodsTitle = tier.goods_name || tier.title || '記念品グッズ';
 
     overlay.innerHTML = `
-      <div class="rpg-modal-window gold-border" style="max-width: 480px; width: 95%; max-height: 92vh; overflow-y: auto;">
-        <div class="rpg-window-header" style="display:flex; justify-content:space-between; align-items:center; padding: 8px 14px;">
-          <span style="font-size: 16px;">🎁 記念品・グッズ引換画面</span>
-          <button id="goods-redeem-close-btn" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer; padding: 0 4px;">✕</button>
+      <div class="rpg-modal-window gold-border" style="max-width: 440px; width: 94%; max-height: 90vh; overflow-y: auto; padding: 14px 10px;">
+        <div class="rpg-window-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+          <span style="font-size: 15px; font-weight: bold;">🎁 記念品受取画面</span>
+          <button id="goods-redeem-close-btn" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer; padding: 0 4px;">✕</button>
         </div>
-        <div class="staff-redeem-box" id="goods-redeem-content" style="padding: 12px 6px;">
-          <div style="font-size: 22px; font-weight: bold; color: var(--text-yellow); margin: 6px 0 12px;">
+        <div class="staff-redeem-box" id="goods-redeem-content" style="padding: 8px 4px;">
+          <div style="font-size: 19px; font-weight: bold; color: var(--text-yellow); margin: 4px 0 10px; line-height: 1.3;">
             🎁 ${this.escapeHtml(goodsTitle)}
           </div>
-          <div style="font-size: 13px; color: var(--text-cyan); margin-bottom: 12px; background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 6px;">
+          <div style="font-size: 12px; color: var(--text-cyan); margin-bottom: 10px; background: rgba(0,0,0,0.4); padding: 7px 10px; border-radius: 6px; text-align: left;">
             📍 <strong>引換場所:</strong> ${this.escapeHtml(tier.exchange_location || '全参加酒場または運営本部')}
           </div>
           ${tier.exchange_notice ? `
-            <div style="font-size: 13px; color: #fde68a; margin-bottom: 14px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; text-align: left; line-height: 1.5;">
+            <div style="font-size: 12px; color: #fde68a; margin-bottom: 12px; background: rgba(0,0,0,0.3); padding: 8px 10px; border-radius: 6px; text-align: left; line-height: 1.4;">
               ℹ️ ${this.escapeHtml(tier.exchange_notice)}
             </div>
           ` : ''}
 
-          <div class="staff-warning-banner" style="font-size: 13px; line-height: 1.5; padding: 8px 10px; margin-bottom: 12px;">
+          <div class="staff-warning-banner" style="font-size: 12px; line-height: 1.4; padding: 8px 10px; margin-bottom: 12px;">
             ⚠️ <strong>【スタッフ確認専用】</strong><br>
             記念品お渡し時にスライドして受取完了にしてください。
           </div>
@@ -2026,7 +2025,7 @@ class YoidoreQuestApp {
             <div class="swipe-track">
               <div class="swipe-fill"></div>
               <div class="swipe-text">
-                <span>👉 スライドして受取完了</span>
+                <span style="white-space:nowrap;">👉 スライドして受取</span>
               </div>
               <div class="swipe-thumb">
                 <i class="fa-solid fa-angles-right"></i>
@@ -2396,7 +2395,7 @@ class YoidoreQuestApp {
             <div style="font-size:14px; color:#fef08a; font-weight:bold;">『${safeStoreName}』</div>
             ${storeArea ? `<div style="font-size:11px; color:#cbd5e1; margin-bottom:4px;">(${storeArea})</div>` : ''}
             <div style="margin-top:6px; font-size:13px; color:#e2e8f0;">
-              🏆 制覇店舗数: <strong style="color:#4ade80; font-size:16px;">${visitCountDisplay} 軒達成</strong>
+              🏆 制覇酒場数: <strong style="color:#4ade80; font-size:16px;">${visitCountDisplay} 軒達成</strong>
             </div>
           </div>
 
@@ -2408,14 +2407,14 @@ class YoidoreQuestApp {
               </div>
               <div style="font-size:12px; color:#fed7aa; margin-top:3px;">
                 ${unlockedTier.reward_type === 'goods' ? 
-                  `🎁 記念品（${this.escapeHtml(unlockedTier.goods_name || unlockedTier.title)}）引換券を獲得可能！` : 
-                  `お好きな対象店舗クーポンを ${unlockedTier.selectable_count} 軒獲得可能！`
+                  `🎁 記念品（${this.escapeHtml(unlockedTier.goods_name || unlockedTier.title)}）を受け取り可能！` : 
+                  `お好きな対象酒場のクーポンを ${unlockedTier.selectable_count} 軒分利用可能！`
                 }
               </div>
             </div>
           ` : ''}
 
-          <button id="btn-close-levelup-modal" class="treasure-claim-btn" style="width:100%; font-size:14px; padding:11px; margin-top:4px;">
+          <button id="btn-close-levelup-modal" class="treasure-claim-btn" style="width:100%; font-size:14px; padding:11px; margin-top:4px; white-space:nowrap;">
             📜 冒険の書を確認する ▶
           </button>
         </div>
@@ -3256,10 +3255,10 @@ class YoidoreQuestApp {
               <div class="rpg-window gold-border" style="background: linear-gradient(135deg, rgba(120, 53, 15, 0.4) 0%, rgba(69, 26, 3, 0.4) 100%);">
                 <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
                   <div>
-                    <div style="font-size:14px; font-weight:bold; color:var(--text-yellow);">🎟️ 酒場特典クーポン利用可能</div>
-                    <div style="font-size:12px; color:#fed7aa;">保有残枠: <strong>${availableCount} 店舗分</strong> (お会計時に提示)</div>
+                    <div style="font-size:14px; font-weight:bold; color:var(--text-yellow); white-space:nowrap;">🎟️ 酒場特典クーポン利用可能</div>
+                    <div style="font-size:12px; color:#fed7aa;">保有残枠: <strong>${availableCount} 軒分</strong> (お会計時に提示)</div>
                   </div>
-                  <button id="btn-detail-use-coupon" class="treasure-claim-btn" style="padding:8px 14px; font-size:13px; margin:0; background:linear-gradient(180deg, #10b981 0%, #047857 100%); border-color:#34d399;">
+                  <button id="btn-detail-use-coupon" class="treasure-claim-btn" style="padding:8px 12px; font-size:13px; margin:0; background:linear-gradient(180deg, #10b981 0%, #047857 100%); border-color:#34d399; white-space:nowrap; flex-shrink:0;">
                     🍺 クーポンを使う ▶
                   </button>
                 </div>
