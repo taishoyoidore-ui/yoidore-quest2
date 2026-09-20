@@ -404,34 +404,76 @@ class YoidoreQuestApp {
     } catch (e) {}
   }
 
-  /* ドラクエ風 8bit レベルアップ・ファンファーレSE */
+  /* ドラクエ完全再現 8bit レベルアップ・ファンファーレSE */
   playLevelUpSE() {
     if (!this.soundEnabled || !this.audioCtx) return;
     try {
+      if (this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume();
+      }
       const now = this.audioCtx.currentTime;
-      const notes = [
-        { freq: 349.23, duration: 0.08, delay: 0 },      // F4
-        { freq: 392.00, duration: 0.08, delay: 0.08 },   // G4
-        { freq: 440.00, duration: 0.08, delay: 0.16 },   // A4
-        { freq: 466.16, duration: 0.08, delay: 0.24 },   // Bb4
-        { freq: 523.25, duration: 0.12, delay: 0.32 },   // C5
-        { freq: 587.33, duration: 0.12, delay: 0.44 },   // D5
-        { freq: 659.25, duration: 0.16, delay: 0.56 },   // E5
-        { freq: 698.46, duration: 0.75, delay: 0.72 }    // F5
-      ];
-      notes.forEach(n => {
+
+      // 共通トーン生成ヘルパー（ファミコンAPU再現）
+      const playTone = (freq, startTime, duration, type = 'square', peakGain = 0.12, isLong = false) => {
         const osc = this.audioCtx.createOscillator();
         const gain = this.audioCtx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(n.freq, now + n.delay);
-        gain.gain.setValueAtTime(0.14, now + n.delay);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + n.delay + n.duration);
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, startTime);
+
+        // クリックノイズ防止のアタック
+        gain.gain.setValueAtTime(0.0001, startTime);
+        gain.gain.linearRampToValueAtTime(peakGain, startTime + 0.006);
+
+        if (isLong) {
+          // 最終ロングトーンはサステインを保ちつつ自然にディケイ
+          gain.gain.setValueAtTime(peakGain, startTime + duration * 0.35);
+          gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+        } else {
+          // 歯切れの良いスタッカート
+          gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+        }
+
         osc.connect(gain);
         gain.connect(this.audioCtx.destination);
-        osc.start(now + n.delay);
-        osc.stop(now + n.delay + n.duration);
-      });
-    } catch (e) {}
+        osc.start(startTime);
+        osc.stop(startTime + duration + 0.02);
+      };
+
+      // テンポ設定（BPM 約160相当）
+      const t16 = 0.075; // 16分音符 (75ms)
+      const t8 = 0.15;   // 8分音符 (150ms)
+
+      // --- 1. 主旋律 (Lead: 矩形波 50% パルス) ---
+      // 冒頭の駆け上がり (ファ - ソ - ラ - シ♭)
+      playTone(349.23, now,          t16 * 0.92, 'square', 0.12); // F4
+      playTone(392.00, now + t16,    t16 * 0.92, 'square', 0.12); // G4
+      playTone(440.00, now + t16 * 2, t16 * 0.92, 'square', 0.12); // A4
+      playTone(466.16, now + t16 * 3, t16 * 0.92, 'square', 0.12); // Bb4
+
+      // テッ・テッ・テッ・テー♪ (ド - ラ - ド - 高ファ)
+      const phraseStart = now + t16 * 4;
+      playTone(523.25, phraseStart,          t8 * 0.72, 'square', 0.13); // C5
+      playTone(440.00, phraseStart + t8,     t8 * 0.72, 'square', 0.13); // A4
+      playTone(523.25, phraseStart + t8 * 2, t8 * 0.72, 'square', 0.13); // C5
+      playTone(698.46, phraseStart + t8 * 3, 1.15,      'square', 0.14, true); // F5
+
+      // --- 2. 和音・ハモリ (Harmony: 矩形波 3度/6度下 & コードトーン) ---
+      playTone(440.00, phraseStart,          t8 * 0.72, 'square', 0.08); // A4
+      playTone(349.23, phraseStart + t8,     t8 * 0.72, 'square', 0.08); // F4
+      playTone(440.00, phraseStart + t8 * 2, t8 * 0.72, 'square', 0.08); // A4
+      playTone(523.25, phraseStart + t8 * 3, 1.15,      'square', 0.09, true); // C5
+      playTone(440.00, phraseStart + t8 * 3, 1.15,      'square', 0.07, true); // A4
+
+      // --- 3. ベース音 (Bass: ファミコン特有の三角波 Triangle) ---
+      playTone(174.61, phraseStart,          t8 * 0.85, 'triangle', 0.14); // F3
+      playTone(174.61, phraseStart + t8,     t8 * 0.85, 'triangle', 0.14); // F3
+      playTone(174.61, phraseStart + t8 * 2, t8 * 0.85, 'triangle', 0.14); // F3
+      playTone(174.61, phraseStart + t8 * 3, 1.15,      'triangle', 0.15, true); // F3
+      playTone(87.31,  phraseStart + t8 * 3, 1.15,      'triangle', 0.12, true); // F2
+
+    } catch (e) {
+      console.warn('Level up sound failed:', e);
+    }
   }
 
   toggleSound() {
@@ -767,7 +809,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.20.05';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.20.06';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>

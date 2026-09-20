@@ -64,7 +64,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.20.05';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.20.06';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
