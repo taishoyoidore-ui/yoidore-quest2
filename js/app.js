@@ -318,6 +318,16 @@ class YoidoreQuestApp {
 
   startGame() {
     if (window.debugLog) window.debugLog('▶ PUSH STARTがクリックされました');
+    
+    // 即座にオーバーレイを非表示（CSSアニメーションとdisplay:none併用）
+    const overlay = document.getElementById('start-overlay');
+    if (overlay) {
+      overlay.classList.add('fade-out');
+      overlay.style.display = 'none';
+      if (window.debugLog) window.debugLog('✨ スタートオーバーレイを非表示にしました');
+    }
+    this.isStarted = true;
+
     try {
       if (!this.audioCtx) {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -332,22 +342,18 @@ class YoidoreQuestApp {
       if (window.debugLog) window.debugLog('⚠️ 音声初期化スキップ: ' + e.message);
     }
 
-    this.isStarted = true;
     try {
       this.playStartSE();
     } catch (e) {}
 
-    const overlay = document.getElementById('start-overlay');
-    if (overlay) {
-      overlay.classList.add('fade-out');
-      overlay.style.display = 'none'; // 即時非表示を確実化
-      if (window.debugLog) window.debugLog('✨ スタートオーバーレイを非表示にしました');
+    try {
+      this.render();
+      setTimeout(() => {
+        this.typeMessage('大正のオモロイ酒場を探そう！');
+      }, 250);
+    } catch (e) {
+      console.error('Render error in startGame:', e);
     }
-
-    this.render();
-    setTimeout(() => {
-      this.typeMessage('大正のオモロイ酒場を探そう！');
-    }, 250);
   }
 
   playTone(freq, duration, type = 'square') {
@@ -810,7 +816,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.01';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.02';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1466,35 +1472,6 @@ class YoidoreQuestApp {
         </div>
 
         <!-- 5. 開発・デモ用クイックテスト操作 (アクティブシーズンのみ) -->
-        ${isCurrentSeason ? `
-          <div class="rpg-window" style="margin-top:20px; border:1px dashed #f59e0b; background: rgba(30, 25, 15, 0.7);">
-            <div class="rpg-window-header" style="color: #fbbf24;">
-              <span>🧪 開発・レビュー用テスト機能</span>
-            </div>
-            <div style="padding: 10px 4px 6px; font-size: 13px; color: #e2e8f0; line-height: 1.5;">
-              ※QR読取の動作確認機能です。酒場サインをシミュレートし、宝箱解放テストが行えます。
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
-              <button id="btn-quick-test-5visits" class="command-button" style="background: linear-gradient(180deg, #d97706 0%, #b45309 100%); color: #fff; border: 1px solid #f59e0b; padding: 10px 6px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer;">
-                🍺 +5酒場サイン
-              </button>
-              <button id="btn-quick-test-10visits" class="command-button" style="background: linear-gradient(180deg, #b45309 0%, #78350f 100%); color: #fef08a; border: 1px solid #f59e0b; padding: 10px 6px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer;">
-                🍺 +10酒場サイン
-              </button>
-              <button id="btn-quick-test-15visits" class="command-button" style="background: linear-gradient(180deg, #7c2d12 0%, #451a03 100%); color: #fde047; border: 1px solid #eab308; padding: 10px 6px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer;">
-                🍺 +15酒場サイン
-              </button>
-              <button id="btn-quick-test-reset" class="command-button" style="background: #334155; color: #ffffff; border: 1px solid #475569; padding: 10px 6px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: bold;">
-                🗑️ 履歴リセット
-              </button>
-            </div>
-          </div>
-        ` : ''}
-        ${this.getFooterVersionHTML()}
-      </div>
-    `;
-
-        <!-- 6. 開発・デモ用クイックテスト操作 (アクティブシーズンのみ) -->
         ${isCurrentSeason ? `
           <div class="rpg-window" style="margin-top:20px; border:1px dashed #f59e0b; background: rgba(30, 25, 15, 0.7);">
             <div class="rpg-window-header" style="color: #fbbf24;">
@@ -3338,7 +3315,15 @@ class YoidoreQuestApp {
 
 window.YoidoreQuestApp = YoidoreQuestApp;
 
-// ドム読み込み完了時にアプリ起動
-document.addEventListener('DOMContentLoaded', () => {
-  window.app = new YoidoreQuestApp();
-});
+// DOM読み込み完了時にアプリ起動（タイミング問わず即座に確実に初期化）
+function initYoidoreApp() {
+  if (!window.app) {
+    window.app = new YoidoreQuestApp();
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initYoidoreApp);
+} else {
+  initYoidoreApp();
+}
