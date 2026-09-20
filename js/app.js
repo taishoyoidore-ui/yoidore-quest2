@@ -857,7 +857,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.16';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.17';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1261,13 +1261,13 @@ class YoidoreQuestApp {
 
         let actionHtml = '';
         let statusBadge = '';
+        const stampHtml = isUsed ? `<div class="treasure-card-stamp-used">USED</div>` : '';
 
         if (isUsed) {
-          statusBadge = '<span class="treasure-tier-status status-claimed">📦 受取完了</span>';
+          statusBadge = ''; // 既存の「受取完了」ラベルを削除
           actionHtml = `
-            <div class="reward-completed-box" style="padding:10px; background:rgba(0,0,0,0.3); border-radius:6px; text-align:center; margin-top:8px;">
-              <div class="stamp-hanko-badge large" style="font-size:15px; padding:3px 14px; margin-bottom:6px;">USED</div>
-              <div style="font-size:12px; color:#94a3b8;">受取日時: ${new Date(goodsCoupon.used_at || goodsCoupon.acquired_at).toLocaleString('ja-JP')}</div>
+            <div style="font-size:12px; color:#94a3b8; text-align:center; padding:4px 0;">
+              受取日時: ${new Date(goodsCoupon.used_at || goodsCoupon.acquired_at).toLocaleString('ja-JP')}
             </div>
           `;
         } else if (isReached) {
@@ -1283,7 +1283,8 @@ class YoidoreQuestApp {
         }
 
         return `
-          <div class="treasure-tier-card ${isReached || isClaimed ? 'unlocked' : ''}">
+          <div class="treasure-tier-card ${isReached || isClaimed ? 'unlocked' : ''}" style="position:relative; overflow:hidden;">
+            ${stampHtml}
             <div class="treasure-tier-topbar">
               <span class="treasure-tier-type-badge badge-goods">🎁 グッズ引換</span>
               ${statusBadge}
@@ -1316,9 +1317,10 @@ class YoidoreQuestApp {
 
       let statusBadge = '';
       let actionHtml = '';
+      const stampHtml = isAllUsed ? `<div class="treasure-card-stamp-used">USED</div>` : '';
 
       if (isAllUsed) {
-        statusBadge = '<span class="treasure-tier-status status-claimed">👑 特典コンプリート</span>';
+        statusBadge = ''; // 既存の「特典コンプリート」ラベルを削除
       } else if (isReached) {
         statusBadge = `<span class="treasure-tier-status status-unlocked" style="background:#0284c7; border-color:#38bdf8;">✨ 利用可能</span>`;
       } else {
@@ -1333,7 +1335,7 @@ class YoidoreQuestApp {
           const storeName = st.name || c.store_id || '酒場';
           const usedTimeStr = c.used_at ? new Date(c.used_at).toLocaleDateString('ja-JP', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '利用済';
           return `
-            <div class="tier-usage-item used" style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.06); padding:6px 10px; border-radius:4px; font-size:12px;">
+            <div class="tier-usage-item used" style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:4px; font-size:12px;">
               <span class="usage-store-name" style="font-weight:bold; color:#f87171;">${this.escapeHtml(storeName)}</span>
               <span class="usage-date" style="font-size:11px; color:#94a3b8;">${usedTimeStr}</span>
             </div>
@@ -1341,8 +1343,8 @@ class YoidoreQuestApp {
         }).join('');
 
         historyHtml = `
-          <div class="tier-usage-history-box" style="width:100%; box-sizing:border-box; margin-bottom:10px; background:rgba(0,0,0,0.35); border:1px solid rgba(250,204,21,0.25); border-radius:6px; padding:8px 10px;">
-            <div style="color:var(--text-yellow); font-weight:bold; margin-bottom:6px; font-size:12px;">▼ クーポン利用済み（${usedCount} / ${maxCount} 軒）</div>
+          <div class="tier-usage-history-box" style="width:100%; box-sizing:border-box; margin-bottom:10px; background:rgba(0,0,0,0.35); border:1px solid rgba(239,68,68,0.25); border-radius:6px; padding:8px 10px;">
+            <div style="color:#f87171; font-weight:bold; margin-bottom:6px; font-size:12px;">▼ クーポン利用済み（${usedCount} / ${maxCount} 軒）</div>
             <div class="tier-history-list" style="display:flex; flex-direction:column; gap:4px;">
               ${historyItems}
             </div>
@@ -1351,14 +1353,7 @@ class YoidoreQuestApp {
       }
 
       if (isAllUsed) {
-        actionHtml = `
-          ${historyHtml}
-          <div style="width:100%; box-sizing:border-box; text-align:center; padding:10px 0 4px;">
-            <div class="stamp-hanko-badge large" style="font-size:18px; padding:6px 20px;">
-              USED
-            </div>
-          </div>
-        `;
+        actionHtml = historyHtml;
       } else if (isReached) {
         if (!isCurrentSeason || isExpired) {
           actionHtml = `
@@ -1381,7 +1376,8 @@ class YoidoreQuestApp {
       }
 
       return `
-        <div class="treasure-tier-card ${isReached ? 'unlocked' : ''}">
+        <div class="treasure-tier-card ${isReached ? 'unlocked' : ''}" style="position:relative; overflow:hidden;">
+          ${stampHtml}
           <div class="treasure-tier-topbar">
             <span class="treasure-tier-type-badge badge-coupon">🍺 酒場クーポン (${maxCount}回分)</span>
             ${statusBadge}
