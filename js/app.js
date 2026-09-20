@@ -1238,101 +1238,78 @@ class YoidoreQuestApp {
       }
 
       // クーポン型特典
-      const tierCoupons = userCoupons.filter(c => c.reward_type !== 'goods' && (Number(c.reward_tier_id) === Number(tier.id) || (!c.reward_tier_id && Number(tier.id) === 1)));
-      const totalClaimed = tierCoupons.length;
-      const isClaimed = totalClaimed > 0;
       const maxCount = tier.selectable_count || 5;
-      const usedCoupons = tierCoupons.filter(c => c.status === 'used');
-      const activeCoupons = tierCoupons.filter(c => c.status !== 'used');
-      const remainingCount = activeCoupons.length;
-      const isAllUsed = isClaimed && remainingCount === 0;
+      const usedCoupons = userCoupons.filter(c => c.reward_type !== 'goods' && c.status === 'used' && c.store_id && (Number(c.reward_tier_id) === Number(tier.id) || (!c.reward_tier_id && Number(tier.id) === 1)));
+      const usedCount = usedCoupons.length;
+      const remainCount = Math.max(0, maxCount - usedCount);
+      const isAllUsed = isReached && remainCount === 0;
 
       let statusBadge = '';
       let actionHtml = '';
 
       if (isAllUsed) {
-        statusBadge = '<span class="treasure-tier-status status-claimed">🏆 完了 (全回数利用済)</span>';
-      } else if (isClaimed) {
-        statusBadge = `<span class="treasure-tier-status status-unlocked" style="background:#0284c7; border-color:#38bdf8;">🎟️ 残り ${remainingCount} / ${totalClaimed} 回</span>`;
+        statusBadge = '<span class="treasure-tier-status status-claimed">👑 特典コンプリート</span>';
       } else if (isReached) {
-        statusBadge = isCurrentSeason ? '<span class="treasure-tier-status status-unlocked">✨ 解放可能！</span>' : '<span class="treasure-tier-status status-locked">過去回達成</span>';
+        statusBadge = `<span class="treasure-tier-status status-unlocked" style="background:#0284c7; border-color:#38bdf8;">✨ 利用可能 (残り ${remainCount} / ${maxCount} 店舗)</span>`;
       } else {
         statusBadge = `<span class="treasure-tier-status status-locked">🔒 あと ${remainingVisits}軒</span>`;
       }
 
-      if (isClaimed) {
-        // 利用済み店舗の履歴HTML
-        const historyItemsHtml = usedCoupons.map(c => {
+      // 利用済み店舗の履歴HTML（ボタンの上部に配置）
+      let historyHtml = '';
+      if (usedCount > 0) {
+        const historyItems = usedCoupons.map(c => {
           const st = stores.find(s => s.id === c.store_id) || c.stores || {};
           const storeName = st.name || c.store_id || '酒場';
           const usedTimeStr = c.used_at ? new Date(c.used_at).toLocaleDateString('ja-JP', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '利用済';
           return `
-            <div class="tier-usage-item used">
-              <span class="usage-check">✅</span>
-              <span class="usage-store-name">${this.escapeHtml(storeName)}</span>
-              <span class="usage-date">${usedTimeStr}</span>
+            <div class="tier-usage-item used" style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.06); padding:5px 8px; border-radius:4px; font-size:12px;">
+              <span class="usage-store-name" style="font-weight:bold; color:#86efac;">✅ ${this.escapeHtml(storeName)}</span>
+              <span class="usage-date" style="font-size:11px; color:#94a3b8;">${usedTimeStr}</span>
             </div>
           `;
         }).join('');
 
-        // 未使用枠の表示
-        let unusedItemsHtml = '';
-        if (remainingCount > 0) {
-          unusedItemsHtml = `
-            <div class="tier-usage-item unused">
-              <span class="usage-ticket-icon">🎟️</span>
-              <span class="usage-unused-text">未使用クーポン枠（残り <strong>${remainingCount}</strong> 回分）</span>
-            </div>
-          `;
-        }
-
-        let useButtonHtml = '';
-        if (remainingCount > 0) {
-          if (!isCurrentSeason || isExpired) {
-            useButtonHtml = `<div style="padding:10px; text-align:center; color:#ef4444; font-weight:bold; font-size:13px; background:rgba(239,68,68,0.1); border-radius:6px; margin-top:8px;">🔒 クーポン利用期間は終了しました</div>`;
-          } else {
-            useButtonHtml = `
-              <button class="treasure-claim-btn btn-use-store-coupon" data-tier-id="${tier.id}" style="margin-top:8px; background:linear-gradient(180deg, #10b981 0%, #047857 100%); border-color:#34d399;">
-                🏮 お店を選んでクーポンを使う（残り ${remainingCount}回）
-              </button>
-            `;
-          }
-        } else {
-          useButtonHtml = `
-            <div class="reward-completed-banner" style="margin-top:8px; padding:10px; background:rgba(34,197,94,0.15); border:1px solid #22c55e; border-radius:6px; color:#86efac; font-size:13px; font-weight:bold; text-align:center;">
-              🎉 規定の ${totalClaimed}回 すべてのご利用が完了しました！
-            </div>
-          `;
-        }
-
-        actionHtml = `
-          <div class="tier-coupon-active-panel" style="margin-top:6px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:6px 10px; border-radius:6px; font-size:13px;">
-              <span style="color:var(--text-cyan);">利用可能枠:</span>
-              <span style="font-weight:bold; font-size:15px; color:#fff;"><strong class="text-yellow">${remainingCount}</strong> / ${totalClaimed} 回</span>
-            </div>
-            ${useButtonHtml}
-            <div class="tier-usage-history-box" style="margin-top:8px; background:rgba(0,0,0,0.3); border-radius:6px; padding:8px 10px; font-size:12px;">
-              <div style="color:var(--text-yellow); font-weight:bold; margin-bottom:6px; font-size:12px;">▼ ご利用履歴・残枠内訳</div>
-              <div class="tier-history-list" style="display:flex; flex-direction:column; gap:4px;">
-                ${historyItemsHtml}
-                ${unusedItemsHtml}
-              </div>
+        historyHtml = `
+          <div class="tier-usage-history-box" style="margin-bottom:10px; background:rgba(0,0,0,0.35); border:1px solid rgba(250,204,21,0.25); border-radius:6px; padding:8px 10px;">
+            <div style="color:var(--text-yellow); font-weight:bold; margin-bottom:6px; font-size:12px;">▼ クーポン利用店舗（${usedCount} / ${maxCount} 店舗）</div>
+            <div class="tier-history-list" style="display:flex; flex-direction:column; gap:4px;">
+              ${historyItems}
             </div>
           </div>
         `;
+      }
+
+      if (isAllUsed) {
+        actionHtml = `
+          ${historyHtml}
+          <div class="reward-completed-banner" style="padding:10px; background:rgba(34,197,94,0.15); border:1px solid #22c55e; border-radius:6px; color:#86efac; font-size:13px; font-weight:bold; text-align:center;">
+            🎉 ${maxCount}店舗すべてのご利用が完了しました！
+          </div>
+        `;
       } else if (isReached) {
-        actionHtml = isCurrentSeason ? `
-          <button class="treasure-claim-btn" data-tier-id="${tier.id}" data-reward-type="store_coupon">
-            🎁 宝箱を開ける（クーポン${maxCount}回分GET）
-          </button>
-        ` : `<div style="font-size:13px; color:#94a3b8;">🔒 過去シーズンのため解放不可</div>`;
+        if (!isCurrentSeason || isExpired) {
+          actionHtml = `
+            ${historyHtml}
+            <div style="padding:10px; text-align:center; color:#ef4444; font-weight:bold; font-size:13px; background:rgba(239,68,68,0.1); border-radius:6px;">🔒 クーポン利用期間は終了しました</div>
+          `;
+        } else {
+          const btnText = usedCount === 0 
+            ? `🎁 宝箱を開けてお店を選ぶ (残り${remainCount}店舗)` 
+            : `🎁 続けてクーポンを使う (残り${remainCount}店舗)`;
+          actionHtml = `
+            ${historyHtml}
+            <button class="treasure-claim-btn btn-direct-open-store-coupon" data-tier-id="${tier.id}" style="background:linear-gradient(180deg, #eab308 0%, #ca8a04 100%); border-color:#fde047; font-weight:bold; font-size:14px; padding:12px;">
+              ${btnText}
+            </button>
+          `;
+        }
       } else {
-        actionHtml = `<div style="font-size:14px; color:#e2e8f0; font-weight:bold;">🔒 あと <strong class="text-yellow" style="font-size:16px;">${remainingVisits}軒</strong> のハシゴ酒で解放！</div>`;
+        actionHtml = `<div style="font-size:14px; color:#e2e8f0; font-weight:bold;">🔒 あと <strong class="text-yellow" style="font-size:16px;">${remainingVisits}軒</strong> のハシゴ酒で利用可能！</div>`;
       }
 
       return `
-        <div class="treasure-tier-card ${isReached || isClaimed ? 'unlocked' : ''}">
+        <div class="treasure-tier-card ${isReached ? 'unlocked' : ''}">
           <div class="treasure-tier-topbar">
             <span class="treasure-tier-type-badge badge-coupon">🍺 酒場クーポン (${maxCount}回分)</span>
             ${statusBadge}
@@ -1566,6 +1543,18 @@ class YoidoreQuestApp {
         });
       });
 
+      // 宝箱を開けてお店を選ぶ / 続けてクーポンを使うボタン（ダイレクト店舗選択）
+      container.querySelectorAll('.btn-direct-open-store-coupon').forEach(btn => {
+        btn.addEventListener('click', () => {
+          this.playSelectSE();
+          const tierId = parseInt(btn.dataset.tierId, 10);
+          const tier = rewardTiers.find(t => t.id === tierId);
+          if (tier) {
+            this.openStoreSelectForCoupon(tier, seasonId);
+          }
+        });
+      });
+
       // グッズ引換券表示ボタン
       container.querySelectorAll('.btn-view-goods').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1574,18 +1563,6 @@ class YoidoreQuestApp {
           const coupon = userCoupons.find(c => c.id === couponId);
           if (coupon) {
             this.openRedeemModal(coupon);
-          }
-        });
-      });
-
-      // お店を選んでクーポンを使うボタン
-      container.querySelectorAll('.btn-use-store-coupon').forEach(btn => {
-        btn.addEventListener('click', () => {
-          this.playSelectSE();
-          const tierId = parseInt(btn.dataset.tierId, 10);
-          const tier = rewardTiers.find(t => t.id === tierId);
-          if (tier) {
-            this.openStoreSelectForCoupon(tier, seasonId);
           }
         });
       });
@@ -1729,11 +1706,14 @@ class YoidoreQuestApp {
 
         if (isUsed) {
           return `
-            <div class="coupon-select-item" style="opacity:0.5; cursor:not-allowed; background:rgba(0,0,0,0.3);">
+            <div class="coupon-select-item" style="opacity:0.6; cursor:not-allowed; background:rgba(15,23,42,0.6); position:relative; overflow:hidden; border-color:#475569;">
               ${logoHtml}
-              <div class="coupon-select-item-info">
-                <div class="coupon-select-item-name" style="text-decoration:line-through;">${this.escapeHtml(s.name)} <span style="font-size:11px; color:var(--text-dim);">(${this.escapeHtml(s.area || '')})</span></div>
-                <div class="coupon-select-item-desc text-green" style="font-size:11px; font-weight:bold;">✅ 利用済み</div>
+              <div class="coupon-select-item-info" style="flex:1;">
+                <div class="coupon-select-item-name" style="text-decoration:line-through; color:#94a3b8;">${this.escapeHtml(s.name)} <span style="font-size:11px; color:var(--text-dim);">(${this.escapeHtml(s.area || '')})</span></div>
+                <div class="coupon-select-item-desc" style="font-size:11px; color:#ef4444; font-weight:bold;">利用済み（選択不可）</div>
+              </div>
+              <div style="position:absolute; right:14px; top:50%; transform:translateY(-50%) rotate(-12deg); border:2px solid #ef4444; color:#ef4444; font-weight:900; font-size:13px; padding:2px 8px; border-radius:4px; letter-spacing:2px; background:rgba(239,68,68,0.15); text-transform:uppercase; pointer-events:none; box-shadow:0 0 8px rgba(239,68,68,0.3);">
+                USED
               </div>
             </div>
           `;
@@ -3115,8 +3095,13 @@ class YoidoreQuestApp {
           const userCoupons = (window.questApi && window.questApi.userCoupons) || [];
           const seasonCoupons = userCoupons.filter(c => (c.season_id === activeSeasonId || (!c.season_id && activeSeasonId === 2)) && c.reward_type !== 'goods');
           const isUsedHere = seasonCoupons.some(c => c.store_id === store.id && c.status === 'used');
-          const availableCoupons = seasonCoupons.filter(c => c.status === 'active' && (!c.store_id || c.store_id === store.id));
-          const availableCount = availableCoupons.length;
+          
+          const visitedCount = (window.questApi && window.questApi.visits) ? window.questApi.visits.length : 0;
+          const rewardTiers = (window.questApi && window.questApi.rewardTiers) || [];
+          const reachedCouponTiers = rewardTiers.filter(t => t.reward_type !== 'goods' && visitedCount >= (Number(t.required_visits) || 0));
+          const totalEarnedSlots = reachedCouponTiers.reduce((sum, t) => sum + (Number(t.selectable_count) || 5), 0);
+          const usedCount = seasonCoupons.filter(c => c.status === 'used').length;
+          const availableCount = Math.max(0, totalEarnedSlots - usedCount);
 
           if (isUsedHere) {
             return `
@@ -3137,9 +3122,9 @@ class YoidoreQuestApp {
                 <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
                   <div>
                     <div style="font-size:14px; font-weight:bold; color:var(--text-yellow);">🎟️ 酒場特典クーポン利用可能</div>
-                    <div style="font-size:12px; color:#fed7aa;">保有残枠: <strong>${availableCount} 回分</strong> (お会計時に提示)</div>
+                    <div style="font-size:12px; color:#fed7aa;">保有残枠: <strong>${availableCount} 店舗分</strong> (お会計時に提示)</div>
                   </div>
-                  <button id="btn-detail-use-coupon" class="treasure-claim-btn" style="padding:8px 14px; font-size:13px; margin:0;">
+                  <button id="btn-detail-use-coupon" class="treasure-claim-btn" style="padding:8px 14px; font-size:13px; margin:0; background:linear-gradient(180deg, #10b981 0%, #047857 100%); border-color:#34d399;">
                     🍺 クーポンを使う ▶
                   </button>
                 </div>
@@ -3327,11 +3312,10 @@ class YoidoreQuestApp {
       detailCouponBtn.addEventListener('click', () => {
         this.playSelectSE();
         const activeSeasonId = window.questApi?.currentSeason?.id || 2;
-        const userCoupons = (window.questApi && window.questApi.userCoupons) || [];
-        const seasonCoupons = userCoupons.filter(c => (c.season_id === activeSeasonId || (!c.season_id && activeSeasonId === 2)) && c.reward_type !== 'goods' && c.status === 'active');
-        const availableCoupon = seasonCoupons.find(c => !c.store_id || c.store_id === store.id);
+        const visitedCount = (window.questApi && window.questApi.visits) ? window.questApi.visits.length : 0;
         const rewardTiers = window.questApi?.rewardTiers || [];
-        const tier = (availableCoupon && availableCoupon.reward_tier_id) ? rewardTiers.find(t => t.id === availableCoupon.reward_tier_id) : (rewardTiers[0] || { title: 'ハシゴ酒達成特典' });
+        const reachedCouponTiers = rewardTiers.filter(t => t.reward_type !== 'goods' && visitedCount >= (Number(t.required_visits) || 0));
+        const tier = reachedCouponTiers[0] || rewardTiers[0] || { id: 1, title: 'ハシゴ酒達成特典' };
         
         this.openStoreCouponRedeemModal(tier, store, activeSeasonId);
       });
