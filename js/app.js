@@ -1250,7 +1250,7 @@ class YoidoreQuestApp {
       if (isAllUsed) {
         statusBadge = '<span class="treasure-tier-status status-claimed">👑 特典コンプリート</span>';
       } else if (isReached) {
-        statusBadge = `<span class="treasure-tier-status status-unlocked" style="background:#0284c7; border-color:#38bdf8;">✨ 利用可能 (残り ${remainCount} / ${maxCount} 店舗)</span>`;
+        statusBadge = `<span class="treasure-tier-status status-unlocked" style="background:#0284c7; border-color:#38bdf8;">✨ 利用可能 </span>`;
       } else {
         statusBadge = `<span class="treasure-tier-status status-locked">🔒 あと ${remainingVisits}軒</span>`;
       }
@@ -1643,8 +1643,15 @@ class YoidoreQuestApp {
     const targetStores = stores.filter(s => s.is_participating !== false && s.isCouponTarget !== false);
     const userCoupons = (window.questApi && window.questApi.userCoupons) || [];
     
-    // 既に今期でクーポン利用（used）済みの店舗IDリスト
-    const usedStoreIds = new Set(userCoupons.filter(c => c.status === 'used' && c.store_id).map(c => c.store_id));
+    // 該当特典ランク（tier）において今期クーポン利用（used）済みの店舗IDリスト（グッズ引換や他ランクを除外）
+    const targetTierId = Number(tier?.id || 1);
+    const usedCouponsForTier = userCoupons.filter(c => {
+      if (c.reward_type === 'goods') return false;
+      if (c.status !== 'used' || !c.store_id) return false;
+      const cTierId = Number(c.reward_tier_id);
+      return cTierId === targetTierId || (!c.reward_tier_id && targetTierId === 1);
+    });
+    const usedStoreIds = new Set(usedCouponsForTier.map(c => c.store_id));
 
     // 未利用の店舗数
     const availableStores = targetStores.filter(s => !usedStoreIds.has(s.id));

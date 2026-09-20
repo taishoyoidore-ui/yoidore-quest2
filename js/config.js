@@ -4,7 +4,7 @@
 
 const APP_CONFIG = {
   // システム共通バージョン番号（バックオフィス＆アプリ全体で連動）
-  version: 'v2026.09.21.09',
+  version: 'v2026.09.21.10',
 
   // Supabase 接続設定
   supabase: {
