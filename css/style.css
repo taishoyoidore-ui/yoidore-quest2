@@ -1936,9 +1936,16 @@ body {
 .treasure-tier-action {
   margin-top: 8px;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
+  flex-direction: column;
+  width: 100%;
+  gap: 8px;
+}
+
+.treasure-tier-action > button,
+.treasure-tier-action > .treasure-claim-btn {
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
 }
 
 /* 詳細画面 テーブルスタイル */

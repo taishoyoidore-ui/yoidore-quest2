@@ -828,10 +828,11 @@ class QuestApiManager {
         const row = {
           user_id: this.currentUser.userId,
           status: 'active',
-          season_id: targetSeasonId,
-          reward_type: 'store_coupon',
           acquired_at: new Date().toISOString()
         };
+        if (targetSeasonId) {
+          row.season_id = targetSeasonId;
+        }
         if (withStoreId) {
           row.store_id = null;
         }
@@ -851,8 +852,7 @@ class QuestApiManager {
           headers: { 'Prefer': 'return=representation' },
           body: JSON.stringify(makeRows(true, false))
         });
-      } catch (fkErr) {
-        // FK制約やスキーマエラー時は reward_tier_id を除外して保存
+      } catch (err1) {
         try {
           await this.supabaseFetch('user_coupons', {
             method: 'POST',
@@ -893,10 +893,11 @@ class QuestApiManager {
         user_id: this.currentUser.userId,
         store_id: storeId,
         status: 'active',
-        season_id: targetSeasonId,
-        reward_type: 'store_coupon',
         acquired_at: new Date().toISOString()
       };
+      if (targetSeasonId) {
+        row.season_id = targetSeasonId;
+      }
       if (useTierId && !isNaN(numTierId)) {
         row.reward_tier_id = numTierId;
       }
@@ -951,39 +952,37 @@ class QuestApiManager {
     try {
       await this.syncUserToDatabase();
       const numTierId = parseInt(rewardTierId, 10);
-      const insertRow = {
+      const baseRow = {
         user_id: this.currentUser.userId,
         store_id: 'store-01', // 共通デフォルト店舗
         status: 'active',
-        season_id: targetSeasonId,
-        reward_type: 'goods',
-        goods_name: tier?.goods_name || tier?.title || '記念オリジナルグッズ',
-        exchange_location: tier?.exchange_location || '全参加酒場または運営本部',
-        exchange_notice: tier?.exchange_notice || '',
         acquired_at: new Date().toISOString()
       };
 
+      const tryInsert = async (payload) => {
+        return await this.supabaseFetch('user_coupons', {
+          method: 'POST',
+          headers: { 'Prefer': 'return=representation' },
+          body: JSON.stringify(payload)
+        });
+      };
+
+      // スキーマ互換性フォールバック (PGRST204回避)
       try {
-        if (!isNaN(numTierId)) {
-          insertRow.reward_tier_id = numTierId;
+        const fullRow = { ...baseRow, season_id: targetSeasonId };
+        if (!isNaN(numTierId)) fullRow.reward_tier_id = numTierId;
+        await tryInsert(fullRow);
+      } catch (err1) {
+        try {
+          const rowWithSeason = { ...baseRow, season_id: targetSeasonId };
+          await tryInsert(rowWithSeason);
+        } catch (err2) {
+          await tryInsert(baseRow);
         }
-        await this.supabaseFetch('user_coupons', {
-          method: 'POST',
-          headers: { 'Prefer': 'return=representation' },
-          body: JSON.stringify(insertRow)
-        });
-      } catch (fkErr) {
-        // FK制約エラー時は reward_tier_id を除外して確実に保存
-        delete insertRow.reward_tier_id;
-        await this.supabaseFetch('user_coupons', {
-          method: 'POST',
-          headers: { 'Prefer': 'return=representation' },
-          body: JSON.stringify(insertRow)
-        });
       }
 
       await this.getUserCoupons(targetSeasonId);
-      return { success: true, goods: { ...insertRow, goods_name: tier?.goods_name || tier?.title } };
+      return { success: true, goods: { ...baseRow, goods_name: tier?.goods_name || tier?.title } };
     } catch (e) {
       console.error('グッズ引換券のデータベース保存エラー:', e);
       return { success: false, message: 'グッズ引換券の発行に失敗しました: ' + (e.message || '通信エラー') };

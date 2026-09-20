@@ -1271,8 +1271,8 @@ class YoidoreQuestApp {
         }).join('');
 
         historyHtml = `
-          <div class="tier-usage-history-box" style="margin-bottom:10px; background:rgba(0,0,0,0.35); border:1px solid rgba(250,204,21,0.25); border-radius:6px; padding:8px 10px;">
-            <div style="color:var(--text-yellow); font-weight:bold; margin-bottom:6px; font-size:12px;">▼ クーポン利用店舗（${usedCount} / ${maxCount} 店舗）</div>
+          <div class="tier-usage-history-box" style="width:100%; box-sizing:border-box; margin-bottom:10px; background:rgba(0,0,0,0.35); border:1px solid rgba(250,204,21,0.25); border-radius:6px; padding:8px 10px;">
+            <div style="color:var(--text-yellow); font-weight:bold; margin-bottom:6px; font-size:12px;">▼ クーポン利用済み（${usedCount} / ${maxCount} 店舗）</div>
             <div class="tier-history-list" style="display:flex; flex-direction:column; gap:4px;">
               ${historyItems}
             </div>
@@ -1283,7 +1283,7 @@ class YoidoreQuestApp {
       if (isAllUsed) {
         actionHtml = `
           ${historyHtml}
-          <div class="reward-completed-banner" style="padding:10px; background:rgba(34,197,94,0.15); border:1px solid #22c55e; border-radius:6px; color:#86efac; font-size:13px; font-weight:bold; text-align:center;">
+          <div class="reward-completed-banner" style="width:100%; box-sizing:border-box; padding:10px; background:rgba(34,197,94,0.15); border:1px solid #22c55e; border-radius:6px; color:#86efac; font-size:13px; font-weight:bold; text-align:center;">
             🎉 ${maxCount}店舗すべてのご利用が完了しました！
           </div>
         `;
@@ -1291,7 +1291,7 @@ class YoidoreQuestApp {
         if (!isCurrentSeason || isExpired) {
           actionHtml = `
             ${historyHtml}
-            <div style="padding:10px; text-align:center; color:#ef4444; font-weight:bold; font-size:13px; background:rgba(239,68,68,0.1); border-radius:6px;">🔒 クーポン利用期間は終了しました</div>
+            <div style="width:100%; box-sizing:border-box; padding:10px; text-align:center; color:#ef4444; font-weight:bold; font-size:13px; background:rgba(239,68,68,0.1); border-radius:6px;">🔒 クーポン利用期間は終了しました</div>
           `;
         } else {
           const btnText = usedCount === 0 
@@ -1299,7 +1299,7 @@ class YoidoreQuestApp {
             : `🎁 続けてクーポンを使う (残り${remainCount}店舗)`;
           actionHtml = `
             ${historyHtml}
-            <button class="treasure-claim-btn btn-direct-open-store-coupon" data-tier-id="${tier.id}" style="background:linear-gradient(180deg, #eab308 0%, #ca8a04 100%); border-color:#fde047; font-weight:bold; font-size:14px; padding:12px;">
+            <button class="treasure-claim-btn btn-direct-open-store-coupon" data-tier-id="${tier.id}" style="width:100%; box-sizing:border-box; display:block; background:linear-gradient(180deg, #eab308 0%, #ca8a04 100%); border-color:#fde047; font-weight:bold; font-size:14px; padding:12px;">
               ${btnText}
             </button>
           `;
@@ -1687,35 +1687,35 @@ class YoidoreQuestApp {
           </div>
         `;
 
-        if (isUsed) {
-          return `
-            <div class="coupon-select-item" style="opacity:0.6; cursor:not-allowed; background:rgba(15,23,42,0.6); position:relative; overflow:hidden; border-color:#475569;">
-              ${logoHtml}
-              <div class="coupon-select-item-info" style="flex:1;">
-                <div class="coupon-select-item-name" style="text-decoration:line-through; color:#94a3b8;">${this.escapeHtml(s.name)} <span style="font-size:11px; color:var(--text-dim);">(${this.escapeHtml(s.area || '')})</span></div>
-                <div class="coupon-select-item-desc" style="font-size:11px; color:#ef4444; font-weight:bold;">利用済み（選択不可）</div>
-              </div>
-              <div style="position:absolute; right:14px; top:50%; transform:translateY(-50%) rotate(-12deg); border:2px solid #ef4444; color:#ef4444; font-weight:900; font-size:13px; padding:2px 8px; border-radius:4px; letter-spacing:2px; background:rgba(239,68,68,0.15); text-transform:uppercase; pointer-events:none; box-shadow:0 0 8px rgba(239,68,68,0.3);">
-                USED
-              </div>
-            </div>
-          `;
-        }
-
         const metaInfo = [
           s.area ? `📍 ${this.escapeHtml(s.area)}` : '',
           s.category ? `🍴 ${this.escapeHtml(s.category)}` : '',
           s.specialty ? `🍺 ${this.escapeHtml(s.specialty)}` : ''
         ].filter(Boolean).join(' | ');
 
-        return `
-          <div class="coupon-select-item selectable-store-item" data-store-id="${s.id}" style="cursor:pointer;">
-            ${logoHtml}
-            <div class="coupon-select-item-info" style="flex:1;">
-              <div class="coupon-select-item-name" style="font-weight:bold; color:var(--text-yellow); font-size:14px;">${this.escapeHtml(s.name)}</div>
-              ${metaInfo ? `<div style="font-size:11px; color:var(--text-cyan);">${metaInfo}</div>` : ''}
+        if (isUsed) {
+          return `
+            <div class="coupon-select-item is-used" style="min-height:56px; box-sizing:border-box; background:rgba(30,41,59,0.7); border:1px solid #475569; border-radius:6px; padding:8px 10px; display:flex; align-items:center; gap:10px; cursor:not-allowed;">
+              ${logoHtml}
+              <div class="coupon-select-item-info" style="flex:1; min-width:0;">
+                <div class="coupon-select-item-name" style="font-weight:bold; color:#cbd5e1; font-size:14px; line-height:1.35;">${this.escapeHtml(s.name)}</div>
+                ${metaInfo ? `<div style="font-size:11px; color:#94a3b8; margin-top:2px;">${metaInfo}</div>` : ''}
+              </div>
+              <div style="font-size:11px; color:#f87171; font-weight:bold; white-space:nowrap; padding:4px 8px; border:1px solid #ef4444; border-radius:4px; background:rgba(239,68,68,0.15); letter-spacing:1px; flex-shrink:0;">
+                USED (利用済)
+              </div>
             </div>
-            <div style="font-size:12px; color:var(--text-green); font-weight:bold; white-space:nowrap; padding:4px 8px; border:1px solid #22c55e; border-radius:4px; background:rgba(34,197,94,0.15);">
+          `;
+        }
+
+        return `
+          <div class="coupon-select-item selectable-store-item" data-store-id="${s.id}" style="min-height:56px; box-sizing:border-box; cursor:pointer;">
+            ${logoHtml}
+            <div class="coupon-select-item-info" style="flex:1; min-width:0;">
+              <div class="coupon-select-item-name" style="font-weight:bold; color:var(--text-yellow); font-size:14px; line-height:1.35;">${this.escapeHtml(s.name)}</div>
+              ${metaInfo ? `<div style="font-size:11px; color:var(--text-cyan); margin-top:2px;">${metaInfo}</div>` : ''}
+            </div>
+            <div style="font-size:12px; color:var(--text-green); font-weight:bold; white-space:nowrap; padding:4px 8px; border:1px solid #22c55e; border-radius:4px; background:rgba(34,197,94,0.15); flex-shrink:0;">
               選ぶ ➔
             </div>
           </div>
