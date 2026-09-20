@@ -816,7 +816,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.02';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.14';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1229,20 +1229,13 @@ class YoidoreQuestApp {
               <div style="font-size:12px; color:#94a3b8;">受取日時: ${new Date(goodsCoupon.used_at || goodsCoupon.acquired_at).toLocaleString('ja-JP')}</div>
             </div>
           `;
-        } else if (isClaimed) {
-          statusBadge = '<span class="treasure-tier-status status-unlocked">🎁 引換可能</span>';
-          actionHtml = `
-            <button class="treasure-claim-btn btn-view-goods" data-coupon-id="${goodsCoupon.id}" style="background:linear-gradient(180deg, #d97706 0%, #b45309 100%); border-color:#f59e0b; margin-top:6px;">
-              🎁 記念品引換券を表示する（店頭提示）
-            </button>
-          `;
         } else if (isReached) {
-          statusBadge = isCurrentSeason ? '<span class="treasure-tier-status status-unlocked">✨ 解放可能！</span>' : '<span class="treasure-tier-status status-locked">過去回達成</span>';
+          statusBadge = isCurrentSeason ? '<span class="treasure-tier-status status-unlocked">🎁 引換可能</span>' : '<span class="treasure-tier-status status-locked">過去回達成</span>';
           actionHtml = isCurrentSeason ? `
-            <button class="treasure-claim-btn btn-claim-goods" data-tier-id="${tier.id}" data-reward-type="goods">
-              🎁 宝箱を開ける（引換券GET）
+            <button class="treasure-claim-btn btn-view-goods" data-tier-id="${tier.id}" style="background:linear-gradient(180deg, #d97706 0%, #b45309 100%); border-color:#f59e0b; margin-top:6px;">
+              🎁 記念品を受け取る（店頭提示）
             </button>
-          ` : `<div style="font-size:13px; color:#94a3b8;">🔒 過去シーズンのため解放不可</div>`;
+          ` : `<div style="font-size:13px; color:#94a3b8;">🔒 過去シーズンのため引換不可</div>`;
         } else {
           statusBadge = `<span class="treasure-tier-status status-locked">🔒 あと ${remainingVisits}軒</span>`;
           actionHtml = `<div style="font-size:14px; color:#e2e8f0; font-weight:bold;">🔒 あと <strong class="text-yellow" style="font-size:16px;">${remainingVisits}軒</strong> のハシゴ酒で解放！</div>`;
@@ -1448,7 +1441,6 @@ class YoidoreQuestApp {
             </div>
             <div class="hero-badge-row">
               <span class="hero-badge text-green"><i class="fa-solid fa-flag-checkered"></i> 制覇: <strong>${visitedCount}</strong> 軒</span>
-              <span class="hero-badge text-cyan"><i class="fa-solid fa-ticket"></i> 特典: <strong>${userCoupons.filter(c => c.status !== 'used').length}</strong> 枠</span>
             </div>
           </div>
         </div>
@@ -1537,31 +1529,6 @@ class YoidoreQuestApp {
 
     // 宝箱を開くボタンのイベント (アクティブシーズンのみ)
     if (isCurrentSeason) {
-      // 1. グッズ引換券獲得ボタン
-      container.querySelectorAll('.btn-claim-goods').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          this.playSelectSE();
-          const tierId = parseInt(btn.dataset.tierId, 10);
-          const tier = rewardTiers.find(t => t.id === tierId);
-          if (!tier) return;
-
-          if (!confirm(`🎁 宝箱を開けて『${tier.goods_name || tier.title}』の引換券を獲得しますか？`)) {
-            return;
-          }
-          this.playFanfareSE();
-          btn.disabled = true;
-          btn.textContent = '獲得中...';
-          const res = await window.questApi.claimGoodsReward(tier.id, seasonId);
-          if (res.success) {
-            alert(`🎉 おめでとうございます！\n『${tier.goods_name || tier.title}』の引換券を獲得しました！\n\n「引換券を表示する」から店頭で受取確認を行えます。`);
-            this.render();
-          } else {
-            alert(res.message || 'グッズ引換券の獲得に失敗しました。');
-            btn.disabled = false;
-          }
-        });
-      });
-
       // 2. 宝箱を開けてお店を選ぶ / 続けてクーポンを使うボタン（ダイレクト店舗選択：アラートなしで即モーダル展開）
       container.querySelectorAll('.btn-direct-open-store-coupon').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1574,14 +1541,14 @@ class YoidoreQuestApp {
         });
       });
 
-      // 3. グッズ引換券表示ボタン
+      // 3. グッズ記念品受け取りボタン（店頭提示・スライド消し込み）
       container.querySelectorAll('.btn-view-goods').forEach(btn => {
         btn.addEventListener('click', () => {
           this.playSelectSE();
-          const couponId = btn.dataset.couponId;
-          const coupon = userCoupons.find(c => c.id === couponId);
-          if (coupon) {
-            this.openRedeemModal(coupon);
+          const tierId = parseInt(btn.dataset.tierId, 10);
+          const tier = rewardTiers.find(t => Number(t.id) === tierId);
+          if (tier) {
+            this.openGoodsRedeemModal(tier, seasonId);
           }
         });
       });
@@ -1817,6 +1784,102 @@ class YoidoreQuestApp {
   }
 
   /* ------------------------------------------------------------------------
+   * スライド消し込み (Swipe to Redeem) コントローラー
+   * ------------------------------------------------------------------------ */
+  initSwipeRedeem(containerEl, onConfirm) {
+    const track = containerEl.querySelector('.swipe-track');
+    const thumb = containerEl.querySelector('.swipe-thumb');
+    const fill = containerEl.querySelector('.swipe-fill');
+    const text = containerEl.querySelector('.swipe-text');
+    if (!track || !thumb) return;
+
+    let isDragging = false;
+    let startX = 0;
+    let currentX = 0;
+    let maxSlide = 0;
+    let isConfirmed = false;
+
+    const getClientX = (e) => {
+      return (e.touches && e.touches.length > 0) ? e.touches[0].clientX : e.clientX;
+    };
+
+    const updateMaxSlide = () => {
+      const trackRect = track.getBoundingClientRect();
+      const thumbRect = thumb.getBoundingClientRect();
+      maxSlide = Math.max(0, trackRect.width - thumbRect.width - 6);
+    };
+
+    const onStart = (e) => {
+      if (isConfirmed) return;
+      updateMaxSlide();
+      isDragging = true;
+      thumb.classList.add('is-dragging');
+      startX = getClientX(e);
+      currentX = 0;
+    };
+
+    const onMove = (e) => {
+      if (!isDragging || isConfirmed) return;
+      const clientX = getClientX(e);
+      const delta = clientX - startX;
+      currentX = Math.max(0, Math.min(delta, maxSlide));
+
+      thumb.style.transform = `translateX(${currentX}px)`;
+      if (fill) {
+        fill.style.width = `${currentX + 23}px`;
+      }
+      if (text) {
+        const progress = maxSlide > 0 ? (currentX / maxSlide) : 0;
+        text.style.opacity = `${Math.max(0, 1 - progress * 1.5)}`;
+      }
+
+      // 85%以上スライドで発火
+      if (maxSlide > 0 && currentX >= maxSlide * 0.85) {
+        isConfirmed = true;
+        isDragging = false;
+        thumb.classList.remove('is-dragging');
+        thumb.style.transform = `translateX(${maxSlide}px)`;
+        if (fill) fill.style.width = '100%';
+        if (text) text.style.opacity = '0';
+
+        onConfirm();
+      }
+    };
+
+    const onEnd = () => {
+      if (!isDragging || isConfirmed) return;
+      isDragging = false;
+      thumb.classList.remove('is-dragging');
+
+      // バウンスバックで元に戻す
+      thumb.style.transition = 'transform 0.25s ease-out';
+      if (fill) fill.style.transition = 'width 0.25s ease-out';
+      if (text) text.style.transition = 'opacity 0.25s ease-out';
+
+      thumb.style.transform = 'translateX(0px)';
+      if (fill) fill.style.width = '0px';
+      if (text) text.style.opacity = '1';
+
+      setTimeout(() => {
+        thumb.style.transition = '';
+        if (fill) fill.style.transition = '';
+        if (text) text.style.transition = '';
+      }, 250);
+    };
+
+    // タッチイベント
+    thumb.addEventListener('touchstart', onStart, { passive: true });
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd);
+    window.addEventListener('touchcancel', onEnd);
+
+    // マウスイベント
+    thumb.addEventListener('mousedown', onStart);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
+  }
+
+  /* ------------------------------------------------------------------------
    * 店舗クーポン店頭消し込みモーダル (その都度選択時・店頭提示)
    * ------------------------------------------------------------------------ */
   openStoreCouponRedeemModal(tier, store, seasonId = null) {
@@ -1836,7 +1899,7 @@ class YoidoreQuestApp {
           <span style="font-size: 16px;">🎟️ クーポン店頭提示画面</span>
           <button id="store-redeem-close-btn" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer; padding: 0 4px;">✕</button>
         </div>
-        <div class="staff-redeem-box" style="padding: 12px 6px;">
+        <div class="staff-redeem-box" id="store-redeem-content" style="padding: 12px 6px;">
           <div style="font-size: 24px; font-weight: bold; color: var(--text-yellow); margin: 6px 0 14px; line-height: 1.3;">
             🏮 ${this.escapeHtml(store.name)}
           </div>
@@ -1858,13 +1921,21 @@ class YoidoreQuestApp {
               <span style="font-size:12px; color:#cbd5e1;">※本開催期間中はご利用いただけません。</span>
             </div>
           ` : `
-            <div class="staff-warning-banner" style="font-size: 14px; line-height: 1.5; padding: 10px 12px; margin-bottom: 16px;">
+            <div class="staff-warning-banner" style="font-size: 13px; line-height: 1.5; padding: 8px 10px; margin-bottom: 12px;">
               ⚠️ <strong>【酒場スタッフ専用】</strong><br>
-              お会計時にご提示の上、下のボタンを押してください。
+              お会計時にスライドして使用済みにしてください。
             </div>
-            <button id="btn-confirm-store-redeem" class="staff-redeem-action-btn" style="padding: 14px; font-size: 17px; font-weight:bold; background:linear-gradient(180deg, #10b981 0%, #047857 100%); border-color:#34d399;">
-              🍺 【スタッフ確認】使用済みにする
-            </button>
+            <div class="swipe-redeem-container" id="store-swipe-container">
+              <div class="swipe-track">
+                <div class="swipe-fill"></div>
+                <div class="swipe-text">
+                  <span>👉 スライドして使用済みにする</span>
+                </div>
+                <div class="swipe-thumb">
+                  <i class="fa-solid fa-angles-right"></i>
+                </div>
+              </div>
+            </div>
           `)}
         </div>
       </div>
@@ -1877,151 +1948,186 @@ class YoidoreQuestApp {
       overlay.remove();
     });
 
-    const redeemBtn = document.getElementById('btn-confirm-store-redeem');
-    if (redeemBtn) {
-      redeemBtn.addEventListener('click', async () => {
-        if (!confirm(`【酒場スタッフ確認】\n「${store.name}」でこのクーポンを使用済みにしますか？\n（使用後は元に戻せません）`)) {
-          return;
+    const swipeContainer = overlay.querySelector('#store-swipe-container');
+    if (swipeContainer) {
+      this.initSwipeRedeem(swipeContainer, async () => {
+        const contentBox = overlay.querySelector('#store-redeem-content');
+        if (contentBox) {
+          contentBox.innerHTML = `
+            <div style="padding: 30px 10px; text-align: center;">
+              <i class="fa-solid fa-spinner fa-spin" style="font-size: 32px; color: var(--text-yellow);"></i>
+              <div style="font-size: 15px; color: #fff; margin-top: 14px; font-weight: bold;">消し込み処理中...</div>
+            </div>
+          `;
         }
-        this.playFanfareSE();
-        redeemBtn.disabled = true;
-        redeemBtn.textContent = '消し込み中...';
+
         const res = await window.questApi.redeemCouponForStore(tier.id, store.id, targetSeasonId);
-        overlay.remove();
         if (res.success) {
-          alert(`✅ 「${store.name}」のクーポンを【使用済み】に更新しました！ご来店ありがとうございます。`);
-          this.render();
+          this.playFanfareSE();
+          if (contentBox) {
+            contentBox.innerHTML = `
+              <div class="redeem-success-box">
+                <div style="font-size: 44px; margin-bottom: 8px;">🍺</div>
+                <div style="font-size: 20px; font-weight: bold; color: #34d399; margin-bottom: 6px;">クーポン利用完了！</div>
+                <div style="font-size: 14px; color: #e2e8f0; line-height: 1.5;">
+                  「${this.escapeHtml(store.name)}」でご利用いただきました。<br>ご来店ありがとうございます！
+                </div>
+                <div class="coupon-used-stamp" style="position: static; transform: none; display: inline-block; margin-top: 14px; font-size: 15px;">USED / 利用済</div>
+              </div>
+            `;
+          }
+          setTimeout(() => {
+            overlay.remove();
+            this.render();
+          }, 1800);
         } else {
           alert(res.message || '消し込みに失敗しました。');
+          overlay.remove();
         }
       });
     }
   }
 
   /* ------------------------------------------------------------------------
-   * クーポン消し込みモーダル (グッズ引換・個別クーポン提示用)
+   * 記念品グッズ店頭引換モーダル (ダイレクト受取・店頭提示)
    * ------------------------------------------------------------------------ */
-  openRedeemModal(coupon) {
-    const isGoods = coupon.reward_type === 'goods';
-    const storeName = isGoods ? (coupon.goods_name || coupon.title) : (coupon.stores?.name || coupon.store_id);
-    const isUsed = coupon.status === 'used';
-
+  openGoodsRedeemModal(tier, seasonId = null) {
+    const targetSeasonId = seasonId || window.questApi?.currentSeason?.id || 2;
     const overlay = document.createElement('div');
     overlay.className = 'rpg-modal-overlay';
-    overlay.id = 'coupon-redeem-modal';
+    overlay.id = 'goods-redeem-modal';
 
-    let contentHtml = '';
-    if (isGoods) {
-      contentHtml = `
-        <div class="staff-redeem-box" style="padding: 12px 6px;">
-          <div style="font-size: 20px; font-weight: bold; color: var(--text-yellow); margin: 8px 0 12px;">
-            🎁 ${this.escapeHtml(coupon.goods_name || coupon.title)}
-          </div>
-          <div style="font-size: 13px; color: var(--text-cyan); margin-bottom: 12px; background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 6px;">
-            📍 <strong>引換場所:</strong> ${this.escapeHtml(coupon.exchange_location || '全参加酒場または運営本部')}
-          </div>
-          ${coupon.exchange_notice ? `
-            <div style="font-size: 13px; color: #fde68a; margin-bottom: 14px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; text-align: left; line-height: 1.5;">
-              ℹ️ ${this.escapeHtml(coupon.exchange_notice)}
-            </div>
-          ` : ''}
-
-          ${isUsed ? `
-            <div style="padding: 16px; border: 2px solid #666; border-radius: 8px; background: #111; margin-top: 10px;">
-              <div class="coupon-used-stamp" style="position: static; transform: none; display: inline-block; margin-bottom: 8px; font-size: 16px;">USED / 受取済み</div>
-              <div style="font-size: 13px; color: #94a3b8;">受取日時: ${new Date(coupon.used_at || coupon.acquired_at).toLocaleString()}</div>
-            </div>
-          ` : `
-            <div class="staff-warning-banner" style="font-size: 14px; line-height: 1.5; padding: 10px 12px; margin-bottom: 16px;">
-              ⚠️ <strong>【酒場スタッフ専用】</strong><br>
-              記念品お渡し時にご提示の上、受取完了ボタンを押してください。
-            </div>
-            <button id="btn-staff-redeem" class="staff-redeem-action-btn" style="background: linear-gradient(180deg, #d97706 0%, #b45309 100%); border-color: #f59e0b; padding: 14px; font-size: 17px; font-weight:bold;">
-              🎁 【スタッフ確認】受取完了にする
-            </button>
-          `}
-        </div>
-      `;
-    } else {
-      contentHtml = `
-        <div class="staff-redeem-box" style="padding: 12px 6px;">
-          <div style="font-size: 24px; font-weight: bold; color: var(--text-yellow); margin: 6px 0 14px; line-height: 1.3;">
-            🏮 ${storeName}
-          </div>
-          
-          <div style="background: #0f152b; border: 2px dashed var(--border-gold); padding: 16px 12px; border-radius: 8px; margin-bottom: 16px; text-align: center;">
-            <div style="font-size: 14px; color: var(--text-cyan); margin-bottom: 6px; font-weight: bold;">【特典チケット】</div>
-            <div style="font-size: 20px; font-weight: bold; color: #fff; line-height: 1.4;">🍺 ハシゴ達成・酒場特典チケット</div>
-          </div>
-
-          ${isUsed ? `
-            <div style="padding: 16px; border: 2px solid #666; border-radius: 8px; background: #111; margin-top: 10px;">
-              <div class="coupon-used-stamp" style="position: static; transform: none; display: inline-block; margin-bottom: 8px; font-size: 16px;">USED / 使用済み</div>
-              <div style="font-size: 13px; color: #94a3b8;">利用日時: ${new Date(coupon.used_at).toLocaleString()}</div>
-            </div>
-          ` : (window.questApi?.currentSeason?.statusInfo?.isExpired ? `
-            <div style="padding: 16px; border: 1px solid #ef4444; border-radius: 8px; background: #450a0a; color: #fca5a5; font-size: 14px; text-align: center; line-height: 1.5;">
-              🔒 <strong>利用期限終了</strong><br>
-              クーポンの利用期限は終了いたしました。
-            </div>
-          ` : (!window.questApi?.currentSeason?.statusInfo?.isCouponUsable ? `
-            <div style="padding: 16px 12px; border: 1px solid #f59e0b; border-radius: 8px; background: rgba(245,158,11,0.15); color: #fde68a; font-size: 14px; text-align: center; line-height: 1.6;">
-              🔒 <strong>後夜祭期間にご利用いただけます</strong><br>
-              <strong style="color: var(--text-yellow); font-size: 17px; display: block; margin: 8px 0;">📅 ${window.questApi?.currentSeason?.statusInfo?.couponStartDateStr || '翌日'} 〜 ${window.questApi?.currentSeason?.coupon_valid_until || ''}</strong>
-            </div>
-          ` : `
-            <div class="staff-warning-banner" style="font-size: 14px; line-height: 1.5; padding: 10px 12px; margin-bottom: 16px;">
-              ⚠️ <strong>【酒場スタッフ専用】</strong><br>
-              お会計時にご提示の上、下のボタンを押してください。
-            </div>
-            <button id="btn-staff-redeem" class="staff-redeem-action-btn" style="padding: 14px; font-size: 17px; font-weight:bold;">
-              🍺 【スタッフ確認】使用済みにする
-            </button>
-          `))}
-        </div>
-      `;
-    }
+    const goodsTitle = tier.goods_name || tier.title || '記念品グッズ';
 
     overlay.innerHTML = `
       <div class="rpg-modal-window gold-border" style="max-width: 480px; width: 95%; max-height: 92vh; overflow-y: auto;">
         <div class="rpg-window-header" style="display:flex; justify-content:space-between; align-items:center; padding: 8px 14px;">
-          <span style="font-size: 16px;">${isGoods ? '🎁 記念品・グッズ引換画面' : '🎟️ クーポン提示画面'}</span>
-          <button id="redeem-close-btn" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer; padding: 0 4px;">✕</button>
+          <span style="font-size: 16px;">🎁 記念品・グッズ引換画面</span>
+          <button id="goods-redeem-close-btn" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer; padding: 0 4px;">✕</button>
         </div>
-        ${contentHtml}
+        <div class="staff-redeem-box" id="goods-redeem-content" style="padding: 12px 6px;">
+          <div style="font-size: 22px; font-weight: bold; color: var(--text-yellow); margin: 6px 0 12px;">
+            🎁 ${this.escapeHtml(goodsTitle)}
+          </div>
+          <div style="font-size: 13px; color: var(--text-cyan); margin-bottom: 12px; background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 6px;">
+            📍 <strong>引換場所:</strong> ${this.escapeHtml(tier.exchange_location || '全参加酒場または運営本部')}
+          </div>
+          ${tier.exchange_notice ? `
+            <div style="font-size: 13px; color: #fde68a; margin-bottom: 14px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; text-align: left; line-height: 1.5;">
+              ℹ️ ${this.escapeHtml(tier.exchange_notice)}
+            </div>
+          ` : ''}
+
+          <div class="staff-warning-banner" style="font-size: 13px; line-height: 1.5; padding: 8px 10px; margin-bottom: 12px;">
+            ⚠️ <strong>【スタッフ確認専用】</strong><br>
+            記念品お渡し時にスライドして受取完了にしてください。
+          </div>
+          <div class="swipe-redeem-container" id="goods-swipe-container">
+            <div class="swipe-track">
+              <div class="swipe-fill"></div>
+              <div class="swipe-text">
+                <span>👉 スライドして受取完了</span>
+              </div>
+              <div class="swipe-thumb">
+                <i class="fa-solid fa-angles-right"></i>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     `;
 
     document.body.appendChild(overlay);
 
-    document.getElementById('redeem-close-btn').addEventListener('click', () => {
+    document.getElementById('goods-redeem-close-btn').addEventListener('click', () => {
       this.playBackSE();
       overlay.remove();
     });
 
-    const redeemBtn = document.getElementById('btn-staff-redeem');
-    if (redeemBtn) {
-      redeemBtn.addEventListener('click', async () => {
-        const confirmMsg = isGoods ? 
-          `【酒場・運営スタッフ確認】\n「${storeName}」を受取済みにしますか？\n（受取後は元に戻せません）` : 
-          `【酒場スタッフ確認】\n「${storeName}」のクーポンを使用済みにしますか？`;
-
-        if (!confirm(confirmMsg)) {
-          return;
+    const swipeContainer = overlay.querySelector('#goods-swipe-container');
+    if (swipeContainer) {
+      this.initSwipeRedeem(swipeContainer, async () => {
+        const contentBox = overlay.querySelector('#goods-redeem-content');
+        if (contentBox) {
+          contentBox.innerHTML = `
+            <div style="padding: 30px 10px; text-align: center;">
+              <i class="fa-solid fa-spinner fa-spin" style="font-size: 32px; color: var(--text-yellow);"></i>
+              <div style="font-size: 15px; color: #fff; margin-top: 14px; font-weight: bold;">受取消し込み処理中...</div>
+            </div>
+          `;
         }
-        this.playFanfareSE();
-        redeemBtn.disabled = true;
-        redeemBtn.textContent = '消し込み中...';
-        const res = await window.questApi.redeemCoupon(coupon.id);
-        overlay.remove();
-        if (res.success) {
-          alert(isGoods ? `✅ 「${storeName}」の受取が完了しました！` : `✅ クーポンを「使用済み」に更新しました！ご来店ありがとうございます。`);
-          this.render();
+
+        // 既存の未受取クーポンを探す、無ければ自動発行
+        const userCoupons = await window.questApi.getUserCoupons(targetSeasonId);
+        let goodsCoupon = userCoupons.find(c => c.reward_type === 'goods' && (Number(c.reward_tier_id) === Number(tier.id) || c.goods_name === tier.goods_name || c.goods_name === tier.title));
+
+        if (!goodsCoupon) {
+          const claimRes = await window.questApi.claimGoodsReward(tier.id, targetSeasonId);
+          if (claimRes.success && claimRes.coupon) {
+            goodsCoupon = claimRes.coupon;
+          } else {
+            // 再度取得
+            const updatedCoupons = await window.questApi.getUserCoupons(targetSeasonId);
+            goodsCoupon = updatedCoupons.find(c => c.reward_type === 'goods' && (Number(c.reward_tier_id) === Number(tier.id) || c.goods_name === tier.goods_name || c.goods_name === tier.title));
+          }
+        }
+
+        const couponId = goodsCoupon?.id;
+        let redeemRes = { success: false };
+        if (couponId) {
+          redeemRes = await window.questApi.redeemCoupon(couponId);
         } else {
-          alert(res.message || '消し込みに失敗しました。');
+          redeemRes = { success: false, message: '引換券の発行に失敗しました。' };
+        }
+
+        if (redeemRes.success) {
+          this.playFanfareSE();
+          if (contentBox) {
+            contentBox.innerHTML = `
+              <div class="redeem-success-box">
+                <div style="font-size: 44px; margin-bottom: 8px;">🎉</div>
+                <div style="font-size: 20px; font-weight: bold; color: #34d399; margin-bottom: 6px;">受取完了！</div>
+                <div style="font-size: 14px; color: #e2e8f0; line-height: 1.5;">
+                  「${this.escapeHtml(goodsTitle)}」をお渡ししました。
+                </div>
+                <div class="coupon-used-stamp" style="position: static; transform: none; display: inline-block; margin-top: 14px; font-size: 15px;">USED / 受取済</div>
+              </div>
+            `;
+          }
+          setTimeout(() => {
+            overlay.remove();
+            this.render();
+          }, 1800);
+        } else {
+          alert(redeemRes.message || '受取消し込みに失敗しました。');
+          overlay.remove();
         }
       });
     }
+  }
+
+  /* ------------------------------------------------------------------------
+   * クーポン消し込みモーダル (フォールバック・個別クーポン提示用)
+   * ------------------------------------------------------------------------ */
+  openRedeemModal(coupon) {
+    const isGoods = coupon.reward_type === 'goods';
+    if (isGoods) {
+      const tierId = Number(coupon.reward_tier_id);
+      const tier = (window.questApi?.rewardTiers || []).find(t => Number(t.id) === tierId) || {
+        id: tierId,
+        title: coupon.title || coupon.goods_name,
+        goods_name: coupon.goods_name,
+        exchange_location: coupon.exchange_location,
+        exchange_notice: coupon.exchange_notice
+      };
+      return this.openGoodsRedeemModal(tier, coupon.season_id);
+    }
+
+    const storeId = coupon.store_id;
+    const store = (this.stores || []).find(s => s.id === storeId) || coupon.stores || { id: storeId, name: storeId || '酒場' };
+    const tierId = Number(coupon.reward_tier_id);
+    const tier = (window.questApi?.rewardTiers || []).find(t => Number(t.id) === tierId) || { id: tierId, title: coupon.title || 'ハシゴ酒達成特典' };
+    return this.openStoreCouponRedeemModal(tier, store, coupon.season_id);
   }
 
   /* ------------------------------------------------------------------------

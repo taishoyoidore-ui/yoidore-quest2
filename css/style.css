@@ -2248,6 +2248,102 @@ body {
   background: #78241b;
 }
 
+/* スライド消し込み (Swipe to Redeem) UI */
+.swipe-redeem-container {
+  margin-top: 14px;
+  position: relative;
+  width: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.swipe-track {
+  position: relative;
+  width: 100%;
+  height: 56px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 2px solid var(--border-gold);
+  border-radius: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6), 0 0 10px rgba(245, 158, 11, 0.2);
+}
+
+.swipe-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.3) 0%, rgba(16, 185, 129, 0.5) 100%);
+  pointer-events: none;
+  transition: width 0.05s ease-out;
+}
+
+.swipe-text {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+  color: #fbbf24;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  z-index: 2;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  animation: swipeGlow 2s infinite ease-in-out;
+}
+
+@keyframes swipeGlow {
+  0%, 100% { opacity: 0.85; transform: translateX(0); }
+  50% { opacity: 1; transform: translateX(4px); }
+}
+
+.swipe-thumb {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 46px;
+  height: 46px;
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+  border: 2px solid #fff;
+  border-radius: 23px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1e1b18;
+  font-size: 18px;
+  cursor: grab;
+  z-index: 3;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 12px rgba(245, 158, 11, 0.6);
+  transition: transform 0.05s ease-out, background 0.2s ease;
+}
+
+.swipe-thumb:active, .swipe-thumb.is-dragging {
+  cursor: grabbing;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.9);
+  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+  color: #fff;
+}
+
+.redeem-success-box {
+  padding: 20px 10px;
+  text-align: center;
+  animation: scaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
 /* RPG風モーダルオーバーレイ */
 .rpg-modal-overlay {
   position: fixed;
