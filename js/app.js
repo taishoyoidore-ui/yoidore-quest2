@@ -384,6 +384,47 @@ class YoidoreQuestApp {
     this.playTone(330, 0.08, 'square');
   }
 
+  /* ハンコ・スタンプ押下SE（ポンッ！という気持ちいい打撃音） */
+  playStampSE() {
+    if (!this.soundEnabled || !this.audioCtx) return;
+    try {
+      if (this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume();
+      }
+      const now = this.audioCtx.currentTime;
+
+      // 1. 低音インパクト（ボムッ/ポンッ）
+      const osc = this.audioCtx.createOscillator();
+      const gain = this.audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(190, now);
+      osc.frequency.exponentialRampToValueAtTime(45, now + 0.12);
+
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+      osc.connect(gain);
+      gain.connect(this.audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.15);
+
+      // 2. スタンプの紙接触アタック音（ピシッ）
+      const clickOsc = this.audioCtx.createOscillator();
+      const clickGain = this.audioCtx.createGain();
+      clickOsc.type = 'square';
+      clickOsc.frequency.setValueAtTime(600, now);
+      clickOsc.frequency.exponentialRampToValueAtTime(100, now + 0.04);
+
+      clickGain.gain.setValueAtTime(0.18, now);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+      clickOsc.connect(clickGain);
+      clickGain.connect(this.audioCtx.destination);
+      clickOsc.start(now);
+      clickOsc.stop(now + 0.06);
+    } catch (e) {}
+  }
+
   playFanfareSE() {
     if (!this.soundEnabled || !this.audioCtx) return;
     try {
@@ -816,7 +857,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.15';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.16';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1225,7 +1266,7 @@ class YoidoreQuestApp {
           statusBadge = '<span class="treasure-tier-status status-claimed">📦 受取完了</span>';
           actionHtml = `
             <div class="reward-completed-box" style="padding:10px; background:rgba(0,0,0,0.3); border-radius:6px; text-align:center; margin-top:8px;">
-              <div class="coupon-used-stamp" style="position:static; transform:none; display:inline-block; font-size:13px; margin-bottom:4px; padding:3px 10px;">USED / 受取済</div>
+              <div class="stamp-hanko-badge large" style="font-size:15px; padding:3px 14px; margin-bottom:6px;">USED</div>
               <div style="font-size:12px; color:#94a3b8;">受取日時: ${new Date(goodsCoupon.used_at || goodsCoupon.acquired_at).toLocaleString('ja-JP')}</div>
             </div>
           `;
@@ -1292,8 +1333,8 @@ class YoidoreQuestApp {
           const storeName = st.name || c.store_id || '酒場';
           const usedTimeStr = c.used_at ? new Date(c.used_at).toLocaleDateString('ja-JP', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '利用済';
           return `
-            <div class="tier-usage-item used" style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.06); padding:5px 8px; border-radius:4px; font-size:12px;">
-              <span class="usage-store-name" style="font-weight:bold; color:#86efac;">✅ ${this.escapeHtml(storeName)}</span>
+            <div class="tier-usage-item used" style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.06); padding:6px 10px; border-radius:4px; font-size:12px;">
+              <span class="usage-store-name" style="font-weight:bold; color:#f87171;">${this.escapeHtml(storeName)}</span>
               <span class="usage-date" style="font-size:11px; color:#94a3b8;">${usedTimeStr}</span>
             </div>
           `;
@@ -1312,8 +1353,10 @@ class YoidoreQuestApp {
       if (isAllUsed) {
         actionHtml = `
           ${historyHtml}
-          <div class="reward-completed-banner" style="width:100%; box-sizing:border-box; padding:10px; background:rgba(34,197,94,0.15); border:1px solid #22c55e; border-radius:6px; color:#86efac; font-size:13px; font-weight:bold; text-align:center;">
-            🎉 ${maxCount}軒すべての酒場のご利用が完了しました！
+          <div style="width:100%; box-sizing:border-box; text-align:center; padding:10px 0 4px;">
+            <div class="stamp-hanko-badge large" style="font-size:18px; padding:6px 20px;">
+              USED
+            </div>
           </div>
         `;
       } else if (isReached) {
@@ -1684,12 +1727,12 @@ class YoidoreQuestApp {
         const logoUrl = s.logoUrl || s.logo_url || '';
 
         const logoHtml = `
-          <div class="coupon-select-item-logo-box" style="width:34px; height:34px; min-width:34px; border-radius:5px; flex-shrink:0;">
+          <div class="coupon-select-item-logo-box" style="width:38px; height:38px; min-width:38px; border-radius:6px; flex-shrink:0;">
             ${logoUrl ? `
               <img src="${logoUrl}" alt="${this.escapeHtml(s.name)}" class="coupon-select-item-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-              <span class="coupon-select-item-logo-fallback" style="display:none; font-size:16px;">🏮</span>
+              <span class="coupon-select-item-logo-fallback" style="display:none; font-size:18px;">🏮</span>
             ` : `
-              <span class="coupon-select-item-logo-fallback" style="font-size:16px;">🏮</span>
+              <span class="coupon-select-item-logo-fallback" style="font-size:18px;">🏮</span>
             `}
           </div>
         `;
@@ -1701,27 +1744,27 @@ class YoidoreQuestApp {
 
         if (isUsed) {
           return `
-            <div class="coupon-select-item is-used" style="min-height:48px; box-sizing:border-box; background:rgba(30,41,59,0.7); border:1px solid #475569; border-radius:6px; padding:6px 8px; display:flex; align-items:center; gap:8px; cursor:not-allowed;">
+            <div class="coupon-select-item is-used" style="min-height:56px; box-sizing:border-box; background:rgba(30,41,59,0.7); border:1px solid #475569; border-radius:8px; padding:8px 10px; display:flex; align-items:center; gap:10px; cursor:not-allowed;">
               ${logoHtml}
               <div class="coupon-select-item-info" style="flex:1; min-width:0; overflow:hidden;">
-                <div class="coupon-select-item-name" style="font-weight:bold; color:#cbd5e1; font-size:13px; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${this.escapeHtml(s.name)}</div>
-                ${metaInfo ? `<div style="font-size:10px; color:#94a3b8; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${metaInfo}</div>` : ''}
+                <div class="coupon-select-item-name" style="font-weight:bold; color:#cbd5e1; font-size:14px; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${this.escapeHtml(s.name)}</div>
+                ${metaInfo ? `<div style="font-size:11px; color:#94a3b8; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${metaInfo}</div>` : ''}
               </div>
-              <div style="font-size:10px; color:#f87171; font-weight:bold; white-space:nowrap; padding:3px 6px; border:1px solid #ef4444; border-radius:4px; background:rgba(239,68,68,0.15); flex-shrink:0;">
-                USED (利用済)
+              <div class="stamp-hanko-badge" style="font-size:11px; padding:2px 7px; flex-shrink:0;">
+                USED
               </div>
             </div>
           `;
         }
 
         return `
-          <div class="coupon-select-item selectable-store-item" data-store-id="${s.id}" style="min-height:48px; box-sizing:border-box; background:#101424; border:1px solid #33406b; border-radius:6px; padding:6px 8px; display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <div class="coupon-select-item selectable-store-item" data-store-id="${s.id}" style="min-height:56px; box-sizing:border-box; background:#101424; border:1px solid #33406b; border-radius:8px; padding:8px 10px; display:flex; align-items:center; gap:10px; cursor:pointer;">
             ${logoHtml}
             <div class="coupon-select-item-info" style="flex:1; min-width:0; overflow:hidden;">
-              <div class="coupon-select-item-name" style="font-weight:bold; color:var(--text-yellow); font-size:13px; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${this.escapeHtml(s.name)}</div>
-              ${metaInfo ? `<div style="font-size:10px; color:var(--text-cyan); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${metaInfo}</div>` : ''}
+              <div class="coupon-select-item-name" style="font-weight:bold; color:var(--text-yellow); font-size:14px; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${this.escapeHtml(s.name)}</div>
+              ${metaInfo ? `<div style="font-size:11px; color:var(--text-cyan); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${metaInfo}</div>` : ''}
             </div>
-            <div style="font-size:11px; color:var(--text-green); font-weight:bold; white-space:nowrap; padding:4px 7px; border:1px solid #22c55e; border-radius:4px; background:rgba(34,197,94,0.15); flex-shrink:0;">
+            <div style="font-size:12px; color:var(--text-green); font-weight:bold; white-space:nowrap; padding:5px 9px; border:1px solid #22c55e; border-radius:4px; background:rgba(34,197,94,0.15); flex-shrink:0;">
               選ぶ ➔
             </div>
           </div>
@@ -1963,6 +2006,7 @@ class YoidoreQuestApp {
         const res = await window.questApi.redeemCouponForStore(tier.id, store.id, targetSeasonId);
         if (res.success) {
           this.playFanfareSE();
+          this.playStampSE();
           if (contentBox) {
             contentBox.innerHTML = `
               <div class="redeem-success-box">
@@ -1971,7 +2015,9 @@ class YoidoreQuestApp {
                 <div style="font-size: 13px; color: #e2e8f0; line-height: 1.4;">
                   「${this.escapeHtml(store.name)}」でご利用いただきました。<br>ご来店ありがとうございます！
                 </div>
-                <div class="coupon-used-stamp" style="position: static; transform: none; display: inline-block; margin-top: 12px; font-size: 14px;">USED / 利用済</div>
+                <div style="margin-top: 14px;">
+                  <div class="stamp-hanko-badge large stamp-animate" style="font-size: 18px; padding: 6px 20px;">USED</div>
+                </div>
               </div>
             `;
           }
@@ -2081,6 +2127,7 @@ class YoidoreQuestApp {
 
         if (redeemRes.success) {
           this.playFanfareSE();
+          this.playStampSE();
           if (contentBox) {
             contentBox.innerHTML = `
               <div class="redeem-success-box">
@@ -2089,7 +2136,9 @@ class YoidoreQuestApp {
                 <div style="font-size: 14px; color: #e2e8f0; line-height: 1.5;">
                   「${this.escapeHtml(goodsTitle)}」をお渡ししました。
                 </div>
-                <div class="coupon-used-stamp" style="position: static; transform: none; display: inline-block; margin-top: 14px; font-size: 15px;">USED / 受取済</div>
+                <div style="margin-top: 14px;">
+                  <div class="stamp-hanko-badge large stamp-animate" style="font-size: 18px; padding: 6px 20px;">USED</div>
+                </div>
               </div>
             `;
           }
@@ -3239,12 +3288,13 @@ class YoidoreQuestApp {
 
           if (isUsedHere) {
             return `
-              <div class="rpg-window" style="background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981;">
+              <div class="rpg-window" style="background: rgba(30, 41, 59, 0.7); border: 1px solid #475569;">
                 <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
                   <div>
-                    <div style="font-size:14px; font-weight:bold; color:#34d399;">✅ 特典クーポン利用済み</div>
-                    <div style="font-size:12px; color:#cbd5e1;">この酒場でのハシゴ達成クーポンはご利用済みです。</div>
+                    <div style="font-size:14px; font-weight:bold; color:#cbd5e1;">特典クーポン利用済み</div>
+                    <div style="font-size:12px; color:#94a3b8;">この酒場でのハシゴ達成クーポンはご利用済みです。</div>
                   </div>
+                  <div class="stamp-hanko-badge" style="font-size:12px; padding:3px 9px;">USED</div>
                 </div>
               </div>
             `;
