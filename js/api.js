@@ -1035,10 +1035,10 @@ class QuestApiManager {
     const targetSeasonId = Number(seasonId || this.currentSeason?.id || 2);
     await this.getUserCoupons(targetSeasonId);
 
-    // 既に該当店舗でクーポン利用（used）済みか確認
-    const alreadyUsed = this.userCoupons.some(c => c.status === 'used' && c.store_id === storeId && Number(c.reward_tier_id) === Number(tierId));
+    // 既に該当店舗でクーポン利用（used）済みか確認（シーズン全体で1店舗1回限り）
+    const alreadyUsed = this.userCoupons.some(c => c.reward_type !== 'goods' && c.status === 'used' && c.store_id === storeId);
     if (alreadyUsed) {
-      return { success: false, message: 'この店舗のクーポンはすでにご利用済みです。' };
+      return { success: false, message: 'この酒場では既にクーポンをご利用済みです（シーズン中1店舗1回限り）。' };
     }
 
     // 未使用で、該当tier（またはクーポン型）の既存空枠レコードを探す
