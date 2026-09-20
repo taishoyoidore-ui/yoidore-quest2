@@ -1174,7 +1174,7 @@ class YoidoreQuestApp {
     // 全利用済みクーポン（グッズ除外）をランクごとにスマートに割り当て
     const allUsedCoupons = userCoupons.filter(c => c.reward_type !== 'goods' && c.status === 'used' && c.store_id);
     const tierCouponMap = new Map();
-    rewardTiers.forEach(t => tierCouponMap.set(t.id, []));
+    rewardTiers.forEach(t => tierCouponMap.set(Number(t.id), []));
 
     const unassignedCoupons = [];
     allUsedCoupons.forEach(c => {
@@ -1189,18 +1189,21 @@ class YoidoreQuestApp {
     const couponTiers = rewardTiers.filter(t => t.reward_type !== 'goods');
     let unassignedIdx = 0;
     for (const t of couponTiers) {
-      const assigned = tierCouponMap.get(t.id);
+      const assigned = tierCouponMap.get(Number(t.id));
       const limit = Number(t.selectable_count) || 5;
-      while (assigned.length < limit && unassignedIdx < unassignedCoupons.length) {
+      while (assigned && assigned.length < limit && unassignedIdx < unassignedCoupons.length) {
         assigned.push(unassignedCoupons[unassignedIdx]);
         unassignedIdx++;
       }
     }
     if (unassignedIdx < unassignedCoupons.length && couponTiers.length > 0) {
-      const lastTierId = couponTiers[couponTiers.length - 1].id;
-      while (unassignedIdx < unassignedCoupons.length) {
-        tierCouponMap.get(lastTierId).push(unassignedCoupons[unassignedIdx]);
-        unassignedIdx++;
+      const lastTierId = Number(couponTiers[couponTiers.length - 1].id);
+      const lastAssigned = tierCouponMap.get(lastTierId);
+      if (lastAssigned) {
+        while (unassignedIdx < unassignedCoupons.length) {
+          lastAssigned.push(unassignedCoupons[unassignedIdx]);
+          unassignedIdx++;
+        }
       }
     }
 
@@ -1272,7 +1275,7 @@ class YoidoreQuestApp {
 
       // クーポン型特典
       const maxCount = tier.selectable_count || 5;
-      const usedCoupons = tierCouponMap.get(tier.id) || [];
+      const usedCoupons = tierCouponMap.get(Number(tier.id)) || [];
       const usedCount = usedCoupons.length;
       const remainCount = Math.max(0, maxCount - usedCount);
       const isAllUsed = isReached && remainCount === 0;
@@ -1564,7 +1567,7 @@ class YoidoreQuestApp {
         btn.addEventListener('click', () => {
           this.playSelectSE();
           const tierId = parseInt(btn.dataset.tierId, 10);
-          const tier = rewardTiers.find(t => t.id === tierId);
+          const tier = rewardTiers.find(t => Number(t.id) === tierId);
           if (tier) {
             this.openStoreSelectForCoupon(tier, seasonId);
           }
