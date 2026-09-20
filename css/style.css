@@ -2529,34 +2529,55 @@ body {
 
 .levelup-header-banner {
   font-family: var(--font-en-pixel);
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 900;
   color: #fef08a;
   letter-spacing: 2px;
-  margin: 6px 0 2px;
+  margin: 4px 0 2px;
   animation: levelUpGlow 1.8s infinite ease-in-out;
 }
 
-.levelup-evolution-box {
-  background: rgba(15, 23, 42, 0.85);
+.levelup-avatar-wrap {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  margin: 8px auto 6px;
+}
+
+.levelup-avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: 3px solid #facc15;
+  box-shadow: 0 0 18px rgba(250, 204, 21, 0.8), inset 0 0 8px rgba(250, 204, 21, 0.5);
+  object-fit: cover;
+  background: #0f172a;
+  display: block;
+}
+
+.levelup-level-badge {
+  position: absolute;
+  bottom: -4px;
+  right: -8px;
+  background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
+  color: #ffffff;
+  border: 1.5px solid #fef08a;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 900;
+  font-family: var(--font-en-pixel);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+  letter-spacing: 0.5px;
+}
+
+.levelup-card-box {
+  background: rgba(15, 23, 42, 0.88);
   border: 1px solid rgba(250, 204, 21, 0.4);
   border-radius: 8px;
   padding: 12px 10px;
-  margin: 12px 0;
-}
-
-.levelup-evolution-flow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin: 8px 0;
-}
-
-.levelup-arrow {
-  font-size: 20px;
-  color: #f59e0b;
-  animation: pulseGold 1.2s infinite;
+  margin: 10px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .levelup-tier-unlock-box {

@@ -767,7 +767,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.20.04';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.20.05';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1510,7 +1510,6 @@ class YoidoreQuestApp {
         if (newHero.level > prevHero.level) {
           this.playLevelUpSE();
           this.showLevelUpModal({
-            prevHero,
             newHero,
             totalVisits: res.totalVisits,
             storeName: `テスト一括サイン (${res.count}店舗)`,
@@ -2118,7 +2117,6 @@ class YoidoreQuestApp {
         // 🌟 レベルアップ＆新称号昇格ファンファーレ演出
         this.playLevelUpSE();
         this.showLevelUpModal({
-          prevHero,
           newHero,
           totalVisits: res.totalVisits,
           storeName,
@@ -2141,55 +2139,57 @@ class YoidoreQuestApp {
   }
 
   /* ------------------------------------------------------------------------
-   * 🌟 ドラクエ風 LEVEL UP!! ＆ 称号昇格 演出モーダル
+   * 🌟 ドラクエ風 LEVEL UP!! ＆ 称号昇格 演出モーダル（ゴールド紙吹雪付き）
    * ------------------------------------------------------------------------ */
-  showLevelUpModal({ prevHero, newHero, totalVisits, storeName, storeArea, unlockedTier }) {
+  showLevelUpModal({ newHero, totalVisits, storeName, storeArea, unlockedTier }) {
     const overlay = document.createElement('div');
     overlay.className = 'rpg-modal-overlay';
     overlay.id = 'levelup-success-modal';
 
     const safeStoreName = this.escapeHtml ? this.escapeHtml(storeName) : storeName;
-    const prevLv = prevHero.level || 1;
-    const newLv = newHero.level || 2;
-    const prevTitle = prevHero.title || '駆け出しの呑兵衛';
-    const newTitle = newHero.title || '初陣';
-    const badgeColor = newHero.badge_color || '#facc15';
+    const newLv = newHero?.level || 2;
+    const newTitle = newHero?.title || '初陣';
+    const badgeColor = newHero?.badge_color || '#facc15';
+
+    const user = window.questApi?.currentUser || { displayName: '勇者', pictureUrl: 'assets/banner.png' };
+    const avatarUrl = user.pictureUrl || 'assets/banner.png';
+    const displayName = this.escapeHtml ? this.escapeHtml(user.displayName || '勇者') : (user.displayName || '勇者');
 
     overlay.innerHTML = `
+      <canvas id="levelup-confetti-canvas" style="position:fixed; top:0; left:0; width:100vw; height:100vh; pointer-events:none; z-index:9999;"></canvas>
       <div class="rpg-modal-window gold-border levelup-modal-window" style="max-width:390px; width:92%; text-align:center;">
         <div class="levelup-sunburst"></div>
         <div class="levelup-content-relative">
-          <div style="font-size:38px; margin-bottom:2px;">✨🍺⚔️</div>
+          <div style="font-size:36px; margin-bottom:2px;">✨🍺👑</div>
           <div class="levelup-header-banner">LEVEL UP!!</div>
-          <div style="font-size:12px; color:#fde047; font-weight:bold; letter-spacing:1px; margin-bottom:8px;">
+          <div style="font-size:12px; color:#fde047; font-weight:bold; letter-spacing:1px; margin-bottom:6px;">
             勇者ランクが昇格しました！
           </div>
 
-          <div style="background:rgba(15, 23, 42, 0.9); border:1px solid #334155; border-radius:6px; padding:8px 10px; margin-bottom:10px;">
-            <div style="font-size:12px; color:#94a3b8;">酒場サイン獲得</div>
-            <div style="font-size:15px; color:#fef08a; font-weight:bold;">『${safeStoreName}』</div>
-            ${storeArea ? `<div style="font-size:11px; color:#94a3b8;">(${storeArea})</div>` : ''}
+          <!-- LINE本人のアバター ＆ レベルバッジ -->
+          <div class="levelup-avatar-wrap">
+            <img src="${avatarUrl}" alt="${displayName}" class="levelup-avatar" onerror="this.src='assets/banner.png';">
+            <span class="levelup-level-badge">Lv.${newLv}</span>
+          </div>
+          <div style="font-size:14px; font-weight:bold; color:#ffffff; margin-bottom:8px;">${displayName}</div>
+
+          <!-- 昇格した新称号プレート -->
+          <div style="margin-bottom:10px;">
+            <div style="font-size:11px; color:#94a3b8; margin-bottom:4px;">獲得した新称号</div>
+            <div style="display:inline-block; transform:scale(1.05);">
+              <span class="hero-title-plate" style="font-size:15px; padding:6px 14px; border-color:${badgeColor}; box-shadow:0 0 16px ${badgeColor}88; color:#ffffff; font-weight:bold;">
+                <i class="fa-solid fa-crown" style="color:${badgeColor};"></i> ${this.escapeHtml(newTitle)}
+              </span>
+            </div>
           </div>
 
-          <!-- レベル・称号 昇格表示 -->
-          <div class="levelup-evolution-box">
-            <div class="levelup-evolution-flow">
-              <div style="opacity:0.6; transform:scale(0.9);">
-                <div style="font-size:11px; color:#94a3b8; font-family:var(--font-en-pixel);">Lv.${prevLv}</div>
-                <span class="hero-title-plate" style="font-size:11px; padding:3px 8px; border-color:#64748b; color:#cbd5e1;">
-                  ${this.escapeHtml(prevTitle)}
-                </span>
-              </div>
-              <div class="levelup-arrow">➔</div>
-              <div style="transform:scale(1.06);">
-                <div style="font-size:12px; color:#fde047; font-weight:bold; font-family:var(--font-en-pixel);">Lv.${newLv}</div>
-                <span class="hero-title-plate" style="font-size:13px; padding:5px 10px; border-color:${badgeColor}; box-shadow:0 0 12px ${badgeColor}66;">
-                  <i class="fa-solid fa-crown" style="color:${badgeColor};"></i> ${this.escapeHtml(newTitle)}
-                </span>
-              </div>
-            </div>
-            <div style="font-size:12px; color:#e2e8f0; margin-top:8px; font-weight:500;">
-              🏆 制覇店舗数: <strong style="color:#4ade80; font-size:15px;">${totalVisits} 軒達成</strong>
+          <!-- サイン獲得酒場 & 制覇数カード -->
+          <div class="levelup-card-box">
+            <div style="font-size:11px; color:#94a3b8;">酒場サイン獲得</div>
+            <div style="font-size:14px; color:#fef08a; font-weight:bold;">『${safeStoreName}』</div>
+            ${storeArea ? `<div style="font-size:11px; color:#cbd5e1; margin-bottom:4px;">(${storeArea})</div>` : ''}
+            <div style="margin-top:6px; font-size:13px; color:#e2e8f0;">
+              🏆 制覇店舗数: <strong style="color:#4ade80; font-size:16px;">${totalVisits} 軒達成</strong>
             </div>
           </div>
 
@@ -2209,7 +2209,7 @@ class YoidoreQuestApp {
           ` : ''}
 
           <button id="btn-close-levelup-modal" class="treasure-claim-btn" style="width:100%; font-size:14px; padding:11px; margin-top:4px;">
-            📜 昇格した冒険の書を見る ▶
+            📜 冒険の書を確認する ▶
           </button>
         </div>
       </div>
@@ -2217,8 +2217,91 @@ class YoidoreQuestApp {
 
     document.body.appendChild(overlay);
 
+    // 🎉 Canvas によるゴールド紙吹雪＆キラキラ星パーティクル描画
+    let animId = null;
+    const canvas = document.getElementById('levelup-confetti-canvas');
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      ctx.scale(dpr, dpr);
+
+      const colors = ['#facc15', '#f59e0b', '#fbbf24', '#fef08a', '#38bdf8', '#f43f5e', '#ffffff'];
+      const particles = [];
+      const particleCount = 70;
+
+      for (let i = 0; i < particleCount; i++) {
+        particles.push({
+          x: Math.random() * window.innerWidth,
+          y: Math.random() * -window.innerHeight * 0.8,
+          size: Math.random() * 8 + 5,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          vx: (Math.random() - 0.5) * 3,
+          vy: Math.random() * 3 + 2.5,
+          rot: Math.random() * Math.PI * 2,
+          vRot: (Math.random() - 0.5) * 0.1,
+          isStar: Math.random() > 0.6
+        });
+      }
+
+      const drawStar = (cx, cy, spikes, outerRadius, innerRadius, color) => {
+        let rot = Math.PI / 2 * 3;
+        let x = cx;
+        let y = cy;
+        const step = Math.PI / spikes;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - outerRadius);
+        for (let i = 0; i < spikes; i++) {
+          x = cx + Math.cos(rot) * outerRadius;
+          y = cy + Math.sin(rot) * outerRadius;
+          ctx.lineTo(x, y);
+          rot += step;
+          x = cx + Math.cos(rot) * innerRadius;
+          y = cy + Math.sin(rot) * innerRadius;
+          ctx.lineTo(x, y);
+          rot += step;
+        }
+        ctx.lineTo(cx, cy - outerRadius);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+      };
+
+      const renderParticles = () => {
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.rot += p.vRot;
+
+          if (p.y > window.innerHeight + 20) {
+            p.y = -20;
+            p.x = Math.random() * window.innerWidth;
+          }
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot);
+
+          if (p.isStar) {
+            drawStar(0, 0, 5, p.size, p.size / 2, p.color);
+          } else {
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+          }
+          ctx.restore();
+        });
+
+        animId = requestAnimationFrame(renderParticles);
+      };
+
+      renderParticles();
+    }
+
     document.getElementById('btn-close-levelup-modal').addEventListener('click', () => {
       this.playSelectSE();
+      if (animId) cancelAnimationFrame(animId);
       overlay.remove();
     });
   }

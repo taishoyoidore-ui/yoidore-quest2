@@ -38,64 +38,61 @@
         </button>
       </form>
       <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 14px;">
-        システムバージョン: <strong class="app-version-text">v2026.09.20.04</strong>
+        システムバージョン: <strong class="app-version-text">v2026.09.20.05</strong>
       </div>
     </div>
   </div>
 
-  <!-- 管理画面メインコンテナ -->
-  <div id="admin-app" class="admin-layout" style="display: none;">
-    <!-- サイドバーナビゲーション (PC) / 上部ヘッダー (スマホ) -->
-    <aside class="admin-sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <div class="brand-title">
-          <span class="brand-icon">🍺</span>
-          <div class="brand-text">
-            <h3>大正酔いどれクエスト</h3>
-            <div style="margin-top: 3px;">
-              <span class="badge badge-admin" style="display: inline-block; font-size: 11px; padding: 2px 8px;">運営本部バックオフィス</span>
-            </div>
-          </div>
+  <!-- 管理画面メインレイアウト -->
+  <div id="admin-main-container" class="admin-layout" style="display: none;">
+    <!-- サイドバー -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-icon">🍺</span>
+        <div class="brand-text">
+          <span class="brand-title">大正酔いどれクエスト</span>
+          <span class="brand-subtitle">管理バックオフィス</span>
         </div>
-        <button class="mobile-close-btn" onclick="window.adminApp.toggleMobileSidebar()">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
       </div>
-
+      
       <nav class="sidebar-nav">
         <a href="#dashboard" class="nav-item active" data-tab="dashboard">
-          <i class="fa-solid fa-chart-pie"></i>
-          <span>ダッシュボード</span>
-        </a>
-        <a href="#analytics" class="nav-item" data-tab="analytics">
           <i class="fa-solid fa-chart-line"></i>
-          <span>店舗・特典別 集計分析</span>
+          <span>ダッシュボード</span>
         </a>
         <a href="#stores" class="nav-item" data-tab="stores">
           <i class="fa-solid fa-store"></i>
-          <span>店舗マスター管理</span>
+          <span>店舗・企画管理</span>
         </a>
-        <a href="#tiers" class="nav-item" data-tab="tiers">
-          <i class="fa-solid fa-calendar-check"></i>
-          <span>シーズン・開催設定</span>
+        <a href="#coupons" class="nav-item" data-tab="coupons">
+          <i class="fa-solid fa-ticket"></i>
+          <span>消込・クーポン利用ログ</span>
         </a>
-        <a href="#logs" class="nav-item" data-tab="logs">
-          <i class="fa-solid fa-list-check"></i>
-          <span>参加者・データ管理</span>
+        <a href="#seasons" class="nav-item" data-tab="seasons">
+          <i class="fa-solid fa-calendar-days"></i>
+          <span>シーズン・特典設定</span>
         </a>
-        <a href="#pop" class="nav-item" data-tab="pop">
+        <a href="#broadcast" class="nav-item" data-tab="broadcast">
+          <i class="fa-solid fa-bullhorn"></i>
+          <span>全体お知らせ</span>
+        </a>
+        <a href="#analytics" class="nav-item" data-tab="analytics">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>集計・分析レポート</span>
+        </a>
+        <a href="#qrcodes" class="nav-item" data-tab="qrcodes">
           <i class="fa-solid fa-qrcode"></i>
-          <span>店頭POP・QR一括印刷</span>
+          <span>卓上POP印刷・QR発行</span>
         </a>
       </nav>
 
       <div class="sidebar-footer">
-        <div class="db-status-badge">
-          <span class="status-dot online"></span>
+        <div class="db-status-pill online">
+          <span class="status-dot"></span>
           <span>Supabase DB 連動中</span>
         </div>
         <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-bottom: 6px;">
-          システムバージョン: <strong class="app-version-text">v2026.09.20.04</strong>
+          システムバージョン: <strong class="app-version-text">v2026.09.20.05</strong>
         </div>
         <button class="btn btn-outline-danger btn-sm btn-block" onclick="window.adminApp.handleLogout()">
           <i class="fa-solid fa-arrow-right-from-bracket"></i> ログアウト
@@ -123,13 +120,13 @@
         </div>
         <div class="header-right">
           <span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:3px 8px; font-weight:bold;">
-            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.09.20.04</span>
+            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.09.20.05</span>
           </span>
           <span id="last-sync-time" class="text-muted"><i class="fa-solid fa-arrows-rotate fa-spin"></i> 同期中...</span>
           <button class="btn btn-secondary btn-sm" onclick="window.adminApp.refreshData()">
             <i class="fa-solid fa-rotate"></i> 最新データ更新
           </button>
-          <a href="index.html?v=20260920_04" target="_blank" class="btn btn-outline btn-sm">
+          <a href="index.html?v=20260920_05" target="_blank" class="btn btn-outline btn-sm">
             <i class="fa-solid fa-up-right-from-square"></i> アプリ実機表示
           </a>
         </div>
