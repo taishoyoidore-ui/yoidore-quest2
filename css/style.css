@@ -1480,39 +1480,35 @@ body {
 }
 
 .hero-title-badge-wrap {
-  margin-bottom: 6px;
+  margin-top: 4px;
+  margin-bottom: 2px;
 }
 
 .hero-title-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(0, 0, 0, 0.6);
-  border: 1.5px solid #facc15;
-  border-radius: 6px;
-  padding: 3px 10px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(15, 23, 42, 0.85) 100%);
+  border: 2px solid var(--border-gold);
+  border-radius: 8px;
+  padding: 6px 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 12px rgba(250, 204, 21, 0.35);
   max-width: 100%;
 }
 
 .hero-title-badge .hero-title-icon {
-  font-size: 14px;
+  font-size: 18px;
   color: #facc15;
-}
-
-.hero-title-badge .hero-title-label {
-  font-size: 10px;
-  color: #94a3b8;
-  font-weight: bold;
-  letter-spacing: 0.5px;
+  filter: drop-shadow(0 0 4px rgba(250, 204, 21, 0.8));
 }
 
 .hero-title-badge .hero-title-text {
-  font-size: 14px;
-  font-weight: bold;
+  font-family: var(--font-pixel);
+  font-size: 16px;
+  font-weight: 900;
   color: #facc15;
-  letter-spacing: 0.5px;
-  text-shadow: 0 0 6px rgba(250, 204, 21, 0.4);
+  letter-spacing: 1px;
+  text-shadow: 0 0 10px rgba(250, 204, 21, 0.7), 1px 1px 2px #000;
 }
 
 .hero-badge-row {
@@ -2085,80 +2081,107 @@ body {
   box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
 }
 
-/* 斜めハンコ（スタンプ）風バッジ共通スタイル */
+/* 中世ドラクエ風 刻印USEDスタンプ共通スタイル */
 .stamp-hanko-badge {
   display: inline-block;
   font-family: var(--font-pixel);
   font-weight: 900;
-  color: #ef4444;
-  border: 2px solid #ef4444;
-  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 2px solid #dc2626;
+  outline: 1.5px dashed rgba(248, 113, 113, 0.7);
+  outline-offset: -3px;
+  background: radial-gradient(circle, rgba(220, 38, 38, 0.22) 0%, rgba(153, 27, 27, 0.12) 100%);
   border-radius: 4px;
   padding: 2px 7px;
   font-size: 11px;
-  letter-spacing: 1px;
-  transform: rotate(-8deg);
-  line-height: 1.1;
-  text-align: center;
-  user-select: none;
-  box-shadow: 0 0 6px rgba(239, 68, 68, 0.2);
-}
-
-.stamp-hanko-badge.large {
-  font-size: 18px;
-  padding: 5px 16px;
-  border-width: 2.5px;
-  border-radius: 6px;
-  letter-spacing: 3px;
-  transform: rotate(-8deg);
-  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
-}
-
-/* 冒険の書特典カード用の大型・半透明USEDハンコ（右上・タイトル重ね用） */
-.treasure-card-stamp-used {
-  position: absolute;
-  top: 8px;
-  right: 12px;
-  font-family: var(--font-pixel);
-  font-size: 22px;
-  font-weight: 900;
-  color: #ef4444;
-  border: 2.5px solid #ef4444;
-  background: rgba(239, 68, 68, 0.15);
-  border-radius: 6px;
-  padding: 2px 14px;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   transform: rotate(-10deg);
   line-height: 1.1;
   text-align: center;
   user-select: none;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 0 8px rgba(220, 38, 38, 0.35);
+  text-shadow: 0 0 4px rgba(239, 68, 68, 0.6);
+}
+
+.stamp-hanko-badge.large {
+  font-size: 18px;
+  padding: 4px 16px;
+  border-width: 2.5px;
+  outline-width: 1.5px;
+  outline-offset: -4px;
+  border-radius: 6px;
+  letter-spacing: 3px;
+  transform: rotate(-10deg);
+  box-shadow: 0 0 14px rgba(220, 38, 38, 0.45);
+}
+
+/* 冒険の書特典カード用の超大型・半透明中世刻印USEDスタンプ（右上・タイトル重ね用） */
+.treasure-card-stamp-used {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  font-family: var(--font-pixel);
+  font-size: 26px;
+  font-weight: 900;
+  color: #f87171;
+  border: 3px solid #dc2626;
+  outline: 2px dashed rgba(248, 113, 113, 0.75);
+  outline-offset: -5px;
+  background: radial-gradient(circle, rgba(220, 38, 38, 0.28) 0%, rgba(127, 29, 29, 0.16) 100%);
+  border-radius: 6px;
+  padding: 3px 16px;
+  letter-spacing: 3px;
+  transform: rotate(-12deg);
+  line-height: 1.1;
+  text-align: center;
+  user-select: none;
+  box-shadow: 0 0 16px rgba(220, 38, 38, 0.5), inset 0 0 8px rgba(220, 38, 38, 0.3);
+  text-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
   pointer-events: none;
   opacity: 0.9;
-  z-index: 5;
+  z-index: 10;
   backdrop-filter: blur(1px);
+}
+
+/* クーポン利用完了モーダル用の特大メガスタンプ */
+.stamp-hanko-mega {
+  display: inline-block;
+  font-family: var(--font-pixel);
+  font-size: 34px;
+  font-weight: 900;
+  color: #fca5a5;
+  border: 3.5px solid #ef4444;
+  outline: 2px dashed rgba(254, 202, 202, 0.85);
+  outline-offset: -6px;
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.35) 0%, rgba(153, 27, 27, 0.2) 100%);
+  border-radius: 8px;
+  padding: 6px 28px;
+  letter-spacing: 4px;
+  transform: rotate(-12deg);
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.9);
+  box-shadow: 0 0 24px rgba(239, 68, 68, 0.6), inset 0 0 12px rgba(239, 68, 68, 0.4);
 }
 
 /* ハンコがドンッと押されるアニメーション */
 .stamp-animate {
-  animation: stampIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  animation: stampInMega 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.3) forwards;
   display: inline-block;
 }
 
-@keyframes stampIn {
+@keyframes stampInMega {
   0% {
-    transform: scale(2.5) rotate(-20deg);
+    transform: scale(3.2) rotate(-30deg);
     opacity: 0;
   }
   50% {
-    transform: scale(0.9) rotate(-8deg);
+    transform: scale(0.88) rotate(-12deg);
     opacity: 1;
   }
   75% {
-    transform: scale(1.08) rotate(-8deg);
+    transform: scale(1.08) rotate(-12deg);
   }
   100% {
-    transform: scale(1) rotate(-8deg);
+    transform: scale(1) rotate(-12deg);
     opacity: 1;
   }
 }
@@ -2802,8 +2825,9 @@ body {
 }
 
 .tier-usage-item.used {
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(30, 41, 59, 0.75);
+  border: 1px solid rgba(71, 85, 105, 0.6);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .tier-usage-item.active {

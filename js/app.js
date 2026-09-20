@@ -857,7 +857,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.17';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.18';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1335,17 +1335,21 @@ class YoidoreQuestApp {
           const storeName = st.name || c.store_id || '酒場';
           const usedTimeStr = c.used_at ? new Date(c.used_at).toLocaleDateString('ja-JP', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '利用済';
           return `
-            <div class="tier-usage-item used" style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:4px; font-size:12px;">
-              <span class="usage-store-name" style="font-weight:bold; color:#f87171;">${this.escapeHtml(storeName)}</span>
+            <div class="tier-usage-item used" style="display:flex; justify-content:space-between; align-items:center; padding:7px 10px; border-radius:6px; font-size:12px;">
+              <span class="usage-store-name" style="font-weight:bold; color:#f1f5f9; display:flex; align-items:center; gap:6px;">
+                <i class="fa-solid fa-award" style="color:#f59e0b; font-size:12px;"></i> ${this.escapeHtml(storeName)}
+              </span>
               <span class="usage-date" style="font-size:11px; color:#94a3b8;">${usedTimeStr}</span>
             </div>
           `;
         }).join('');
 
         historyHtml = `
-          <div class="tier-usage-history-box" style="width:100%; box-sizing:border-box; margin-bottom:10px; background:rgba(0,0,0,0.35); border:1px solid rgba(239,68,68,0.25); border-radius:6px; padding:8px 10px;">
-            <div style="color:#f87171; font-weight:bold; margin-bottom:6px; font-size:12px;">▼ クーポン利用済み（${usedCount} / ${maxCount} 軒）</div>
-            <div class="tier-history-list" style="display:flex; flex-direction:column; gap:4px;">
+          <div class="tier-usage-history-box" style="width:100%; box-sizing:border-box; margin-bottom:10px; background:rgba(15,23,42,0.75); border:1px solid rgba(217,119,6,0.35); border-radius:8px; padding:8px 10px;">
+            <div style="color:#fbbf24; font-weight:bold; margin-bottom:6px; font-size:12px; display:flex; align-items:center; gap:6px;">
+              <i class="fa-solid fa-scroll"></i> クーポン利用履歴（${usedCount} / ${maxCount} 軒）
+            </div>
+            <div class="tier-history-list" style="display:flex; flex-direction:column; gap:5px;">
               ${historyItems}
             </div>
           </div>
@@ -1474,12 +1478,8 @@ class YoidoreQuestApp {
             <div class="hero-title-badge-wrap">
               <div class="hero-title-badge" style="border-color: ${heroColor};">
                 <i class="fa-solid fa-medal hero-title-icon" style="color: ${heroColor};"></i>
-                <span class="hero-title-label">称号</span>
                 <span class="hero-title-text" style="color: ${heroColor}; text-shadow: 0 0 8px ${heroColor}66;">${heroTitle}</span>
               </div>
-            </div>
-            <div class="hero-badge-row">
-              <span class="hero-badge text-green"><i class="fa-solid fa-flag-checkered"></i> 制覇: <strong>${visitedCount}</strong> 軒</span>
             </div>
           </div>
         </div>
@@ -2005,14 +2005,14 @@ class YoidoreQuestApp {
           this.playStampSE();
           if (contentBox) {
             contentBox.innerHTML = `
-              <div class="redeem-success-box">
+              <div class="redeem-success-box" style="position:relative; overflow:hidden; padding:20px 10px;">
                 <div style="font-size: 40px; margin-bottom: 6px;">🍺</div>
                 <div style="font-size: 18px; font-weight: bold; color: #34d399; margin-bottom: 4px;">クーポン利用完了！</div>
-                <div style="font-size: 13px; color: #e2e8f0; line-height: 1.4;">
+                <div style="font-size: 13px; color: #e2e8f0; line-height: 1.4; margin-bottom: 16px;">
                   「${this.escapeHtml(store.name)}」でご利用いただきました。<br>ご来店ありがとうございます！
                 </div>
-                <div style="margin-top: 14px;">
-                  <div class="stamp-hanko-badge large stamp-animate" style="font-size: 18px; padding: 6px 20px;">USED</div>
+                <div style="margin: 10px 0;">
+                  <div class="stamp-hanko-mega stamp-animate">USED</div>
                 </div>
               </div>
             `;
@@ -2126,14 +2126,14 @@ class YoidoreQuestApp {
           this.playStampSE();
           if (contentBox) {
             contentBox.innerHTML = `
-              <div class="redeem-success-box">
+              <div class="redeem-success-box" style="position:relative; overflow:hidden; padding:20px 10px;">
                 <div style="font-size: 44px; margin-bottom: 8px;">🎉</div>
                 <div style="font-size: 20px; font-weight: bold; color: #34d399; margin-bottom: 6px;">受取完了！</div>
-                <div style="font-size: 14px; color: #e2e8f0; line-height: 1.5;">
+                <div style="font-size: 14px; color: #e2e8f0; line-height: 1.5; margin-bottom: 16px;">
                   「${this.escapeHtml(goodsTitle)}」をお渡ししました。
                 </div>
-                <div style="margin-top: 14px;">
-                  <div class="stamp-hanko-badge large stamp-animate" style="font-size: 18px; padding: 6px 20px;">USED</div>
+                <div style="margin: 10px 0;">
+                  <div class="stamp-hanko-mega stamp-animate">USED</div>
                 </div>
               </div>
             `;
