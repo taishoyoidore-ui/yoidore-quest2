@@ -1063,32 +1063,34 @@ class QuestApiManager {
       await this.syncUserToDatabase();
       const numTierId = parseInt(tierId, 10);
       const now = new Date().toISOString();
-      const insertRow = {
+      const baseRow = {
         user_id: this.currentUser.userId,
         store_id: storeId,
         status: 'used',
-        season_id: targetSeasonId,
-        reward_type: 'store_coupon',
         acquired_at: now,
         used_at: now
       };
 
+      const tryInsert = async (payload) => {
+        return await this.supabaseFetch('user_coupons', {
+          method: 'POST',
+          headers: { 'Prefer': 'return=representation' },
+          body: JSON.stringify(payload)
+        });
+      };
+
+      // スキーマの段階的フォールバック（PGRST204回避）
       try {
-        if (!isNaN(numTierId)) {
-          insertRow.reward_tier_id = numTierId;
+        const fullRow = { ...baseRow, season_id: targetSeasonId };
+        if (!isNaN(numTierId)) fullRow.reward_tier_id = numTierId;
+        await tryInsert(fullRow);
+      } catch (err1) {
+        try {
+          const rowWithSeason = { ...baseRow, season_id: targetSeasonId };
+          await tryInsert(rowWithSeason);
+        } catch (err2) {
+          await tryInsert(baseRow);
         }
-        await this.supabaseFetch('user_coupons', {
-          method: 'POST',
-          headers: { 'Prefer': 'return=representation' },
-          body: JSON.stringify(insertRow)
-        });
-      } catch (fkErr) {
-        delete insertRow.reward_tier_id;
-        await this.supabaseFetch('user_coupons', {
-          method: 'POST',
-          headers: { 'Prefer': 'return=representation' },
-          body: JSON.stringify(insertRow)
-        });
       }
 
       await this.getUserCoupons(targetSeasonId);

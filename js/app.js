@@ -1203,7 +1203,7 @@ class YoidoreQuestApp {
         } else if (isReached) {
           statusBadge = isCurrentSeason ? '<span class="treasure-tier-status status-unlocked">✨ 解放可能！</span>' : '<span class="treasure-tier-status status-locked">過去回達成</span>';
           actionHtml = isCurrentSeason ? `
-            <button class="treasure-claim-btn" data-tier-id="${tier.id}" data-reward-type="goods">
+            <button class="treasure-claim-btn btn-claim-goods" data-tier-id="${tier.id}" data-reward-type="goods">
               🎁 宝箱を開ける（引換券GET）
             </button>
           ` : `<div style="font-size:13px; color:#94a3b8;">🔒 過去シーズンのため解放不可</div>`;
@@ -1295,7 +1295,7 @@ class YoidoreQuestApp {
           `;
         } else {
           const btnText = usedCount === 0 
-            ? `🎁 宝箱を開けてお店を選ぶ (残り${remainCount}店舗)` 
+            ? `🎁 宝箱を開けて酒場を選ぶ (残り${remainCount}店舗)` 
             : `🎁 続けてクーポンを使う (残り${remainCount}店舗)`;
           actionHtml = `
             ${historyHtml}
@@ -1501,49 +1501,32 @@ class YoidoreQuestApp {
 
     // 宝箱を開くボタンのイベント (アクティブシーズンのみ)
     if (isCurrentSeason) {
-      container.querySelectorAll('.treasure-claim-btn').forEach(btn => {
+      // 1. グッズ引換券獲得ボタン
+      container.querySelectorAll('.btn-claim-goods').forEach(btn => {
         btn.addEventListener('click', async () => {
           this.playSelectSE();
           const tierId = parseInt(btn.dataset.tierId, 10);
           const tier = rewardTiers.find(t => t.id === tierId);
           if (!tier) return;
 
-          if (tier.reward_type === 'goods') {
-            if (!confirm(`🎁 宝箱を開けて『${tier.goods_name || tier.title}』の引換券を獲得しますか？`)) {
-              return;
-            }
-            this.playFanfareSE();
-            btn.disabled = true;
-            btn.textContent = '獲得中...';
-            const res = await window.questApi.claimGoodsReward(tier.id, seasonId);
-            if (res.success) {
-              alert(`🎉 おめでとうございます！\n『${tier.goods_name || tier.title}』の引換券を獲得しました！\n\n「引換券を表示する」から店頭で受取確認を行えます。`);
-              this.render();
-            } else {
-              alert(res.message || 'グッズ引換券の獲得に失敗しました。');
-              btn.disabled = false;
-            }
+          if (!confirm(`🎁 宝箱を開けて『${tier.goods_name || tier.title}』の引換券を獲得しますか？`)) {
+            return;
+          }
+          this.playFanfareSE();
+          btn.disabled = true;
+          btn.textContent = '獲得中...';
+          const res = await window.questApi.claimGoodsReward(tier.id, seasonId);
+          if (res.success) {
+            alert(`🎉 おめでとうございます！\n『${tier.goods_name || tier.title}』の引換券を獲得しました！\n\n「引換券を表示する」から店頭で受取確認を行えます。`);
+            this.render();
           } else {
-            const ticketCount = tier.selectable_count || 5;
-            if (!confirm(`🎁 宝箱を開けて『${tier.title}』の酒場クーポン（${ticketCount}回分）を獲得しますか？\n\n※行くお店は今決めなくても大丈夫です！来店時に1店舗ずつ選んで使えます。`)) {
-              return;
-            }
-            this.playFanfareSE();
-            btn.disabled = true;
-            btn.textContent = '開封中...';
-            const res = await window.questApi.claimStoreCouponTier(tier.id, seasonId);
-            if (res.success) {
-              alert(`🎉 おめでとうございます！\n『${tier.title}』の酒場クーポン（${ticketCount}回分）を獲得しました！\n\n「お店を選んでクーポンを使う」ボタンから、行きたいお店を選んでいつでもご利用いただけます。`);
-              this.render();
-            } else {
-              alert(res.message || 'クーポンの獲得に失敗しました。');
-              btn.disabled = false;
-            }
+            alert(res.message || 'グッズ引換券の獲得に失敗しました。');
+            btn.disabled = false;
           }
         });
       });
 
-      // 宝箱を開けてお店を選ぶ / 続けてクーポンを使うボタン（ダイレクト店舗選択）
+      // 2. 宝箱を開けてお店を選ぶ / 続けてクーポンを使うボタン（ダイレクト店舗選択：アラートなしで即モーダル展開）
       container.querySelectorAll('.btn-direct-open-store-coupon').forEach(btn => {
         btn.addEventListener('click', () => {
           this.playSelectSE();
@@ -1555,7 +1538,7 @@ class YoidoreQuestApp {
         });
       });
 
-      // グッズ引換券表示ボタン
+      // 3. グッズ引換券表示ボタン
       container.querySelectorAll('.btn-view-goods').forEach(btn => {
         btn.addEventListener('click', () => {
           this.playSelectSE();
@@ -1719,12 +1702,18 @@ class YoidoreQuestApp {
           `;
         }
 
+        const metaInfo = [
+          s.area ? `📍 ${this.escapeHtml(s.area)}` : '',
+          s.category ? `🍴 ${this.escapeHtml(s.category)}` : '',
+          s.specialty ? `🍺 ${this.escapeHtml(s.specialty)}` : ''
+        ].filter(Boolean).join(' | ');
+
         return `
           <div class="coupon-select-item selectable-store-item" data-store-id="${s.id}" style="cursor:pointer;">
             ${logoHtml}
             <div class="coupon-select-item-info" style="flex:1;">
               <div class="coupon-select-item-name" style="font-weight:bold; color:var(--text-yellow); font-size:14px;">${this.escapeHtml(s.name)}</div>
-              <div style="font-size:11px; color:var(--text-cyan);">📍 ${this.escapeHtml(s.area || '')} | 🍺 ${this.escapeHtml(s.specialty || '酒場特典あり')}</div>
+              ${metaInfo ? `<div style="font-size:11px; color:var(--text-cyan);">${metaInfo}</div>` : ''}
             </div>
             <div style="font-size:12px; color:var(--text-green); font-weight:bold; white-space:nowrap; padding:4px 8px; border:1px solid #22c55e; border-radius:4px; background:rgba(34,197,94,0.15);">
               選ぶ ➔
@@ -1737,7 +1726,7 @@ class YoidoreQuestApp {
     overlay.innerHTML = `
       <div class="rpg-modal-window gold-border" style="max-width:460px; width:92%; max-height:88vh; display:flex; flex-direction:column;">
         <div class="rpg-window-header" style="display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:15px;">🏮 クーポン利用店舗の選択</span>
+          <span style="font-size:15px;">🏮 クーポンを利用する酒場の選択</span>
           <button id="store-modal-close-btn" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer;">✕</button>
         </div>
         <div style="padding:10px 0 6px; font-size:13px; color:var(--text-yellow); line-height:1.4;">
