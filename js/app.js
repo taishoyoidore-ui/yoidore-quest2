@@ -857,7 +857,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.19';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.20';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1391,7 +1391,7 @@ class YoidoreQuestApp {
           </div>
           <div class="treasure-tier-condition">
             <span>🍺 必要制覇数: <strong class="text-yellow">${tier.required_visits}軒</strong></span>
-            <span> | 🎟️ <strong style="color:#ffffff;">お好きな${maxCount}酒場で利用可能</strong></span>
+            <span> | 🎟️ <strong style="color:#ffffff;">お好きな${maxCount}軒で利用可能</strong></span>
           </div>
           ${tier.description ? `<div class="treasure-tier-desc">${this.escapeHtml(tier.description)}</div>` : ''}
           <div class="treasure-tier-action">${actionHtml}</div>

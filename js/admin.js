@@ -64,7 +64,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.19';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.20';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -188,13 +188,34 @@ class YoidoreAdminApp {
         this.visits = [];
       }
 
-      // 6. クーポン発行・消し込み履歴 (選択中シーズンで絞り込み)
+      // 6. クーポン発行・消し込み履歴 (選択中シーズンで絞り込み & 特典ランクマスタとの突き合わせ・グッズ判定)
       try {
         const rawCoupons = await this.api.supabaseFetch(`user_coupons?select=*&order=acquired_at.desc`);
-        this.coupons = Array.isArray(rawCoupons) ? rawCoupons.filter(c => {
+        const goodsTiers = (this.tiers || []).filter(t => t.reward_type === 'goods');
+
+        const filteredCoupons = Array.isArray(rawCoupons) ? rawCoupons.filter(c => {
           const cSeason = Number(c.season_id);
           return cSeason === this.selectedSeasonId || (!c.season_id && this.selectedSeasonId === 2);
         }) : [];
+
+        this.coupons = filteredCoupons.map(c => {
+          let matchedTier = (this.tiers || []).find(t => Number(t.id) === Number(c.reward_tier_id));
+          if (!matchedTier && goodsTiers.length > 0 && c.store_id === 'store-01') {
+            matchedTier = goodsTiers[0];
+          }
+
+          const isGoods = matchedTier?.reward_type === 'goods';
+          return {
+            ...c,
+            season_id: this.selectedSeasonId,
+            reward_tier_id: c.reward_tier_id || matchedTier?.id || null,
+            reward_type: isGoods ? 'goods' : (c.reward_type || 'store_coupon'),
+            goods_name: matchedTier?.goods_name || c.goods_name || matchedTier?.title || null,
+            exchange_location: matchedTier?.exchange_location || c.exchange_location || null,
+            exchange_notice: matchedTier?.exchange_notice || c.exchange_notice || null,
+            title: matchedTier?.title || c.title || ''
+          };
+        });
       } catch (e) {
         this.coupons = [];
       }
@@ -395,6 +416,8 @@ class YoidoreAdminApp {
 
     const recentCoupons = this.coupons.slice(0, 5).map(c => ({
       type: c.status === 'used' ? 'used' : 'acquired',
+      isGoods: c.reward_type === 'goods',
+      goodsName: c.goods_name || c.title || '記念品',
       time: new Date(c.used_at || c.acquired_at),
       storeId: c.store_id,
       userId: c.user_id
@@ -416,11 +439,21 @@ class YoidoreAdminApp {
         let icon = '🍺';
         let text = `<strong>${this.escapeHtml(userName)}</strong> が <strong>${this.escapeHtml(storeName)}</strong> の店主サインを受け取りました`;
         if (act.type === 'acquired') {
-          icon = '🎁';
-          text = `<strong>${this.escapeHtml(userName)}</strong> が <strong>${this.escapeHtml(storeName)}</strong> のクーポンを獲得しました`;
+          if (act.isGoods) {
+            icon = '🎁';
+            text = `<strong>${this.escapeHtml(userName)}</strong> が <strong>${this.escapeHtml(act.goodsName)}</strong> の引換券を獲得しました`;
+          } else {
+            icon = '🎁';
+            text = `<strong>${this.escapeHtml(userName)}</strong> が <strong>${this.escapeHtml(storeName)}</strong> のクーポンを獲得しました`;
+          }
         } else if (act.type === 'used') {
-          icon = '✅';
-          text = `<strong>${this.escapeHtml(userName)}</strong> が <strong>${this.escapeHtml(storeName)}</strong> でクーポンを利用（消し込み）しました`;
+          if (act.isGoods) {
+            icon = '🎁';
+            text = `<strong>${this.escapeHtml(userName)}</strong> が <strong>${this.escapeHtml(act.goodsName)}</strong> を受け取り（引換済）ました`;
+          } else {
+            icon = '✅';
+            text = `<strong>${this.escapeHtml(userName)}</strong> が <strong>${this.escapeHtml(storeName)}</strong> でクーポンを利用（消し込み）しました`;
+          }
         }
 
         const timeStr = `${act.time.getMonth() + 1}/${act.time.getDate()} ${String(act.time.getHours()).padStart(2, '0')}:${String(act.time.getMinutes()).padStart(2, '0')}`;
