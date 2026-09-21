@@ -644,8 +644,14 @@ class YoidoreAdminApp {
   }
 
   renderAnalyticsTierCards() {
+    this.renderAnalyticsTierTable();
+  }
+
+  renderAnalyticsTierTable() {
+    const tbody = document.getElementById('analytics-tiers-tbody');
     const grid = document.getElementById('analytics-tiers-grid');
-    if (!grid) return;
+    const container = tbody || grid;
+    if (!container) return;
 
     const typeFilter = document.getElementById('analytics-tier-type-filter')?.value || 'all';
 
@@ -655,7 +661,11 @@ class YoidoreAdminApp {
     }
 
     if (tiers.length === 0) {
-      grid.innerHTML = '<div class="empty-state text-muted py-3" style="grid-column: 1/-1;">該当する特典データがありません</div>';
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">該当する特典データがありません</td></tr>';
+      } else if (grid) {
+        grid.innerHTML = '<div class="empty-state text-muted py-3" style="grid-column: 1/-1;">該当する特典データがありません</div>';
+      }
       return;
     }
 
@@ -665,82 +675,77 @@ class YoidoreAdminApp {
       userVisitsMap.set(v.user_id, (userVisitsMap.get(v.user_id) || 0) + 1);
     });
 
-    grid.innerHTML = tiers.map(tier => {
-      const isGoods = tier.reward_type === 'goods';
-      const badge = isGoods 
-        ? '<span class="badge" style="background:#fef3c7; color:#b45309;"><i class="fa-solid fa-gift"></i> グッズ引換型</span>' 
-        : '<span class="badge" style="background:#e0f2fe; color:#0369a1;"><i class="fa-solid fa-wine-glass"></i> 酒場クーポン型</span>';
+    const sortedTiers = [...tiers].sort((a, b) => (Number(a.required_visits) || 0) - (Number(b.required_visits) || 0));
 
-      // 達成者数計算（必要制覇数に達したユニークユーザー数）
-      let reachedUsersCount = 0;
-      userVisitsMap.forEach(cnt => {
-        if (cnt >= tier.required_visits) reachedUsersCount++;
-      });
+    if (tbody) {
+      tbody.innerHTML = sortedTiers.map(tier => {
+        const isGoods = tier.reward_type === 'goods';
+        const badge = isGoods 
+          ? '<span class="badge" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a;"><i class="fa-solid fa-gift"></i> グッズ引換型</span>' 
+          : '<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd;"><i class="fa-solid fa-wine-glass"></i> 酒場クーポン型</span>';
 
-      let statsHtml = '';
-      let progressPercent = 0;
+        // 達成者数計算（必要制覇数に達したユニークユーザー数）
+        let reachedUsersCount = 0;
+        userVisitsMap.forEach(cnt => {
+          if (cnt >= tier.required_visits) reachedUsersCount++;
+        });
 
-      if (isGoods) {
-        // グッズ引換型
-        const claimedCount = this.coupons.filter(c => c.reward_type === 'goods' && c.status === 'used' && (Number(c.reward_tier_id) === Number(tier.id) || c.goods_name === tier.goods_name || c.goods_name === tier.title)).length;
-        const unclaimedCount = Math.max(0, reachedUsersCount - claimedCount);
-        progressPercent = reachedUsersCount > 0 ? Math.round((claimedCount / reachedUsersCount) * 100) : 0;
+        let detailName = '';
+        let targetCountHtml = '';
+        let usedCountHtml = '';
+        let remainCountHtml = '';
+        let progressPercent = 0;
+        let progressBarColor = '';
 
-        statsHtml = `
-          <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;">
-            <span>達成資格者: <strong style="color:#0f172a;">${reachedUsersCount}</strong> 名</span>
-            <span>受取済: <strong style="color:#059669;">${claimedCount}</strong> 点</span>
-            <span>未受取: <strong style="color:#d97706;">${unclaimedCount}</strong> 点</span>
-          </div>
-          <div style="background:#f1f5f9; border-radius:4px; height:8px; overflow:hidden; position:relative;">
-            <div style="background:linear-gradient(90deg, #10b981, #059669); height:100%; width:${progressPercent}%; transition:width 0.3s;"></div>
-          </div>
-          <div style="text-align:right; font-size:11px; color:#64748b; margin-top:4px;">
-            受取進捗率: <strong>${progressPercent}%</strong>
-          </div>
+        if (isGoods) {
+          detailName = `<strong style="color:#0f172a;">🎁 ${this.escapeHtml(tier.goods_name || tier.title)}</strong>`;
+          const claimedCount = this.coupons.filter(c => c.reward_type === 'goods' && c.status === 'used' && (Number(c.reward_tier_id) === Number(tier.id) || c.goods_name === tier.goods_name || c.goods_name === tier.title)).length;
+          const unclaimedCount = Math.max(0, reachedUsersCount - claimedCount);
+          progressPercent = reachedUsersCount > 0 ? Math.round((claimedCount / reachedUsersCount) * 100) : 0;
+          progressBarColor = 'linear-gradient(90deg, #10b981, #059669)';
+
+          targetCountHtml = `<strong>${reachedUsersCount}</strong> 名`;
+          usedCountHtml = `<strong style="color:#059669; font-size:1.05rem;">${claimedCount}</strong> <small>点</small>`;
+          remainCountHtml = `<strong style="color:#d97706; font-size:1.05rem;">${unclaimedCount}</strong> <small>点</small>`;
+        } else {
+          const selectableCount = Number(tier.selectable_count) || 5;
+          const totalSlots = reachedUsersCount * selectableCount;
+          const usedCount = this.coupons.filter(c => c.reward_type !== 'goods' && c.status === 'used' && (Number(c.reward_tier_id) === Number(tier.id) || !c.reward_tier_id)).length;
+          const remainingSlots = Math.max(0, totalSlots - usedCount);
+          progressPercent = totalSlots > 0 ? Math.round((usedCount / totalSlots) * 100) : 0;
+          progressBarColor = 'linear-gradient(90deg, #38bdf8, #0284c7)';
+
+          detailName = `お好きな酒場 <strong style="color:#0284c7;">${selectableCount}</strong> 枠分`;
+          targetCountHtml = `<strong>${reachedUsersCount}</strong> 名<br><small class="text-muted">(最大${totalSlots}枠)</small>`;
+          usedCountHtml = `<strong style="color:#059669; font-size:1.05rem;">${usedCount}</strong> <small>件</small>`;
+          remainCountHtml = `<strong style="color:#d97706; font-size:1.05rem;">${remainingSlots}</strong> <small>枠</small>`;
+        }
+
+        return `
+          <tr>
+            <td>
+              <span class="badge" style="background:#f1f5f9; color:#334155; font-weight:bold;">
+                ${tier.required_visits} 軒以上
+              </span>
+            </td>
+            <td>${badge}</td>
+            <td><strong style="color:#0f172a;">${this.escapeHtml(tier.title)}</strong></td>
+            <td>${detailName}</td>
+            <td style="text-align: right;">${targetCountHtml}</td>
+            <td style="text-align: right;">${usedCountHtml}</td>
+            <td style="text-align: right;">${remainCountHtml}</td>
+            <td>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="flex:1; background:#f1f5f9; border-radius:4px; height:8px; overflow:hidden;">
+                  <div style="background:${progressBarColor}; height:100%; width:${progressPercent}%; transition:width 0.3s;"></div>
+                </div>
+                <span style="font-size:12px; font-weight:bold; color:#334155; min-width:38px; text-align:right;">${progressPercent}%</span>
+              </div>
+            </td>
+          </tr>
         `;
-      } else {
-        // 酒場クーポン型
-        const selectableCount = Number(tier.selectable_count) || 5;
-        const totalSlots = reachedUsersCount * selectableCount;
-        const usedCount = this.coupons.filter(c => c.reward_type !== 'goods' && c.status === 'used' && (Number(c.reward_tier_id) === Number(tier.id) || !c.reward_tier_id)).length;
-        const remainingSlots = Math.max(0, totalSlots - usedCount);
-        progressPercent = totalSlots > 0 ? Math.round((usedCount / totalSlots) * 100) : 0;
-
-        statsHtml = `
-          <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;">
-            <span>達成者: <strong style="color:#0f172a;">${reachedUsersCount}</strong> 名 (最大${totalSlots}枠)</span>
-            <span>利用済: <strong style="color:#059669;">${usedCount}</strong> 件</span>
-            <span>未利用残: <strong style="color:#d97706;">${remainingSlots}</strong> 枠</span>
-          </div>
-          <div style="background:#f1f5f9; border-radius:4px; height:8px; overflow:hidden; position:relative;">
-            <div style="background:linear-gradient(90deg, #38bdf8, #0284c7); height:100%; width:${progressPercent}%; transition:width 0.3s;"></div>
-          </div>
-          <div style="text-align:right; font-size:11px; color:#64748b; margin-top:4px;">
-            利用消化率: <strong>${progressPercent}%</strong>
-          </div>
-        `;
-      }
-
-      return `
-        <div style="border:1px solid #e2e8f0; border-radius:8px; padding:16px; background:#ffffff; box-shadow:0 1px 3px rgba(0,0,0,0.05); display:flex; flex-direction:column; justify-content:space-between;">
-          <div>
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-              <span class="badge" style="background:#f1f5f9; color:#334155; font-weight:bold;">${tier.required_visits}軒ハシゴ</span>
-              ${badge}
-            </div>
-            <h4 style="margin:0 0 6px 0; font-size:15px; color:#0f172a;">${this.escapeHtml(tier.title)}</h4>
-            ${isGoods ? `<div style="font-size:13px; color:#475569; margin-bottom:4px;"><strong>引換品:</strong> ${this.escapeHtml(tier.goods_name || tier.title)}</div>` : `<div style="font-size:13px; color:#475569; margin-bottom:4px;"><strong>利用枠数:</strong> お好きな酒場 ${tier.selectable_count || 5} 軒分</div>`}
-            ${tier.exchange_location ? `<div style="font-size:12px; color:#64748b; margin-bottom:2px;"><i class="fa-solid fa-location-dot"></i> 引換場所: ${this.escapeHtml(tier.exchange_location)}</div>` : ''}
-            ${tier.description ? `<div style="font-size:12px; color:#64748b; margin-top:4px;">${this.escapeHtml(tier.description)}</div>` : ''}
-          </div>
-
-          <div style="margin-top:14px; padding-top:12px; border-top:1px dashed #e2e8f0;">
-            ${statsHtml}
-          </div>
-        </div>
-      `;
-    }).join('');
+      }).join('');
+    }
   }
 
   exportAnalyticsStoresToCSV() {
@@ -2077,44 +2082,65 @@ class YoidoreAdminApp {
    * 特典ランク (reward_tiers) CRUD制御
    * ------------------------------------------------------------------------ */
   renderRewardTiers() {
+    const tbody = document.getElementById('reward-tiers-tbody');
     const tierElem = document.getElementById('reward-tiers-list');
-    if (!tierElem) return;
+    const container = tbody || tierElem;
+    if (!container) return;
 
-    if (this.tiers.length === 0) {
-      tierElem.innerHTML = '<div class="empty-state text-muted py-3" style="grid-column: 1 / -1;">今シーズンの特典マイルストーンが登録されていません。「＋ 特典ランクを新規作成」から追加してください。</div>';
-    } else {
-      tierElem.innerHTML = this.tiers.map(t => {
+    if (!this.tiers || this.tiers.length === 0) {
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">今シーズンの特典マイルストーンが登録されていません。「＋ 特典ランクを新規作成」から追加してください。</td></tr>';
+      } else if (tierElem) {
+        tierElem.innerHTML = '<div class="empty-state text-muted py-3">今シーズンの特典マイルストーンが登録されていません。「＋ 特典ランクを新規作成」から追加してください。</div>';
+      }
+      return;
+    }
+
+    const sortedTiers = [...this.tiers].sort((a, b) => (Number(a.required_visits) || 0) - (Number(b.required_visits) || 0));
+
+    if (tbody) {
+      tbody.innerHTML = sortedTiers.map(t => {
         const isGoods = t.reward_type === 'goods';
+        const typeBadge = isGoods
+          ? '<span class="badge" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a;"><i class="fa-solid fa-gift"></i> グッズ引換型</span>'
+          : '<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd;"><i class="fa-solid fa-ticket"></i> クーポン型</span>';
+
+        const rewardContent = isGoods
+          ? `<strong style="color:#0f172a;">🎁 ${this.escapeHtml(t.goods_name || 'オリジナルグッズ')}</strong>`
+          : `お好きな酒場 <strong style="color:#0284c7;">${t.selectable_count || 5}</strong> 枠分`;
+
+        let notesHtml = '';
+        if (isGoods && t.exchange_location) {
+          notesHtml += `<div style="font-size:12px; color:#334155; margin-bottom:2px;"><i class="fa-solid fa-location-dot text-danger"></i> <strong>引換:</strong> ${this.escapeHtml(t.exchange_location)}</div>`;
+        }
+        if (isGoods && t.exchange_notice) {
+          notesHtml += `<div style="font-size:11px; color:#d97706; margin-bottom:2px;"><i class="fa-solid fa-triangle-exclamation"></i> ${this.escapeHtml(t.exchange_notice)}</div>`;
+        }
+        if (t.description) {
+          notesHtml += `<div class="text-muted" style="font-size:12px;">${this.escapeHtml(t.description)}</div>`;
+        }
+        if (!notesHtml) notesHtml = '<span class="text-muted">-</span>';
+
         return `
-          <div class="tier-card ${isGoods ? 'tier-goods' : ''}">
-            <div class="tier-card-header">
-              <span class="tag ${isGoods ? 'tag-warning' : 'tag-active'}" style="font-size: 0.75rem;">
-                ${isGoods ? '<i class="fa-solid fa-gift"></i> グッズ引換型' : '<i class="fa-solid fa-ticket"></i> クーポン型'}
+          <tr>
+            <td>
+              <span class="badge" style="background:#f1f5f9; color:#0f172a; font-weight:bold; font-size:0.85rem;">
+                <i class="fa-solid fa-beer-mug-empty text-gold"></i> <strong>${t.required_visits}</strong> 軒
               </span>
-              <span class="tier-meta-badge"><i class="fa-solid fa-beer-mug-empty"></i> 必要: <strong>${t.required_visits}</strong> 軒</span>
-            </div>
-            <h4 class="tier-title">${this.escapeHtml(t.title)}</h4>
-            <div class="tier-reward-info">
-              ${isGoods ? 
-                `<span class="tier-meta-badge"><i class="fa-solid fa-gift"></i> グッズ: <strong>${this.escapeHtml(t.goods_name || 'オリジナル記念品')}</strong></span>` :
-                `<span class="tier-meta-badge"><i class="fa-solid fa-ticket"></i> 獲得: <strong>${t.selectable_count}</strong> 店舗</span>`
-              }
-            </div>
-            ${isGoods && t.exchange_location ? `
-              <div class="tier-location-text">
-                📍 <strong>引換:</strong> ${this.escapeHtml(t.exchange_location)}
-              </div>
-            ` : ''}
-            ${t.description ? `<p class="tier-desc">${this.escapeHtml(t.description)}</p>` : ''}
-            <div class="tier-actions">
-              <button class="btn btn-outline btn-sm" onclick="window.adminApp.openTierModal('edit', ${t.id})">
-                <i class="fa-solid fa-pen-to-square"></i> 編集
+            </td>
+            <td>${typeBadge}</td>
+            <td><strong style="color:#0f172a; font-size:0.95rem;">${this.escapeHtml(t.title)}</strong></td>
+            <td>${rewardContent}</td>
+            <td>${notesHtml}</td>
+            <td style="text-align: center;">
+              <button class="btn btn-sm btn-secondary" onclick="window.adminApp.openTierModal('edit', ${t.id})" title="編集">
+                <i class="fa-solid fa-pen"></i> 編集
               </button>
-              <button class="btn btn-outline-danger btn-sm" onclick="window.adminApp.deleteTier(${t.id}, '${this.escapeHtml(t.title)}')">
-                <i class="fa-solid fa-trash"></i> 削除
+              <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.deleteTier(${t.id}, '${this.escapeHtml(t.title)}')" title="削除">
+                <i class="fa-solid fa-trash"></i>
               </button>
-            </div>
-          </div>
+            </td>
+          </tr>
         `;
       }).join('');
     }

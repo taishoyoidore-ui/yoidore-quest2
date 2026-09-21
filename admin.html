@@ -311,7 +311,7 @@
             </div>
           </div>
 
-          <!-- セクション2: 特典ランク・グッズ別 集計一覧 -->
+          <!-- セクション2: 特典・グッズ別 達成＆消し込み集計一覧 -->
           <div class="card mb-4">
             <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
               <div>
@@ -319,7 +319,7 @@
                 <p style="margin:4px 0 0 0; font-size:12px; color:#64748b;">各特典ランク（クーポン選択型／グッズ引換型）ごとの獲得数・引換消込状況</p>
               </div>
               <div style="display:flex; gap:8px; align-items:center;">
-                <select id="analytics-tier-type-filter" onchange="window.adminApp.renderAnalyticsTierCards()" style="padding:6px 12px; border-radius:4px; border:1px solid #cbd5e1; font-size:13px;">
+                <select id="analytics-tier-type-filter" onchange="window.adminApp.renderAnalyticsTierTable()" style="padding:6px 12px; border-radius:4px; border:1px solid #cbd5e1; font-size:13px;">
                   <option value="all">特典種別: すべて</option>
                   <option value="store_coupon">店舗クーポン型のみ</option>
                   <option value="goods">グッズ引換型のみ</option>
@@ -329,9 +329,25 @@
                 </button>
               </div>
             </div>
-            <div class="card-body" style="padding: 16px;">
-              <div id="analytics-tiers-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:16px;">
-                <div class="empty-state">特典データを集計中...</div>
+            <div class="card-body" style="padding: 0;">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 100px;">必要軒数</th>
+                      <th style="width: 130px;">種別</th>
+                      <th style="width: 200px;">特典名</th>
+                      <th style="width: 180px;">特典内容 / 引換品・枠数</th>
+                      <th style="width: 140px; text-align: right;">達成者数 (資格者)</th>
+                      <th style="width: 130px; text-align: right;">消込・受取済</th>
+                      <th style="width: 130px; text-align: right;">未利用・未受取残</th>
+                      <th style="min-width: 180px;">消化・受取進捗率</th>
+                    </tr>
+                  </thead>
+                  <tbody id="analytics-tiers-tbody">
+                    <tr><td colspan="8" class="text-center text-muted py-3">特典データを集計中...</td></tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -478,7 +494,7 @@
             </div>
           </div>
 
-          <!-- ハシゴ達成特典（宝箱）設定 -->
+          <!-- ハシゴ達成特典（宝箱マイルストーン）設定 -->
           <div class="card mb-4">
             <div class="card-header">
               <div>
@@ -489,9 +505,23 @@
                 <i class="fa-solid fa-plus"></i> 特典ランクを新規作成
               </button>
             </div>
-            <div class="card-body">
-              <div id="reward-tiers-list" class="tier-cards-container">
-                <div class="empty-state">設定を読み込み中...</div>
+            <div class="card-body" style="padding: 0;">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 110px;">必要軒数</th>
+                      <th style="width: 130px;">特典種別</th>
+                      <th style="width: 200px;">特典名（タイトル）</th>
+                      <th style="width: 200px;">特典内容 / 枠数・記念品</th>
+                      <th>引換場所 / 説明</th>
+                      <th style="width: 120px; text-align: center;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="reward-tiers-tbody">
+                    <tr><td colspan="6" class="text-center text-muted py-3">設定を読み込み中...</td></tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
