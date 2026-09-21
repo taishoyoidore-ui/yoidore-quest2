@@ -21,6 +21,9 @@
   
   --font-pixel: 'DotGothic16', monospace, sans-serif;
   --font-en-pixel: 'Press Start 2P', monospace, cursive;
+
+  /* レトロスタンプ擦れ・カスレ表現用SVGテクスチャマスク */
+  --stamp-distress-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='120' viewBox='0 0 240 120'%3E%3Cdefs%3E%3Cfilter id='grunge' x='0%25' y='0%25' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.45' numOctaves='4' result='noise'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -11' result='color'/%3E%3C/filter%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='%23fff'/%3E%3Crect width='100%25' height='100%25' fill='%23000' filter='url(%23grunge)' opacity='0.7'/%3E%3Ccircle cx='28' cy='18' r='2.5' fill='%23000'/%3E%3Ccircle cx='56' cy='88' r='2' fill='%23000'/%3E%3Ccircle cx='94' cy='35' r='3' fill='%23000'/%3E%3Ccircle cx='145' cy='80' r='2.5' fill='%23000'/%3E%3Ccircle cx='190' cy='24' r='3.2' fill='%23000'/%3E%3Ccircle cx='215' cy='72' r='2.2' fill='%23000'/%3E%3Ccircle cx='110' cy='15' r='1.8' fill='%23000'/%3E%3Ccircle cx='170' cy='98' r='2.8' fill='%23000'/%3E%3Cpath d='M12,32 Q35,28 62,34' stroke='%23000' stroke-width='2.2' fill='none' stroke-linecap='round'/%3E%3Cpath d='M85,92 Q118,88 152,94' stroke='%23000' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3Cpath d='M165,48 Q195,54 228,44' stroke='%23000' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3Cpath d='M40,75 L52,65' stroke='%23000' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath d='M130,22 L142,32' stroke='%23000' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath d='M198,82 L208,90' stroke='%23000' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
 * {
@@ -1511,6 +1514,14 @@ body {
   text-shadow: 0 0 10px rgba(250, 204, 21, 0.7), 1px 1px 2px #000;
 }
 
+.hero-title-desc {
+  font-size: 11.5px;
+  color: #94a3b8;
+  line-height: 1.4;
+  margin-top: 5px;
+  padding: 0 2px;
+}
+
 .hero-badge-row {
   display: flex;
   gap: 6px;
@@ -2066,122 +2077,137 @@ body {
 .coupon-used-stamp {
   position: absolute;
   top: 50%;
-  right: 20px;
-  transform: translateY(-50%) rotate(-10deg);
-  border: 2.5px solid var(--text-red);
-  color: var(--text-red);
-  font-size: 17px;
+  right: 18px;
+  transform: translateY(-50%);
+  border: 3px solid #dc2626;
+  color: #dc2626;
+  font-size: 18px;
   font-weight: 900;
-  padding: 3px 10px;
-  border-radius: 4px;
+  padding: 3px 12px;
+  border-radius: 6px;
   pointer-events: none;
-  font-family: var(--font-pixel);
-  letter-spacing: 2px;
-  background: rgba(239, 68, 68, 0.12);
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
+  font-family: 'Impact', 'Arial Black', var(--font-pixel), sans-serif;
+  letter-spacing: 3px;
+  background: rgba(220, 38, 38, 0.08);
+  box-shadow: inset 0 0 0 1.5px transparent, inset 0 0 0 3px #dc2626, 0 0 8px rgba(220, 38, 38, 0.3);
+  line-height: 1.1;
+  text-align: center;
+  -webkit-mask-image: var(--stamp-distress-mask);
+  mask-image: var(--stamp-distress-mask);
+  -webkit-mask-size: 140px 70px;
+  mask-size: 140px 70px;
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
 }
 
-/* 中世ドラクエ風 刻印USEDスタンプ共通スタイル */
+/* リアル消印・擦れ刻印USEDスタンプ共通スタイル（水平・二重枠・擦れテクスチャ） */
 .stamp-hanko-badge {
   display: inline-block;
-  font-family: var(--font-pixel);
+  font-family: 'Impact', 'Arial Black', var(--font-pixel), sans-serif;
   font-weight: 900;
-  color: #f87171;
+  color: #ef4444;
   border: 2px solid #dc2626;
-  outline: 1.5px dashed rgba(248, 113, 113, 0.7);
-  outline-offset: -3px;
-  background: radial-gradient(circle, rgba(220, 38, 38, 0.22) 0%, rgba(153, 27, 27, 0.12) 100%);
-  border-radius: 4px;
-  padding: 2px 7px;
+  box-shadow: inset 0 0 0 1px transparent, inset 0 0 0 2px #dc2626, 0 0 6px rgba(220, 38, 38, 0.3);
+  background: rgba(220, 38, 38, 0.1);
+  border-radius: 5px;
+  padding: 2px 8px;
   font-size: 11px;
   letter-spacing: 1.5px;
-  transform: rotate(-10deg);
   line-height: 1.1;
   text-align: center;
   user-select: none;
-  box-shadow: 0 0 8px rgba(220, 38, 38, 0.35);
-  text-shadow: 0 0 4px rgba(239, 68, 68, 0.6);
+  -webkit-mask-image: var(--stamp-distress-mask);
+  mask-image: var(--stamp-distress-mask);
+  -webkit-mask-size: 100px 50px;
+  mask-size: 100px 50px;
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
 }
 
 .stamp-hanko-badge.large {
   font-size: 18px;
-  padding: 4px 16px;
-  border-width: 2.5px;
-  outline-width: 1.5px;
-  outline-offset: -4px;
-  border-radius: 6px;
+  padding: 4px 18px;
+  border: 2.5px solid #dc2626;
+  box-shadow: inset 0 0 0 1.5px transparent, inset 0 0 0 2.5px #dc2626, 0 0 12px rgba(220, 38, 38, 0.4);
+  border-radius: 7px;
   letter-spacing: 3px;
-  transform: rotate(-10deg);
-  box-shadow: 0 0 14px rgba(220, 38, 38, 0.45);
+  -webkit-mask-size: 140px 70px;
+  mask-size: 140px 70px;
 }
 
-/* 冒険の書特典カード用の超大型・半透明中世刻印USEDスタンプ（右上・タイトル重ね用） */
+/* 冒険の書特典カード用の超大型・リアル擦れUSEDスタンプ（水平・右上・二重角丸枠） */
 .treasure-card-stamp-used {
   position: absolute;
-  top: 6px;
-  right: 10px;
-  font-family: var(--font-pixel);
-  font-size: 26px;
+  top: 8px;
+  right: 12px;
+  font-family: 'Impact', 'Arial Black', var(--font-pixel), sans-serif;
+  font-size: 24px;
   font-weight: 900;
-  color: #f87171;
+  color: #ef4444;
   border: 3px solid #dc2626;
-  outline: 2px dashed rgba(248, 113, 113, 0.75);
-  outline-offset: -5px;
-  background: radial-gradient(circle, rgba(220, 38, 38, 0.28) 0%, rgba(127, 29, 29, 0.16) 100%);
-  border-radius: 6px;
-  padding: 3px 16px;
-  letter-spacing: 3px;
-  transform: rotate(-12deg);
+  box-shadow: inset 0 0 0 2px transparent, inset 0 0 0 3px #dc2626, 0 0 12px rgba(220, 38, 38, 0.35);
+  background: rgba(220, 38, 38, 0.12);
+  border-radius: 7px;
+  padding: 4px 16px;
+  letter-spacing: 4px;
   line-height: 1.1;
   text-align: center;
   user-select: none;
-  box-shadow: 0 0 16px rgba(220, 38, 38, 0.5), inset 0 0 8px rgba(220, 38, 38, 0.3);
-  text-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
   pointer-events: none;
-  opacity: 0.9;
+  opacity: 0.95;
   z-index: 10;
-  backdrop-filter: blur(1px);
+  -webkit-mask-image: var(--stamp-distress-mask);
+  mask-image: var(--stamp-distress-mask);
+  -webkit-mask-size: 150px 75px;
+  mask-size: 150px 75px;
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
 }
 
-/* クーポン利用完了モーダル用の特大メガスタンプ */
+/* クーポン利用完了モーダル用の特大メガスタンプ（水平・二重角丸枠・擦れ） */
 .stamp-hanko-mega {
   display: inline-block;
-  font-family: var(--font-pixel);
-  font-size: 34px;
+  font-family: 'Impact', 'Arial Black', var(--font-pixel), sans-serif;
+  font-size: 38px;
   font-weight: 900;
-  color: #fca5a5;
-  border: 3.5px solid #ef4444;
-  outline: 2px dashed rgba(254, 202, 202, 0.85);
-  outline-offset: -6px;
-  background: radial-gradient(circle, rgba(239, 68, 68, 0.35) 0%, rgba(153, 27, 27, 0.2) 100%);
-  border-radius: 8px;
-  padding: 6px 28px;
-  letter-spacing: 4px;
-  transform: rotate(-12deg);
-  text-shadow: 0 0 10px rgba(239, 68, 68, 0.9);
-  box-shadow: 0 0 24px rgba(239, 68, 68, 0.6), inset 0 0 12px rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  border: 4px solid #ef4444;
+  box-shadow: inset 0 0 0 2.5px transparent, inset 0 0 0 4px #ef4444, 0 0 24px rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.15);
+  border-radius: 10px;
+  padding: 6px 32px;
+  letter-spacing: 6px;
+  line-height: 1.1;
+  text-align: center;
+  user-select: none;
+  -webkit-mask-image: var(--stamp-distress-mask);
+  mask-image: var(--stamp-distress-mask);
+  -webkit-mask-size: 180px 90px;
+  mask-size: 180px 90px;
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
 }
 
-/* ハンコがドンッと押されるアニメーション */
+/* ハンコがドンッと水平に押されるアニメーション */
 .stamp-animate {
-  animation: stampInMega 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.3) forwards;
+  animation: stampInMega 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.3) forwards;
   display: inline-block;
 }
 
 @keyframes stampInMega {
   0% {
-    transform: scale(3.2) rotate(-30deg);
+    transform: scale(2.6);
     opacity: 0;
   }
   50% {
-    transform: scale(0.88) rotate(-12deg);
+    transform: scale(0.92);
     opacity: 1;
   }
   75% {
-    transform: scale(1.08) rotate(-12deg);
+    transform: scale(1.05);
   }
   100% {
-    transform: scale(1) rotate(-12deg);
+    transform: scale(1);
     opacity: 1;
   }
 }

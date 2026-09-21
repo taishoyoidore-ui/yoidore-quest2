@@ -857,7 +857,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.20';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.21';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1192,6 +1192,7 @@ class YoidoreQuestApp {
     const heroTitle = matchedHero.title || '駆け出しの呑兵衛';
     const heroLv = matchedHero.level || 1;
     const heroColor = matchedHero.badge_color || '#facc15';
+    const heroDesc = matchedHero.description || '';
 
     const allSeasons = (Array.isArray(cloudSeasons) && cloudSeasons.length > 0)
       ? cloudSeasons
@@ -1480,6 +1481,7 @@ class YoidoreQuestApp {
                 <i class="fa-solid fa-medal hero-title-icon" style="color: ${heroColor};"></i>
                 <span class="hero-title-text" style="color: ${heroColor}; text-shadow: 0 0 8px ${heroColor}66;">${heroTitle}</span>
               </div>
+              ${heroDesc ? `<div class="hero-title-desc">${this.escapeHtml(heroDesc)}</div>` : ''}
             </div>
           </div>
         </div>
@@ -1673,6 +1675,97 @@ class YoidoreQuestApp {
         }
       });
     }
+  }
+
+  /* ------------------------------------------------------------------------
+   * 酒場スタンプ・詳細確認モーダル (酒場コレクションのロゴタイルタップ時)
+   * ------------------------------------------------------------------------ */
+  showStoreStampModal(store, visitInfo = null) {
+    if (!store) return;
+    const isVisited = Boolean(visitInfo);
+    const logoUrl = store.logoUrl || store.logo_url || '';
+    const initialChar = this.escapeHtml((store.name || '酒').slice(0, 1));
+    const visitedDateStr = visitInfo?.visited_at
+      ? new Date(visitInfo.visited_at).toLocaleString('ja-JP', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : (isVisited ? '訪問記録あり' : '');
+
+    const existingModal = document.getElementById('store-stamp-modal-overlay');
+    if (existingModal) existingModal.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'store-stamp-modal-overlay';
+    overlay.className = 'stamp-modal-overlay';
+    overlay.innerHTML = `
+      <div class="stamp-modal-content">
+        <div class="stamp-modal-header">
+          <div class="stamp-modal-title">
+            <i class="fa-solid fa-stamp" style="color:var(--text-yellow); margin-right:6px;"></i>酒場コレクション詳細
+          </div>
+          <button type="button" class="stamp-modal-close-btn" id="btn-close-stamp-modal" aria-label="閉じる">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="stamp-modal-body">
+          <div class="stamp-modal-logo-box ${isVisited ? 'visited' : ''}">
+            ${logoUrl ? `
+              <img src="${logoUrl}" alt="${this.escapeHtml(store.name)}" class="stamp-modal-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <div class="quest-stamp-fallback" style="display:none; font-size:32px;">${initialChar}</div>
+            ` : `
+              <div class="quest-stamp-fallback" style="font-size:32px;">${initialChar}</div>
+            `}
+          </div>
+          <div class="stamp-modal-store-name">${this.escapeHtml(store.name)}</div>
+          <div class="stamp-modal-meta">
+            <span>📍 ${this.escapeHtml(store.area || '大正エリア')}</span>
+            <span style="margin: 0 6px;">|</span>
+            <span>🍻 ${this.escapeHtml(store.category || store.type || '酒場・居酒屋')}</span>
+          </div>
+          ${store.catchphrase ? `
+            <div style="font-size:12px; color:#fef08a; margin-bottom:12px; line-height:1.4; padding:0 8px;">
+              「${this.escapeHtml(store.catchphrase)}」
+            </div>
+          ` : ''}
+          <div>
+            ${isVisited ? `
+              <span class="stamp-modal-status-badge status-visited">
+                <i class="fa-solid fa-circle-check"></i> 制覇済み ${visitedDateStr ? `(${visitedDateStr})` : ''}
+              </span>
+            ` : `
+              <span class="stamp-modal-status-badge status-unvisited">
+                <i class="fa-solid fa-clock"></i> 未制覇（まだ訪れていません）
+              </span>
+            `}
+          </div>
+          <div class="stamp-modal-actions" style="margin-top:14px;">
+            <button id="btn-view-stamp-store-detail" class="command-button" style="width:100%; font-size:13px; padding:10px; background:linear-gradient(180deg, #d97706 0%, #b45309 100%); color:#fff; border:1px solid #f59e0b; border-radius:6px; font-weight:bold; cursor:pointer;">
+              <i class="fa-solid fa-circle-info"></i> 酒場の詳細ガイドを見る ▶
+            </button>
+            <button id="btn-dismiss-stamp-modal" class="command-button" style="width:100%; font-size:12px; padding:8px; background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:6px; cursor:pointer;">
+              閉じる
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const closeModal = () => {
+      this.playCursorSE();
+      overlay.remove();
+    };
+
+    overlay.querySelector('#btn-close-stamp-modal').addEventListener('click', closeModal);
+    overlay.querySelector('#btn-dismiss-stamp-modal').addEventListener('click', closeModal);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeModal();
+    });
+
+    overlay.querySelector('#btn-view-stamp-store-detail').addEventListener('click', () => {
+      this.playSelectSE();
+      overlay.remove();
+      this.navigateTo('detail', { store });
+    });
   }
 
   /* ------------------------------------------------------------------------
@@ -2399,6 +2492,7 @@ class YoidoreQuestApp {
     const safeStoreName = storeName ? (this.escapeHtml ? this.escapeHtml(storeName) : storeName) : '参加酒場';
     const newLv = newHero?.level ?? '-';
     const newTitle = newHero?.title ?? '-';
+    const newDesc = newHero?.description || '';
     const badgeColor = newHero?.badge_color || '#facc15';
     const visitCountDisplay = typeof totalVisits === 'number' ? totalVisits : (Number(totalVisits) || 0);
 
@@ -2432,6 +2526,7 @@ class YoidoreQuestApp {
                 <i class="fa-solid fa-crown" style="color:${badgeColor};"></i> ${this.escapeHtml(newTitle)}
               </span>
             </div>
+            ${newDesc ? `<div class="hero-title-desc" style="color:#cbd5e1; margin-top:6px; font-size:12px;">${this.escapeHtml(newDesc)}</div>` : ''}
           </div>
 
           <!-- サイン獲得酒場 & 制覇数カード -->

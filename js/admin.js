@@ -64,7 +64,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.20';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.21';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -2569,7 +2569,7 @@ class YoidoreAdminApp {
         const isUsed = c.status === 'used';
 
         const statusTag = isUsed 
-          ? (isGoods ? '<span class="tag tag-active">✅ 受取済</span>' : '<span class="tag tag-active">✅ 利用済</span>')
+          ? (isGoods ? '<span class="tag tag-active">受取済</span>' : '<span class="tag tag-active">✅ 利用済</span>')
           : '<span class="tag tag-area">未使用・保有中</span>';
 
         return `
