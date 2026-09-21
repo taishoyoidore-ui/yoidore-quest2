@@ -64,7 +64,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.21';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.22';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -245,16 +245,74 @@ class YoidoreAdminApp {
   }
 
   /* ------------------------------------------------------------------------
+   * シーズンの期間フェーズ判定（日付＆本番稼働判定の分離）
+   * ------------------------------------------------------------------------ */
+  getSeasonPhaseInfo(season) {
+    if (!season) return { phaseKey: 'unknown', phaseLabel: '不明', badgeClass: 'tag-area', timerText: '-', isEventActive: false, isCouponUsable: false };
+    const now = new Date();
+    const startDate = new Date(season.start_date || '2026-08-01');
+    const endDate = new Date(season.end_date || '2026-08-31');
+    endDate.setHours(23, 59, 59, 999);
+    const validUntil = new Date(season.coupon_valid_until || '2026-09-30');
+    validUntil.setHours(23, 59, 59, 999);
+
+    if (now < startDate) {
+      const days = Math.max(1, Math.ceil((startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+      return {
+        phaseKey: 'upcoming',
+        phaseLabel: '開催前（準備中）',
+        badgeClass: 'tag-area',
+        timerText: `開幕まであと ${days} 日`,
+        isEventActive: false,
+        isCouponUsable: false
+      };
+    } else if (now <= endDate) {
+      const days = Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+      return {
+        phaseKey: 'event_active',
+        phaseLabel: 'イベント開催中',
+        badgeClass: 'tag-active',
+        timerText: `開催終了まであと ${days} 日`,
+        isEventActive: true,
+        isCouponUsable: false
+      };
+    } else if (now <= validUntil) {
+      const days = Math.max(0, Math.ceil((validUntil.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+      return {
+        phaseKey: 'coupon_only',
+        phaseLabel: '特典クーポン利用期間中',
+        badgeClass: 'tag-active',
+        timerText: `クーポン利用期限まであと ${days} 日`,
+        isEventActive: false,
+        isCouponUsable: true
+      };
+    } else {
+      return {
+        phaseKey: 'closed',
+        phaseLabel: '全期間終了（アーカイブ）',
+        badgeClass: 'tag-area',
+        timerText: 'イベント終了',
+        isEventActive: false,
+        isCouponUsable: false
+      };
+    }
+  }
+
+  /* ------------------------------------------------------------------------
    * シーズン切替制御
    * ------------------------------------------------------------------------ */
   renderSeasonSelector() {
     const sel = document.getElementById('season-selector');
     if (!sel) return;
-    sel.innerHTML = this.seasons.map(s => `
-      <option value="${s.id}" ${s.id === this.selectedSeasonId ? 'selected' : ''}>
-        ${this.escapeHtml(s.name)}${s.is_active ? ' (現在開催中)' : ''}
-      </option>
-    `).join('');
+    sel.innerHTML = this.seasons.map(s => {
+      const phase = this.getSeasonPhaseInfo(s);
+      const activeNote = s.is_active ? ` (本番適用中 / ${phase.phaseLabel})` : ` (${phase.phaseLabel})`;
+      return `
+        <option value="${s.id}" ${s.id === this.selectedSeasonId ? 'selected' : ''}>
+          ${this.escapeHtml(s.name)}${activeNote}
+        </option>
+      `;
+    }).join('');
   }
 
   async onSeasonSelectChange(seasonId) {
@@ -275,45 +333,32 @@ class YoidoreAdminApp {
 
     if (!banner || !current) return;
 
-    const now = new Date();
-    const startDate = new Date(current.start_date);
-    const endDate = new Date(current.end_date);
-    endDate.setHours(23, 59, 59, 999);
-    const validUntil = new Date(current.coupon_valid_until);
-    validUntil.setHours(23, 59, 59, 999);
-
+    const phase = this.getSeasonPhaseInfo(current);
     banner.className = 'status-banner mb-4';
 
-    if (now < startDate) {
-      // 開催前
+    if (phase.phaseKey === 'upcoming') {
       banner.classList.add('banner-warning');
       icon.textContent = '⏳';
       title.textContent = `【開催前】${current.name}`;
       desc.textContent = `開催予定: ${current.start_date} 〜 ${current.end_date}`;
-      const days = Math.ceil((startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      timer.textContent = `開幕まであと ${days} 日`;
-    } else if (now <= endDate) {
-      // 本開催中
+      timer.textContent = phase.timerText;
+    } else if (phase.phaseKey === 'event_active') {
       banner.classList.add('banner-active');
       icon.textContent = '🍺';
-      title.textContent = `【本開催中】${current.name}`;
+      title.textContent = `【イベント開催中】${current.name}`;
       desc.textContent = `ハシゴ酒クエスト開催中！ (〜 ${current.end_date} まで)`;
-      const days = Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-      timer.textContent = `開催終了まであと ${days} 日`;
-    } else if (now <= validUntil) {
-      // 後夜祭（クーポン利用期間）
-      banner.classList.add('banner-warning');
-      icon.textContent = '⚠️';
-      title.textContent = `【後夜祭・クーポン利用期間】${current.name}`;
-      desc.textContent = `本開催は終了しました。クーポンの利用期限は ${current.coupon_valid_until} までです！`;
-      const days = Math.max(0, Math.ceil((validUntil.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-      timer.textContent = `クーポン期限まであと ${days} 日`;
+      timer.textContent = phase.timerText;
+    } else if (phase.phaseKey === 'coupon_only') {
+      banner.classList.add('banner-active');
+      icon.textContent = '🎁';
+      title.textContent = `【特典クーポン利用期間中】${current.name}`;
+      desc.textContent = `ハシゴ酒イベント（サイン集め）は終了しました。現在は獲得クーポンの酒場利用期間です（〜 ${current.coupon_valid_until} まで）！`;
+      timer.textContent = phase.timerText;
     } else {
-      // 終了
       banner.classList.add('banner-expired');
       icon.textContent = '🔒';
-      title.textContent = `【期間終了】${current.name}`;
-      desc.textContent = `今期のクエストおよびクーポン利用期間はすべて終了いたしました。`;
+      title.textContent = `【全期間終了】${current.name}`;
+      desc.textContent = `今期のハシゴ酒クエストおよび特典クーポン利用期間はすべて終了いたしました。`;
       timer.textContent = `終了済`;
     }
   }
@@ -1957,28 +2002,30 @@ class YoidoreAdminApp {
     } else {
       seasonsListElem.innerHTML = this.seasons.map(s => {
         const isCurrent = s.id === this.selectedSeasonId;
+        const phase = this.getSeasonPhaseInfo(s);
         return `
           <div class="season-card ${isCurrent ? 'active' : ''}">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
               <div>
-                <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                   <strong style="font-size: 1.05rem; color: #0f172a;">${this.escapeHtml(s.name)}</strong>
-                  ${s.is_active ? '<span class="tag tag-active">開催中</span>' : '<span class="tag tag-area">準備/過去</span>'}
+                  ${s.is_active ? '<span class="tag tag-primary" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-weight:bold;"><i class="fa-solid fa-circle-check"></i> 本番適用中</span>' : ''}
+                  <span class="tag ${phase.badgeClass}">${phase.phaseLabel}</span>
                 </div>
                 <div class="text-muted" style="font-size: 0.85rem; margin-top: 4px;">
-                  📅 開催: ${s.start_date} 〜 ${s.end_date} ｜ 🎟️ クーポン期限: ${s.coupon_valid_until}
+                  📅 開催期間: ${s.start_date} 〜 ${s.end_date} ｜ 🎟️ クーポン利用期限: ${s.coupon_valid_until}
                 </div>
               </div>
               <div style="display: flex; gap: 8px; align-items: center;">
                 ${!s.is_active ? `
                   <button class="btn btn-sm btn-primary" onclick="window.adminApp.activateSeason(${s.id})">
-                    <i class="fa-solid fa-bolt"></i> このイベントを開催中に切替
+                    <i class="fa-solid fa-bolt"></i> このシーズンを本番適用に切替
                   </button>
                   <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.confirmDeleteSeason(${s.id}, '${this.escapeHtml(s.name)}')" title="シーズンを削除">
                     <i class="fa-solid fa-trash"></i> 削除
                   </button>
                 ` : `
-                  <span class="text-success" style="font-weight: bold; font-size: 0.85rem;"><i class="fa-solid fa-check"></i> 現在稼働中</span>
+                  <span class="text-success" style="font-weight: bold; font-size: 0.85rem;"><i class="fa-solid fa-circle-check"></i> 本番稼働中</span>
                 `}
               </div>
             </div>
@@ -2433,14 +2480,14 @@ class YoidoreAdminApp {
   async activateSeason(seasonId) {
     const targetSeason = this.seasons.find(s => s.id === seasonId);
     const seasonName = targetSeason ? targetSeason.name : '選択中イベント';
-    if (!confirm(`「${seasonName}」を開催中（アクティブ）に切り替えますか？\n（参加者のアプリが「${seasonName}」モードに切り替わります）`)) {
+    if (!confirm(`「${seasonName}」を本番適用（アクティブ）に切り替えますか？\n（参加者のアプリが「${seasonName}」モードに切り替わります）`)) {
       return;
     }
     try {
-      this.showToast('開催イベントを切り替え中...');
+      this.showToast('本番適用シーズンを切り替え中...');
       await this.api.adminSetActiveSeason(seasonId);
       this.selectedSeasonId = seasonId;
-      this.showToast(`「${seasonName}」を開催中に切り替えました！`);
+      this.showToast(`「${seasonName}」を本番適用に切り替えました！`);
       await this.loadAllData();
     } catch (err) {
       alert('切り替えに失敗しました: ' + err.message);
@@ -2450,7 +2497,7 @@ class YoidoreAdminApp {
   async confirmDeleteSeason(seasonId, seasonName) {
     const targetSeason = this.seasons.find(s => s.id === seasonId);
     if (targetSeason && targetSeason.is_active) {
-      alert('現在開催中（アクティブ）のシーズンは削除できません。先に別のシーズンを開催中に切り替えてください。');
+      alert('現在本番適用中（アクティブ）のシーズンは削除できません。先に別のシーズンを本番適用に切り替えてください。');
       return;
     }
 
