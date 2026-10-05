@@ -889,7 +889,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.05.01';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.05.02';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1489,10 +1489,11 @@ class YoidoreQuestApp {
     }).join('');
 
     // シーズン切り替えセレクター用オプション
-    const seasonsList = (allSeasons && allSeasons.length > 0)
+    const seasonsList = (Array.isArray(allSeasons) && allSeasons.length > 0)
       ? allSeasons
-      : (activeSeason ? [activeSeason] : [{ id: 2, name: '大正酔いどれクエスト', is_active: true }]);
+      : (activeSeason ? [activeSeason] : [{ id: 2, name: '大正酔いどれクエスト2', is_active: true }]);
 
+    const hasMultipleSeasons = seasonsList.length > 1;
     const seasonOptionsHtml = seasonsList.map(s => {
       const isSelected = (s.id === seasonId);
       return `<option value="${s.id}" ${isSelected ? 'selected' : ''}>${this.escapeHtml(s.name || 'イベント')}</option>`;
@@ -1520,25 +1521,37 @@ class YoidoreQuestApp {
           </div>
         `}
 
-        <!-- 0. シーズン切替セレクター & 開催期間表示 -->
-        <div class="rpg-window" style="margin-bottom:12px; padding:10px 12px;">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:${seasonPeriodStr ? '8px' : '0'};">
-            <span style="font-size:13px; font-weight:bold; color:var(--text-yellow); white-space:nowrap;">
-              <i class="fa-solid fa-clock-rotate-left"></i> 表示シーズン:
-            </span>
-            <select id="book-season-select" class="filter-select" style="flex:1; max-width:240px; margin:0; padding:6px 10px; font-size:13px; font-weight:bold; background:#0f172a; color:#fff; border:1px solid var(--border-gold);">
-              ${seasonOptionsHtml}
-            </select>
+        <!-- 0. 冒険の書シーズンヘッダー & 開催期間表示 -->
+        <div class="rpg-window gold-border" style="margin-bottom:14px; padding:12px;">
+          <div class="rpg-window-header" style="margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <div style="display:flex; align-items:center; gap:6px; font-size:15px; font-weight:bold; color:var(--text-yellow);">
+              <span>📜 【${this.escapeHtml(seasonName)}】冒険の書</span>
+            </div>
+            ${isCurrentSeason ? `<span class="header-badge" style="background:#059669; color:#fff;">開催中</span>` : `<span class="header-badge" style="background:#64748b; color:#fff;">過去回</span>`}
           </div>
 
+          ${hasMultipleSeasons ? `
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; background:rgba(0,0,0,0.3); padding:6px 8px; border-radius:4px;">
+              <label for="book-season-select" style="font-size:12px; font-weight:bold; color:#cbd5e1; display:flex; align-items:center; gap:4px; white-space:nowrap; margin:0; cursor:pointer;">
+                <i class="fa-solid fa-clock-rotate-left"></i> シーズン切替:
+              </label>
+              <div style="position:relative; flex:1; max-width:220px;">
+                <select id="book-season-select" class="filter-select" style="width:100%; margin:0; padding:6px 26px 6px 10px; font-size:12px; font-weight:bold; background:#0f172a; color:#ffffff; border:1px solid var(--border-gold); border-radius:4px; appearance:none; -webkit-appearance:none; cursor:pointer;">
+                  ${seasonOptionsHtml}
+                </select>
+                <i class="fa-solid fa-chevron-down" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); color:var(--text-yellow); pointer-events:none; font-size:11px;"></i>
+              </div>
+            </div>
+          ` : ''}
+
           ${seasonPeriodStr ? `
-            <div style="background:rgba(15, 23, 42, 0.6); border:1px solid rgba(248, 225, 108, 0.3); border-radius:4px; padding:6px 10px; font-size:12px;">
+            <div style="background:rgba(15, 23, 42, 0.75); border:1px solid rgba(248, 225, 108, 0.35); border-radius:6px; padding:8px 12px; font-size:12px;">
               <div style="display:flex; align-items:center; gap:6px; color:#fde68a; font-weight:bold;">
                 <span>📅 開催期間:</span>
                 <span>${seasonPeriodStr}</span>
               </div>
               ${seasonCouponUntil ? `
-                <div style="display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:11px; margin-top:2px;">
+                <div style="display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:11px; margin-top:3px;">
                   <span style="color:#38bdf8;">🎫 クーポン期限:</span>
                   <span>〜 ${this.formatDateWithDay(seasonCouponUntil)}</span>
                 </div>

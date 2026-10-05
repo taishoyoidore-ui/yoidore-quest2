@@ -451,7 +451,7 @@ class QuestApiManager {
 
     // 常に最新のcurrentSeasonをseasons配列内に同期
     if (this.currentSeason && this.currentSeason.id) {
-      const currentIdx = this.seasons.findIndex(s => s.id === this.currentSeason.id);
+      const currentIdx = this.seasons.findIndex(s => Number(s.id) === Number(this.currentSeason.id));
       if (currentIdx >= 0) {
         this.seasons[currentIdx] = { ...this.seasons[currentIdx], ...this.currentSeason };
       } else {
