@@ -78,7 +78,8 @@ SET level = EXCLUDED.level,
     description = EXCLUDED.description,
     display_order = EXCLUDED.display_order;
 
--- 4. 既存テーブルへの season_id およびグッズ引換カラムの追加
+-- 4. 既存テーブルへの season_id およびグッズ引換・店舗住所カラムの追加
+ALTER TABLE public.stores ADD COLUMN IF NOT EXISTS address TEXT;
 ALTER TABLE public.visits ADD COLUMN IF NOT EXISTS season_id INT DEFAULT 2;
 ALTER TABLE public.reward_tiers ADD COLUMN IF NOT EXISTS season_id INT DEFAULT 2;
 ALTER TABLE public.reward_tiers ADD COLUMN IF NOT EXISTS reward_type TEXT DEFAULT 'store_coupon'; -- store_coupon or goods

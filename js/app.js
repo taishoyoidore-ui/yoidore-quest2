@@ -177,6 +177,38 @@ class YoidoreQuestApp {
       .replace(/'/g, '&#039;');
   }
 
+  // 日付フォーマット補助 (例: 2026-08-01 -> 2026年8月1日(土))
+  formatDateWithDay(dStr) {
+    if (!dStr) return '';
+    const parts = String(dStr).split('T')[0].split(/[-/]/);
+    if (parts.length >= 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      const d = parseInt(parts[2], 10);
+      const dateObj = new Date(y, m - 1, d);
+      const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+      const dayName = isNaN(dateObj.getTime()) ? '' : `(${dayNames[dateObj.getDay()]})`;
+      return `${y}年${m}月${d}日${dayName}`;
+    }
+    return String(dStr);
+  }
+
+  // 短縮日付フォーマット (例: 2026-08-01 -> 8/1(土))
+  formatShortDateWithDay(dStr) {
+    if (!dStr) return '';
+    const parts = String(dStr).split('T')[0].split(/[-/]/);
+    if (parts.length >= 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      const d = parseInt(parts[2], 10);
+      const dateObj = new Date(y, m - 1, d);
+      const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+      const dayName = isNaN(dateObj.getTime()) ? '' : `(${dayNames[dateObj.getDay()]})`;
+      return `${m}/${d}${dayName}`;
+    }
+    return String(dStr);
+  }
+
   // 訪問軒数から現在の勇者称号・レベルデータを取得
   getHeroTitleForVisits(count = 0) {
     const heroTitles = (window.questApi && window.questApi.heroTitles && window.questApi.heroTitles.length > 0)
@@ -857,7 +889,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.22';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.05.01';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -923,6 +955,9 @@ class YoidoreQuestApp {
     const season = window.questApi?.currentSeason;
     if (!season || !season.statusInfo) return '';
     const info = season.statusInfo;
+    const periodStr = (season.start_date && season.end_date)
+      ? `${this.formatShortDateWithDay(season.start_date)} 〜 ${this.formatShortDateWithDay(season.end_date)}`
+      : '';
 
     if (info.isEventActive) {
       return `
@@ -931,7 +966,9 @@ class YoidoreQuestApp {
             <span class="season-notice-icon">🍺</span>
             <div class="season-notice-text">
               <strong>【${this.escapeHtml ? this.escapeHtml(season.name) : season.name} 開催中！】</strong>
-              <div style="font-size:11px; opacity:0.9;">ハシゴ酒で宝箱を解放しよう！ (残り ${info.daysLeft} 日)</div>
+              <div style="font-size:11px; opacity:0.95;">
+                ${periodStr ? `📅 期間: <strong>${periodStr}</strong> ` : ''}(残り ${info.daysLeft} 日)
+              </div>
             </div>
           </div>
         </div>
@@ -943,7 +980,7 @@ class YoidoreQuestApp {
             <span class="season-notice-icon">⚠️</span>
             <div class="season-notice-text">
               <strong>【後夜祭・クーポン利用期間中】</strong>
-              <div style="font-size:11px; opacity:0.9;">利用期限: ${season.coupon_valid_until} まで！お早めにお使いください</div>
+              <div style="font-size:11px; opacity:0.95;">🎫 利用期限: ${this.formatDateWithDay(season.coupon_valid_until)} まで！お早めにお使いください</div>
             </div>
           </div>
         </div>
@@ -955,7 +992,7 @@ class YoidoreQuestApp {
             <span class="season-notice-icon">🔒</span>
             <div class="season-notice-text">
               <strong>【イベント終了】</strong>
-              <div style="font-size:11px; opacity:0.9;">今期のクーポン利用期間は終了いたしました</div>
+              <div style="font-size:11px; opacity:0.9;">今期の開催・クーポン利用期間は終了いたしました</div>
             </div>
           </div>
         </div>
@@ -993,6 +1030,11 @@ class YoidoreQuestApp {
     const guideSteps = (currentSeason.guide_steps && currentSeason.guide_steps.length > 0) ? currentSeason.guide_steps : (fallback.guide_steps || []);
     const rulesNotes = currentSeason.rules_notes || fallback.rules_notes || '';
 
+    const seasonStart = currentSeason.start_date || window.APP_CONFIG?.eventPeriod?.startDate;
+    const seasonEnd = currentSeason.end_date || window.APP_CONFIG?.eventPeriod?.endDate;
+    const couponUntil = currentSeason.coupon_valid_until;
+    const formattedPeriod = (seasonStart && seasonEnd) ? `${this.formatDateWithDay(seasonStart)} 〜 ${this.formatDateWithDay(seasonEnd)}` : '';
+
     container.innerHTML = `
       <!-- 開催フェーズ動的告知バナー -->
       ${this.getSeasonBannerHTML()}
@@ -1006,6 +1048,21 @@ class YoidoreQuestApp {
           </div>
           <span class="tag tag-area">全${totalCount}酒場 参戦中</span>
         </div>
+
+        ${formattedPeriod ? `
+          <div style="background:rgba(15, 23, 42, 0.6); border:1px solid rgba(248, 225, 108, 0.3); border-radius:4px; padding:6px 10px; margin-top:8px; font-size:12px;">
+            <div style="display:flex; align-items:center; gap:6px; color:#fde68a; font-weight:bold;">
+              <span>📅 開催期間:</span>
+              <span>${formattedPeriod}</span>
+            </div>
+            ${couponUntil ? `
+              <div style="display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:11px; margin-top:2px;">
+                <span style="color:#38bdf8;">🎫 クーポン期限:</span>
+                <span>〜 ${this.formatDateWithDay(couponUntil)}</span>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
 
         ${overview ? `
           <div class="top-guidance-overview">
@@ -1441,6 +1498,13 @@ class YoidoreQuestApp {
       return `<option value="${s.id}" ${isSelected ? 'selected' : ''}>${this.escapeHtml(s.name || 'イベント')}</option>`;
     }).join('');
 
+    const seasonStartDate = targetSeasonObj?.start_date || (seasonId === 2 ? window.APP_CONFIG?.eventPeriod?.startDate : '');
+    const seasonEndDate = targetSeasonObj?.end_date || (seasonId === 2 ? window.APP_CONFIG?.eventPeriod?.endDate : '');
+    const seasonCouponUntil = targetSeasonObj?.coupon_valid_until;
+    const seasonPeriodStr = (seasonStartDate && seasonEndDate)
+      ? `${this.formatDateWithDay(seasonStartDate)} 〜 ${this.formatDateWithDay(seasonEndDate)}`
+      : '';
+
     container.innerHTML = `
       <div class="quest-book-container">
         <!-- 開催フェーズ動的告知バナー -->
@@ -1456,14 +1520,31 @@ class YoidoreQuestApp {
           </div>
         `}
 
-        <!-- 0. シーズン切替セレクター -->
-        <div class="rpg-window" style="margin-bottom:12px; padding:8px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
-          <span style="font-size:13px; font-weight:bold; color:var(--text-yellow); white-space:nowrap;">
-            <i class="fa-solid fa-clock-rotate-left"></i> 表示シーズン:
-          </span>
-          <select id="book-season-select" class="filter-select" style="flex:1; max-width:240px; margin:0; padding:6px 10px; font-size:13px; font-weight:bold; background:#0f172a; color:#fff; border:1px solid var(--border-gold);">
-            ${seasonOptionsHtml}
-          </select>
+        <!-- 0. シーズン切替セレクター & 開催期間表示 -->
+        <div class="rpg-window" style="margin-bottom:12px; padding:10px 12px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:${seasonPeriodStr ? '8px' : '0'};">
+            <span style="font-size:13px; font-weight:bold; color:var(--text-yellow); white-space:nowrap;">
+              <i class="fa-solid fa-clock-rotate-left"></i> 表示シーズン:
+            </span>
+            <select id="book-season-select" class="filter-select" style="flex:1; max-width:240px; margin:0; padding:6px 10px; font-size:13px; font-weight:bold; background:#0f172a; color:#fff; border:1px solid var(--border-gold);">
+              ${seasonOptionsHtml}
+            </select>
+          </div>
+
+          ${seasonPeriodStr ? `
+            <div style="background:rgba(15, 23, 42, 0.6); border:1px solid rgba(248, 225, 108, 0.3); border-radius:4px; padding:6px 10px; font-size:12px;">
+              <div style="display:flex; align-items:center; gap:6px; color:#fde68a; font-weight:bold;">
+                <span>📅 開催期間:</span>
+                <span>${seasonPeriodStr}</span>
+              </div>
+              ${seasonCouponUntil ? `
+                <div style="display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:11px; margin-top:2px;">
+                  <span style="color:#38bdf8;">🎫 クーポン期限:</span>
+                  <span>〜 ${this.formatDateWithDay(seasonCouponUntil)}</span>
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
         </div>
 
         <!-- 1. 勇者ステータス -->
@@ -3346,6 +3427,12 @@ class YoidoreQuestApp {
               </div>
               <h2 class="detail-store-name" style="margin-top:8px;">${store.name}</h2>
               ${store.catchphrase ? `<div class="detail-catchphrase">"${store.catchphrase}"</div>` : ''}
+              ${store.address ? `
+                <div class="detail-address-row" style="margin-top:8px; font-size:13px; color:#cbd5e1; display:flex; align-items:flex-start; gap:6px; line-height:1.4;">
+                  <span style="color:var(--text-yellow); flex-shrink:0;">📍</span>
+                  <span style="word-break:break-all;">${this.escapeHtml(store.address)}</span>
+                </div>
+              ` : ''}
             </div>
 
             ${(store.logoUrl || store.logo_url) ? `
@@ -3555,23 +3642,32 @@ class YoidoreQuestApp {
           </div>
         ` : ''}
 
-        <!-- 外部リンク -->
-        ${(store.googleMapUrl || store.instagramUrl) ? `
-          <div class="rpg-window">
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              ${store.googleMapUrl ? `
-                <a href="${store.googleMapUrl}" target="_blank" class="external-link-btn">
-                  <span>📍 Googleマップで酒場へ行く</span>
-                </a>
-              ` : ''}
-              ${store.instagramUrl ? `
-                <a href="${store.instagramUrl}" target="_blank" class="external-link-btn" style="background: linear-gradient(180deg, #801848 0%, #380820 100%);">
-                  <span>📷 酒場のInstagramを開く</span>
-                </a>
-              ` : ''}
+        <!-- 外部リンク (Googleマップ URL 未設定時は住所から検索URLを自動生成) -->
+        ${(() => {
+          let effectiveMapUrl = store.googleMapUrl || store.map_url || '';
+          if (!effectiveMapUrl && store.address) {
+            const searchQuery = `${store.address} ${store.name || ''}`.trim();
+            effectiveMapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}`;
+          }
+          if (!effectiveMapUrl && !store.instagramUrl) return '';
+
+          return `
+            <div class="rpg-window">
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                ${effectiveMapUrl ? `
+                  <a href="${effectiveMapUrl}" target="_blank" rel="noopener noreferrer" class="external-link-btn">
+                    <span>📍 Googleマップで酒場へ行く</span>
+                  </a>
+                ` : ''}
+                ${store.instagramUrl ? `
+                  <a href="${store.instagramUrl}" target="_blank" rel="noopener noreferrer" class="external-link-btn" style="background: linear-gradient(180deg, #801848 0%, #380820 100%);">
+                    <span>📷 酒場のInstagramを開く</span>
+                  </a>
+                ` : ''}
+              </div>
             </div>
-          </div>
-        ` : ''}
+          `;
+        })()}
 
       </div>
     `;

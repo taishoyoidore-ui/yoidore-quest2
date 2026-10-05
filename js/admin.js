@@ -64,7 +64,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.09.21.22';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.05.01';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -868,6 +868,7 @@ class YoidoreAdminApp {
                 '<span class="badge" style="background:#dcfce7; color:#15803d; font-size:11px; padding:2px 6px;">参加中</span>' : 
                 '<span class="badge" style="background:#f1f5f9; color:#64748b; font-size:11px; padding:2px 6px;">不参加</span>'}
             </div>
+            ${store.address ? `<div style="font-size:11px; color:#475569; margin-top:2px;"><i class="fa-solid fa-location-dot" style="color:#d97706; font-size:10px;"></i> ${this.escapeHtml(store.address)}</div>` : ''}
             <small class="text-muted">${this.escapeHtml(store.catchphrase || '')}</small>
           </td>
           <td><span class="tag tag-area">${this.escapeHtml(store.area || '')}</span></td>
@@ -1082,6 +1083,7 @@ class YoidoreAdminApp {
 
     document.getElementById('edit-store-id').value = store.id || '';
     document.getElementById('edit-store-name').value = store.name || '';
+    document.getElementById('edit-store-address').value = store.address || raw['address'] || raw['住所'] || raw['店舗住所'] || '';
 
     // 1. エリア設定
     const knownAreas = ['三軒家西', '三軒家東', '駅前', '泉尾', '平尾'];
@@ -1248,6 +1250,20 @@ class YoidoreAdminApp {
     const logoVal = (document.getElementById('edit-store-logo-url').value || '').trim();
     const mapVal = (document.getElementById('edit-store-map-url').value || '').trim();
     const instaVal = (document.getElementById('edit-store-insta-url').value || '').trim();
+    const nameVal = (document.getElementById('edit-store-name').value || '').trim();
+    const addressVal = (document.getElementById('edit-store-address').value || '').trim();
+
+    // 住所からGoogleマップ確認ボタン
+    const addressMapBtn = document.getElementById('btn-check-address-map');
+    if (addressMapBtn) {
+      if (addressVal) {
+        const query = encodeURIComponent(`${addressVal} ${nameVal}`.trim());
+        addressMapBtn.href = `https://www.google.com/maps/search/?api=1&query=${query}`;
+        addressMapBtn.style.display = 'inline-flex';
+      } else {
+        addressMapBtn.style.display = 'none';
+      }
+    }
 
     // 写真プレビュー
     const photoBox = document.getElementById('preview-photo-box');
@@ -1383,6 +1399,7 @@ class YoidoreAdminApp {
     const name = document.getElementById('edit-store-name').value.trim();
     if (!name) return alert('店舗名を入力してください');
 
+    const address = document.getElementById('edit-store-address').value.trim();
     const catchphrase = document.getElementById('edit-store-catchphrase').value.trim();
     const timeNotes = document.getElementById('edit-store-time-notes').value.trim();
     const setName = document.getElementById('edit-store-set-name').value.trim();
@@ -1436,6 +1453,7 @@ class YoidoreAdminApp {
       ...existingRaw,
       id: storeId,
       name: name,
+      address: address,
       area: area,
       category: category,
       style: style,
@@ -1474,6 +1492,7 @@ class YoidoreAdminApp {
     const storePayload = {
       id: storeId,
       name: name,
+      address: address,
       area: area,
       ...(targetSeasonId === 2 ? { is_coupon_target: isCouponTarget } : {}),
       display_order: displayOrder,

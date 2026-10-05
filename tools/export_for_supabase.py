@@ -34,13 +34,14 @@ def generate_supabase_stores_sql():
 
     id_idx = find_idx('id', '店舗id')
     name_idx = find_idx('店舗名', '店名', '名')
+    address_idx = find_idx('住所', '店舗住所', '所在地', 'address')
     area_idx = find_idx('エリア', '地域')
     coupon_target_idx = find_idx('クーポン対象', 'クーポン対象店舗', '特典対象')
 
     sql_statements = [
         "-- STORES.xlsx から自動生成された店舗マスタ登録SQL",
         "TRUNCATE TABLE stores CASCADE;",
-        "INSERT INTO stores (id, name, area, is_coupon_target, display_order, raw_data) VALUES"
+        "INSERT INTO stores (id, name, address, area, is_coupon_target, display_order, raw_data) VALUES"
     ]
 
     values_list = []
@@ -53,6 +54,7 @@ def generate_supabase_stores_sql():
             continue
 
         store_id = str(row[id_idx] or '').strip() if (id_idx != -1 and id_idx < len(row) and row[id_idx]) else f"store-{str(row_idx-1).zfill(2)}"
+        address = str(row[address_idx] or '').strip() if (address_idx != -1 and address_idx < len(row) and row[address_idx]) else ''
         area = str(row[area_idx] or '').strip() if (area_idx != -1 and area_idx < len(row) and row[area_idx]) else ''
         
         # Coupon target check
@@ -77,14 +79,18 @@ def generate_supabase_stores_sql():
                     val = val.replace('\r\n', '\n').replace('\r', '\n').strip()
                 raw_data[h_name] = val
 
+        if address:
+            raw_data['address'] = address
+
         raw_data_json = json.dumps(raw_data, ensure_ascii=False)
         escaped_name = store_name.replace("'", "''")
+        escaped_address = address.replace("'", "''")
         escaped_area = area.replace("'", "''")
         is_coupon_str = 'true' if is_coupon else 'false'
 
         # Use dollar-quoting $json$...$json$ to guarantee zero syntax errors with quotes/newlines
         values_list.append(
-            f"('{store_id}', '{escaped_name}', '{escaped_area}', {is_coupon_str}, {row_idx-1}, $json${raw_data_json}$json$::jsonb)"
+            f"('{store_id}', '{escaped_name}', '{escaped_address}', '{escaped_area}', {is_coupon_str}, {row_idx-1}, $json${raw_data_json}$json$::jsonb)"
         )
 
     sql_statements.append(",\n".join(values_list) + ";")

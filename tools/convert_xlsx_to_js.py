@@ -81,6 +81,7 @@ def convert_excel_to_js():
 
         id_idx = get_col_idx("id")
         name_idx = get_col_idx("店舗名", "名", "店名")
+        address_idx = get_col_idx("住所", "店舗住所", "所在地", "address")
         area_idx = get_col_idx("エリア", "地域")
         category_idx = get_col_idx("カテゴリ", "カテゴリー", "ジャンル", "店の種類")
         style_idx = get_col_idx("スタイル", "席タイプ", "店舗スタイル")
@@ -157,7 +158,7 @@ def convert_excel_to_js():
                     h1, m1, h2, m2 = match.groups()
                     hours_raw = f"{int(h1):02d}:{m1}-{int(h2):02d}:{m2}"
 
-            # その他のフィールド読み込み（フォールバック補填なし・空欄は空欄のまま保持）
+            address = str(row[address_idx] or '').strip() if (address_idx != -1 and address_idx < len(row) and row[address_idx]) else ''
             area = str(row[area_idx] or '').strip() if (area_idx != -1 and area_idx < len(row) and row[area_idx]) else ''
             category = str(row[category_idx] or '').strip() if (category_idx != -1 and category_idx < len(row) and row[category_idx]) else ''
             style = str(row[style_idx] or '').strip() if (style_idx != -1 and style_idx < len(row) and row[style_idx]) else ''
@@ -256,6 +257,7 @@ def convert_excel_to_js():
             store_obj = {
                 "id": store_id,
                 "name": store_name,
+                "address": address,
                 "area": area,
                 "category": category,
                 "style": style,
@@ -446,6 +448,7 @@ function parseXLSXToStoresData(arrayBuffer) {{
     const name = getVal("店舗名", "名", "店名");
     if (!name) continue;
 
+    const address = getVal("住所", "店舗住所", "所在地", "address");
     const area = getVal("エリア", "地域");
     const category = getVal("カテゴリ", "カテゴリー", "ジャンル", "店の種類");
     const style = getVal("スタイル", "席タイプ", "店舗スタイル");
@@ -506,6 +509,7 @@ function parseXLSXToStoresData(arrayBuffer) {{
     const storeObj = {{
       id,
       name,
+      address,
       area,
       category,
       style,

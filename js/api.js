@@ -207,6 +207,7 @@ class QuestApiManager {
           const paymentStr = Array.isArray(paymentMethods) ? paymentMethods.join(', ') : String(s.payment || '現金');
 
           // 固定基本情報
+          const address = s.address || raw['address'] || raw['住所'] || raw['店舗住所'] || '';
           const mapUrl = s.map_url || raw['map_url'] || raw['googleMapUrl'] || raw['Google Map URL'] || '';
           const instaUrl = s.insta_url || raw['insta_url'] || raw['instagramUrl'] || raw['Instagram URL'] || '';
           const catchphrase = s.catchphrase || raw['catchphrase'] || raw['キャッチコピー'] || '';
@@ -225,6 +226,7 @@ class QuestApiManager {
             id: s.id,
             season_id: targetSeasonId,
             name: s.name,
+            address: address,
             area: area,
             category: category,
             style: style,

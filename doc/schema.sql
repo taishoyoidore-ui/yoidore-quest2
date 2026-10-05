@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS public.users (
 CREATE TABLE IF NOT EXISTS public.stores (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
+    address TEXT,
     area TEXT,
     is_coupon_target BOOLEAN DEFAULT true,
     display_order INT DEFAULT 0,
