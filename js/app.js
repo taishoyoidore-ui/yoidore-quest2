@@ -335,16 +335,13 @@ class YoidoreQuestApp {
         await window.questApi.getUserVisits();
         await window.questApi.getUserCoupons();
 
-        // URLパラメータからのマイルストーン特典達成またはチェックイン検出
-        // (?claim_tier=1, ?tier=1, ?action=claim_tier&tier=1, ?checkin=store-01)
+        // URLパラメータからのマイルストーン特典達成検出
+        // (?claim_tier=1, ?tier=1, ?action=claim_tier&tier=1)
         const params = new URLSearchParams(window.location.search);
         const claimTierId = params.get('claim_tier') || (params.get('action') === 'claim_tier' ? params.get('tier') : null) || params.get('tier');
-        const checkinStore = params.get('checkin') || (params.get('action') === 'checkin' ? params.get('store') : null);
 
         if (claimTierId) {
           await this.handleClaimMilestoneTier(claimTierId);
-        } else if (checkinStore) {
-          await this.handleCheckin(checkinStore);
         }
       } catch (e) {
         console.warn('Quest system initialization failed:', e);
@@ -936,7 +933,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.05';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.06';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -2426,23 +2423,17 @@ class YoidoreQuestApp {
           this.playSelectSE();
 
           let claimTierId = null;
-          let storeId = null;
 
           // 1. claim_tier / tier パラメータの判定 (例: ?claim_tier=1, ?tier=2, tier-1 等)
           if (decodedText.startsWith('tier-') || decodedText.startsWith('claim-tier-')) {
             claimTierId = decodedText.replace(/^(tier-|claim-tier-)/, '');
-          } else if (decodedText.startsWith('store-')) {
-            storeId = decodedText;
           } else {
             try {
               const url = new URL(decodedText);
               claimTierId = url.searchParams.get('claim_tier') || (url.searchParams.get('action') === 'claim_tier' ? url.searchParams.get('tier') : null) || url.searchParams.get('tier');
-              storeId = url.searchParams.get('checkin') || url.searchParams.get('store');
             } catch (e) {
               const matchTier = decodedText.match(/[?&](?:claim_tier|tier)=([^&#]+)/);
               if (matchTier) claimTierId = decodeURIComponent(matchTier[1]);
-              const matchStore = decodedText.match(/[?&](?:checkin|store)=([^&#]+)/);
-              if (matchStore) storeId = decodeURIComponent(matchStore[1]);
             }
           }
 
@@ -2451,10 +2442,8 @@ class YoidoreQuestApp {
 
           if (claimTierId) {
             await this.handleClaimMilestoneTier(claimTierId);
-          } else if (storeId) {
-            await this.handleCheckin(storeId);
           } else {
-            alert(`読み取ったQRコードの内容: ${decodedText}\n有効な達成特典QRコードではありません。`);
+            alert(`読み取ったQRコードの内容: ${decodedText}\n有効な特典達成QRコードではありません。運営店舗（6店舗）に設置された達成QRコードを読み取ってください。`);
           }
         };
 

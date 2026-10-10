@@ -64,7 +64,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.05';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.06';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -374,48 +374,14 @@ class YoidoreAdminApp {
     const usersElem = document.getElementById('kpi-users-count');
     if (usersElem) usersElem.textContent = this.users.length.toLocaleString();
 
-    const visitsElem = document.getElementById('kpi-visits-count');
-    if (visitsElem) visitsElem.textContent = this.visits.length.toLocaleString();
+    const storesElem = document.getElementById('kpi-stores-count');
+    if (storesElem) storesElem.textContent = this.stores.filter(s => s.is_participating !== false).length.toLocaleString();
     
     const couponsElem = document.getElementById('kpi-coupons-used');
     if (couponsElem) couponsElem.textContent = `${usedStoreCoupons.length.toLocaleString()} 件`;
 
     const goodsElem = document.getElementById('kpi-goods-used');
     if (goodsElem) goodsElem.textContent = `${usedGoods.length.toLocaleString()} 点`;
-
-    // 来店ランキング TOP 5
-    const storeVisitsMap = {};
-    this.visits.forEach(v => {
-      storeVisitsMap[v.store_id] = (storeVisitsMap[v.store_id] || 0) + 1;
-    });
-
-    const sortedStores = Object.entries(storeVisitsMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
-
-    const topStoresElem = document.getElementById('top-stores-ranking');
-    if (topStoresElem) {
-      if (sortedStores.length === 0) {
-        topStoresElem.innerHTML = '<div class="empty-state text-muted py-3">今期の来店・サイン受取データがありません</div>';
-      } else {
-        topStoresElem.innerHTML = sortedStores.map(([storeId, count], idx) => {
-          const store = this.stores.find(s => s.id === storeId);
-          const storeName = store ? store.name : storeId;
-          return `
-            <div class="ranking-item">
-              <div style="display: flex; align-items: center;">
-                <span class="rank-badge rank-${idx + 1}">${idx + 1}</span>
-                <strong style="color: #0f172a;">${this.escapeHtml(storeName)}</strong>
-              </div>
-              <div>
-                <span class="tag tag-area">${store ? store.area : ''}</span>
-                <strong style="color: #b45309; margin-left: 8px;">${count} 来店</strong>
-              </div>
-            </div>
-          `;
-        }).join('');
-      }
-    }
 
     // 酒場クーポン利用人気 TOP 5
     const couponStoreMap = {};
@@ -521,19 +487,19 @@ class YoidoreAdminApp {
    * ------------------------------------------------------------------------ */
   renderAnalytics() {
     // 1. サマリーKPI計算
-    const totalVisits = this.visits.length;
     const totalStoreCoupons = this.coupons.filter(c => c.reward_type !== 'goods' && c.status === 'used' && c.store_id).length;
     const totalGoods = this.coupons.filter(c => c.reward_type === 'goods' && c.status === 'used').length;
     const participatingStores = this.stores.filter(s => s.is_participating !== false).length;
+    const totalUsers = this.users.length;
 
-    const vElem = document.getElementById('analytics-total-visits');
-    if (vElem) vElem.textContent = `${totalVisits.toLocaleString()} 件`;
     const cElem = document.getElementById('analytics-total-store-coupons');
     if (cElem) cElem.textContent = `${totalStoreCoupons.toLocaleString()} 件`;
     const gElem = document.getElementById('analytics-total-goods');
     if (gElem) gElem.textContent = `${totalGoods.toLocaleString()} 点`;
     const sElem = document.getElementById('analytics-total-stores');
     if (sElem) sElem.textContent = `${participatingStores.toLocaleString()} 軒`;
+    const uElem = document.getElementById('analytics-total-users');
+    if (uElem) uElem.textContent = `${totalUsers.toLocaleString()} 名`;
 
     // 2. エリアフィルター初期化
     const areaFilter = document.getElementById('analytics-area-filter');
@@ -559,12 +525,11 @@ class YoidoreAdminApp {
 
     const search = (document.getElementById('analytics-store-search')?.value || '').trim().toLowerCase();
     const areaFilter = document.getElementById('analytics-area-filter')?.value || '';
-    const sortBy = document.getElementById('analytics-sort-select')?.value || 'visits_desc';
+    const sortBy = document.getElementById('analytics-sort-select')?.value || 'used_desc';
 
     // 全店舗ごとの実績計算
     const storeStats = this.stores.map(store => {
       const raw = store.raw_data || {};
-      const visitsCount = this.visits.filter(v => v.store_id === store.id).length;
       const usedCount = this.coupons.filter(c => c.store_id === store.id && c.status === 'used' && c.reward_type !== 'goods').length;
 
       let planType = raw.plan_type || '';
@@ -581,7 +546,6 @@ class YoidoreAdminApp {
         area: store.area || '',
         planType,
         isCouponTarget: !!store.is_coupon_target,
-        visitsCount,
         usedCount
       };
     });
@@ -595,7 +559,6 @@ class YoidoreAdminApp {
 
     // ソート
     filtered.sort((a, b) => {
-      if (sortBy === 'visits_desc') return b.visitsCount - a.visitsCount || a.id.localeCompare(b.id, undefined, { numeric: true });
       if (sortBy === 'used_desc') return b.usedCount - a.usedCount || a.id.localeCompare(b.id, undefined, { numeric: true });
       if (sortBy === 'name_asc') return a.name.localeCompare(b.name, 'ja');
       return a.id.localeCompare(b.id, undefined, { numeric: true });
@@ -604,7 +567,7 @@ class YoidoreAdminApp {
     if (countElem) countElem.textContent = filtered.length;
 
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">該当する酒場実績がありません</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">該当する酒場実績がありません</td></tr>';
       return;
     }
 
@@ -629,9 +592,6 @@ class YoidoreAdminApp {
           </td>
           <td><span class="tag tag-area">${this.escapeHtml(st.area)}</span></td>
           <td>${planBadge}</td>
-          <td style="text-align: right; font-weight: bold; color: #b45309; font-size: 14px;">
-            ${st.visitsCount} <span style="font-size:11px; font-weight:normal; color:#64748b;">人</span>
-          </td>
           <td style="text-align: right; font-weight: bold; color: #059669; font-size: 14px;">
             ${st.usedCount} <span style="font-size:11px; font-weight:normal; color:#64748b;">件</span>
           </td>
@@ -749,11 +709,10 @@ class YoidoreAdminApp {
   }
 
   exportAnalyticsStoresToCSV() {
-    let csvContent = '\uFEFF酒場ID,酒場名,エリア,参加企画,クーポン取扱対象,サイン受取数(来店数),クーポン利用数(消込済)\n';
+    let csvContent = '\uFEFF酒場ID,酒場名,エリア,参加企画,クーポン取扱対象,クーポン利用数(消込済)\n';
     
     this.stores.forEach(store => {
       const raw = store.raw_data || {};
-      const visitsCount = this.visits.filter(v => v.store_id === store.id).length;
       const usedCount = this.coupons.filter(c => c.store_id === store.id && c.status === 'used' && c.reward_type !== 'goods').length;
 
       let planType = raw.plan_type || '';
@@ -764,7 +723,7 @@ class YoidoreAdminApp {
         else planType = '-';
       }
 
-      csvContent += `"${store.id}","${(store.name || '').replace(/"/g, '""')}","${store.area || ''}","${planType}","${store.is_coupon_target ? '対象' : '非対象'}",${visitsCount},${usedCount}\n`;
+      csvContent += `"${store.id}","${(store.name || '').replace(/"/g, '""')}","${store.area || ''}","${planType}","${store.is_coupon_target ? '対象' : '非対象'}",${usedCount}\n`;
     });
 
     const filename = `大正酔いどれクエスト_全酒場実績集計_${new Date().toISOString().slice(0, 10)}.csv`;
