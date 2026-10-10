@@ -409,76 +409,36 @@ class YoidoreQuestApp {
     };
     document.addEventListener('click', unlockAudio);
     document.addEventListener('touchstart', unlockAudio);
+
+    // スタートジングル音源のプリロード
+    try {
+      this.startAudio = new Audio('mp3/jingle_item01.mp3');
+      this.startAudio.preload = 'auto';
+    } catch (e) {}
   }
 
   /* ------------------------------------------------------------------------
-   * 冒険の幕開けファンファーレSE（約1.2秒 / 8bit 2和音+三角波ベース）
+   * 冒険の幕開けジングルSE（mp3/jingle_item01.mp3）
    * ------------------------------------------------------------------------ */
   playStartSE() {
-    if (!this.soundEnabled || !this.audioCtx) return;
+    if (!this.soundEnabled) return;
     try {
-      if (this.audioCtx.state === 'suspended') {
-        this.audioCtx.resume();
+      if (this.startAudio) {
+        this.startAudio.currentTime = 0;
+        this.startAudio.volume = 0.65;
+        this.startAudio.play().catch(() => {
+          this.playTone(880, 0.12, 'square');
+        });
+      } else {
+        const audio = new Audio('mp3/jingle_item01.mp3');
+        audio.volume = 0.65;
+        audio.play().catch(() => {
+          this.playTone(880, 0.12, 'square');
+        });
       }
-      const now = this.audioCtx.currentTime;
-
-      // 共通トーン生成ヘルパー（ファミコンAPU再現）
-      const playTone = (freq, startTime, duration, type = 'square', peakGain = 0.12, isLong = false) => {
-        const osc = this.audioCtx.createOscillator();
-        const gain = this.audioCtx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, startTime);
-
-        // クリックノイズ防止のアタック
-        gain.gain.setValueAtTime(0.0001, startTime);
-        gain.gain.linearRampToValueAtTime(peakGain, startTime + 0.005);
-
-        if (isLong) {
-          // フィニッシュのロングトーン（しっかり響かせて余韻を残す）
-          gain.gain.setValueAtTime(peakGain, startTime + duration * 0.4);
-          gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-        } else {
-          // 歯切れの良いブラス風アタック
-          gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-        }
-
-        osc.connect(gain);
-        gain.connect(this.audioCtx.destination);
-        osc.start(startTime);
-        osc.stop(startTime + duration + 0.02);
-      };
-
-      // --- 1. 主旋律 (Lead: 矩形波 ブラス風ファンファーレ) ---
-      // タッ・タッ・タッ・ター！ (G4 -> G4 -> G4 -> C5)
-      playTone(392.00, now,          0.07, 'square', 0.13); // G4
-      playTone(392.00, now + 0.075,  0.07, 'square', 0.13); // G4
-      playTone(392.00, now + 0.15,   0.07, 'square', 0.13); // G4
-      playTone(523.25, now + 0.23,   0.18, 'square', 0.15); // C5
-
-      // タ・タ・タ・ターン！ (E5 -> G5 -> C6)
-      playTone(659.25, now + 0.44,   0.12, 'square', 0.14); // E5
-      playTone(783.99, now + 0.58,   0.12, 'square', 0.14); // G5
-      playTone(1046.50, now + 0.72,  0.75, 'square', 0.16, true); // C6 (フィニッシュ)
-
-      // --- 2. ハーモニー (Harmony: 矩形波 3度・5度下コードトーン) ---
-      playTone(329.63, now,          0.07, 'square', 0.08); // E4
-      playTone(329.63, now + 0.075,  0.07, 'square', 0.08); // E4
-      playTone(329.63, now + 0.15,   0.07, 'square', 0.08); // E4
-      playTone(392.00, now + 0.23,   0.18, 'square', 0.09); // G4
-
-      playTone(523.25, now + 0.44,   0.12, 'square', 0.09); // C5
-      playTone(659.25, now + 0.58,   0.12, 'square', 0.09); // E5
-      playTone(783.99, now + 0.72,   0.75, 'square', 0.10, true); // G5
-      playTone(523.25, now + 0.72,   0.75, 'square', 0.08, true); // C5
-
-      // --- 3. ベース (Bass: レトロRPG特有の三角波 Triangle) ---
-      playTone(130.81, now,          0.20, 'triangle', 0.15); // C3
-      playTone(130.81, now + 0.23,   0.18, 'triangle', 0.15); // C3
-      playTone(98.00,  now + 0.44,   0.12, 'triangle', 0.14); // G2
-      playTone(98.00,  now + 0.58,   0.12, 'triangle', 0.14); // G2
-      playTone(130.81, now + 0.72,   0.75, 'triangle', 0.16, true); // C3
-      playTone(65.41,  now + 0.72,   0.75, 'triangle', 0.13, true); // C2
-    } catch (e) {}
+    } catch (e) {
+      this.playTone(880, 0.12, 'square');
+    }
   }
 
   /* ------------------------------------------------------------------------
