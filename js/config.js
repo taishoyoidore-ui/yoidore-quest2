@@ -4,7 +4,7 @@
 
 const APP_CONFIG = {
   // システム共通バージョン番号（バックオフィス＆アプリ全体で連動）
-  version: 'v2026.10.10.01',
+  version: 'v2026.10.10.02',
 
   // Supabase 接続設定
   supabase: {
@@ -68,15 +68,14 @@ const APP_CONFIG = {
   ],
 
   // 勇者レベル・称号マスタ設定（デフォルトフォールバック）
-  // ※制覇酒場数（min_visits）に応じて称号とレベルを判定
+  // ※特典マイルストーン達成段階（Lv.1: 未達成, Lv.2: 第1マイルストーン達成, Lv.3: 第2マイルストーン達成...）に連動
   fallbackHeroTitles: [
-    { level: 1, min_visits: 0, title: '駆け出しの呑兵衛', badge_color: '#94a3b8', description: 'まだ1軒も巡っていない初期状態' },
-    { level: 2, min_visits: 1, title: '見習い巡回兵', badge_color: '#38bdf8', description: '最初のハシゴ酒を記録した勇者' },
-    { level: 3, min_visits: 3, title: 'ほろ酔い冒険者', badge_color: '#4ade80', description: '順調にハシゴ酒を楽しむ冒険者' },
-    { level: 4, min_visits: 5, title: '酒場制覇の豪傑', badge_color: '#facc15', description: '5軒を制覇した頼もしい豪傑' },
-    { level: 5, min_visits: 10, title: '大正の伝説マスター', badge_color: '#f43f5e', description: '10軒以上を制覇した伝説の呑兵衛' },
-    { level: 6, min_visits: 20, title: '酔いどれ覇王', badge_color: '#c084fc', description: '大正区全域を掌握する至高の覇王' },
-    { level: 7, min_visits: 33, title: '完全制覇グランドマスター', badge_color: '#eab308', description: '全33軒を完全制覇した神話の勇者' }
+    { level: 1, min_visits: 0, title: '駆け出しの呑兵衛', badge_color: '#94a3b8', description: 'まだ特典未獲得の初期冒険者' },
+    { level: 2, min_visits: 1, title: '酒場巡りの冒険者', badge_color: '#38bdf8', description: '第1マイルストーン特典を解除した勇者' },
+    { level: 3, min_visits: 2, title: '百戦錬磨の呑兵衛', badge_color: '#4ade80', description: '第2マイルストーン特典を解除した豪傑' },
+    { level: 4, min_visits: 3, title: '大正の酔いどれ勇者', badge_color: '#facc15', description: '第3マイルストーン特典を解除した歴戦の勇者' },
+    { level: 5, min_visits: 4, title: '酔いどれ覇王', badge_color: '#f43f5e', description: '多くのマイルストーンを制覇した覇王' },
+    { level: 6, min_visits: 5, title: '完全制覇グランドマスター', badge_color: '#eab308', description: '全マイルストーンを完全制覇した神話の勇者' }
   ]
 };
 

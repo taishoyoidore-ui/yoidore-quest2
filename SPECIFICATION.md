@@ -211,9 +211,9 @@ erDiagram
 
     hero_titles {
         int id PK "称号ID"
-        int level "勇者レベル (1, 2, 3...)"
-        int min_visits "必要制覇店舗数 (0, 1, 3, 5, 10, 20...)"
-        string title "勇者称号名 (例: 駆け出しの呑兵衛, 大正の酔いどれ勇者)"
+        int level "勇者レベル (1, 2, 3... ※達成段階数+1)"
+        int min_visits "必要達成段階数 (0: 未達成Lv1, 1: 第1特典達成Lv2, 2: 第2特典達成Lv3...)"
+        string title "勇者称号名 (例: 駆け出しの呑兵衛, 酒場巡りの冒険者, 大正の酔いどれ勇者)"
         string badge_color "バッジカラーコード (#facc15, #3b82f6 等)"
         int display_order "並び順"
         string description "称号説明文"

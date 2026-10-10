@@ -64,7 +64,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.01';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.02';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -2306,7 +2306,7 @@ class YoidoreAdminApp {
         <thead>
           <tr>
             <th style="width: 80px;">レベル</th>
-            <th style="width: 140px;">必要制覇店舗数</th>
+            <th style="width: 140px;">必要達成段階</th>
             <th style="width: 200px;">称号名 (バッジ表示)</th>
             <th>説明文</th>
             <th style="width: 120px; text-align: center;">操作</th>
@@ -2316,7 +2316,7 @@ class YoidoreAdminApp {
           ${sortedTitles.map(t => `
             <tr>
               <td><strong style="color: #0f172a;">Lv.${t.level}</strong></td>
-              <td><span class="badge" style="background: #e2e8f0; color: #334155;"><strong>${t.min_visits}</strong> 軒以上</span></td>
+              <td><span class="badge" style="background: #e2e8f0; color: #334155;"><strong>${t.min_visits}</strong> 段階以上</span></td>
               <td>
                 <span class="hero-title-badge-preview" style="background: ${t.badge_color || '#facc15'}; color: #000; border: 1px solid rgba(0,0,0,0.15);">
                   🎖️ ${this.escapeHtml(t.title)}

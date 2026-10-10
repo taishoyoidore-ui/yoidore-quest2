@@ -209,16 +209,30 @@ class YoidoreQuestApp {
     return String(dStr);
   }
 
-  // 訪問軒数から現在の勇者称号・レベルデータを取得
-  getHeroTitleForVisits(count = 0) {
+  // 獲得特典マイルストーン段階数（unlockedTierCount）から勇者称号・レベルデータを取得
+  getHeroTitleForTierCount(unlockedTierCount = 0) {
     const heroTitles = (window.questApi && window.questApi.heroTitles && window.questApi.heroTitles.length > 0)
       ? window.questApi.heroTitles
       : (window.APP_CONFIG?.fallbackHeroTitles || []);
-    const sorted = [...heroTitles].sort((a, b) => (Number(b.min_visits) || 0) - (Number(a.min_visits) || 0));
-    const matched = sorted.find(t => Number(count) >= (Number(t.min_visits) || 0)) ||
+    
+    // レベル計算: 未達成ならLv.1、第1マイルストーン達成ならLv.2、第2ならLv.3...
+    const count = Number(unlockedTierCount) || 0;
+    const currentLv = Math.max(1, 1 + count);
+    
+    // hero_titles の level または min_visits（段階数）とマッチング
+    const sorted = [...heroTitles].sort((a, b) => (Number(b.level || b.min_visits) || 0) - (Number(a.level || a.min_visits) || 0));
+    const matched = sorted.find(t => (t.level && Number(t.level) <= currentLv) || (t.min_visits !== undefined && Number(t.min_visits) <= count)) ||
                     sorted[sorted.length - 1] ||
-                    { level: 1, title: '駆け出しの呑兵衛', badge_color: '#94a3b8', min_visits: 0 };
-    return matched;
+                    { level: currentLv, title: '駆け出しの呑兵衛', badge_color: '#94a3b8', min_visits: 0 };
+    return {
+      ...matched,
+      level: currentLv
+    };
+  }
+
+  // 互換用メソッド
+  getHeroTitleForVisits(count = 0) {
+    return this.getHeroTitleForTierCount(count);
   }
 
   getStores(seasonId = null) {
@@ -894,7 +908,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.01';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.02';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1260,15 +1274,14 @@ class YoidoreQuestApp {
       ? seasonRewardTiers 
       : (window.APP_CONFIG?.fallbackRewardTiers || []);
 
-    // 獲得済みマイルストーンのうち最大のrequired_visitsまたは訪問数から称号を取得
+    // 獲得済みマイルストーン段階数の算出
     const unlockedTiers = rewardTiers.filter(t => userCoupons.some(c => Number(c.reward_tier_id) === Number(t.id) || (t.reward_type === 'goods' && (c.goods_name === t.goods_name || c.goods_name === t.title))));
-    const maxMilestoneVisits = unlockedTiers.length > 0 ? Math.max(...unlockedTiers.map(t => Number(t.required_visits) || 0)) : 0;
-    const effectiveVisitCount = Math.max(visits.length, maxMilestoneVisits);
+    const unlockedTierCount = unlockedTiers.length;
 
-    // 称号・レベル計算 (Supabaseマスタ/管理画面設定連動)
-    const matchedHero = this.getHeroTitleForVisits(effectiveVisitCount);
+    // 称号・レベル計算 (特典マイルストーン達成段階連動)
+    const matchedHero = this.getHeroTitleForTierCount(unlockedTierCount);
     const heroTitle = matchedHero.title || '駆け出しの呑兵衛';
-    const heroLv = matchedHero.level || 1;
+    const heroLv = matchedHero.level || (1 + unlockedTierCount);
     const heroColor = matchedHero.badge_color || '#facc15';
     const heroDesc = matchedHero.description || '';
 
@@ -2538,6 +2551,12 @@ class YoidoreQuestApp {
     const avatarUrl = user.pictureUrl || 'assets/banner.png';
     const displayName = this.escapeHtml ? this.escapeHtml(user.displayName || '勇者') : (user.displayName || '勇者');
 
+    // 獲得後の解放段階数からレベル・称号を計算
+    const activeSeasonId = window.questApi?.currentSeason?.id || 2;
+    const userMilestones = (window.questApi && window.questApi.userMilestones) ? window.questApi.userMilestones : [];
+    const unlockedTierCount = userMilestones.filter(m => Number(m.season_id) === Number(activeSeasonId) && m.status === 'claimed').length;
+    const heroData = this.getHeroTitleForTierCount(unlockedTierCount);
+
     const claimedListHtml = (claimedTiers && claimedTiers.length > 0) ? claimedTiers.map(t => {
       const isGoods = t.reward_type === 'goods';
       return `
@@ -2566,17 +2585,22 @@ class YoidoreQuestApp {
         <div class="levelup-sunburst"></div>
         <div class="levelup-content-relative">
           <div style="font-size:36px; margin-bottom:2px;">✨🍺🎁</div>
-          <div class="levelup-header-banner" style="font-size:20px; letter-spacing:2px;">QUEST CLEAR!!</div>
+          <div class="levelup-header-banner" style="font-size:20px; letter-spacing:2px;">LEVEL UP!!</div>
           <div style="font-size:13px; color:#fde047; font-weight:bold; letter-spacing:1px; margin-bottom:8px;">
             【${requiredVisits}軒ハシゴ達成】おめでとうございます！
           </div>
 
-          <!-- LINEアバター -->
+          <!-- LINEアバター＆新レベル称号 -->
           <div class="levelup-avatar-wrap">
             <img src="${avatarUrl}" alt="${displayName}" class="levelup-avatar" onerror="this.src='assets/banner.png';">
-            <span class="levelup-level-badge">達成</span>
+            <span class="levelup-level-badge">Lv.${heroData.level}</span>
           </div>
-          <div style="font-size:14px; font-weight:bold; color:#ffffff; margin-bottom:10px;">${displayName}</div>
+          <div style="font-size:14px; font-weight:bold; color:#ffffff; margin-bottom:4px;">${displayName}</div>
+          <div style="margin-bottom:10px;">
+            <span class="hero-title-badge" style="background:${heroData.badge_color || '#eab308'}; color:#000000; font-size:12px; font-weight:bold; padding:2px 10px; border-radius:12px; display:inline-block; border:1px solid #ffffff;">
+              🎖️ 称号: ${this.escapeHtml(heroData.title || '駆け出しの呑兵衛')}
+            </span>
+          </div>
 
           <!-- 獲得特典サマリーカード -->
           <div style="background: linear-gradient(135deg, rgba(217, 119, 6, 0.3) 0%, rgba(180, 83, 9, 0.2) 100%); border: 1px solid #f59e0b; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;">
