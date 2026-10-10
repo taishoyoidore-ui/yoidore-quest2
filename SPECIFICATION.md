@@ -42,7 +42,7 @@ flowchart TD
 
     subgraph Backend [バックエンド (Supabase BaaS / Single Source of Truth)]
         Auth[LINE UID 認証・ユーザー管理]
-        DB[(PostgreSQL データベース<br/>seasons / stores / users / user_coupons / reward_tiers / hero_titles)]
+        DB[(PostgreSQL データベース<br/>seasons / stores / users / user_coupons / reward_tiers)]
         Storage[(店舗ロゴ / 写真画像)]
     end
 
@@ -51,8 +51,7 @@ flowchart TD
         Analytics[店舗・特典別 集計分析 / ソート・CSV]
         StoreManage[店舗マスターCRUD / クーポン対象ON/OFF]
         SeasonManage[シーズン作成・開催日程・アクティブ切替]
-        TierManage[特典ランクCRUD (クーポン型/グッズ型)]
-        TitleManage[勇者レベル・称号マスタ管理]
+        TierManage[特典ランクCRUD (クーポン/グッズ/獲得称号)]
         DataManage[ユーザー・クーポン削除 & 状態復元]
         POPGen[運営店専用 特典達成QR POP一括印刷]
     end
@@ -202,21 +201,13 @@ erDiagram
         string reward_type "特典種別 (store_coupon: 店舗クーポン / goods: グッズ引換)"
         int required_visits "必要来店店舗数 (例: 5, 10, 20)"
         string title "特典名 (例: 5軒ハシゴ達成特典 / 特製トートバッグ)"
+        string hero_title "獲得称号名 (達成時に付与される称号。例: 酒場巡りの達人)"
+        string badge_color "バッジカラーコード (#facc15 等)"
         int selectable_count "選択可能店舗数 (クーポン型の場合、例: 5)"
         string goods_name "グッズ名称 (グッズ型の場合)"
         string exchange_location "引換場所 (グッズ型の場合)"
         string exchange_notice "引換注意事項 (グッズ型の場合)"
         string description "説明文"
-    }
-
-    hero_titles {
-        int id PK "称号ID"
-        int level "勇者レベル (1, 2, 3... ※達成段階数+1)"
-        int min_visits "必要達成段階数 (0: 未達成Lv1, 1: 第1特典達成Lv2, 2: 第2特典達成Lv3...)"
-        string title "勇者称号名 (例: 駆け出しの呑兵衛, 酒場巡りの冒険者, 大正の酔いどれ勇者)"
-        string badge_color "バッジカラーコード (#facc15, #3b82f6 等)"
-        int display_order "並び順"
-        string description "称号説明文"
     }
 
     visits {

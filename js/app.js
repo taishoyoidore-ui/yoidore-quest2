@@ -209,24 +209,42 @@ class YoidoreQuestApp {
     return String(dStr);
   }
 
-  // 獲得特典マイルストーン段階数（unlockedTierCount）から勇者称号・レベルデータを取得
+  // 獲得特典マイルストーン段階数（unlockedTierCount）から勇者称号・レベルデータを取得 (reward_tiers 連動)
   getHeroTitleForTierCount(unlockedTierCount = 0) {
-    const heroTitles = (window.questApi && window.questApi.heroTitles && window.questApi.heroTitles.length > 0)
-      ? window.questApi.heroTitles
-      : (window.APP_CONFIG?.fallbackHeroTitles || []);
+    const activeSeasonId = window.questApi?.currentSeason?.id || 2;
+    const rewardTiers = (window.questApi && window.questApi.rewardTiers && window.questApi.rewardTiers.length > 0)
+      ? window.questApi.rewardTiers.filter(t => Number(t.season_id) === Number(activeSeasonId))
+      : (window.APP_CONFIG?.fallbackRewardTiers || []);
     
+    // 必要軒数順（昇順）にソート
+    const sortedTiers = [...rewardTiers].sort((a, b) => (Number(a.required_visits) || 0) - (Number(b.required_visits) || 0));
+
     // レベル計算: 未達成ならLv.1、第1マイルストーン達成ならLv.2、第2ならLv.3...
-    const count = Number(unlockedTierCount) || 0;
-    const currentLv = Math.max(1, 1 + count);
-    
-    // hero_titles の level または min_visits（段階数）とマッチング
-    const sorted = [...heroTitles].sort((a, b) => (Number(b.level || b.min_visits) || 0) - (Number(a.level || a.min_visits) || 0));
-    const matched = sorted.find(t => (t.level && Number(t.level) <= currentLv) || (t.min_visits !== undefined && Number(t.min_visits) <= count)) ||
-                    sorted[sorted.length - 1] ||
-                    { level: currentLv, title: '駆け出しの呑兵衛', badge_color: '#94a3b8', min_visits: 0 };
+    const count = Math.max(0, Number(unlockedTierCount) || 0);
+    const currentLv = 1 + count;
+
+    if (count === 0) {
+      const defaultTitle = window.APP_CONFIG?.fallbackDefaultTitle || { title: '駆け出しの呑兵衛', badge_color: '#94a3b8' };
+      return {
+        level: 1,
+        title: defaultTitle.title,
+        badge_color: defaultTitle.badge_color,
+        description: '初期冒険者'
+      };
+    }
+
+    // 獲得数に応じた最高ランクの特典レコードを取得
+    const tierIdx = Math.min(count - 1, sortedTiers.length - 1);
+    const currentTier = sortedTiers[tierIdx];
+
+    const title = currentTier?.hero_title || (currentTier?.title ? `${currentTier.title}の勇者` : `${count * 5}軒制覇の猛者`);
+    const badge_color = currentTier?.badge_color || '#facc15';
+
     return {
-      ...matched,
-      level: currentLv
+      level: currentLv,
+      title: title,
+      badge_color: badge_color,
+      description: currentTier?.description || `${currentLv}段階達成の勇者`
     };
   }
 
@@ -908,7 +926,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.02';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.03';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>

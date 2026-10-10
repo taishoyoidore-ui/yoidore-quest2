@@ -501,6 +501,8 @@ class QuestApiManager {
         goods_name: s.goods_name || null,
         exchange_location: s.exchange_location || null,
         exchange_notice: s.exchange_notice || null,
+        hero_title: s.hero_title || null,
+        badge_color: s.badge_color || '#facc15',
         description: s.description || ''
       })).sort((a, b) => (a.required_visits || 0) - (b.required_visits || 0));
 
@@ -525,6 +527,8 @@ class QuestApiManager {
           goods_name: s.goods_name || null,
           exchange_location: s.exchange_location || null,
           exchange_notice: s.exchange_notice || null,
+          hero_title: s.hero_title || null,
+          badge_color: s.badge_color || '#facc15',
           description: s.description || ''
         })).sort((a, b) => (a.required_visits || 0) - (b.required_visits || 0));
 
@@ -552,19 +556,29 @@ class QuestApiManager {
   }
 
   /* ------------------------------------------------------------------------
-   * 勇者レベル・称号マスタ一覧取得 (直接データベースから取得)
+   * 勇者レベル・称号マスタ一覧取得 (reward_tiers から動的生成)
    * ------------------------------------------------------------------------ */
   async getHeroTitles() {
-    // 1. データベースのクラウド共有設定から取得
-    const cloudConfig = await this.fetchSystemConfig();
-    if (cloudConfig && Array.isArray(cloudConfig.hero_titles) && cloudConfig.hero_titles.length > 0) {
-      this.heroTitles = cloudConfig.hero_titles.sort((a, b) => (a.min_visits || 0) - (b.min_visits || 0));
-      return this.heroTitles;
+    // 特典一覧からレベル・称号リストを生成
+    const tiers = await this.getRewardTiers();
+    const defaultTitle = this.config.fallbackDefaultTitle || { level: 1, title: '駆け出しの呑兵衛', badge_color: '#94a3b8' };
+    const titles = [
+      { level: 1, min_visits: 0, title: defaultTitle.title, badge_color: defaultTitle.badge_color, description: '初期冒険者' }
+    ];
+
+    if (Array.isArray(tiers) && tiers.length > 0) {
+      tiers.forEach((t, idx) => {
+        titles.push({
+          level: idx + 2,
+          min_visits: idx + 1,
+          title: t.hero_title || `${t.required_visits}軒制覇の猛者`,
+          badge_color: t.badge_color || '#facc15',
+          description: `${t.title}を達成した勇者`
+        });
+      });
     }
 
-    // 2. DB未設定時の初期フォールバック
-    this.heroTitles = [...(this.config.fallbackHeroTitles || [])];
-    await this.saveSystemConfig({ hero_titles: this.heroTitles });
+    this.heroTitles = titles;
     return this.heroTitles;
   }
 
@@ -1308,6 +1322,8 @@ class QuestApiManager {
       goods_name: tierData.goods_name || null,
       exchange_location: tierData.exchange_location || null,
       exchange_notice: tierData.exchange_notice || null,
+      hero_title: tierData.hero_title || null,
+      badge_color: tierData.badge_color || '#facc15',
       description: tierData.description || ''
     };
 

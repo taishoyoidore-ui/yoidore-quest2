@@ -64,7 +64,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.02';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.03';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -2092,13 +2092,10 @@ class YoidoreAdminApp {
 
     // 特典一覧のレンダリング
     this.renderRewardTiers();
-
-    // 勇者称号マスタのレンダリング
-    this.renderHeroTitles();
   }
 
   /* ------------------------------------------------------------------------
-   * 特典ランク (reward_tiers) CRUD制御
+   * 特典ランク (reward_tiers) CRUD制御（称号・バッジカラー統合）
    * ------------------------------------------------------------------------ */
   renderRewardTiers() {
     const tbody = document.getElementById('reward-tiers-tbody');
@@ -2108,7 +2105,7 @@ class YoidoreAdminApp {
 
     if (!this.tiers || this.tiers.length === 0) {
       if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">今シーズンの特典マイルストーンが登録されていません。「＋ 特典ランクを新規作成」から追加してください。</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">今シーズンの特典マイルストーンが登録されていません。「＋ 特典ランクを新規作成」から追加してください。</td></tr>';
       } else if (tierElem) {
         tierElem.innerHTML = '<div class="empty-state text-muted py-3">今シーズンの特典マイルストーンが登録されていません。「＋ 特典ランクを新規作成」から追加してください。</div>';
       }
@@ -2123,6 +2120,12 @@ class YoidoreAdminApp {
         const typeBadge = isGoods
           ? '<span class="badge" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a;"><i class="fa-solid fa-gift"></i> グッズ引換型</span>'
           : '<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd;"><i class="fa-solid fa-ticket"></i> クーポン型</span>';
+
+        const heroTitleBadge = t.hero_title ? `
+          <span class="hero-title-badge-preview" style="background: ${this.escapeHtml(t.badge_color || '#facc15')}; color: #000; border: 1px solid rgba(0,0,0,0.15); font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: bold; display: inline-block;">
+            🎖️ ${this.escapeHtml(t.hero_title)}
+          </span>
+        ` : '<span class="text-muted" style="font-size: 12px;">-</span>';
 
         const rewardContent = isGoods
           ? `<strong style="color:#0f172a;">🎁 ${this.escapeHtml(t.goods_name || 'オリジナルグッズ')}</strong>`
@@ -2149,6 +2152,7 @@ class YoidoreAdminApp {
             </td>
             <td>${typeBadge}</td>
             <td><strong style="color:#0f172a; font-size:0.95rem;">${this.escapeHtml(t.title)}</strong></td>
+            <td>${heroTitleBadge}</td>
             <td>${rewardContent}</td>
             <td>${notesHtml}</td>
             <td style="text-align: center;">
@@ -2185,11 +2189,14 @@ class YoidoreAdminApp {
       tier = this.tiers.find(t => t.id === Number(targetId)) || {};
     } else {
       const maxVisits = this.tiers.reduce((max, t) => Math.max(max, t.required_visits || 0), 0);
+      const nextVisits = maxVisits ? maxVisits + 5 : 5;
       tier = {
         id: '',
         reward_type: 'store_coupon',
-        title: `${maxVisits ? maxVisits + 5 : 5}軒ハシゴ達成特典`,
-        required_visits: maxVisits ? maxVisits + 5 : 5,
+        title: `${nextVisits}軒ハシゴ達成特典`,
+        hero_title: nextVisits >= 10 ? '百戦錬磨の呑兵衛' : '酒場巡りの達人',
+        badge_color: '#facc15',
+        required_visits: nextVisits,
         selectable_count: 5,
         goods_name: '',
         exchange_location: '',
@@ -2208,6 +2215,9 @@ class YoidoreAdminApp {
     document.getElementById('edit-tier-id').value = tier.id || '';
     document.getElementById('edit-tier-title').value = tier.title || '';
     document.getElementById('edit-tier-required').value = tier.required_visits || 5;
+    document.getElementById('edit-tier-hero-title').value = tier.hero_title || '';
+    document.getElementById('edit-tier-badge-color').value = tier.badge_color || '#facc15';
+    document.getElementById('edit-tier-badge-color-picker').value = tier.badge_color || '#facc15';
     document.getElementById('edit-tier-selectable').value = tier.selectable_count || 5;
     document.getElementById('edit-tier-goods-name').value = tier.goods_name || '';
     document.getElementById('edit-tier-exchange-loc').value = tier.exchange_location || '';
@@ -2229,6 +2239,8 @@ class YoidoreAdminApp {
     const reward_type = isGoods ? 'goods' : 'store_coupon';
     const title = document.getElementById('edit-tier-title').value.trim();
     const required_visits = parseInt(document.getElementById('edit-tier-required').value, 10);
+    const hero_title = document.getElementById('edit-tier-hero-title')?.value.trim() || null;
+    const badge_color = document.getElementById('edit-tier-badge-color')?.value.trim() || '#facc15';
     const selectable_count = parseInt(document.getElementById('edit-tier-selectable').value, 10) || 1;
     const goods_name = document.getElementById('edit-tier-goods-name').value.trim();
     const exchange_location = document.getElementById('edit-tier-exchange-loc').value.trim();
@@ -2249,6 +2261,8 @@ class YoidoreAdminApp {
       season_id,
       reward_type,
       title,
+      hero_title,
+      badge_color,
       required_visits,
       selectable_count: isGoods ? 1 : selectable_count,
       goods_name: isGoods ? goods_name : null,
@@ -2281,152 +2295,6 @@ class YoidoreAdminApp {
       this.showToast('特典ランクを削除中...');
       await this.api.adminDeleteRewardTier(tierId, this.selectedSeasonId);
       this.showToast(`特典「${title}」を削除しました。`);
-      await this.loadAllData();
-    } catch (err) {
-      alert('削除に失敗しました: ' + err.message);
-    }
-  }
-
-  /* ------------------------------------------------------------------------
-   * 勇者称号・レベル (hero_titles) CRUD制御
-   * ------------------------------------------------------------------------ */
-  renderHeroTitles() {
-    const container = document.getElementById('hero-titles-list');
-    if (!container) return;
-
-    if (this.heroTitles.length === 0) {
-      container.innerHTML = '<div class="empty-state text-muted py-3">称号マスタが設定されていません。「＋ 新しい称号を追加」から作成してください。</div>';
-      return;
-    }
-
-    const sortedTitles = [...this.heroTitles].sort((a, b) => (Number(a.min_visits) || 0) - (Number(b.min_visits) || 0));
-
-    container.innerHTML = `
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th style="width: 80px;">レベル</th>
-            <th style="width: 140px;">必要達成段階</th>
-            <th style="width: 200px;">称号名 (バッジ表示)</th>
-            <th>説明文</th>
-            <th style="width: 120px; text-align: center;">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${sortedTitles.map(t => `
-            <tr>
-              <td><strong style="color: #0f172a;">Lv.${t.level}</strong></td>
-              <td><span class="badge" style="background: #e2e8f0; color: #334155;"><strong>${t.min_visits}</strong> 段階以上</span></td>
-              <td>
-                <span class="hero-title-badge-preview" style="background: ${t.badge_color || '#facc15'}; color: #000; border: 1px solid rgba(0,0,0,0.15);">
-                  🎖️ ${this.escapeHtml(t.title)}
-                </span>
-              </td>
-              <td class="text-muted" style="font-size: 0.85rem;">${this.escapeHtml(t.description || '-')}</td>
-              <td style="text-align: center;">
-                <button class="btn btn-sm btn-secondary" onclick="window.adminApp.openHeroTitleModal(${t.id || t.level})">
-                  <i class="fa-solid fa-pen"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.deleteHeroTitle(${t.id || t.level}, '${this.escapeHtml(t.title)}')">
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-  }
-
-  openHeroTitleModal(titleIdOrMode, optionalId) {
-    const isNew = titleIdOrMode === 'new';
-    const targetId = (titleIdOrMode === 'edit' && optionalId !== undefined) ? optionalId : titleIdOrMode;
-    document.getElementById('hero-title-modal-title').innerHTML = isNew ? 
-      '<i class="fa-solid fa-medal"></i> 新規勇者称号の追加' : 
-      '<i class="fa-solid fa-pen-to-square"></i> 勇者称号・レベルの編集';
-
-    let item = {};
-    if (!isNew) {
-      item = this.heroTitles.find(t => (t.id && t.id === Number(targetId)) || t.level === Number(targetId)) || {};
-    } else {
-      const maxLv = this.heroTitles.reduce((max, t) => Math.max(max, t.level || 0), 0);
-      const maxMin = this.heroTitles.reduce((max, t) => Math.max(max, t.min_visits || 0), 0);
-      item = {
-        id: '',
-        level: maxLv + 1,
-        min_visits: maxMin + 5,
-        title: '大正の凄腕勇者',
-        badge_color: '#facc15',
-        description: '大正の酒場を極めし凄腕の勇者',
-        display_order: maxLv + 1
-      };
-    }
-
-    document.getElementById('edit-title-id').value = item.id || '';
-    document.getElementById('edit-title-level').value = item.level || 1;
-    document.getElementById('edit-title-min-visits').value = item.min_visits !== undefined ? item.min_visits : 0;
-    document.getElementById('edit-title-name').value = item.title || '';
-    document.getElementById('edit-title-color').value = item.badge_color || '#facc15';
-    document.getElementById('edit-title-color-picker').value = item.badge_color || '#facc15';
-    document.getElementById('edit-title-order').value = item.display_order || (item.level || 1);
-    document.getElementById('edit-title-desc').value = item.description || '';
-
-    document.body.style.overflow = 'hidden';
-    document.getElementById('hero-title-modal').style.display = 'flex';
-  }
-
-  closeHeroTitleModal() {
-    document.body.style.overflow = '';
-    document.getElementById('hero-title-modal').style.display = 'none';
-  }
-
-  async saveHeroTitleForm() {
-    const idVal = document.getElementById('edit-title-id').value;
-    const level = parseInt(document.getElementById('edit-title-level').value, 10);
-    const min_visits = parseInt(document.getElementById('edit-title-min-visits').value, 10);
-    const title = document.getElementById('edit-title-name').value.trim();
-    const badge_color = document.getElementById('edit-title-color').value.trim();
-    const display_order = parseInt(document.getElementById('edit-title-order').value, 10) || level;
-    const description = document.getElementById('edit-title-desc').value.trim();
-
-    if (isNaN(level) || isNaN(min_visits) || !title) {
-      alert('レベル、必要店舗数、称号名は必須です。');
-      return;
-    }
-
-    const titleData = {
-      level,
-      min_visits,
-      title,
-      badge_color,
-      display_order,
-      description
-    };
-
-    if (idVal) {
-      titleData.id = parseInt(idVal, 10);
-    }
-
-    try {
-      this.showToast('称号マスタを保存中...');
-      await this.api.adminSaveHeroTitle(titleData);
-      this.closeHeroTitleModal();
-      this.showToast(`称号「${title}」を保存しました！`);
-      await this.loadAllData();
-    } catch (err) {
-      alert('保存に失敗しました: ' + err.message);
-    }
-  }
-
-  async deleteHeroTitle(titleId, title) {
-    if (!confirm(`【確認】称号「${title}」をマスタから削除しますか？`)) {
-      return;
-    }
-
-    try {
-      this.showToast('称号を削除中...');
-      await this.api.adminDeleteHeroTitle(titleId);
-      this.showToast(`称号「${title}」を削除しました。`);
       await this.loadAllData();
     } catch (err) {
       alert('削除に失敗しました: ' + err.message);

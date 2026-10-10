@@ -12,7 +12,7 @@
 
   <link rel="icon" href="assets/banner.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/admin.css?v=20261010_02">
+  <link rel="stylesheet" href="css/admin.css?v=20261010_03">
   <!-- SheetJS for Excel Import -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- QRCode.js for POP Generation -->
@@ -38,7 +38,7 @@
         </button>
       </form>
       <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 14px;">
-        システムバージョン: <strong class="app-version-text">v2026.10.10.02</strong>
+        システムバージョン: <strong class="app-version-text">v2026.10.10.03</strong>
       </div>
     </div>
   </div>
@@ -95,7 +95,7 @@
           <span>Supabase DB 連動中</span>
         </div>
         <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-bottom: 6px;">
-          システムバージョン: <strong class="app-version-text">v2026.10.10.02</strong>
+          システムバージョン: <strong class="app-version-text">v2026.10.10.03</strong>
         </div>
         <button class="btn btn-outline-danger btn-sm btn-block" onclick="window.adminApp.handleLogout()">
           <i class="fa-solid fa-arrow-right-from-bracket"></i> ログアウト
@@ -123,13 +123,13 @@
         </div>
         <div class="header-right">
           <span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:3px 8px; font-weight:bold;">
-            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.10.10.02</span>
+            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.10.10.03</span>
           </span>
           <span id="last-sync-time" class="text-muted"><i class="fa-solid fa-arrows-rotate fa-spin"></i> 同期中...</span>
           <button class="btn btn-secondary btn-sm" onclick="window.adminApp.refreshData()">
             <i class="fa-solid fa-rotate"></i> 最新データ更新
           </button>
-          <a href="index.html?v=20261010_02" target="_blank" class="btn btn-outline btn-sm">
+          <a href="index.html?v=20261010_03" target="_blank" class="btn btn-outline btn-sm">
             <i class="fa-solid fa-up-right-from-square"></i> アプリ実機表示
           </a>
         </div>
@@ -510,36 +510,19 @@
                 <table class="data-table">
                   <thead>
                     <tr>
-                      <th style="width: 110px;">必要軒数</th>
-                      <th style="width: 130px;">特典種別</th>
-                      <th style="width: 200px;">特典名（タイトル）</th>
-                      <th style="width: 200px;">特典内容 / 枠数・記念品</th>
+                      <th style="width: 100px;">必要軒数</th>
+                      <th style="width: 120px;">特典種別</th>
+                      <th style="width: 180px;">特典名（タイトル）</th>
+                      <th style="width: 160px;">獲得称号 / バッジ</th>
+                      <th style="width: 180px;">特典内容 / 枠数・記念品</th>
                       <th>引換場所 / 説明</th>
                       <th style="width: 120px; text-align: center;">操作</th>
                     </tr>
                   </thead>
                   <tbody id="reward-tiers-tbody">
-                    <tr><td colspan="6" class="text-center text-muted py-3">設定を読み込み中...</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted py-3">設定を読み込み中...</td></tr>
                   </tbody>
                 </table>
-              </div>
-            </div>
-          </div>
-
-          <!-- 勇者レベル・称号設定 -->
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <h3><i class="fa-solid fa-medal"></i> 勇者レベル＆称号マスタ設定</h3>
-                <p class="text-muted" style="margin:4px 0 0 0; font-size:12px;">制覇店舗数に応じて、ユーザーの冒険の書に付与されるレベル（Lv.1〜）と称号（酒場制覇の豪傑等）を設定します。</p>
-              </div>
-              <button class="btn btn-sm btn-primary" onclick="window.adminApp.openHeroTitleModal('new')">
-                <i class="fa-solid fa-plus"></i> 新しい称号を追加
-              </button>
-            </div>
-            <div class="card-body">
-              <div id="hero-titles-list" class="hero-titles-container">
-                <div class="empty-state">称号マスタを読み込み中...</div>
               </div>
             </div>
           </div>
@@ -1040,6 +1023,22 @@
             <small class="text-muted">ユーザーがこの軒数を巡ると宝箱が解放されます。</small>
           </div>
 
+          <!-- 獲得称号設定 -->
+          <div class="grid-2col" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label>獲得称号名</label>
+              <input type="text" id="edit-tier-hero-title" class="form-control" placeholder="例: 酒場制覇の豪傑">
+              <small class="text-muted">この特典達成時に付与される称号名</small>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label>バッジカラー (HEX)</label>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input type="color" id="edit-tier-badge-color-picker" value="#facc15" style="width:40px; height:38px; padding:0; border:none; cursor:pointer;" onchange="document.getElementById('edit-tier-badge-color').value=this.value">
+                <input type="text" id="edit-tier-badge-color" class="form-control" value="#facc15" onchange="document.getElementById('edit-tier-badge-color-picker').value=this.value">
+              </div>
+            </div>
+          </div>
+
           <!-- 店舗クーポン型専用設定 -->
           <div id="tier-coupon-settings" class="form-group">
             <label>獲得可能クーポン数 <span class="badge badge-required">必須</span></label>
@@ -1070,57 +1069,6 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="window.adminApp.closeTierModal()">キャンセル</button>
-          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> 保存する</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- 勇者称号・レベル（hero_titles）作成・編集モーダル -->
-  <div id="hero-title-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-dialog">
-      <div class="modal-header">
-        <h3 id="hero-title-modal-title"><i class="fa-solid fa-medal"></i> 勇者称号・レベル設定</h3>
-        <button class="modal-close-btn" onclick="window.adminApp.closeHeroTitleModal()"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <form id="hero-title-form" onsubmit="event.preventDefault(); window.adminApp.saveHeroTitleForm();">
-        <input type="hidden" id="edit-title-id">
-        <div class="modal-body">
-          <div class="grid-2col">
-            <div class="form-group">
-              <label>レベル (Lv.) <span class="badge badge-required">必須</span></label>
-              <input type="number" id="edit-title-level" class="form-control" min="1" max="99" placeholder="1" required>
-            </div>
-            <div class="form-group">
-              <label>必要達成段階数 (〜段階以上) <span class="badge badge-required">必須</span></label>
-              <input type="number" id="edit-title-min-visits" class="form-control" min="0" max="100" placeholder="0" required>
-              <small class="text-muted">獲得したマイルストーン特典の段階数以上で付与されます（Lv.1は0段階）。</small>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>称号名 <span class="badge badge-required">必須</span></label>
-            <input type="text" id="edit-title-name" class="form-control" placeholder="例: 酒場制覇の豪傑" required>
-          </div>
-          <div class="grid-2col">
-            <div class="form-group">
-              <label>バッジカラー (HEX)</label>
-              <div style="display:flex; gap:8px; align-items:center;">
-                <input type="color" id="edit-title-color-picker" value="#facc15" style="width:40px; height:38px; padding:0; border:none; cursor:pointer;" onchange="document.getElementById('edit-title-color').value=this.value">
-                <input type="text" id="edit-title-color" class="form-control" value="#facc15" onchange="document.getElementById('edit-title-color-picker').value=this.value">
-              </div>
-            </div>
-            <div class="form-group">
-              <label>表示順</label>
-              <input type="number" id="edit-title-order" class="form-control" value="1">
-            </div>
-          </div>
-          <div class="form-group">
-            <label>説明文</label>
-            <textarea id="edit-title-desc" class="form-control" rows="2" placeholder="特典マイルストーンを達成した頼もしい豪傑"></textarea>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" onclick="window.adminApp.closeHeroTitleModal()">キャンセル</button>
           <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> 保存する</button>
         </div>
       </form>
@@ -1189,8 +1137,8 @@
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=20261010_02"></script>
-  <script src="js/api.js?v=20261010_02"></script>
-  <script src="js/admin.js?v=20261010_02"></script>
+  <script src="js/config.js?v=20261010_03"></script>
+  <script src="js/api.js?v=20261010_03"></script>
+  <script src="js/admin.js?v=20261010_03"></script>
 </body>
 </html>
