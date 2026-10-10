@@ -71,7 +71,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.09';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.11';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -2416,10 +2416,11 @@ class YoidoreAdminApp {
             rewardsHtml = `
               <div style="display: flex; flex-direction: column; gap: 4px;">
                 ${unlockedTiers.map(t => {
+                  const req = t.required_visits ?? t.required_count ?? 0;
                   const isGoods = t.reward_type === 'goods';
                   return isGoods 
-                    ? `<span class="badge" style="background:#fef3c7; color:#92400e; border:1px solid #fde047; font-size:11px; padding:2px 8px; text-align:left; display:inline-block;"><i class="fa-solid fa-gift"></i> 【${t.required_count}軒】${this.escapeHtml(t.title)} (記念品)</span>`
-                    : `<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:2px 8px; text-align:left; display:inline-block;"><i class="fa-solid fa-ticket"></i> 【${t.required_count}軒】${this.escapeHtml(t.title)} (${t.selectable_count || 5}枠)</span>`;
+                    ? `<span class="badge" style="background:#fef3c7; color:#92400e; border:1px solid #fde047; font-size:11px; padding:2px 8px; text-align:left; display:inline-block;"><i class="fa-solid fa-gift"></i> 【${req}軒】${this.escapeHtml(t.title)} (記念品)</span>`
+                    : `<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:2px 8px; text-align:left; display:inline-block;"><i class="fa-solid fa-ticket"></i> 【${req}軒】${this.escapeHtml(t.title)} (${t.selectable_count || 5}枠)</span>`;
                 }).join('')}
               </div>
             `;
@@ -2677,12 +2678,13 @@ class YoidoreAdminApp {
   renderPopTierSelect() {
     const sel = document.getElementById('pop-tier-select');
     if (!sel) return;
-    const sortedTiers = [...(this.tiers || [])].sort((a, b) => (Number(a.required_count) || 0) - (Number(b.required_count) || 0));
+    const sortedTiers = [...(this.tiers || [])].sort((a, b) => (Number(a.required_visits || a.required_count) || 0) - (Number(b.required_visits || b.required_count) || 0));
     sel.innerHTML = `<option value="all">全マイルストーン特典POP（${sortedTiers.length}種）を一括印刷</option>`;
     sortedTiers.forEach(t => {
       const opt = document.createElement('option');
       opt.value = t.id;
-      opt.textContent = `【${t.required_count}軒達成】 ${t.title}`;
+      const req = t.required_visits ?? t.required_count ?? 0;
+      opt.textContent = `【${req}軒達成】 ${t.title}`;
       sel.appendChild(opt);
     });
     this.renderPopCards();
@@ -2698,7 +2700,7 @@ class YoidoreAdminApp {
     const container = document.getElementById('pop-cards-container');
     if (!container) return;
 
-    const sortedTiers = [...(this.tiers || [])].sort((a, b) => (Number(a.required_count) || 0) - (Number(b.required_count) || 0));
+    const sortedTiers = [...(this.tiers || [])].sort((a, b) => (Number(a.required_visits || a.required_count) || 0) - (Number(b.required_visits || b.required_count) || 0));
     const tiers = targetTierId ? sortedTiers.filter(t => String(t.id) === String(targetTierId)) : sortedTiers;
 
     if (tiers.length === 0) {
@@ -2712,38 +2714,29 @@ class YoidoreAdminApp {
     const seasonTitle = currentSeason ? currentSeason.name : '大正酔いどれクエスト';
 
     tiers.forEach(tier => {
+      const reqVisits = tier.required_visits ?? tier.required_count ?? 0;
       // LIFF経由または通常Web経由どちらでも動作する達成パラメータ
       const claimUrl = `https://liff.line.me/${liffId}?claim_tier=${tier.id}`;
       const card = document.createElement('div');
       card.className = 'pop-card';
 
       const isGoods = tier.reward_type === 'goods';
+      const couponCount = tier.selectable_count || tier.coupon_count || 5;
       const rewardSummary = isGoods
-        ? `🎁 記念品「${this.escapeHtml(tier.goods_name || tier.title)}」引換権利`
-        : `🍺 酒場クーポン ${tier.coupon_count || 5}回分（各店で利用可能）`;
+        ? `🎁 記念品: ${this.escapeHtml(tier.goods_name || tier.title)}`
+        : `🍺 酒場クーポン ${couponCount}枠`;
 
       card.innerHTML = `
         <div class="pop-event-header">
-          <span class="pop-event-badge">大正区ハシゴ酒イベント 運営店専用</span>
-          <div class="pop-event-title">🍺 ${this.escapeHtml(seasonTitle)} ⚔️</div>
+          <div class="pop-event-title">${this.escapeHtml(seasonTitle)}</div>
         </div>
-        <div style="margin: 12px 0 6px 0;">
-          <span style="display:inline-block; background: #fef08a; color: #854d0e; font-size: 16px; font-weight: 800; padding: 4px 16px; border-radius: 999px; border: 2px solid #eab308;">
-            🏆 【${tier.required_count}軒 達成】 解除QR
-          </span>
+        <div class="pop-store-name" style="font-size: 26px; font-weight: 900; color: #0f172a; margin: 16px 0 8px 0;">
+          ${this.escapeHtml(tier.title)}
         </div>
-        <div class="pop-store-name" style="font-size: 22px; color: #0f172a; margin-bottom: 4px;">${this.escapeHtml(tier.title)}</div>
-        <div style="font-size: 14px; font-weight: 700; color: #0369a1; margin-bottom: 12px; background: #e0f2fe; padding: 6px 12px; border-radius: 6px; display: inline-block;">
+        <div style="font-size: 16px; font-weight: 700; color: #0369a1; margin-bottom: 16px; background: #e0f2fe; padding: 8px 18px; border-radius: 8px; display: inline-block;">
           ${rewardSummary}
         </div>
-        <div class="pop-qr-wrapper" id="pop-qr-tier-${tier.id}" style="margin: 8px auto 14px auto;"></div>
-        <div class="pop-guide-text" style="font-size: 15px; font-weight: bold; color: #1e293b; line-height: 1.4;">
-          📱 スマホカメラまたはアプリ内QRリーダーで読み取ると<br>特典クーポンが一括付与されます！
-        </div>
-        <div class="pop-sub-guide" style="font-size: 11px; color: #64748b; margin-top: 8px; line-height: 1.4;">
-          ※上位QRスキャン時、未獲得の下位特典も自動で合算付与されます。<br>
-          ※【運営店スタッフ用】紙の冒険の書（手書きサイン）で${tier.required_count}軒達成を確認後にご提示ください。
-        </div>
+        <div class="pop-qr-wrapper" id="pop-qr-tier-${tier.id}" style="margin: 12px auto 10px auto;"></div>
       `;
 
       container.appendChild(card);
@@ -2752,8 +2745,8 @@ class YoidoreAdminApp {
       if (qrElem && window.QRCode) {
         new window.QRCode(qrElem, {
           text: claimUrl,
-          width: 180,
-          height: 180,
+          width: 200,
+          height: 200,
           colorDark: "#000000",
           colorLight: "#ffffff",
           correctLevel: window.QRCode.CorrectLevel.M
