@@ -12,7 +12,7 @@
 
   <link rel="icon" href="assets/banner.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/admin.css?v=20261010_06">
+  <link rel="stylesheet" href="css/admin.css?v=20261010_07">
   <!-- SheetJS for Excel Import -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- QRCode.js for POP Generation -->
@@ -38,7 +38,7 @@
         </button>
       </form>
       <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 14px;">
-        システムバージョン: <strong class="app-version-text">v2026.10.10.06</strong>
+        システムバージョン: <strong class="app-version-text">v2026.10.10.07</strong>
       </div>
     </div>
   </div>
@@ -95,7 +95,7 @@
           <span>Supabase DB 連動中</span>
         </div>
         <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-bottom: 6px;">
-          システムバージョン: <strong class="app-version-text">v2026.10.10.06</strong>
+          システムバージョン: <strong class="app-version-text">v2026.10.10.07</strong>
         </div>
         <button class="btn btn-outline-danger btn-sm btn-block" onclick="window.adminApp.handleLogout()">
           <i class="fa-solid fa-arrow-right-from-bracket"></i> ログアウト
@@ -123,13 +123,13 @@
         </div>
         <div class="header-right">
           <span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:3px 8px; font-weight:bold;">
-            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.10.10.06</span>
+            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.10.10.07</span>
           </span>
           <span id="last-sync-time" class="text-muted"><i class="fa-solid fa-arrows-rotate fa-spin"></i> 同期中...</span>
           <button class="btn btn-secondary btn-sm" onclick="window.adminApp.refreshData()">
             <i class="fa-solid fa-rotate"></i> 最新データ更新
           </button>
-          <a href="index.html?v=20261010_06" target="_blank" class="btn btn-outline btn-sm">
+          <a href="index.html?v=20261010_07" target="_blank" class="btn btn-outline btn-sm">
             <i class="fa-solid fa-up-right-from-square"></i> アプリ実機表示
           </a>
         </div>
@@ -522,11 +522,8 @@
                 <button class="sub-tab active" data-sub="users" onclick="window.adminApp.switchLogSubTab('users')">
                   <i class="fa-solid fa-users"></i> 参加者一覧 (<span id="count-users">0</span>)
                 </button>
-                <button class="sub-tab" data-sub="visits" onclick="window.adminApp.switchLogSubTab('visits')">
-                  <i class="fa-solid fa-beer-mug-empty"></i> 制覇・来店記録履歴 (<span id="count-visits">0</span>)
-                </button>
                 <button class="sub-tab" data-sub="coupons" onclick="window.adminApp.switchLogSubTab('coupons')">
-                  <i class="fa-solid fa-stamp"></i> クーポン・特典利用履歴 (<span id="count-coupons">0</span>)
+                  <i class="fa-solid fa-stamp"></i> 🍺 特典クーポン・グッズ消込履歴 (<span id="count-coupons">0</span>)
                 </button>
               </div>
               <div class="export-actions">
@@ -544,9 +541,9 @@
                     <tr>
                       <th>ユーザー</th>
                       <th>LINE User ID</th>
-                      <th>今期制覇数</th>
+                      <th>獲得特典・クーポン枠数</th>
                       <th>特典利用（消込）数</th>
-                      <th>初回来店日時</th>
+                      <th>参加登録日時</th>
                       <th>最終アクセス</th>
                       <th style="text-align: center; width: 100px;">操作</th>
                     </tr>
@@ -558,27 +555,7 @@
               </div>
             </div>
 
-            <!-- サブタブ2: 来店履歴 (個別削除対応) -->
-            <div id="subtab-visits" class="subtab-content">
-              <div class="table-responsive">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>来店日時</th>
-                      <th>来店ユーザー</th>
-                      <th>酒場ID</th>
-                      <th>酒場名</th>
-                      <th style="text-align: center; width: 90px;">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody id="visits-table-body">
-                    <tr><td colspan="5" class="text-center py-4">読み込み中...</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- サブタブ3: クーポン・特典履歴 (消し込み状態切替 & 削除対応) -->
+            <!-- サブタブ2: クーポン・特典履歴 (消し込み状態切替 & 削除対応) -->
             <div id="subtab-coupons" class="subtab-content">
               <div class="table-responsive">
                 <table class="data-table">
@@ -1123,8 +1100,8 @@
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=20261010_06"></script>
-  <script src="js/api.js?v=20261010_06"></script>
-  <script src="js/admin.js?v=20261010_06"></script>
+  <script src="js/config.js?v=20261010_08"></script>
+  <script src="js/api.js?v=20261010_08"></script>
+  <script src="js/admin.js?v=20261010_08"></script>
 </body>
 </html>

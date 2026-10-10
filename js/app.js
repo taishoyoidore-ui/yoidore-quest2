@@ -933,7 +933,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.06';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.07';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1338,8 +1338,8 @@ class YoidoreQuestApp {
     let totalUsedSlots = 0;
 
     const tiersHtml = (rewardTiers.length > 0) ? rewardTiers.map(tier => {
-      // 該当マイルストーンの獲得判定（user_couponsに対象tierが存在するか、または訪問数が到達しているか）
-      const isReached = userCoupons.some(c => Number(c.reward_tier_id) === Number(tier.id) || (tier.reward_type === 'goods' && (c.goods_name === tier.goods_name || c.goods_name === tier.title))) || visits.length >= tier.required_visits;
+      // 該当マイルストーンの獲得判定（user_couponsに対象tierが存在するか）
+      const isReached = userCoupons.some(c => Number(c.reward_tier_id) === Number(tier.id) || (tier.reward_type === 'goods' && (c.goods_name === tier.goods_name || c.goods_name === tier.title)));
       const isGoods = tier.reward_type === 'goods';
 
       if (isGoods) {
@@ -2515,8 +2515,12 @@ class YoidoreQuestApp {
 
     // 獲得後の解放段階数からレベル・称号を計算
     const activeSeasonId = window.questApi?.currentSeason?.id || 2;
-    const userMilestones = (window.questApi && window.questApi.userMilestones) ? window.questApi.userMilestones : [];
-    const unlockedTierCount = userMilestones.filter(m => Number(m.season_id) === Number(activeSeasonId) && m.status === 'claimed').length;
+    const userCoupons = (window.questApi && window.questApi.userCoupons) ? window.questApi.userCoupons : [];
+    const rewardTiers = (window.questApi && window.questApi.rewardTiers && window.questApi.rewardTiers.length > 0)
+      ? window.questApi.rewardTiers.filter(t => Number(t.season_id) === Number(activeSeasonId))
+      : (window.APP_CONFIG?.fallbackRewardTiers || []);
+    const unlockedTiers = rewardTiers.filter(t => userCoupons.some(c => Number(c.reward_tier_id) === Number(t.id) || (t.reward_type === 'goods' && (c.goods_name === t.goods_name || c.goods_name === t.title))));
+    const unlockedTierCount = unlockedTiers.length;
     const heroData = this.getHeroTitleForTierCount(unlockedTierCount);
 
     const claimedListHtml = (claimedTiers && claimedTiers.length > 0) ? claimedTiers.map(t => {

@@ -64,7 +64,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.06';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.07';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -418,14 +418,7 @@ class YoidoreAdminApp {
 
     // リアルタイムアクティビティ速報
     const activityElem = document.getElementById('recent-activity-list');
-    const recentVisits = this.visits.slice(0, 5).map(v => ({
-      type: 'visit',
-      time: new Date(v.visited_at),
-      storeId: v.store_id,
-      userId: v.user_id
-    }));
-
-    const recentCoupons = this.coupons.slice(0, 5).map(c => ({
+    const recentCoupons = (this.coupons || []).slice(0, 10).map(c => ({
       type: c.status === 'used' ? 'used' : 'acquired',
       isGoods: c.reward_type === 'goods',
       goodsName: c.goods_name || c.title || '記念品',
@@ -434,7 +427,7 @@ class YoidoreAdminApp {
       userId: c.user_id
     }));
 
-    const allActivities = [...recentVisits, ...recentCoupons]
+    const allActivities = recentCoupons
       .sort((a, b) => b.time - a.time)
       .slice(0, 6);
 
@@ -447,15 +440,15 @@ class YoidoreAdminApp {
         const user = this.users.find(u => u.line_user_id === act.userId);
         const userName = user ? user.display_name : '冒険者';
 
-        let icon = '🍺';
-        let text = `<strong>${this.escapeHtml(userName)}</strong> が <strong>${this.escapeHtml(storeName)}</strong> の店主サインを受け取りました`;
+        let icon = '🎁';
+        let text = '';
         if (act.type === 'acquired') {
           if (act.isGoods) {
             icon = '🎁';
             text = `<strong>${this.escapeHtml(userName)}</strong> が <strong>${this.escapeHtml(act.goodsName)}</strong> の引換券を獲得しました`;
           } else {
             icon = '🎁';
-            text = `<strong>${this.escapeHtml(userName)}</strong> が <strong>${this.escapeHtml(storeName)}</strong> のクーポンを獲得しました`;
+            text = `<strong>${this.escapeHtml(userName)}</strong> が <strong>${this.escapeHtml(storeName || '酒場特典')}</strong> のクーポンを獲得しました`;
           }
         } else if (act.type === 'used') {
           if (act.isGoods) {
@@ -467,7 +460,7 @@ class YoidoreAdminApp {
           }
         }
 
-        const timeStr = `${act.time.getMonth() + 1}/${act.time.getDate()} ${String(act.time.getHours()).padStart(2, '0')}:${String(act.time.getMinutes()).padStart(2, '0')}`;
+        const timeStr = isNaN(act.time.getTime()) ? '-' : `${act.time.getMonth() + 1}/${act.time.getDate()} ${String(act.time.getHours()).padStart(2, '0')}:${String(act.time.getMinutes()).padStart(2, '0')}`;
 
         return `
           <div class="activity-item">
@@ -629,13 +622,7 @@ class YoidoreAdminApp {
       return;
     }
 
-    // ユーザーごとの来店数を集計
-    const userVisitsMap = new Map();
-    this.visits.forEach(v => {
-      userVisitsMap.set(v.user_id, (userVisitsMap.get(v.user_id) || 0) + 1);
-    });
-
-    const sortedTiers = [...tiers].sort((a, b) => (Number(a.required_visits) || 0) - (Number(b.required_visits) || 0));
+    const sortedTiers = [...tiers].sort((a, b) => (Number(a.required_visits || a.required_count) || 0) - (Number(b.required_visits || b.required_count) || 0));
 
     if (tbody) {
       tbody.innerHTML = sortedTiers.map(tier => {
@@ -644,11 +631,13 @@ class YoidoreAdminApp {
           ? '<span class="badge" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a;"><i class="fa-solid fa-gift"></i> グッズ引換型</span>' 
           : '<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd;"><i class="fa-solid fa-wine-glass"></i> 酒場クーポン型</span>';
 
-        // 達成者数計算（必要制覇数に達したユニークユーザー数）
-        let reachedUsersCount = 0;
-        userVisitsMap.forEach(cnt => {
-          if (cnt >= tier.required_visits) reachedUsersCount++;
-        });
+        // 達成者数計算（実際に運営店QRを読み取って特典を獲得したユニークユーザー数）
+        const tierCoupons = this.coupons.filter(c => 
+          Number(c.reward_tier_id) === Number(tier.id) ||
+          (isGoods && (c.goods_name === tier.goods_name || c.goods_name === tier.title))
+        );
+        const reachedUsersSet = new Set(tierCoupons.map(c => c.user_id));
+        const reachedUsersCount = reachedUsersSet.size;
 
         let detailName = '';
         let targetCountHtml = '';
@@ -659,33 +648,35 @@ class YoidoreAdminApp {
 
         if (isGoods) {
           detailName = `<strong style="color:#0f172a;">🎁 ${this.escapeHtml(tier.goods_name || tier.title)}</strong>`;
-          const claimedCount = this.coupons.filter(c => c.reward_type === 'goods' && c.status === 'used' && (Number(c.reward_tier_id) === Number(tier.id) || c.goods_name === tier.goods_name || c.goods_name === tier.title)).length;
-          const unclaimedCount = Math.max(0, reachedUsersCount - claimedCount);
-          progressPercent = reachedUsersCount > 0 ? Math.round((claimedCount / reachedUsersCount) * 100) : 0;
+          const claimedCount = tierCoupons.filter(c => c.status === 'used').length;
+          const unclaimedCount = Math.max(0, tierCoupons.length - claimedCount);
+          progressPercent = tierCoupons.length > 0 ? Math.round((claimedCount / tierCoupons.length) * 100) : 0;
           progressBarColor = 'linear-gradient(90deg, #10b981, #059669)';
 
-          targetCountHtml = `<strong>${reachedUsersCount}</strong> 名`;
+          targetCountHtml = `<strong>${reachedUsersCount}</strong> 名<br><small class="text-muted">(獲得計 ${tierCoupons.length}点)</small>`;
           usedCountHtml = `<strong style="color:#059669; font-size:1.05rem;">${claimedCount}</strong> <small>点</small>`;
           remainCountHtml = `<strong style="color:#d97706; font-size:1.05rem;">${unclaimedCount}</strong> <small>点</small>`;
         } else {
-          const selectableCount = Number(tier.selectable_count) || 5;
-          const totalSlots = reachedUsersCount * selectableCount;
-          const usedCount = this.coupons.filter(c => c.reward_type !== 'goods' && c.status === 'used' && (Number(c.reward_tier_id) === Number(tier.id) || !c.reward_tier_id)).length;
+          const selectableCount = Number(tier.selectable_count || tier.coupon_count) || 5;
+          const totalSlots = tierCoupons.length;
+          const usedCount = tierCoupons.filter(c => c.status === 'used').length;
           const remainingSlots = Math.max(0, totalSlots - usedCount);
           progressPercent = totalSlots > 0 ? Math.round((usedCount / totalSlots) * 100) : 0;
           progressBarColor = 'linear-gradient(90deg, #38bdf8, #0284c7)';
 
           detailName = `お好きな酒場 <strong style="color:#0284c7;">${selectableCount}</strong> 枠分`;
-          targetCountHtml = `<strong>${reachedUsersCount}</strong> 名<br><small class="text-muted">(最大${totalSlots}枠)</small>`;
+          targetCountHtml = `<strong>${reachedUsersCount}</strong> 名<br><small class="text-muted">(付与計 ${totalSlots}枠)</small>`;
           usedCountHtml = `<strong style="color:#059669; font-size:1.05rem;">${usedCount}</strong> <small>件</small>`;
           remainCountHtml = `<strong style="color:#d97706; font-size:1.05rem;">${remainingSlots}</strong> <small>枠</small>`;
         }
+
+        const requiredCount = tier.required_visits || tier.required_count || 5;
 
         return `
           <tr>
             <td>
               <span class="badge" style="background:#f1f5f9; color:#334155; font-weight:bold;">
-                ${tier.required_visits} 軒以上
+                ${requiredCount} 軒達成
               </span>
             </td>
             <td>${badge}</td>
@@ -736,21 +727,15 @@ class YoidoreAdminApp {
   }
 
   exportAnalyticsTiersToCSV() {
-    let csvContent = '\uFEFF特典ID,特典名,種別,必要来店数,グッズ名/特典枠数,引換場所,達成人数,利用・受取済数,未利用・未受取残数,進捗率\n';
+    let csvContent = '\uFEFF特典ID,特典名,種別,必要達成軒数,グッズ名/特典枠数,引換場所,達成獲得人数,利用・受取済数,未利用・未受取残数,進捗率\n';
     
-    // ユーザーごとの来店数を集計
-    const userVisitsMap = new Map();
-    this.visits.forEach(v => {
-      userVisitsMap.set(v.user_id, (userVisitsMap.get(v.user_id) || 0) + 1);
-    });
-
     (this.tiers || []).forEach(tier => {
       const isGoods = tier.reward_type === 'goods';
-      
-      let reachedUsersCount = 0;
-      userVisitsMap.forEach(cnt => {
-        if (cnt >= tier.required_visits) reachedUsersCount++;
-      });
+      const tierCoupons = this.coupons.filter(c => 
+        Number(c.reward_tier_id) === Number(tier.id) ||
+        (isGoods && (c.goods_name === tier.goods_name || c.goods_name === tier.title))
+      );
+      const reachedUsersCount = new Set(tierCoupons.map(c => c.user_id)).size;
 
       let detailName = '';
       let usedCount = 0;
@@ -759,19 +744,20 @@ class YoidoreAdminApp {
 
       if (isGoods) {
         detailName = tier.goods_name || tier.title;
-        usedCount = this.coupons.filter(c => c.reward_type === 'goods' && c.status === 'used' && (Number(c.reward_tier_id) === Number(tier.id) || c.goods_name === tier.goods_name || c.goods_name === tier.title)).length;
-        remaining = Math.max(0, reachedUsersCount - usedCount);
-        rateStr = reachedUsersCount > 0 ? `${Math.round((usedCount / reachedUsersCount) * 100)}%` : '0%';
+        usedCount = tierCoupons.filter(c => c.status === 'used').length;
+        remaining = Math.max(0, tierCoupons.length - usedCount);
+        rateStr = tierCoupons.length > 0 ? `${Math.round((usedCount / tierCoupons.length) * 100)}%` : '0%';
       } else {
-        const selectableCount = Number(tier.selectable_count) || 5;
+        const selectableCount = Number(tier.selectable_count || tier.coupon_count) || 5;
         detailName = `${selectableCount}酒場分`;
-        const totalSlots = reachedUsersCount * selectableCount;
-        usedCount = this.coupons.filter(c => c.reward_type !== 'goods' && c.status === 'used' && (Number(c.reward_tier_id) === Number(tier.id) || !c.reward_tier_id)).length;
+        const totalSlots = tierCoupons.length;
+        usedCount = tierCoupons.filter(c => c.status === 'used').length;
         remaining = Math.max(0, totalSlots - usedCount);
         rateStr = totalSlots > 0 ? `${Math.round((usedCount / totalSlots) * 100)}%` : '0%';
       }
 
-      csvContent += `${tier.id},"${(tier.title || '').replace(/"/g, '""')}","${isGoods ? 'グッズ引換型' : '酒場クーポン型'}",${tier.required_visits},"${detailName.replace(/"/g, '""')}","${(tier.exchange_location || '-').replace(/"/g, '""')}",${reachedUsersCount},${usedCount},${remaining},"${rateStr}"\n`;
+      const reqCount = tier.required_visits || tier.required_count || 5;
+      csvContent += `${tier.id},"${(tier.title || '').replace(/"/g, '""')}","${isGoods ? 'グッズ引換型' : '酒場クーポン型'}",${reqCount},"${detailName.replace(/"/g, '""')}","${(tier.exchange_location || '-').replace(/"/g, '""')}",${reachedUsersCount},${usedCount},${remaining},"${rateStr}"\n`;
     });
 
     const filename = `大正酔いどれクエスト_特典別達成集計_${new Date().toISOString().slice(0, 10)}.csv`;
@@ -2398,125 +2384,102 @@ class YoidoreAdminApp {
    * 4. 参加者・履歴ログ & 削除・復元機能
    * ------------------------------------------------------------------------ */
   renderLogs() {
-    const usedCouponsCount = this.coupons.filter(c => c.status === 'used').length;
-    document.getElementById('count-users').textContent = this.users.length;
-    document.getElementById('count-visits').textContent = this.visits.length;
-    document.getElementById('count-coupons').textContent = usedCouponsCount;
+    const usedCouponsCount = (this.coupons || []).filter(c => c.status === 'used').length;
+    const usersCountElem = document.getElementById('count-users');
+    if (usersCountElem) usersCountElem.textContent = this.users.length;
+    const couponsCountElem = document.getElementById('count-coupons');
+    if (couponsCountElem) couponsCountElem.textContent = usedCouponsCount;
 
     // 1. ユーザーテーブル (個別削除ボタン付き)
     const userTbody = document.getElementById('users-table-body');
-    if (this.users.length === 0) {
-      userTbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">参加者データがありません</td></tr>';
-    } else {
-      userTbody.innerHTML = this.users.map(u => {
-        const userVisits = this.visits.filter(v => v.user_id === u.line_user_id).length;
-        const userUsedCoupons = this.coupons.filter(c => c.user_id === u.line_user_id && c.status === 'used').length;
-        const createdStr = u.created_at ? new Date(u.created_at).toLocaleString('ja-JP') : '-';
-        const activeStr = u.last_active_at ? new Date(u.last_active_at).toLocaleString('ja-JP') : '-';
+    if (userTbody) {
+      if (this.users.length === 0) {
+        userTbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">参加者データがありません</td></tr>';
+      } else {
+        userTbody.innerHTML = this.users.map(u => {
+          const userTotalCoupons = (this.coupons || []).filter(c => c.user_id === u.line_user_id).length;
+          const userUsedCoupons = (this.coupons || []).filter(c => c.user_id === u.line_user_id && c.status === 'used').length;
+          const createdStr = u.created_at ? new Date(u.created_at).toLocaleString('ja-JP') : '-';
+          const activeStr = u.last_active_at ? new Date(u.last_active_at).toLocaleString('ja-JP') : '-';
 
-        return `
-          <tr>
-            <td>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <img src="${u.picture_url || 'assets/banner.png'}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
-                <strong>${this.escapeHtml(u.display_name || '冒険者')}</strong>
-              </div>
-            </td>
-            <td><code>${this.escapeHtml(u.line_user_id || '')}</code></td>
-            <td><strong style="color: #b45309;">${userVisits} 軒制覇</strong></td>
-            <td><strong style="color: #059669;">${userUsedCoupons} 件</strong></td>
-            <td><small class="text-muted">${createdStr}</small></td>
-            <td><small class="text-muted">${activeStr}</small></td>
-            <td style="text-align: center;">
-              <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.confirmDeleteUser('${u.line_user_id}', '${this.escapeHtml(u.display_name || '')}')">
-                <i class="fa-solid fa-trash"></i> 削除
-              </button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    // 2. 来店履歴テーブル (個別削除ボタン付き)
-    const visitTbody = document.getElementById('visits-table-body');
-    if (this.visits.length === 0) {
-      visitTbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">今期の来店履歴がありません</td></tr>';
-    } else {
-      visitTbody.innerHTML = this.visits.map(v => {
-        const store = this.stores.find(s => s.id === v.store_id);
-        const storeName = store ? store.name : v.store_id;
-        const user = this.users.find(u => u.line_user_id === v.user_id);
-        const userName = user ? user.display_name : v.user_id;
-        const timeStr = v.visited_at ? new Date(v.visited_at).toLocaleString('ja-JP') : '-';
-
-        return `
-          <tr>
-            <td>${timeStr}</td>
-            <td><strong>${this.escapeHtml(userName)}</strong></td>
-            <td><code>${this.escapeHtml(v.store_id)}</code></td>
-            <td><strong>${this.escapeHtml(storeName)}</strong></td>
-            <td style="text-align: center;">
-              <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.confirmDeleteVisit('${v.id}')" title="来店履歴を削除">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    // 3. クーポン・特典利用履歴テーブル (状態切替 & 削除ボタン付き)
-    const couponTbody = document.getElementById('coupons-table-body');
-    if (this.coupons.length === 0) {
-      couponTbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">今期のクーポン・特典履歴がありません</td></tr>';
-    } else {
-      couponTbody.innerHTML = this.coupons.map(c => {
-        const store = this.stores.find(s => s.id === c.store_id);
-        const isGoods = c.reward_type === 'goods';
-        const typeBadge = isGoods 
-          ? '<span class="badge" style="background:#fef3c7; color:#b45309;"><i class="fa-solid fa-gift"></i> グッズ</span>' 
-          : '<span class="badge" style="background:#e0f2fe; color:#0369a1;"><i class="fa-solid fa-wine-glass"></i> クーポン</span>';
-        
-        const targetName = isGoods 
-          ? `🎁 ${this.escapeHtml(c.goods_name || '記念品引換')}` 
-          : (store ? this.escapeHtml(store.name) : (c.store_id ? this.escapeHtml(c.store_id) : '🎟️ （酒場未指定）'));
-        
-        const user = this.users.find(u => u.line_user_id === c.user_id);
-        const userName = user ? user.display_name : c.user_id;
-        const usedTime = c.used_at || c.acquired_at;
-        const timeStr = usedTime ? new Date(usedTime).toLocaleString('ja-JP') : '-';
-        const isUsed = c.status === 'used';
-
-        const statusTag = isUsed 
-          ? (isGoods ? '<span class="tag tag-active">受取済</span>' : '<span class="tag tag-active">✅ 利用済</span>')
-          : '<span class="tag tag-area">未使用・保有中</span>';
-
-        return `
-          <tr>
-            <td>${timeStr}</td>
-            <td>${typeBadge}</td>
-            <td><strong>${this.escapeHtml(userName)}</strong></td>
-            <td><strong>${targetName}</strong></td>
-            <td>${statusTag}</td>
-            <td style="text-align: center;">
-              <div style="display: flex; gap: 4px; justify-content: center;">
-                ${isUsed ? `
-                  <button class="btn btn-sm btn-secondary" onclick="window.adminApp.updateCouponStatus('${c.id}', 'active')" title="未使用に戻す">
-                    <i class="fa-solid fa-rotate-left"></i> 未使用へ
-                  </button>
-                ` : `
-                  <button class="btn btn-sm btn-secondary" onclick="window.adminApp.updateCouponStatus('${c.id}', 'used')" title="手動で使用済みにする">
-                    <i class="fa-solid fa-check"></i> 消込
-                  </button>
-                `}
-                <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.confirmDeleteCoupon('${c.id}')" title="履歴を削除">
-                  <i class="fa-solid fa-trash"></i>
+          return `
+            <tr>
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="${u.picture_url || 'assets/banner.png'}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                  <strong>${this.escapeHtml(u.display_name || '冒険者')}</strong>
+                </div>
+              </td>
+              <td><code>${this.escapeHtml(u.line_user_id || '')}</code></td>
+              <td><strong style="color: #0284c7;">${userTotalCoupons} 枠保有</strong></td>
+              <td><strong style="color: #059669;">${userUsedCoupons} 件消込</strong></td>
+              <td><small class="text-muted">${createdStr}</small></td>
+              <td><small class="text-muted">${activeStr}</small></td>
+              <td style="text-align: center;">
+                <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.confirmDeleteUser('${u.line_user_id}', '${this.escapeHtml(u.display_name || '')}')">
+                  <i class="fa-solid fa-trash"></i> 削除
                 </button>
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join('');
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    // 2. クーポン・特典利用履歴テーブル (状態切替 & 削除ボタン付き)
+    const couponTbody = document.getElementById('coupons-table-body');
+    if (couponTbody) {
+      if (this.coupons.length === 0) {
+        couponTbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">今期のクーポン・特典履歴がありません</td></tr>';
+      } else {
+        couponTbody.innerHTML = this.coupons.map(c => {
+          const store = this.stores.find(s => s.id === c.store_id);
+          const isGoods = c.reward_type === 'goods';
+          const typeBadge = isGoods 
+            ? '<span class="badge" style="background:#fef3c7; color:#b45309;"><i class="fa-solid fa-gift"></i> グッズ</span>' 
+            : '<span class="badge" style="background:#e0f2fe; color:#0369a1;"><i class="fa-solid fa-wine-glass"></i> クーポン</span>';
+          
+          const targetName = isGoods 
+            ? `🎁 ${this.escapeHtml(c.goods_name || '記念品引換')}` 
+            : (store ? this.escapeHtml(store.name) : (c.store_id ? this.escapeHtml(c.store_id) : '🎟️ （酒場未指定）'));
+          
+          const user = this.users.find(u => u.line_user_id === c.user_id);
+          const userName = user ? user.display_name : c.user_id;
+          const usedTime = c.used_at || c.acquired_at;
+          const timeStr = usedTime ? new Date(usedTime).toLocaleString('ja-JP') : '-';
+          const isUsed = c.status === 'used';
+
+          const statusTag = isUsed 
+            ? (isGoods ? '<span class="tag tag-active">受取済</span>' : '<span class="tag tag-active">✅ 利用済</span>')
+            : '<span class="tag tag-area">未使用・保有中</span>';
+
+          return `
+            <tr>
+              <td>${timeStr}</td>
+              <td>${typeBadge}</td>
+              <td><strong>${this.escapeHtml(userName)}</strong></td>
+              <td><strong>${targetName}</strong></td>
+              <td>${statusTag}</td>
+              <td style="text-align: center;">
+                <div style="display: flex; gap: 4px; justify-content: center;">
+                  ${isUsed ? `
+                    <button class="btn btn-sm btn-secondary" onclick="window.adminApp.updateCouponStatus('${c.id}', 'active')" title="未使用に戻す">
+                      <i class="fa-solid fa-rotate-left"></i> 未使用へ
+                    </button>
+                  ` : `
+                    <button class="btn btn-sm btn-secondary" onclick="window.adminApp.updateCouponStatus('${c.id}', 'used')" title="手動で使用済みにする">
+                      <i class="fa-solid fa-check"></i> 消込
+                    </button>
+                  `}
+                  <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.confirmDeleteCoupon('${c.id}')" title="履歴を削除">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
     }
   }
 
@@ -2532,26 +2495,13 @@ class YoidoreAdminApp {
 
   // ユーザー完全削除
   async confirmDeleteUser(userId, displayName) {
-    if (!confirm(`⚠️ 警告: ユーザー「${displayName}」を完全に削除しますか？\n\n※このユーザーに紐づくすべての来店記録・利用クーポン履歴も完全に削除されます。この操作は元に戻せません。`)) {
+    if (!confirm(`⚠️ 警告: ユーザー「${displayName}」を完全に削除しますか？\n\n※このユーザーに紐づくすべての獲得クーポン・利用消込履歴も完全に削除されます。この操作は元に戻せません。`)) {
       return;
     }
     try {
       this.showToast('ユーザーと関連データを削除中...');
       await this.api.adminDeleteUser(userId);
       this.showToast(`ユーザー「${displayName}」を削除しました`);
-      await this.loadAllData();
-    } catch (err) {
-      alert('削除に失敗しました: ' + err.message);
-    }
-  }
-
-  // 来店履歴削除
-  async confirmDeleteVisit(visitId) {
-    if (!confirm('この来店・サイン記録を削除しますか？')) return;
-    try {
-      this.showToast('来店記録を削除中...');
-      await this.api.adminDeleteVisit(visitId);
-      this.showToast('来店記録を削除しました');
       await this.loadAllData();
     } catch (err) {
       alert('削除に失敗しました: ' + err.message);
@@ -2588,18 +2538,11 @@ class YoidoreAdminApp {
     let csvContent = '\uFEFF';
 
     if (this.activeLogSubTab === 'users') {
-      csvContent += 'LINE_User_ID,表示名,今期制覇酒場数,特典利用(消込)数,初回来店日時,最終アクセス\n';
+      csvContent += 'LINE_User_ID,表示名,獲得特典クーポン枠数,特典利用(消込)数,参加登録日時,最終アクセス\n';
       this.users.forEach(u => {
-        const userVisits = this.visits.filter(v => v.user_id === u.line_user_id).length;
-        const userCoupons = this.coupons.filter(c => c.user_id === u.line_user_id && c.status === 'used').length;
-        csvContent += `"${u.line_user_id}","${(u.display_name || '').replace(/"/g, '""')}",${userVisits},${userCoupons},"${u.created_at || ''}","${u.last_active_at || ''}"\n`;
-      });
-    } else if (this.activeLogSubTab === 'visits') {
-      csvContent += '来店日時,シーズンID,LINE_User_ID,ユーザー名,酒場ID,酒場名\n';
-      this.visits.forEach(v => {
-        const store = this.stores.find(s => s.id === v.store_id);
-        const user = this.users.find(u => u.line_user_id === v.user_id);
-        csvContent += `"${v.visited_at || ''}",${v.season_id || this.selectedSeasonId},"${v.user_id}","${(user ? user.display_name : '').replace(/"/g, '""')}","${v.store_id}","${(store ? store.name : '').replace(/"/g, '""')}"\n`;
+        const userTotalCoupons = (this.coupons || []).filter(c => c.user_id === u.line_user_id).length;
+        const userUsedCoupons = (this.coupons || []).filter(c => c.user_id === u.line_user_id && c.status === 'used').length;
+        csvContent += `"${u.line_user_id}","${(u.display_name || '').replace(/"/g, '""')}",${userTotalCoupons},${userUsedCoupons},"${u.created_at || ''}","${u.last_active_at || ''}"\n`;
       });
     } else if (this.activeLogSubTab === 'coupons') {
       csvContent += '利用・受取日時,種別,シーズンID,LINE_User_ID,ユーザー名,酒場ID,酒場名/記念品名,状態\n';
@@ -2613,6 +2556,14 @@ class YoidoreAdminApp {
         csvContent += `"${timeStr}","${typeStr}",${c.season_id || this.selectedSeasonId},"${c.user_id}","${(user ? user.display_name : '').replace(/"/g, '""')}","${c.store_id || ''}","${targetName.replace(/"/g, '""')}","${c.status}"\n`;
       });
     }
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    this.showToast(`CSV「${filename}」をダウンロードしました`);
+  }
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
