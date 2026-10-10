@@ -71,7 +71,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.08';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.09';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -2404,8 +2404,89 @@ class YoidoreAdminApp {
         userTbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">参加者データがありません</td></tr>';
       } else {
         userTbody.innerHTML = this.users.map(u => {
-          const userTotalCoupons = (this.coupons || []).filter(c => c.user_id === u.line_user_id).length;
-          const userUsedCoupons = (this.coupons || []).filter(c => c.user_id === u.line_user_id && c.status === 'used').length;
+          const userCoupons = (this.coupons || []).filter(c => c.user_id === u.line_user_id);
+          
+          // 獲得した特典マイルストーン (reward_tier) の特定
+          const unlockedTierIds = Array.from(new Set(userCoupons.map(c => Number(c.reward_tier_id)).filter(Boolean)));
+          const unlockedTiers = (this.tiers || []).filter(t => unlockedTierIds.includes(Number(t.id)));
+
+          // 特典バッジ群の生成
+          let rewardsHtml = '';
+          if (unlockedTiers.length > 0) {
+            rewardsHtml = `
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                ${unlockedTiers.map(t => {
+                  const isGoods = t.reward_type === 'goods';
+                  return isGoods 
+                    ? `<span class="badge" style="background:#fef3c7; color:#92400e; border:1px solid #fde047; font-size:11px; padding:2px 8px; text-align:left; display:inline-block;"><i class="fa-solid fa-gift"></i> 【${t.required_count}軒】${this.escapeHtml(t.title)} (記念品)</span>`
+                    : `<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:2px 8px; text-align:left; display:inline-block;"><i class="fa-solid fa-ticket"></i> 【${t.required_count}軒】${this.escapeHtml(t.title)} (${t.selectable_count || 5}枠)</span>`;
+                }).join('')}
+              </div>
+            `;
+          } else if (userCoupons.length > 0) {
+            rewardsHtml = `<span class="badge" style="background:#f1f5f9; color:#475569; font-size:11px; padding:2px 8px;"><i class="fa-solid fa-trophy"></i> 特典付与済 (${userCoupons.length}件)</span>`;
+          } else {
+            rewardsHtml = `<span class="text-muted" style="font-size:12px;"><i class="fa-solid fa-hourglass-start"></i> 特典未獲得</span>`;
+          }
+
+          // 酒場クーポンと記念品グッズの分類
+          const storeCoupons = userCoupons.filter(c => c.reward_type !== 'goods');
+          const goodsCoupons = userCoupons.filter(c => c.reward_type === 'goods');
+
+          const storeTotal = storeCoupons.length;
+          const storeUsed = storeCoupons.filter(c => c.status === 'used').length;
+          const storeRemaining = Math.max(0, storeTotal - storeUsed);
+
+          const goodsTotal = goodsCoupons.length;
+          const goodsUsed = goodsCoupons.filter(c => c.status === 'used').length;
+
+          // 利用した酒場名の要約
+          const usedStoresNames = storeCoupons.filter(c => c.status === 'used').map(c => {
+            const store = this.stores.find(s => s.id === c.store_id);
+            return store ? store.name : (c.store_id || '酒場');
+          });
+
+          const statusHtml = `
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <!-- 酒場クーポンステータス -->
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 2px;">
+                  <span style="font-weight: 600;"><i class="fa-solid fa-wine-glass" style="color:#0284c7;"></i> 酒場クーポン:</span>
+                  <strong style="color: ${storeTotal > 0 ? (storeRemaining === 0 ? '#64748b' : '#0284c7') : '#94a3b8'};">
+                    ${storeUsed} / ${storeTotal} 枠利用
+                  </strong>
+                </div>
+                <div style="font-size: 11px;">
+                  ${storeTotal > 0 
+                    ? (storeRemaining > 0 
+                        ? `<span style="color:#16a34a; font-weight:bold;"><i class="fa-solid fa-circle-check"></i> 残り ${storeRemaining} 枠利用可</span>` 
+                        : `<span class="text-muted"><i class="fa-solid fa-check-double"></i> 全枠利用済</span>`)
+                    : `<span class="text-muted">未保有</span>`
+                  }
+                </div>
+                ${usedStoresNames.length > 0 ? `
+                  <div style="font-size: 10px; color: #475569; margin-top: 3px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 2px 6px; border-radius: 4px; line-height: 1.3;">
+                    <strong style="color:#334155;">消込店:</strong> ${this.escapeHtml(usedStoresNames.slice(0, 3).join(', '))}${usedStoresNames.length > 3 ? ` 他${usedStoresNames.length - 3}軒` : ''}
+                  </div>
+                ` : ''}
+              </div>
+
+              <!-- 記念品グッズステータス -->
+              ${goodsTotal > 0 ? `
+                <div style="border-top: 1px dashed #e2e8f0; padding-top: 4px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                    <span style="font-weight: 600;"><i class="fa-solid fa-gift" style="color:#d97706;"></i> 記念品グッズ:</span>
+                    <strong>
+                      ${goodsUsed > 0 
+                        ? `<span class="tag tag-active" style="font-size: 10px; padding: 1px 6px;">引換済 (${goodsUsed}/${goodsTotal})</span>` 
+                        : `<span class="tag" style="font-size: 10px; padding: 1px 6px; background: #fef3c7; color: #92400e; border: 1px solid #fde047;">未引換 (${goodsTotal}点)</span>`}
+                    </strong>
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          `;
+
           const createdStr = u.created_at ? new Date(u.created_at).toLocaleString('ja-JP') : '-';
           const activeStr = u.last_active_at ? new Date(u.last_active_at).toLocaleString('ja-JP') : '-';
 
@@ -2413,18 +2494,20 @@ class YoidoreAdminApp {
             <tr>
               <td>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <img src="${u.picture_url || 'assets/banner.png'}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
-                  <strong>${this.escapeHtml(u.display_name || '冒険者')}</strong>
+                  <img src="${u.picture_url || 'assets/banner.png'}" style="width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0;">
+                  <div>
+                    <strong style="display: block; font-size: 13px; color:#0f172a;">${this.escapeHtml(u.display_name || '冒険者')}</strong>
+                  </div>
                 </div>
               </td>
               <td><code>${this.escapeHtml(u.line_user_id || '')}</code></td>
-              <td><strong style="color: #0284c7;">${userTotalCoupons} 枠保有</strong></td>
-              <td><strong style="color: #059669;">${userUsedCoupons} 件消込</strong></td>
+              <td>${rewardsHtml}</td>
+              <td>${statusHtml}</td>
               <td><small class="text-muted">${createdStr}</small></td>
               <td><small class="text-muted">${activeStr}</small></td>
               <td style="text-align: center;">
-                <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.confirmDeleteUser('${u.line_user_id}', '${this.escapeHtml(u.display_name || '')}')">
-                  <i class="fa-solid fa-trash"></i> 削除
+                <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.confirmDeleteUser('${u.line_user_id}', '${this.escapeHtml(u.display_name || '')}')" title="ユーザーを削除">
+                  <i class="fa-solid fa-trash"></i>
                 </button>
               </td>
             </tr>
@@ -2545,11 +2628,27 @@ class YoidoreAdminApp {
     let csvContent = '\uFEFF';
 
     if (this.activeLogSubTab === 'users') {
-      csvContent += 'LINE_User_ID,表示名,獲得特典クーポン枠数,特典利用(消込)数,参加登録日時,最終アクセス\n';
+      csvContent += 'LINE_User_ID,表示名,獲得特典一覧,酒場クーポン総枠数,酒場クーポン利用済数,酒場クーポン残枠数,記念品グッズ総数,記念品グッズ受取済数,消込店舗一覧,参加登録日時,最終アクセス\n';
       this.users.forEach(u => {
-        const userTotalCoupons = (this.coupons || []).filter(c => c.user_id === u.line_user_id).length;
-        const userUsedCoupons = (this.coupons || []).filter(c => c.user_id === u.line_user_id && c.status === 'used').length;
-        csvContent += `"${u.line_user_id}","${(u.display_name || '').replace(/"/g, '""')}",${userTotalCoupons},${userUsedCoupons},"${u.created_at || ''}","${u.last_active_at || ''}"\n`;
+        const userCoupons = (this.coupons || []).filter(c => c.user_id === u.line_user_id);
+        const unlockedTierIds = Array.from(new Set(userCoupons.map(c => Number(c.reward_tier_id)).filter(Boolean)));
+        const unlockedTiers = (this.tiers || []).filter(t => unlockedTierIds.includes(Number(t.id)));
+        const rewardsSummary = unlockedTiers.map(t => `${t.title}(${t.reward_type === 'goods' ? 'グッズ' : `${t.selectable_count || 5}枠`})`).join(' / ') || (userCoupons.length > 0 ? `${userCoupons.length}件` : '未獲得');
+
+        const storeCoupons = userCoupons.filter(c => c.reward_type !== 'goods');
+        const goodsCoupons = userCoupons.filter(c => c.reward_type === 'goods');
+        const storeTotal = storeCoupons.length;
+        const storeUsed = storeCoupons.filter(c => c.status === 'used').length;
+        const storeRemaining = Math.max(0, storeTotal - storeUsed);
+        const goodsTotal = goodsCoupons.length;
+        const goodsUsed = goodsCoupons.filter(c => c.status === 'used').length;
+
+        const usedStores = storeCoupons.filter(c => c.status === 'used').map(c => {
+          const store = this.stores.find(s => s.id === c.store_id);
+          return store ? store.name : c.store_id;
+        }).join(';');
+
+        csvContent += `"${u.line_user_id}","${(u.display_name || '').replace(/"/g, '""')}","${rewardsSummary.replace(/"/g, '""')}",${storeTotal},${storeUsed},${storeRemaining},${goodsTotal},${goodsUsed},"${usedStores.replace(/"/g, '""')}","${u.created_at || ''}","${u.last_active_at || ''}"\n`;
       });
     } else if (this.activeLogSubTab === 'coupons') {
       csvContent += '利用・受取日時,種別,シーズンID,LINE_User_ID,ユーザー名,酒場ID,酒場名/記念品名,状態\n';

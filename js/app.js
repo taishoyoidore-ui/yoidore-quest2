@@ -123,11 +123,16 @@ window.checkIsOpenToday = checkIsOpenToday;
 class YoidoreQuestApp {
   constructor() {
     if (window.debugLog) window.debugLog('🚀 YoidoreQuestApp 起動開始');
-    this.currentView = 'top';
+    
+    // URLパラメータからマイルストーン達成/店舗指定の事前チェック
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasClaimTier = urlParams.get('claim_tier') || urlParams.get('tier_id') || (urlParams.get('action') === 'claim_tier' ? urlParams.get('tier') : null) || urlParams.get('tier');
+
+    this.currentView = hasClaimTier ? 'quest-book' : 'top';
     this.selectedStore = null;
     this.soundEnabled = true;
     this.audioCtx = null;
-    this.isStarted = false;
+    this.isStarted = Boolean(hasClaimTier);
     this.lastStoresScrollY = 0;
     this.selectedBookSeasonId = 2;
     
@@ -142,11 +147,19 @@ class YoidoreQuestApp {
       searchQuery: ''
     };
 
+    // QRから直接アクセス時はスタートオーバーレイを即座に非表示
+    if (hasClaimTier) {
+      const overlay = document.getElementById('start-overlay');
+      if (overlay) {
+        overlay.style.display = 'none';
+      }
+    }
+
     // 初期履歴の登録 (ブラウザバック用 - file://プロトコル等でのSecurityError対策)
     try {
       if (window.history && window.history.replaceState) {
         window.history.replaceState({
-          view: 'top',
+          view: this.currentView,
           selectedStoreId: null,
           filters: { ...this.filters }
         }, '');
@@ -336,11 +349,29 @@ class YoidoreQuestApp {
         await window.questApi.getUserCoupons();
 
         // URLパラメータからのマイルストーン特典達成検出
-        // (?claim_tier=1, ?tier=1, ?action=claim_tier&tier=1)
+        // (?claim_tier=1, ?tier_id=1, ?tier=1, ?action=claim_tier&tier=1)
         const params = new URLSearchParams(window.location.search);
-        const claimTierId = params.get('claim_tier') || (params.get('action') === 'claim_tier' ? params.get('tier') : null) || params.get('tier');
+        const claimTierId = params.get('claim_tier') || params.get('tier_id') || (params.get('action') === 'claim_tier' ? params.get('tier') : null) || params.get('tier');
 
         if (claimTierId) {
+          // スタート画面オーバーレイを確実に非表示にして冒険の書にセット
+          const overlay = document.getElementById('start-overlay');
+          if (overlay) overlay.style.display = 'none';
+          this.isStarted = true;
+          this.currentView = 'quest-book';
+
+          // URLパラメータを安全にクリーンアップ（再読み込み時の重複達成防止）
+          try {
+            if (window.history && window.history.replaceState) {
+              const cleanUrl = window.location.pathname;
+              window.history.replaceState({
+                view: 'quest-book',
+                selectedStoreId: null,
+                filters: { ...this.filters }
+              }, '', cleanUrl);
+            }
+          } catch (e) {}
+
           await this.handleClaimMilestoneTier(claimTierId);
         }
       } catch (e) {
@@ -933,7 +964,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.07';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.09';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -2474,9 +2505,20 @@ class YoidoreQuestApp {
   async handleClaimMilestoneTier(tierId) {
     if (!tierId) return;
 
+    // スタート画面オーバーレイを確実に非表示にして冒険の書ビューにする
+    const overlay = document.getElementById('start-overlay');
+    if (overlay) {
+      overlay.style.display = 'none';
+    }
+    this.isStarted = true;
+    this.currentView = 'quest-book';
+
     try {
       const activeSeasonId = window.questApi?.currentSeason?.id || 2;
       const res = await window.questApi.claimRewardTierCascade(tierId, activeSeasonId);
+
+      // 冒険の書画面を背景に描画
+      await this.render();
 
       if (res.success) {
         if (res.alreadyClaimed) {
@@ -2487,7 +2529,6 @@ class YoidoreQuestApp {
           this.playLevelUpSE();
           this.showMilestoneUnlockModal(res);
         }
-        await this.render();
       } else {
         alert(res.message || '特典の獲得処理に失敗しました。');
       }
