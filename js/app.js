@@ -293,10 +293,15 @@ class YoidoreQuestApp {
         await window.questApi.getUserVisits();
         await window.questApi.getUserCoupons();
 
-        // URLパラメータからのチェックイン検出 (?checkin=store-01 or ?store=store-01)
+        // URLパラメータからのマイルストーン特典達成またはチェックイン検出
+        // (?claim_tier=1, ?tier=1, ?action=claim_tier&tier=1, ?checkin=store-01)
         const params = new URLSearchParams(window.location.search);
+        const claimTierId = params.get('claim_tier') || (params.get('action') === 'claim_tier' ? params.get('tier') : null) || params.get('tier');
         const checkinStore = params.get('checkin') || (params.get('action') === 'checkin' ? params.get('store') : null);
-        if (checkinStore) {
+
+        if (claimTierId) {
+          await this.handleClaimMilestoneTier(claimTierId);
+        } else if (checkinStore) {
           await this.handleCheckin(checkinStore);
         }
       } catch (e) {
@@ -889,7 +894,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.05.02';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.01';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1241,15 +1246,7 @@ class YoidoreQuestApp {
     const stores = (seasonStores || []).filter(s => s.is_participating !== false);
     const totalStores = stores.length || 33;
     const visits = seasonVisits || [];
-    const visitedCount = visits.length;
-    const progressPercent = Math.min(100, Math.round((visitedCount / totalStores) * 100));
-
-    // 称号・レベル計算 (Supabaseマスタ/管理画面設定連動)
-    const matchedHero = this.getHeroTitleForVisits(visitedCount);
-    const heroTitle = matchedHero.title || '駆け出しの呑兵衛';
-    const heroLv = matchedHero.level || 1;
-    const heroColor = matchedHero.badge_color || '#facc15';
-    const heroDesc = matchedHero.description || '';
+    const userCoupons = seasonCoupons || [];
 
     const allSeasons = (Array.isArray(cloudSeasons) && cloudSeasons.length > 0)
       ? cloudSeasons
@@ -1262,7 +1259,18 @@ class YoidoreQuestApp {
     const rewardTiers = (seasonRewardTiers && seasonRewardTiers.length > 0)
       ? seasonRewardTiers 
       : (window.APP_CONFIG?.fallbackRewardTiers || []);
-    const userCoupons = seasonCoupons || [];
+
+    // 獲得済みマイルストーンのうち最大のrequired_visitsまたは訪問数から称号を取得
+    const unlockedTiers = rewardTiers.filter(t => userCoupons.some(c => Number(c.reward_tier_id) === Number(t.id) || (t.reward_type === 'goods' && (c.goods_name === t.goods_name || c.goods_name === t.title))));
+    const maxMilestoneVisits = unlockedTiers.length > 0 ? Math.max(...unlockedTiers.map(t => Number(t.required_visits) || 0)) : 0;
+    const effectiveVisitCount = Math.max(visits.length, maxMilestoneVisits);
+
+    // 称号・レベル計算 (Supabaseマスタ/管理画面設定連動)
+    const matchedHero = this.getHeroTitleForVisits(effectiveVisitCount);
+    const heroTitle = matchedHero.title || '駆け出しの呑兵衛';
+    const heroLv = matchedHero.level || 1;
+    const heroColor = matchedHero.badge_color || '#facc15';
+    const heroDesc = matchedHero.description || '';
 
     const info = activeSeason?.statusInfo;
     const isExpired = !isCurrentSeason || (info ? info.isExpired : false);
@@ -1306,10 +1314,14 @@ class YoidoreQuestApp {
       }
     }
 
+    // 合計の獲得クーポン回数と利用可能残数を計算
+    let totalEarnedSlots = 0;
+    let totalUsedSlots = 0;
+
     const tiersHtml = (rewardTiers.length > 0) ? rewardTiers.map(tier => {
-      const isReached = visitedCount >= tier.required_visits;
+      // 該当マイルストーンの獲得判定（user_couponsに対象tierが存在するか、または訪問数が到達しているか）
+      const isReached = userCoupons.some(c => Number(c.reward_tier_id) === Number(tier.id) || (tier.reward_type === 'goods' && (c.goods_name === tier.goods_name || c.goods_name === tier.title))) || visits.length >= tier.required_visits;
       const isGoods = tier.reward_type === 'goods';
-      const remainingVisits = Math.max(0, tier.required_visits - visitedCount);
 
       if (isGoods) {
         // グッズ型特典
@@ -1322,7 +1334,7 @@ class YoidoreQuestApp {
         const stampHtml = isUsed ? `<div class="treasure-card-stamp-used">USED</div>` : '';
 
         if (isUsed) {
-          statusBadge = ''; // 既存の「受取完了」ラベルを削除
+          statusBadge = '';
           actionHtml = `
             <div style="font-size:12px; color:#94a3b8; text-align:center; padding:4px 0;">
               受取日時: ${new Date(goodsCoupon.used_at || goodsCoupon.acquired_at).toLocaleString('ja-JP')}
@@ -1336,8 +1348,8 @@ class YoidoreQuestApp {
             </button>
           ` : `<div style="font-size:13px; color:#94a3b8;">🔒 過去シーズンのため引換不可</div>`;
         } else {
-          statusBadge = `<span class="treasure-tier-status status-locked">🔒 あと ${remainingVisits}軒</span>`;
-          actionHtml = `<div style="font-size:14px; color:#e2e8f0; font-weight:bold;">🔒 あと <strong class="text-yellow" style="font-size:16px;">${remainingVisits}軒</strong> のハシゴ酒で解放！</div>`;
+          statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成</span>`;
+          actionHtml = `<div style="font-size:13px; color:#cbd5e1;">🏢 運営店で「<strong>${tier.required_visits}軒達成QR</strong>」をスキャンすると受取可能！</div>`;
         }
 
         return `
@@ -1351,7 +1363,7 @@ class YoidoreQuestApp {
               <h4 class="treasure-tier-title">🏆 ${this.escapeHtml(tier.title)}</h4>
             </div>
             <div class="treasure-tier-condition">
-              <span>🍺 必要制覇数: <strong class="text-yellow">${tier.required_visits}軒</strong></span>
+              <span>🍺 条件: <strong class="text-yellow">${tier.required_visits}軒ハシゴ</strong></span>
               <span> | 🎁 <strong style="color:#ffffff;">${this.escapeHtml(tier.goods_name || tier.title || '記念品')}</strong></span>
             </div>
             ${tier.exchange_location ? `
@@ -1373,19 +1385,24 @@ class YoidoreQuestApp {
       const remainCount = Math.max(0, maxCount - usedCount);
       const isAllUsed = isReached && remainCount === 0;
 
+      if (isReached) {
+        totalEarnedSlots += maxCount;
+        totalUsedSlots += usedCount;
+      }
+
       let statusBadge = '';
       let actionHtml = '';
       const stampHtml = isAllUsed ? `<div class="treasure-card-stamp-used">USED</div>` : '';
 
       if (isAllUsed) {
-        statusBadge = ''; // 既存の「特典コンプリート」ラベルを削除
+        statusBadge = '';
       } else if (isReached) {
-        statusBadge = `<span class="treasure-tier-status status-unlocked" style="background:#0284c7; border-color:#38bdf8;">✨ 利用可能</span>`;
+        statusBadge = `<span class="treasure-tier-status status-unlocked" style="background:#0284c7; border-color:#38bdf8;">✨ 利用可能 (${remainCount}/${maxCount}回)</span>`;
       } else {
-        statusBadge = `<span class="treasure-tier-status status-locked">🔒 あと ${remainingVisits}軒</span>`;
+        statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成</span>`;
       }
 
-      // 利用済み店舗の履歴HTML（ボタンの上部に配置）
+      // 利用済み店舗の履歴HTML
       let historyHtml = '';
       if (usedCount > 0) {
         const historyItems = usedCoupons.map(c => {
@@ -1424,7 +1441,7 @@ class YoidoreQuestApp {
           `;
         } else {
           const btnText = usedCount === 0 
-            ? `🎁 宝箱を開けて酒場を選ぶ (残り${remainCount}軒)` 
+            ? `🎁 酒場を選んでクーポンを使う (残り${remainCount}軒)` 
             : `🎁 続けてクーポンを使う (残り${remainCount}軒)`;
           actionHtml = `
             ${historyHtml}
@@ -1434,7 +1451,7 @@ class YoidoreQuestApp {
           `;
         }
       } else {
-        actionHtml = `<div style="font-size:14px; color:#e2e8f0; font-weight:bold;">🔒 あと <strong class="text-yellow" style="font-size:16px;">${remainingVisits}軒</strong> のハシゴ酒で利用可能！</div>`;
+        actionHtml = `<div style="font-size:13px; color:#cbd5e1;">🏢 運営店で「<strong>${tier.required_visits}軒達成QR</strong>」をスキャンすると利用可能！</div>`;
       }
 
       return `
@@ -1448,7 +1465,7 @@ class YoidoreQuestApp {
             <h4 class="treasure-tier-title">🏆 ${this.escapeHtml(tier.title)}</h4>
           </div>
           <div class="treasure-tier-condition">
-            <span>🍺 必要制覇数: <strong class="text-yellow">${tier.required_visits}軒</strong></span>
+            <span>🍺 条件: <strong class="text-yellow">${tier.required_visits}軒ハシゴ</strong></span>
             <span> | 🎟️ <strong style="color:#ffffff;">お好きな${maxCount}軒で利用可能</strong></span>
           </div>
           ${tier.description ? `<div class="treasure-tier-desc">${this.escapeHtml(tier.description)}</div>` : ''}
@@ -1456,37 +1473,6 @@ class YoidoreQuestApp {
         </div>
       `;
     }).join('') : '<div style="padding:15px; text-align:center; color:#e2e8f0; font-size:14px;">特典マイルストーンを読み込み中です。</div>';
-
-    // 該当シーズンの全参加酒場を連番順（store-01, store-02...）にソート
-    const sortedStores = [...stores].sort((a, b) => {
-      const numA = parseInt(String(a.id).replace(/\D/g, ''), 10) || 0;
-      const numB = parseInt(String(b.id).replace(/\D/g, ''), 10) || 0;
-      if (numA !== numB) return numA - numB;
-      return (a.name || '').localeCompare(b.name || '', 'ja');
-    });
-
-    const visitedMap = new Map();
-    visits.forEach(v => {
-      visitedMap.set(v.store_id, v);
-    });
-
-    // 酒場ロゴコレクション（図鑑風タイルグリッド）の動的生成
-    const stampGridHtml = sortedStores.map(st => {
-      const isVisited = visitedMap.has(st.id);
-      const logoUrl = st.logoUrl || st.logo_url || '';
-      const initialChar = this.escapeHtml((st.name || '酒').slice(0, 1));
-
-      return `
-        <div class="quest-stamp-item ${isVisited ? 'visited' : 'unvisited'}" data-store-id="${st.id}" title="${this.escapeHtml(st.name)}">
-          ${logoUrl ? `
-            <img src="${logoUrl}" alt="${this.escapeHtml(st.name)}" class="quest-stamp-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="quest-stamp-fallback" style="display:none;">${initialChar}</div>
-          ` : `
-            <div class="quest-stamp-fallback">${initialChar}</div>
-          `}
-        </div>
-      `;
-    }).join('');
 
     // シーズン切り替えセレクター用オプション
     const seasonsList = (Array.isArray(allSeasons) && allSeasons.length > 0)
@@ -1505,6 +1491,8 @@ class YoidoreQuestApp {
     const seasonPeriodStr = (seasonStartDate && seasonEndDate)
       ? `${this.formatDateWithDay(seasonStartDate)} 〜 ${this.formatDateWithDay(seasonEndDate)}`
       : '';
+
+    const remainingAvailableCoupons = Math.max(0, totalEarnedSlots - totalUsedSlots);
 
     container.innerHTML = `
       <div class="quest-book-container">
@@ -1561,7 +1549,7 @@ class YoidoreQuestApp {
         </div>
 
         <!-- 1. 勇者ステータス -->
-        <div class="hero-status-card">
+        <div class="hero-status-card" style="margin-bottom:12px;">
           <div class="hero-avatar-wrap">
             <img src="${user.pictureUrl || 'assets/banner.png'}" alt="Avatar" class="hero-avatar" onerror="this.src='assets/banner.png';">
             <span class="hero-level-badge">Lv.${heroLv}</span>
@@ -1580,24 +1568,35 @@ class YoidoreQuestApp {
           </div>
         </div>
 
-        <!-- 2. クエスト進捗 -->
-        <div class="quest-progress-box" style="margin-bottom:12px;">
-          <div class="quest-progress-header">
-            <span class="quest-progress-title">⚔️ ハシゴ酒進捗</span>
-            <span class="quest-progress-count">${visitedCount} <span style="font-size:14px; color:#e2e8f0;">/ ${totalStores} 軒</span></span>
+        <!-- 2. 特典獲得サマリーカード -->
+        <div class="quest-progress-box" style="margin-bottom:14px; background:linear-gradient(135deg, rgba(15,23,42,0.9) 0%, rgba(30,41,59,0.9) 100%);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:14px; font-weight:bold; color:var(--text-yellow);">🎟️ 保有クーポン残枠</span>
+            <span style="font-size:18px; font-weight:bold; color:#4ade80;">${remainingAvailableCoupons} <span style="font-size:12px; color:#cbd5e1;">/ ${totalEarnedSlots} 回分</span></span>
           </div>
-          <div class="quest-progress-bar-bg">
-            <div class="quest-progress-bar-fill" style="width: ${progressPercent}%;"></div>
+          <div style="font-size:12px; color:#cbd5e1; line-height:1.4;">
+            ※後夜祭期間にお好きな参加酒場（クーポン対象店）全店のお会計時にご利用いただけます。
           </div>
         </div>
 
-        <!-- 3. 酒場コレクション (今期参加店舗のみの図鑑風ロゴタイル) -->
+        <!-- 3. はしご酒・特典受取のながれ（ガイド） -->
         <div class="rpg-window window-green" style="margin-bottom:14px;">
           <div class="rpg-window-header header-green">
-            <span>📜 酒場コレクション (${visitedCount} / ${totalStores}軒)</span>
+            <span>📜 特典獲得＆クーポンの使い方</span>
           </div>
-          <div class="quest-stamp-grid">
-            ${stampGridHtml || `<div style="padding:15px; text-align:center; color:#e2e8f0; font-size:14px; grid-column: 1 / -1;">このイベントの参加酒場はありません。</div>`}
+          <div style="padding:10px 4px 6px; font-size:12px; color:#e2e8f0; line-height:1.6;">
+            <div style="margin-bottom:6px; display:flex; align-items:flex-start; gap:6px;">
+              <span style="color:#fde047; font-weight:bold; flex-shrink:0;">①</span>
+              <span><strong>紙の冒険の書</strong>に、各酒場で限定セットを注文してサイン・スタンプを集めます。</span>
+            </div>
+            <div style="margin-bottom:6px; display:flex; align-items:flex-start; gap:6px;">
+              <span style="color:#fde047; font-weight:bold; flex-shrink:0;">②</span>
+              <span><strong>運営店（6店舗）</strong>の店頭POPに掲示されている「<strong>達成QRコード</strong>（5軒・10軒・15軒達成等）」をスマホで読み取ります。</span>
+            </div>
+            <div style="display:flex; align-items:flex-start; gap:6px;">
+              <span style="color:#fde047; font-weight:bold; flex-shrink:0;">③</span>
+              <span>冒険の書に特典クーポン・グッズ引換券が一括付与され、後夜祭期間に各店舗でご利用いただけます！</span>
+            </div>
           </div>
         </div>
 
@@ -1618,17 +1617,17 @@ class YoidoreQuestApp {
               <span>🧪 開発・レビュー用テスト機能</span>
             </div>
             <div style="padding: 10px 4px 6px; font-size: 13px; color: #e2e8f0; line-height: 1.5;">
-              ※QR読取の動作確認機能です。酒場サインをシミュレートし、宝箱解放テストが行えます。
+              ※運営店での達成QR読み取りをシミュレートし、カスケード付与とクーポン消し込みの動作確認が行えます。
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
-              <button id="btn-quick-test-5visits" class="command-button" style="background: linear-gradient(180deg, #d97706 0%, #b45309 100%); color: #fff; border: 1px solid #f59e0b; padding: 10px 6px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer;">
-                🍺 +5酒場サイン
+              <button id="btn-quick-test-tier1" class="command-button" style="background: linear-gradient(180deg, #d97706 0%, #b45309 100%); color: #fff; border: 1px solid #f59e0b; padding: 10px 6px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer;">
+                🧪 5軒達成QR
               </button>
-              <button id="btn-quick-test-10visits" class="command-button" style="background: linear-gradient(180deg, #b45309 0%, #78350f 100%); color: #fef08a; border: 1px solid #f59e0b; padding: 10px 6px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer;">
-                🍺 +10酒場サイン
+              <button id="btn-quick-test-tier2" class="command-button" style="background: linear-gradient(180deg, #b45309 0%, #78350f 100%); color: #fef08a; border: 1px solid #f59e0b; padding: 10px 6px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer;">
+                🧪 10軒達成QR
               </button>
-              <button id="btn-quick-test-15visits" class="command-button" style="background: linear-gradient(180deg, #7c2d12 0%, #451a03 100%); color: #fde047; border: 1px solid #eab308; padding: 10px 6px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer;">
-                🍺 +15酒場サイン
+              <button id="btn-quick-test-tier3" class="command-button" style="background: linear-gradient(180deg, #7c2d12 0%, #451a03 100%); color: #fde047; border: 1px solid #eab308; padding: 10px 6px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer;">
+                🧪 15軒達成QR
               </button>
               <button id="btn-quick-test-reset" class="command-button" style="background: #334155; color: #ffffff; border: 1px solid #475569; padding: 10px 6px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: bold;">
                 🗑️ 履歴リセット
@@ -1650,21 +1649,9 @@ class YoidoreQuestApp {
       });
     }
 
-    // 酒場ロゴタイルタップで店舗詳細確認モーダル表示
-    container.querySelectorAll('.quest-stamp-item').forEach(tile => {
-      tile.addEventListener('click', () => {
-        this.playSelectSE();
-        const storeId = tile.dataset.storeId;
-        const store = stores.find(s => s.id === storeId);
-        if (!store) return;
-        const visitInfo = visitedMap.get(storeId);
-        this.showStoreStampModal(store, visitInfo);
-      });
-    });
-
     // 宝箱を開くボタンのイベント (アクティブシーズンのみ)
     if (isCurrentSeason) {
-      // 2. 宝箱を開けてお店を選ぶ / 続けてクーポンを使うボタン（ダイレクト店舗選択：アラートなしで即モーダル展開）
+      // 2. 宝箱を開けてお店を選ぶ / 続けてクーポンを使うボタン
       container.querySelectorAll('.btn-direct-open-store-coupon').forEach(btn => {
         btn.addEventListener('click', () => {
           this.playSelectSE();
@@ -1676,7 +1663,7 @@ class YoidoreQuestApp {
         });
       });
 
-      // 3. グッズ記念品受け取りボタン（店頭提示・スライド消し込み）
+      // 3. グッズ記念品受け取りボタン
       container.querySelectorAll('.btn-view-goods').forEach(btn => {
         btn.addEventListener('click', () => {
           this.playSelectSE();
@@ -1689,43 +1676,17 @@ class YoidoreQuestApp {
       });
     }
 
-    // 共通テストサイン実行関数
-    const handleTestVisits = async (count, btnEl) => {
-      if (!confirm(`【テスト実行】新たに【${count}店舗】の店主サインを冒険の書に記録しますか？`)) {
-        return;
-      }
-      const prevVisits = (window.questApi && window.questApi.visits) ? window.questApi.visits.length : 0;
-      const prevHero = this.getHeroTitleForVisits(prevVisits);
+    // 共通テストマイルストーン実行関数
+    const handleTestTierClaim = async (tierIdx, btnEl) => {
+      const tiers = window.questApi?.rewardTiers || [];
+      const targetTier = tiers[tierIdx] || tiers.find(t => (tierIdx === 0 && Number(t.required_visits) <= 5) || (tierIdx === 1 && Number(t.required_visits) <= 10) || (tierIdx === 2 && Number(t.required_visits) <= 15)) || { id: tierIdx + 1, title: `${(tierIdx + 1) * 5}軒達成特典` };
+
       btnEl.disabled = true;
       const origText = btnEl.innerHTML;
       btnEl.innerHTML = '処理中...';
 
       try {
-        const res = await window.questApi.addMockVisits(count);
-        if (res.success) {
-          const newVisits = (window.questApi && window.questApi.visits) ? window.questApi.visits.length : (prevVisits + count);
-          const newHero = this.getHeroTitleForVisits(newVisits);
-
-          const rewardTiers = window.questApi?.rewardTiers || [];
-          const unlockedTier = rewardTiers.find(t => Number(t.required_visits) === newVisits);
-
-          if (newHero.level > prevHero.level) {
-            this.playLevelUpSE();
-            this.showLevelUpModal({
-              newHero,
-              totalVisits: newVisits,
-              storeName: `テスト酒場（+${count}店舗）`,
-              storeArea: '大正エリア',
-              unlockedTier
-            });
-          } else {
-            this.playFanfareSE();
-            alert(`🎉 ${count}店舗の店主サインを記録しました！（合計: ${newVisits}軒）`);
-          }
-          await this.render();
-        } else {
-          alert('テストサインの記録に失敗しました: ' + (res.message || '不明なエラー'));
-        }
+        await this.handleClaimMilestoneTier(targetTier.id);
       } catch (e) {
         alert('エラーが発生しました: ' + e.message);
       } finally {
@@ -1734,19 +1695,19 @@ class YoidoreQuestApp {
       }
     };
 
-    const btn5 = container.querySelector('#btn-quick-test-5visits');
-    if (btn5) btn5.addEventListener('click', () => handleTestVisits(5, btn5));
+    const btnT1 = container.querySelector('#btn-quick-test-tier1');
+    if (btnT1) btnT1.addEventListener('click', () => handleTestTierClaim(0, btnT1));
 
-    const btn10 = container.querySelector('#btn-quick-test-10visits');
-    if (btn10) btn10.addEventListener('click', () => handleTestVisits(10, btn10));
+    const btnT2 = container.querySelector('#btn-quick-test-tier2');
+    if (btnT2) btnT2.addEventListener('click', () => handleTestTierClaim(1, btnT2));
 
-    const btn15 = container.querySelector('#btn-quick-test-15visits');
-    if (btn15) btn15.addEventListener('click', () => handleTestVisits(15, btn15));
+    const btnT3 = container.querySelector('#btn-quick-test-tier3');
+    if (btnT3) btnT3.addEventListener('click', () => handleTestTierClaim(2, btnT3));
 
     const btnReset = container.querySelector('#btn-quick-test-reset');
     if (btnReset) {
       btnReset.addEventListener('click', async () => {
-        if (!confirm('⚠️ 【履歴リセット】今期の酒場サインと獲得クーポンをすべて初期化しますか？')) {
+        if (!confirm('⚠️ 【履歴リセット】今期の獲得クーポン・特典履歴をすべて初期化しますか？')) {
           return;
         }
         btnReset.disabled = true;
@@ -1757,7 +1718,7 @@ class YoidoreQuestApp {
             alert('初期化に失敗しました: ' + (res.message || '通信エラー'));
           } else {
             this.playBackSE();
-            alert('冒険の書と獲得クーポンを初期化しました。');
+            alert('冒険の書の獲得特典・クーポン履歴を初期化しました。');
             await this.render();
           }
         } catch (err) {
@@ -2397,14 +2358,14 @@ class YoidoreQuestApp {
 
         <div style="display:flex; flex-direction:column; gap:6px;">
           <div style="display:flex; gap:6px;">
-            <button id="qr-modal-test-5btn" class="command-button" style="flex:1; background: rgba(217, 119, 6, 0.25); border: 1px dashed #f59e0b; color: #fbbf24; font-size: 12px; padding: 8px 4px; border-radius: 4px; cursor: pointer; font-weight: bold;">
-              🧪 +5酒場サイン
+            <button id="qr-modal-test-tier1" class="command-button" style="flex:1; background: rgba(217, 119, 6, 0.25); border: 1px dashed #f59e0b; color: #fbbf24; font-size: 12px; padding: 8px 4px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+              🧪 5軒達成QR
             </button>
-            <button id="qr-modal-test-10btn" class="command-button" style="flex:1; background: rgba(217, 119, 6, 0.25); border: 1px dashed #f59e0b; color: #fbbf24; font-size: 12px; padding: 8px 4px; border-radius: 4px; cursor: pointer; font-weight: bold;">
-              🧪 +10酒場サイン
+            <button id="qr-modal-test-tier2" class="command-button" style="flex:1; background: rgba(217, 119, 6, 0.25); border: 1px dashed #f59e0b; color: #fbbf24; font-size: 12px; padding: 8px 4px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+              🧪 10軒達成QR
             </button>
-            <button id="qr-modal-test-15btn" class="command-button" style="flex:1; background: rgba(217, 119, 6, 0.25); border: 1px dashed #f59e0b; color: #fbbf24; font-size: 12px; padding: 8px 4px; border-radius: 4px; cursor: pointer; font-weight: bold;">
-              🧪 +15酒場サイン
+            <button id="qr-modal-test-tier3" class="command-button" style="flex:1; background: rgba(217, 119, 6, 0.25); border: 1px dashed #f59e0b; color: #fbbf24; font-size: 12px; padding: 8px 4px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+              🧪 15軒達成QR
             </button>
           </div>
           <button id="qr-modal-cancel-btn" class="treasure-claim-btn" style="background:#333; border-color:#888; padding:8px; font-size:13px;">
@@ -2442,25 +2403,19 @@ class YoidoreQuestApp {
     document.getElementById('qr-modal-close-btn').addEventListener('click', closeModal);
     document.getElementById('qr-modal-cancel-btn').addEventListener('click', closeModal);
 
-    const handleQrTest = async (count) => {
-      if (!confirm(`【テスト実行】新たに【${count}酒場】の酒場サインを記録しますか？`)) return;
-      this.playFanfareSE();
-      const res = await window.questApi.recordMultipleVisitsForTest(count);
+    const handleQrTierTest = async (tierIdx) => {
+      const tiers = window.questApi?.rewardTiers || [];
+      const targetTier = tiers[tierIdx] || tiers.find(t => (tierIdx === 0 && Number(t.required_visits) <= 5) || (tierIdx === 1 && Number(t.required_visits) <= 10) || (tierIdx === 2 && Number(t.required_visits) <= 15)) || { id: tierIdx + 1, title: `${(tierIdx + 1) * 5}軒達成特典` };
       await closeModal();
-      if (res.success) {
-        alert(`🎉【テスト成功】新たに${res.count}酒場の酒場サインを記録しました！（合計: ${res.totalVisits}軒）\n冒険の書から特典宝箱をご確認ください！`);
-        this.render('quest-book');
-      } else {
-        alert(res.message || 'テストサイン記録に失敗しました。');
-      }
+      await this.handleClaimMilestoneTier(targetTier.id);
     };
 
-    const q5 = document.getElementById('qr-modal-test-5btn');
-    if (q5) q5.addEventListener('click', () => handleQrTest(5));
-    const q10 = document.getElementById('qr-modal-test-10btn');
-    if (q10) q10.addEventListener('click', () => handleQrTest(10));
-    const q15 = document.getElementById('qr-modal-test-15btn');
-    if (q15) q15.addEventListener('click', () => handleQrTest(15));
+    const qT1 = document.getElementById('qr-modal-test-tier1');
+    if (qT1) qT1.addEventListener('click', () => handleQrTierTest(0));
+    const qT2 = document.getElementById('qr-modal-test-tier2');
+    if (qT2) qT2.addEventListener('click', () => handleQrTierTest(1));
+    const qT3 = document.getElementById('qr-modal-test-tier3');
+    if (qT3) qT3.addEventListener('click', () => handleQrTierTest(2));
 
     // スキャナーの初期化
     const initScanner = async () => {
@@ -2484,26 +2439,36 @@ class YoidoreQuestApp {
 
           this.playSelectSE();
 
+          let claimTierId = null;
           let storeId = null;
-          if (decodedText.startsWith('store-')) {
+
+          // 1. claim_tier / tier パラメータの判定 (例: ?claim_tier=1, ?tier=2, tier-1 等)
+          if (decodedText.startsWith('tier-') || decodedText.startsWith('claim-tier-')) {
+            claimTierId = decodedText.replace(/^(tier-|claim-tier-)/, '');
+          } else if (decodedText.startsWith('store-')) {
             storeId = decodedText;
           } else {
             try {
               const url = new URL(decodedText);
+              claimTierId = url.searchParams.get('claim_tier') || (url.searchParams.get('action') === 'claim_tier' ? url.searchParams.get('tier') : null) || url.searchParams.get('tier');
               storeId = url.searchParams.get('checkin') || url.searchParams.get('store');
             } catch (e) {
-              const match = decodedText.match(/[?&](?:checkin|store)=([^&#]+)/);
-              if (match) storeId = decodeURIComponent(match[1]);
+              const matchTier = decodedText.match(/[?&](?:claim_tier|tier)=([^&#]+)/);
+              if (matchTier) claimTierId = decodeURIComponent(matchTier[1]);
+              const matchStore = decodedText.match(/[?&](?:checkin|store)=([^&#]+)/);
+              if (matchStore) storeId = decodeURIComponent(matchStore[1]);
             }
           }
 
           await stopCamera();
           overlay.remove();
 
-          if (storeId) {
+          if (claimTierId) {
+            await this.handleClaimMilestoneTier(claimTierId);
+          } else if (storeId) {
             await this.handleCheckin(storeId);
           } else {
-            alert(`読み取ったQRコードの内容: ${decodedText}\n有効な酒場サイン受取用QRコードではありません。`);
+            alert(`読み取ったQRコードの内容: ${decodedText}\n有効な達成特典QRコードではありません。`);
           }
         };
 
@@ -2529,7 +2494,167 @@ class YoidoreQuestApp {
   }
 
   /* ------------------------------------------------------------------------
-   * 酒場サイン受取・冒険の書への記録処理 (QRコード読み取り時)
+   * 🏆 マイルストーン達成特典カスケード付与処理 (運営店QRコードスキャン時)
+   * ------------------------------------------------------------------------ */
+  async handleClaimMilestoneTier(tierId) {
+    if (!tierId) return;
+
+    try {
+      const activeSeasonId = window.questApi?.currentSeason?.id || 2;
+      const res = await window.questApi.claimRewardTierCascade(tierId, activeSeasonId);
+
+      if (res.success) {
+        if (res.alreadyClaimed) {
+          this.playCursorSE();
+          this.showAlreadyClaimedMilestoneModal(res);
+        } else {
+          // 🎉 特典獲得・ドラクエ風達成演出モーダル表示
+          this.playLevelUpSE();
+          this.showMilestoneUnlockModal(res);
+        }
+        await this.render();
+      } else {
+        alert(res.message || '特典の獲得処理に失敗しました。');
+      }
+    } catch (err) {
+      console.error('Milestone claim error:', err);
+      alert('エラーが発生しました: ' + err.message);
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+   * 🌟 ドラクエ風 マイルストーン達成＆特典アンロック演出モーダル
+   * ------------------------------------------------------------------------ */
+  showMilestoneUnlockModal(res = {}) {
+    const { targetTier, claimedTiers, totalAddedSlots, grantedGoods } = res;
+    const tierTitle = targetTier?.title || 'マイルストーン達成特典';
+    const requiredVisits = targetTier?.required_visits || 5;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'rpg-modal-overlay';
+    overlay.id = 'milestone-unlock-modal';
+
+    const user = window.questApi?.currentUser || { displayName: '勇者', pictureUrl: 'assets/banner.png' };
+    const avatarUrl = user.pictureUrl || 'assets/banner.png';
+    const displayName = this.escapeHtml ? this.escapeHtml(user.displayName || '勇者') : (user.displayName || '勇者');
+
+    const claimedListHtml = (claimedTiers && claimedTiers.length > 0) ? claimedTiers.map(t => {
+      const isGoods = t.reward_type === 'goods';
+      return `
+        <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-gold); border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; text-align: left;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="color: #fef08a; font-size: 13px;">🏆 ${this.escapeHtml(t.title)}</strong>
+            <span style="font-size: 11px; background: ${isGoods ? '#d97706' : '#0284c7'}; color: #fff; padding: 2px 6px; border-radius: 3px; font-weight: bold;">
+              ${isGoods ? '🎁 グッズ' : `🎟️ ${t.selectable_count || 5}軒分`}
+            </span>
+          </div>
+          <div style="font-size: 11px; color: #cbd5e1; margin-top: 2px;">
+            ${isGoods ? `記念品（${this.escapeHtml(t.goods_name || t.title)}）引換券を獲得！` : `お好きな参加酒場で使えるクーポン枠を付与しました！`}
+          </div>
+        </div>
+      `;
+    }).join('') : `
+      <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-gold); border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; text-align: left;">
+        <strong style="color: #fef08a; font-size: 13px;">🏆 ${this.escapeHtml(tierTitle)}</strong>
+        <div style="font-size: 11px; color: #cbd5e1; margin-top: 2px;">特典クーポン枠を獲得しました！</div>
+      </div>
+    `;
+
+    overlay.innerHTML = `
+      <canvas id="milestone-confetti-canvas" style="position:fixed; top:0; left:0; width:100vw; height:100vh; pointer-events:none; z-index:9999;"></canvas>
+      <div class="rpg-modal-window gold-border levelup-modal-window" style="max-width:390px; width:92%; text-align:center;">
+        <div class="levelup-sunburst"></div>
+        <div class="levelup-content-relative">
+          <div style="font-size:36px; margin-bottom:2px;">✨🍺🎁</div>
+          <div class="levelup-header-banner" style="font-size:20px; letter-spacing:2px;">QUEST CLEAR!!</div>
+          <div style="font-size:13px; color:#fde047; font-weight:bold; letter-spacing:1px; margin-bottom:8px;">
+            【${requiredVisits}軒ハシゴ達成】おめでとうございます！
+          </div>
+
+          <!-- LINEアバター -->
+          <div class="levelup-avatar-wrap">
+            <img src="${avatarUrl}" alt="${displayName}" class="levelup-avatar" onerror="this.src='assets/banner.png';">
+            <span class="levelup-level-badge">達成</span>
+          </div>
+          <div style="font-size:14px; font-weight:bold; color:#ffffff; margin-bottom:10px;">${displayName}</div>
+
+          <!-- 獲得特典サマリーカード -->
+          <div style="background: linear-gradient(135deg, rgba(217, 119, 6, 0.3) 0%, rgba(180, 83, 9, 0.2) 100%); border: 1px solid #f59e0b; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;">
+            <div style="font-size: 11px; color: #fde68a; font-weight: bold; margin-bottom: 6px;">🎁 今回アンロックされた特典</div>
+            ${claimedListHtml}
+            ${totalAddedSlots > 0 ? `
+              <div style="margin-top: 8px; font-size: 13px; color: #4ade80; font-weight: bold; border-top: 1px dashed rgba(245,158,11,0.5); padding-top: 6px;">
+                🎟️ 合計利用可能クーポン: <strong style="font-size: 16px;">+${totalAddedSlots} 軒分</strong>
+              </div>
+            ` : ''}
+          </div>
+
+          <div style="font-size:12px; color:#cbd5e1; line-height:1.4; margin-bottom:12px;">
+            ※獲得したクーポンは、後夜祭期間にお好きな参加酒場のお会計時にご利用いただけます。
+          </div>
+
+          <button id="milestone-modal-close-btn" class="command-button" style="width:100%; padding:11px; font-size:14px; font-weight:bold; background:linear-gradient(180deg, #10b981 0%, #047857 100%); border:1px solid #34d399; color:#ffffff; border-radius:6px; cursor:pointer;">
+            📜 冒険の書で確認する ▶
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('milestone-modal-close-btn').addEventListener('click', () => {
+      this.playSelectSE();
+      overlay.remove();
+      this.navigateTo('quest-book');
+    });
+
+    // ゴールド紙吹雪パーティクル生成
+    setTimeout(() => {
+      this.launchLevelUpConfetti('milestone-confetti-canvas');
+    }, 100);
+  }
+
+  /* ------------------------------------------------------------------------
+   * ⚠️ 既に獲得済みのマイルストーン達成モーダル
+   * ------------------------------------------------------------------------ */
+  showAlreadyClaimedMilestoneModal(res = {}) {
+    const targetTier = res.targetTier;
+    const tierTitle = targetTier?.title || 'このマイルストーン特典';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'rpg-modal-overlay';
+    overlay.id = 'milestone-already-claimed-modal';
+
+    overlay.innerHTML = `
+      <div class="rpg-modal-window gold-border" style="max-width:380px; width:92%; text-align:center;">
+        <div class="rpg-window-header" style="margin-bottom:10px;">
+          <span>📜 特典獲得確認</span>
+        </div>
+        <div style="font-size:36px; margin:8px 0;">🛡️✨</div>
+        <div style="font-size:16px; font-weight:bold; color:var(--text-yellow); margin-bottom:6px;">
+          獲得済みです
+        </div>
+        <div style="font-size:13px; color:#e2e8f0; line-height:1.5; margin-bottom:14px;">
+          【${this.escapeHtml(tierTitle)}】および該当する特典は、すでに冒険の書に獲得済みです。<br>
+          クーポンは冒険の書からご利用いただけます。
+        </div>
+        <button id="btn-already-claimed-close" class="command-button" style="width:100%; padding:10px; font-size:14px; background:#1e293b; border:1px solid var(--border-gold); color:#ffffff; border-radius:6px; cursor:pointer;">
+          閉じる
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('btn-already-claimed-close').addEventListener('click', () => {
+      this.playBackSE();
+      overlay.remove();
+      this.navigateTo('quest-book');
+    });
+  }
+
+  /* ------------------------------------------------------------------------
+   * 酒場サイン受取・冒険の書への記録処理 (QRコード読み取り時 - 互換用)
    * ------------------------------------------------------------------------ */
   async handleCheckin(storeId) {
     if (!storeId) return;
@@ -3200,15 +3325,13 @@ class YoidoreQuestApp {
       this.typeMessage(`条件に一致する酒場が ${filtered.length} 軒見つかりました。`);
 
       const cardsHtml = filtered.length > 0 ? filtered.map(store => {
-        const isVisited = window.questApi && window.questApi.visits.some(v => v.store_id === store.id);
         const isCoupon = Boolean(store.isCouponTarget);
         return `
-        <div class="store-card ${isVisited ? 'visited' : ''}" data-id="${store.id}">
+        <div class="store-card" data-id="${store.id}">
           <div class="store-card-top-flex">
             <div class="store-card-info-block">
               <div class="store-card-header-row">
                 <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-                  ${isVisited ? `<span class="tag" style="background:#155724; color:#d4edda; border-color:#28a745;">✅ 冒険済</span>` : ''}
                   ${isCoupon ? `<span class="tag" style="background:#4d3800; color:#ffeeba; border-color:#ffc107;">🎁 特典対象</span>` : ''}
                   ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
                   ${store.category ? `<span class="tag">${store.category}</span>` : ''}
@@ -3413,9 +3536,6 @@ class YoidoreQuestApp {
       ? store.paymentMethods.map(p => `<span class="payment-tag">${p}</span>`).join('')
       : '';
 
-    const visitRecord = window.questApi && window.questApi.visits.find(v => v.store_id === store.id);
-    const isVisited = Boolean(visitRecord);
-    const visitedDateStr = visitRecord?.visited_at ? new Date(visitRecord.visited_at).toLocaleString('ja-JP') : '';
     const isCouponTarget = Boolean(store.isCouponTarget);
 
     container.innerHTML = `
@@ -3426,7 +3546,6 @@ class YoidoreQuestApp {
             <div class="detail-title-block">
               <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
                 <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-                  ${isVisited ? `<span class="tag" style="background:#155724; color:#d4edda; border-color:#28a745;">✅ 冒険済</span>` : ''}
                   ${isCouponTarget ? `<span class="tag" style="background:#4d3800; color:#ffeeba; border-color:#ffc107;">🎁 特典対象</span>` : ''}
                   ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
                   ${store.category ? `<span class="tag">${store.category}</span>` : ''}
@@ -3470,9 +3589,9 @@ class YoidoreQuestApp {
           const seasonCoupons = userCoupons.filter(c => (c.season_id === activeSeasonId || (!c.season_id && activeSeasonId === 2)) && c.reward_type !== 'goods');
           const isUsedHere = seasonCoupons.some(c => c.store_id === store.id && c.status === 'used');
           
-          const visitedCount = (window.questApi && window.questApi.visits) ? window.questApi.visits.length : 0;
           const rewardTiers = (window.questApi && window.questApi.rewardTiers) || [];
-          const reachedCouponTiers = rewardTiers.filter(t => t.reward_type !== 'goods' && visitedCount >= (Number(t.required_visits) || 0));
+          const visits = (window.questApi && window.questApi.visits) || [];
+          const reachedCouponTiers = rewardTiers.filter(t => t.reward_type !== 'goods' && (seasonCoupons.some(c => Number(c.reward_tier_id) === Number(t.id)) || visits.length >= (Number(t.required_visits) || 0)));
           const totalEarnedSlots = reachedCouponTiers.reduce((sum, t) => sum + (Number(t.selectable_count) || 5), 0);
           const usedCount = seasonCoupons.filter(c => c.status === 'used').length;
           const availableCount = Math.max(0, totalEarnedSlots - usedCount);
@@ -3510,7 +3629,7 @@ class YoidoreQuestApp {
           return `
             <div class="rpg-window" style="background: rgba(15, 23, 42, 0.6); border: 1px dashed var(--border-gold);">
               <div style="font-size:13px; color:var(--text-yellow); font-weight:bold;">🎁 酒場特典対象店</div>
-              <div style="font-size:12px; color:#94a3b8; margin-top:2px;">ハシゴ酒を進めて特典宝箱を解放すると、この酒場のクーポンを利用できます。</div>
+              <div style="font-size:12px; color:#94a3b8; margin-top:2px;">運営店で達成QRコードを読み取って特典を獲得すると、この酒場のクーポンを利用できます。</div>
             </div>
           `;
         })() : ''}

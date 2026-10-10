@@ -12,7 +12,7 @@
 
   <link rel="icon" href="assets/banner.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/admin.css?v=20261005_02">
+  <link rel="stylesheet" href="css/admin.css?v=20261010_01">
   <!-- SheetJS for Excel Import -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- QRCode.js for POP Generation -->
@@ -38,7 +38,7 @@
         </button>
       </form>
       <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 14px;">
-        システムバージョン: <strong class="app-version-text">v2026.10.05.02</strong>
+        システムバージョン: <strong class="app-version-text">v2026.10.10.01</strong>
       </div>
     </div>
   </div>
@@ -85,7 +85,7 @@
         </a>
         <a href="#pop" class="nav-item" data-tab="pop">
           <i class="fa-solid fa-qrcode"></i>
-          <span>店頭POP・QR一括印刷</span>
+          <span>特典達成QR・POP印刷</span>
         </a>
       </nav>
 
@@ -95,7 +95,7 @@
           <span>Supabase DB 連動中</span>
         </div>
         <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-bottom: 6px;">
-          システムバージョン: <strong class="app-version-text">v2026.10.05.01</strong>
+          システムバージョン: <strong class="app-version-text">v2026.10.10.01</strong>
         </div>
         <button class="btn btn-outline-danger btn-sm btn-block" onclick="window.adminApp.handleLogout()">
           <i class="fa-solid fa-arrow-right-from-bracket"></i> ログアウト
@@ -123,13 +123,13 @@
         </div>
         <div class="header-right">
           <span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:3px 8px; font-weight:bold;">
-            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.10.05.01</span>
+            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.10.10.01</span>
           </span>
           <span id="last-sync-time" class="text-muted"><i class="fa-solid fa-arrows-rotate fa-spin"></i> 同期中...</span>
           <button class="btn btn-secondary btn-sm" onclick="window.adminApp.refreshData()">
             <i class="fa-solid fa-rotate"></i> 最新データ更新
           </button>
-          <a href="index.html?v=20261005_01" target="_blank" class="btn btn-outline btn-sm">
+          <a href="index.html?v=20261010_01" target="_blank" class="btn btn-outline btn-sm">
             <i class="fa-solid fa-up-right-from-square"></i> アプリ実機表示
           </a>
         </div>
@@ -632,16 +632,16 @@
           </div>
         </section>
 
-        <!-- 5. 店頭POP・QR一括印刷タブ -->
+        <!-- 5. 運営店専用 特典達成QR・POP一括印刷タブ -->
         <section id="tab-pop" class="tab-pane">
           <div class="pop-controls no-print">
             <div class="pop-header-info">
-              <h3><i class="fa-solid fa-print"></i> 全33店舗 店頭サイン受取用POP</h3>
-              <p class="text-muted">A4用紙1枚につき各店舗の卓上POP（QRコード・店舗名・説明文）を綺麗に印刷・PDF保存できます。</p>
+              <h3><i class="fa-solid fa-print"></i> 運営店専用 特典達成QR POP印刷</h3>
+              <p class="text-muted">紙の冒険の書（手書きサイン）の達成軒数を確認後、運営店（6店舗）店頭で参加者にスキャンしてもらう特典付与QRコード卓上POPを印刷・PDF保存できます。上位QRを読み込むと下位の未獲得特典も自動でカスケード合算付与されます。</p>
             </div>
             <div class="pop-actions">
-              <select id="pop-store-select" onchange="window.adminApp.filterPopCards()" class="form-control" style="width: 220px; display: inline-block;">
-                <option value="all">全店舗を表示（一括印刷）</option>
+              <select id="pop-tier-select" onchange="window.adminApp.filterPopCards()" class="form-control" style="width: 240px; display: inline-block;">
+                <option value="all">全マイルストーン特典POPを一括印刷</option>
               </select>
               <button class="btn btn-primary" onclick="window.print()">
                 <i class="fa-solid fa-print"></i> 印刷 / PDFで保存
@@ -1189,8 +1189,8 @@
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=20261005_02"></script>
-  <script src="js/api.js?v=20261005_02"></script>
-  <script src="js/admin.js?v=20261005_02"></script>
+  <script src="js/config.js?v=20261010_01"></script>
+  <script src="js/api.js?v=20261010_01"></script>
+  <script src="js/admin.js?v=20261010_01"></script>
 </body>
 </html>

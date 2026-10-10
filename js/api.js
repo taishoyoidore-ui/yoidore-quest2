@@ -806,6 +806,88 @@ class QuestApiManager {
   }
 
   /* ------------------------------------------------------------------------
+   * 特典マイルストーンQR読み取り時のカスケード獲得処理
+   * （指定tier以下の未獲得特典をすべて合算・自動獲得）
+   * ------------------------------------------------------------------------ */
+  async claimRewardTierCascade(targetTierId, seasonId = null) {
+    if (!this.currentUser || !this.currentUser.userId) {
+      await this.initAuth();
+      if (!this.currentUser || !this.currentUser.userId) {
+        return { success: false, message: 'LINEログインが必要です' };
+      }
+    }
+
+    const targetSeasonId = Number(seasonId || this.currentSeason?.id || 2);
+    const tiers = await this.getRewardTiers(targetSeasonId);
+    const targetTier = tiers.find(t => Number(t.id) === Number(targetTierId));
+
+    if (!targetTier) {
+      return { success: false, message: '指定された特典ランクが見つかりません。' };
+    }
+
+    const targetRequiredVisits = Number(targetTier.required_visits) || 0;
+    // targetTier以下のすべてのtier（昇順）
+    const applicableTiers = tiers
+      .filter(t => (Number(t.required_visits) || 0) <= targetRequiredVisits)
+      .sort((a, b) => (Number(a.required_visits) || 0) - (Number(b.required_visits) || 0));
+
+    await this.getUserCoupons(targetSeasonId);
+
+    // 既に獲得済みのtierIdのセット
+    const claimedTierIds = new Set(
+      this.userCoupons
+        .map(c => Number(c.reward_tier_id))
+        .filter(id => !isNaN(id) && id > 0)
+    );
+
+    const newlyClaimedTiers = [];
+    let totalNewSlots = 0;
+    const newGoodsList = [];
+
+    for (const tier of applicableTiers) {
+      if (claimedTierIds.has(Number(tier.id))) {
+        continue; // 既に獲得済み
+      }
+
+      if (tier.reward_type === 'goods') {
+        const goodsRes = await this.claimGoodsReward(tier.id, targetSeasonId);
+        if (goodsRes.success) {
+          newlyClaimedTiers.push(tier);
+          newGoodsList.push(tier.goods_name || tier.title);
+          claimedTierIds.add(Number(tier.id));
+        }
+      } else {
+        const couponRes = await this.claimStoreCouponTier(tier.id, targetSeasonId);
+        if (couponRes.success) {
+          newlyClaimedTiers.push(tier);
+          totalNewSlots += (Number(tier.selectable_count) || 5);
+          claimedTierIds.add(Number(tier.id));
+        }
+      }
+    }
+
+    await this.getUserCoupons(targetSeasonId);
+
+    if (newlyClaimedTiers.length === 0) {
+      return {
+        success: false,
+        alreadyClaimed: true,
+        message: `【${targetTier.title}】（および対象の特典）は既に獲得済みです！`,
+        targetTier
+      };
+    }
+
+    return {
+      success: true,
+      targetTier,
+      newlyClaimedTiers,
+      totalNewSlots,
+      newGoodsList,
+      applicableTiers
+    };
+  }
+
+  /* ------------------------------------------------------------------------
    * クーポン型特典の宝箱開封・回数枠獲得 (シーズン連動・データベースに保存)
    * ------------------------------------------------------------------------ */
   async claimStoreCouponTier(rewardTierId, seasonId = null) {

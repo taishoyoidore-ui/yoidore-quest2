@@ -64,7 +64,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.05.02';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.01';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -228,7 +228,7 @@ class YoidoreAdminApp {
       this.renderStoresTable();
       this.renderSeasonSettings();
       this.renderLogs();
-      this.renderPopStoreSelect();
+      this.renderPopTierSelect();
 
       const now = new Date();
       syncElem.innerHTML = `<i class="fa-solid fa-check text-success"></i> 同期済: ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -2796,32 +2796,37 @@ class YoidoreAdminApp {
   }
 
   /* ------------------------------------------------------------------------
-   * 5. 店頭POP・QR一括印刷
+   * 5. 運営店専用 特典達成QR・POP一括印刷
    * ------------------------------------------------------------------------ */
-  renderPopStoreSelect() {
-    const sel = document.getElementById('pop-store-select');
-    const participatingStores = this.stores.filter(s => s.is_participating !== false);
-    sel.innerHTML = `<option value="all">参加店舗全${participatingStores.length}店舗を表示（一括印刷）</option>`;
-    participatingStores.forEach(s => {
+  renderPopTierSelect() {
+    const sel = document.getElementById('pop-tier-select');
+    if (!sel) return;
+    const sortedTiers = [...(this.tiers || [])].sort((a, b) => (Number(a.required_count) || 0) - (Number(b.required_count) || 0));
+    sel.innerHTML = `<option value="all">全マイルストーン特典POP（${sortedTiers.length}種）を一括印刷</option>`;
+    sortedTiers.forEach(t => {
       const opt = document.createElement('option');
-      opt.value = s.id;
-      opt.textContent = `${s.name} (${s.id})`;
+      opt.value = t.id;
+      opt.textContent = `【${t.required_count}軒達成】 ${t.title}`;
       sel.appendChild(opt);
     });
+    this.renderPopCards();
   }
 
   filterPopCards() {
-    const storeId = document.getElementById('pop-store-select').value;
-    this.renderPopCards(storeId === 'all' ? null : storeId);
+    const sel = document.getElementById('pop-tier-select');
+    const tierId = sel ? sel.value : 'all';
+    this.renderPopCards(tierId === 'all' ? null : tierId);
   }
 
-  renderPopCards(targetStoreId = null) {
+  renderPopCards(targetTierId = null) {
     const container = document.getElementById('pop-cards-container');
-    const participatingStores = this.stores.filter(s => s.is_participating !== false);
-    const stores = targetStoreId ? participatingStores.filter(s => s.id === targetStoreId) : participatingStores;
+    if (!container) return;
 
-    if (stores.length === 0) {
-      container.innerHTML = '<div class="empty-state text-muted py-4">店舗データがありません</div>';
+    const sortedTiers = [...(this.tiers || [])].sort((a, b) => (Number(a.required_count) || 0) - (Number(b.required_count) || 0));
+    const tiers = targetTierId ? sortedTiers.filter(t => String(t.id) === String(targetTierId)) : sortedTiers;
+
+    if (tiers.length === 0) {
+      container.innerHTML = '<div class="empty-state text-muted py-4">設定されたマイルストーン特典データがありません。「シーズン・開催設定」で特典ランクを登録してください。</div>';
       return;
     }
 
@@ -2830,29 +2835,47 @@ class YoidoreAdminApp {
     const currentSeason = this.seasons.find(s => s.id === this.selectedSeasonId) || this.api.currentSeason;
     const seasonTitle = currentSeason ? currentSeason.name : '大正酔いどれクエスト';
 
-    stores.forEach(store => {
-      const checkinUrl = `https://liff.line.me/${liffId}?checkin=${store.id}`;
+    tiers.forEach(tier => {
+      // LIFF経由または通常Web経由どちらでも動作する達成パラメータ
+      const claimUrl = `https://liff.line.me/${liffId}?claim_tier=${tier.id}`;
       const card = document.createElement('div');
       card.className = 'pop-card';
 
+      const isGoods = tier.reward_type === 'goods';
+      const rewardSummary = isGoods
+        ? `🎁 記念品「${this.escapeHtml(tier.goods_name || tier.title)}」引換権利`
+        : `🍺 酒場クーポン ${tier.coupon_count || 5}回分（各店で利用可能）`;
+
       card.innerHTML = `
         <div class="pop-event-header">
-          <span class="pop-event-badge">大正区ハシゴ酒イベント</span>
+          <span class="pop-event-badge">大正区ハシゴ酒イベント 運営店専用</span>
           <div class="pop-event-title">🍺 ${this.escapeHtml(seasonTitle)} ⚔️</div>
         </div>
-        <div class="pop-store-name">${this.escapeHtml(store.name)}</div>
-        <div class="pop-store-area">${this.escapeHtml(store.area || '')} 【${this.escapeHtml(store.id)}】</div>
-        <div class="pop-qr-wrapper" id="pop-qr-${store.id}"></div>
-        <div class="pop-guide-text">📱 スマホのカメラでQRを読み取って<br>【店主サインを受け取る】！</div>
-        <div class="pop-sub-guide">※冒険の書にサインが刻まれ、ハシゴ件数が記録されます</div>
+        <div style="margin: 12px 0 6px 0;">
+          <span style="display:inline-block; background: #fef08a; color: #854d0e; font-size: 16px; font-weight: 800; padding: 4px 16px; border-radius: 999px; border: 2px solid #eab308;">
+            🏆 【${tier.required_count}軒 達成】 解除QR
+          </span>
+        </div>
+        <div class="pop-store-name" style="font-size: 22px; color: #0f172a; margin-bottom: 4px;">${this.escapeHtml(tier.title)}</div>
+        <div style="font-size: 14px; font-weight: 700; color: #0369a1; margin-bottom: 12px; background: #e0f2fe; padding: 6px 12px; border-radius: 6px; display: inline-block;">
+          ${rewardSummary}
+        </div>
+        <div class="pop-qr-wrapper" id="pop-qr-tier-${tier.id}" style="margin: 8px auto 14px auto;"></div>
+        <div class="pop-guide-text" style="font-size: 15px; font-weight: bold; color: #1e293b; line-height: 1.4;">
+          📱 スマホカメラまたはアプリ内QRリーダーで読み取ると<br>特典クーポンが一括付与されます！
+        </div>
+        <div class="pop-sub-guide" style="font-size: 11px; color: #64748b; margin-top: 8px; line-height: 1.4;">
+          ※上位QRスキャン時、未獲得の下位特典も自動で合算付与されます。<br>
+          ※【運営店スタッフ用】紙の冒険の書（手書きサイン）で${tier.required_count}軒達成を確認後にご提示ください。
+        </div>
       `;
 
       container.appendChild(card);
 
-      const qrElem = document.getElementById(`pop-qr-${store.id}`);
+      const qrElem = document.getElementById(`pop-qr-tier-${tier.id}`);
       if (qrElem && window.QRCode) {
         new window.QRCode(qrElem, {
-          text: checkinUrl,
+          text: claimUrl,
           width: 180,
           height: 180,
           colorDark: "#000000",
