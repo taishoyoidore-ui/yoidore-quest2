@@ -4,7 +4,7 @@
 
 const APP_CONFIG = {
   // システム共通バージョン番号（バックオフィス＆アプリ全体で連動）
-  version: 'v2026.10.10.03',
+  version: 'v2026.10.10.05',
 
   // Supabase 接続設定
   supabase: {
@@ -49,26 +49,52 @@ const APP_CONFIG = {
     },
     {
       id: 2,
-      reward_type: 'store_coupon',
+      reward_type: 'goods',
       required_visits: 10,
-      title: '10軒制覇特典',
-      selectable_count: 5,
-      hero_title: '百戦錬磨の呑兵衛',
+      title: '10軒ハシゴ達成特典',
+      selectable_count: 1,
+      goods_name: '大正酔いどれステッカー',
+      exchange_location: '運営店限定',
+      exchange_notice: null,
+      hero_title: 'ほろ酔いの一騎当千',
       badge_color: '#4ade80',
-      description: '対象酒場からさらにお好きな5軒を選んで特典獲得！'
+      description: '大正酔いどれ特製ステッカーをプレゼント！'
     },
     {
       id: 3,
-      reward_type: 'goods',
+      reward_type: 'store_coupon',
       required_visits: 15,
-      title: '15軒制覇記念品',
-      selectable_count: 1,
-      goods_name: '大正酔いどれ特製トートバッグ',
-      exchange_location: '全参加酒場または運営本部にて引換可能',
-      exchange_notice: '※お会計時またはご注文時にスタッフへご提示ください。',
-      hero_title: '大正の酔いどれ勇者',
+      title: '15軒ハシゴ達成特典',
+      selectable_count: 5,
+      hero_title: '百戦錬磨の呑兵衛',
       badge_color: '#facc15',
-      description: '大正酔いどれクエスト特製オリジナルグッズをプレゼント！'
+      description: 'クーポン取扱店の中からお好きな店舗を選んで特典チケットを獲得！'
+    },
+    {
+      id: 4,
+      reward_type: 'goods',
+      required_visits: 20,
+      title: '20軒ハシゴ達成特典',
+      selectable_count: 1,
+      goods_name: '大正酔いどれクエスト特製トートバック',
+      exchange_location: '運営店限定',
+      exchange_notice: null,
+      hero_title: '大正の酔いどれ豪傑',
+      badge_color: '#fb923c',
+      description: '特製トートバックをプレゼント！'
+    },
+    {
+      id: 5,
+      reward_type: 'goods',
+      required_visits: 30,
+      title: '30軒ハシゴ達成特典',
+      selectable_count: 1,
+      goods_name: '大正酔いどれクエストⅡオリジナルTシャツ',
+      exchange_location: 'イベント終了後に連絡させて頂きます！',
+      exchange_notice: null,
+      hero_title: '完全制覇の酔いどれ覇王',
+      badge_color: '#c084fc',
+      description: '全店制覇の証！オリジナルTシャツをプレゼント！'
     }
   ],
 

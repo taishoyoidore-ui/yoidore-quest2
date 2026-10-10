@@ -223,8 +223,9 @@ class YoidoreQuestApp {
     const count = Math.max(0, Number(unlockedTierCount) || 0);
     const currentLv = 1 + count;
 
+    const defaultTitle = window.APP_CONFIG?.fallbackDefaultTitle || { title: '駆け出しの呑兵衛', badge_color: '#94a3b8' };
+
     if (count === 0) {
-      const defaultTitle = window.APP_CONFIG?.fallbackDefaultTitle || { title: '駆け出しの呑兵衛', badge_color: '#94a3b8' };
       return {
         level: 1,
         title: defaultTitle.title,
@@ -233,18 +234,27 @@ class YoidoreQuestApp {
       };
     }
 
-    // 獲得数に応じた最高ランクの特典レコードを取得
-    const tierIdx = Math.min(count - 1, sortedTiers.length - 1);
-    const currentTier = sortedTiers[tierIdx];
+    // 達成済み特典（1〜count番目まで）の中から、最も上位でhero_titleが設定されているものを探索
+    // 未設定の場合は直前の有効称号（なければ初期称号）を引き継ぐ
+    const unlockedTiers = sortedTiers.slice(0, count);
+    let activeTitle = defaultTitle.title;
+    let activeBadgeColor = defaultTitle.badge_color;
+    let activeDesc = `${currentLv}段階達成の勇者`;
 
-    const title = currentTier?.hero_title || (currentTier?.title ? `${currentTier.title}の勇者` : `${count * 5}軒制覇の猛者`);
-    const badge_color = currentTier?.badge_color || '#facc15';
+    for (let i = 0; i < unlockedTiers.length; i++) {
+      const tier = unlockedTiers[i];
+      if (tier && tier.hero_title && typeof tier.hero_title === 'string' && tier.hero_title.trim() !== '') {
+        activeTitle = tier.hero_title.trim();
+        if (tier.badge_color) activeBadgeColor = tier.badge_color;
+        if (tier.description) activeDesc = tier.description;
+      }
+    }
 
     return {
       level: currentLv,
-      title: title,
-      badge_color: badge_color,
-      description: currentTier?.description || `${currentLv}段階達成の勇者`
+      title: activeTitle,
+      badge_color: activeBadgeColor,
+      description: activeDesc
     };
   }
 
@@ -926,7 +936,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.03';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.05';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1043,15 +1053,6 @@ class YoidoreQuestApp {
    * 3.1 トップ画面 (酒場案内所)
    * ------------------------------------------------------------------------ */
   renderTopView(container) {
-    if (this.isStarted) {
-      this.typeMessage('大正のオモロイ酒場を探そう！');
-    } else {
-      const msgEl = document.getElementById('rpg-message-text');
-      if (msgEl) {
-        msgEl.textContent = '「PUSH START」を押してください。';
-      }
-    }
-
     const allStores = this.getStores();
     const takeoutCount = allStores.filter(s => s.isTakeout).length;
     const openCount = allStores.filter(s => s.isOpenToday).length;
@@ -1063,81 +1064,38 @@ class YoidoreQuestApp {
 
     const currentSeason = (window.questApi && window.questApi.currentSeason) || {};
     const fallback = window.APP_CONFIG?.fallbackSeasonGuidance || {};
-    const overview = currentSeason.overview || fallback.overview || '';
     const guideSteps = (currentSeason.guide_steps && currentSeason.guide_steps.length > 0) ? currentSeason.guide_steps : (fallback.guide_steps || []);
     const rulesNotes = currentSeason.rules_notes || fallback.rules_notes || '';
 
-    const seasonStart = currentSeason.start_date || window.APP_CONFIG?.eventPeriod?.startDate;
-    const seasonEnd = currentSeason.end_date || window.APP_CONFIG?.eventPeriod?.endDate;
-    const couponUntil = currentSeason.coupon_valid_until;
-    const formattedPeriod = (seasonStart && seasonEnd) ? `${this.formatDateWithDay(seasonStart)} 〜 ${this.formatDateWithDay(seasonEnd)}` : '';
+    const seasonStart = currentSeason.start_date || window.APP_CONFIG?.eventPeriod?.startDate || '2026-09-01';
+    const seasonEnd = currentSeason.end_date || window.APP_CONFIG?.eventPeriod?.endDate || '2026-09-15';
+    let couponStart = currentSeason.statusInfo?.couponStartDateStr;
+    if (!couponStart && seasonEnd) {
+      const eDate = new Date(seasonEnd);
+      eDate.setDate(eDate.getDate() + 1);
+      const y = eDate.getFullYear();
+      const m = String(eDate.getMonth() + 1).padStart(2, '0');
+      const d = String(eDate.getDate()).padStart(2, '0');
+      couponStart = `${y}-${m}-${d}`;
+    }
+    const couponEnd = currentSeason.coupon_valid_until || '2026-10-30';
+
+    const periodMessage = `開催: ${this.formatShortDateWithDay(seasonStart)}〜${this.formatShortDateWithDay(seasonEnd)} / クーポン利用: ${this.formatShortDateWithDay(couponStart)}〜${this.formatShortDateWithDay(couponEnd)}`;
+
+    if (this.isStarted) {
+      this.typeMessage(periodMessage);
+    } else {
+      const msgEl = document.getElementById('rpg-message-text');
+      if (msgEl) {
+        msgEl.textContent = '「PUSH START」を押してください。';
+      }
+    }
 
     container.innerHTML = `
       <!-- 開催フェーズ動的告知バナー -->
       ${this.getSeasonBannerHTML()}
 
-      <!-- 大正酒場 案内所（ギルド）カード -->
-      <div class="rpg-window gold-border top-guidance-window">
-        <div class="top-guidance-header">
-          <div class="top-guidance-title">
-            <span>🏛️</span>
-            <span>大正酒場 案内所</span>
-          </div>
-          <span class="tag tag-area">全${totalCount}酒場 参戦中</span>
-        </div>
-
-        ${formattedPeriod ? `
-          <div style="background:rgba(15, 23, 42, 0.6); border:1px solid rgba(248, 225, 108, 0.3); border-radius:4px; padding:6px 10px; margin-top:8px; font-size:12px;">
-            <div style="display:flex; align-items:center; gap:6px; color:#fde68a; font-weight:bold;">
-              <span>📅 開催期間:</span>
-              <span>${formattedPeriod}</span>
-            </div>
-            ${couponUntil ? `
-              <div style="display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:11px; margin-top:2px;">
-                <span style="color:#38bdf8;">🎫 クーポン期限:</span>
-                <span>〜 ${this.formatDateWithDay(couponUntil)}</span>
-              </div>
-            ` : ''}
-          </div>
-        ` : ''}
-
-        ${overview ? `
-          <div class="top-guidance-overview">
-            ${this.escapeHtml(overview).replace(/\n/g, '<br>')}
-          </div>
-        ` : ''}
-
-        <!-- はしご酒の導き・冒険の心得（アコーディオン） -->
-        <div class="guidance-accordion-wrapper">
-          <button class="guidance-accordion-btn" id="guidance-accordion-toggle" type="button">
-            <span><i class="fa-solid fa-scroll"></i> 📜 はしご酒の導き＆冒険の心得</span>
-            <span id="guidance-accordion-icon" style="font-size:12px; color:var(--text-cyan);">詳しく見る ▼</span>
-          </button>
-          <div id="guidance-accordion-body" class="guidance-accordion-content" style="display:none;">
-            ${guideSteps.map((st, idx) => `
-              <div class="guide-step-card">
-                <div class="guide-step-header">
-                  <span>${idx === 0 ? '⚔️' : (idx === 1 ? '📱' : '🎁')}</span>
-                  <span>${this.escapeHtml(st.step || `其の${idx+1}`)}【${this.escapeHtml(st.title || '')}】</span>
-                </div>
-                <div class="guide-step-desc">${this.escapeHtml(st.desc || '')}</div>
-              </div>
-            `).join('')}
-
-            ${rulesNotes ? `
-              <div class="guide-rules-box">
-                <div class="guide-rules-title">
-                  <i class="fa-solid fa-shield-halved"></i> 冒険の心得（注意事項）
-                </div>
-                <div class="guide-rules-content">
-                  ${this.escapeHtml(rulesNotes).replace(/\n/g, '<br>')}
-                </div>
-              </div>
-            ` : ''}
-          </div>
-        </div>
-      </div>
-
+      <!-- コマンド選択 -->
       <div class="rpg-window gold-border">
         <div class="rpg-window-header">
           <span>▶ コマンド選択</span>
@@ -1201,6 +1159,39 @@ class YoidoreQuestApp {
           </li>
         </ul>
       </div>
+
+      <!-- はしご酒の導き・冒険の心得（コマンド選択下部に配置） -->
+      <div class="rpg-window gold-border" style="margin-top:14px;">
+        <div class="guidance-accordion-wrapper" style="margin-top:0;">
+          <button class="guidance-accordion-btn" id="guidance-accordion-toggle" type="button">
+            <span><i class="fa-solid fa-scroll"></i> 📜 はしご酒の導き＆冒険の心得</span>
+            <span id="guidance-accordion-icon" style="font-size:12px; color:var(--text-cyan);">詳しく見る ▼</span>
+          </button>
+          <div id="guidance-accordion-body" class="guidance-accordion-content" style="display:none;">
+            ${guideSteps.map((st, idx) => `
+              <div class="guide-step-card">
+                <div class="guide-step-header">
+                  <span>${idx === 0 ? '⚔️' : (idx === 1 ? '📱' : '🎁')}</span>
+                  <span>${this.escapeHtml(st.step || `其の${idx+1}`)}【${this.escapeHtml(st.title || '')}】</span>
+                </div>
+                <div class="guide-step-desc">${this.escapeHtml(st.desc || '')}</div>
+              </div>
+            `).join('')}
+
+            ${rulesNotes ? `
+              <div class="guide-rules-box">
+                <div class="guide-rules-title">
+                  <i class="fa-solid fa-shield-halved"></i> 冒険の心得（注意事項）
+                </div>
+                <div class="guide-rules-content">
+                  ${this.escapeHtml(rulesNotes).replace(/\n/g, '<br>')}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+
       ${this.getFooterVersionHTML()}
     `;
 
@@ -1580,7 +1571,7 @@ class YoidoreQuestApp {
         </div>
 
         <!-- 1. 勇者ステータス -->
-        <div class="hero-status-card" style="margin-bottom:12px;">
+        <div class="hero-status-card" style="margin-bottom:14px;">
           <div class="hero-avatar-wrap">
             <img src="${user.pictureUrl || 'assets/banner.png'}" alt="Avatar" class="hero-avatar" onerror="this.src='assets/banner.png';">
             <span class="hero-level-badge">Lv.${heroLv}</span>
@@ -1599,18 +1590,17 @@ class YoidoreQuestApp {
           </div>
         </div>
 
-        <!-- 2. 特典獲得サマリーカード -->
-        <div class="quest-progress-box" style="margin-bottom:14px; background:linear-gradient(135deg, rgba(15,23,42,0.9) 0%, rgba(30,41,59,0.9) 100%);">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <span style="font-size:14px; font-weight:bold; color:var(--text-yellow);">🎟️ 保有クーポン残枠</span>
-            <span style="font-size:18px; font-weight:bold; color:#4ade80;">${remainingAvailableCoupons} <span style="font-size:12px; color:#cbd5e1;">/ ${totalEarnedSlots} 回分</span></span>
+        <!-- 2. 特典宝箱・酒場クーポン統合一覧 -->
+        <div class="rpg-window window-gold gold-border" style="margin-bottom:14px;">
+          <div class="rpg-window-header header-gold">
+            <span>🎁 ハシゴ達成特典・酒場クーポン</span>
           </div>
-          <div style="font-size:12px; color:#cbd5e1; line-height:1.4;">
-            ※後夜祭期間にお好きな参加酒場（クーポン対象店）全店のお会計時にご利用いただけます。
+          <div style="margin-top:10px;">
+            ${tiersHtml}
           </div>
         </div>
 
-        <!-- 3. はしご酒・特典受取のながれ（ガイド） -->
+        <!-- 3. はしご酒・特典受取のながれ（最下部へ移動したガイド） -->
         <div class="rpg-window window-green" style="margin-bottom:14px;">
           <div class="rpg-window-header header-green">
             <span>📜 特典獲得＆クーポンの使い方</span>
@@ -1631,41 +1621,6 @@ class YoidoreQuestApp {
           </div>
         </div>
 
-        <!-- 4. 特典宝箱・酒場クーポン統合一覧 -->
-        <div class="rpg-window window-gold gold-border" style="margin-bottom:14px;">
-          <div class="rpg-window-header header-gold">
-            <span>🎁 ハシゴ達成特典・酒場クーポン</span>
-          </div>
-          <div style="margin-top:10px;">
-            ${tiersHtml}
-          </div>
-        </div>
-
-        <!-- 5. 開発・デモ用クイックテスト操作 (アクティブシーズンのみ) -->
-        ${isCurrentSeason ? `
-          <div class="rpg-window" style="margin-top:20px; border:1px dashed #f59e0b; background: rgba(30, 25, 15, 0.7);">
-            <div class="rpg-window-header" style="color: #fbbf24;">
-              <span>🧪 開発・レビュー用テスト機能</span>
-            </div>
-            <div style="padding: 10px 4px 6px; font-size: 13px; color: #e2e8f0; line-height: 1.5;">
-              ※運営店での達成QR読み取りをシミュレートし、カスケード付与とクーポン消し込みの動作確認が行えます。
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
-              <button id="btn-quick-test-tier1" class="command-button" style="background: linear-gradient(180deg, #d97706 0%, #b45309 100%); color: #fff; border: 1px solid #f59e0b; padding: 10px 6px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer;">
-                🧪 5軒達成QR
-              </button>
-              <button id="btn-quick-test-tier2" class="command-button" style="background: linear-gradient(180deg, #b45309 0%, #78350f 100%); color: #fef08a; border: 1px solid #f59e0b; padding: 10px 6px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer;">
-                🧪 10軒達成QR
-              </button>
-              <button id="btn-quick-test-tier3" class="command-button" style="background: linear-gradient(180deg, #7c2d12 0%, #451a03 100%); color: #fde047; border: 1px solid #eab308; padding: 10px 6px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer;">
-                🧪 15軒達成QR
-              </button>
-              <button id="btn-quick-test-reset" class="command-button" style="background: #334155; color: #ffffff; border: 1px solid #475569; padding: 10px 6px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: bold;">
-                🗑️ 履歴リセット
-              </button>
-            </div>
-          </div>
-        ` : ''}
         ${this.getFooterVersionHTML()}
       </div>
     `;
@@ -3370,35 +3325,16 @@ class YoidoreQuestApp {
         const isCoupon = Boolean(store.isCouponTarget);
         return `
         <div class="store-card" data-id="${store.id}">
-          <div class="store-card-top-flex">
-            <div class="store-card-info-block">
-              <div class="store-card-header-row">
-                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-                  ${isCoupon ? `<span class="tag" style="background:#4d3800; color:#ffeeba; border-color:#ffc107;">🎁 特典対象</span>` : ''}
-                  ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
-                  ${store.category ? `<span class="tag">${store.category}</span>` : ''}
-                  ${store.style ? `<span class="tag tag-style">${store.style}</span>` : ''}
-                  ${store.type ? `<span class="tag tag-type">${store.type}</span>` : ''}
-                  ${store.isTakeout ? `<span class="tag tag-takeout">${store.takeout}</span>` : ''}
-                </div>
-                <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}">
-                  ${store.isOpenToday ? 'どれクエ対応中' : 'どれクエ対象時間外'}
-                </span>
-              </div>
-
-              <div class="store-name" style="margin-top:6px;">
-                <span>${store.name}</span>
-              </div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+            <div class="store-name">
+              <span>${store.name}</span>
             </div>
-
-            ${(store.logoUrl || store.logo_url) ? `
-              <div class="store-card-logo-box">
-                <img src="${store.logoUrl || store.logo_url}" alt="${store.name}のロゴ" class="store-card-logo-img" onerror="this.closest('.store-card-logo-box').style.display='none';">
-              </div>
-            ` : ''}
+            <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}" style="flex-shrink:0;">
+              ${store.isOpenToday ? 'どれクエ対応中' : 'どれクエ対象時間外'}
+            </span>
           </div>
 
-          <div class="store-previews">
+          <div class="store-previews" style="margin-top:6px;">
             ${store.yoidoreSet && store.yoidoreSet.title ? `
               <div class="store-set-preview">
                 <div class="preview-header">
@@ -3433,6 +3369,15 @@ class YoidoreQuestApp {
                 <div class="preview-title">${store.quest.title || store.quest.content}</div>
               </div>
             ` : ''}
+          </div>
+
+          <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:8px; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.15);">
+            ${isCoupon ? `<span class="tag" style="background:#4d3800; color:#ffeeba; border-color:#ffc107;">🎁 特典対象</span>` : ''}
+            ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
+            ${store.category ? `<span class="tag">${store.category}</span>` : ''}
+            ${store.style ? `<span class="tag tag-style">${store.style}</span>` : ''}
+            ${store.type ? `<span class="tag tag-type">${store.type}</span>` : ''}
+            ${store.isTakeout ? `<span class="tag tag-takeout">${store.takeout}</span>` : ''}
           </div>
         </div>
         `;
@@ -3584,37 +3529,31 @@ class YoidoreQuestApp {
       <div class="detail-section">
         <!-- 1. 酒場基本情報枠 -->
         <div class="rpg-window gold-border">
-          <div class="detail-header-flex">
-            <div class="detail-title-block">
-              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-                  ${isCouponTarget ? `<span class="tag" style="background:#4d3800; color:#ffeeba; border-color:#ffc107;">🎁 特典対象</span>` : ''}
-                  ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
-                  ${store.category ? `<span class="tag">${store.category}</span>` : ''}
-                  ${store.style ? `<span class="tag tag-style">${store.style}</span>` : ''}
-                  ${store.type ? `<span class="tag tag-type">${store.type}</span>` : ''}
-                  ${store.isTakeout ? `<span class="tag tag-takeout">${store.takeout}</span>` : ''}
-                </div>
-                <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}">
-                  ${store.isOpenToday ? 'どれクエ対応中' : 'どれクエ対象時間外'}
-                </span>
-              </div>
-              <h2 class="detail-store-name" style="margin-top:8px;">${store.name}</h2>
-              ${store.catchphrase ? `<div class="detail-catchphrase">"${store.catchphrase}"</div>` : ''}
-              ${store.address ? `
-                <div class="detail-address-row" style="margin-top:8px; font-size:13px; color:#cbd5e1; display:flex; align-items:flex-start; gap:6px; line-height:1.4;">
-                  <span style="color:var(--text-yellow); flex-shrink:0;">📍</span>
-                  <span style="word-break:break-all;">${this.escapeHtml(store.address)}</span>
-                </div>
-              ` : ''}
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+            <div>
+              <h2 class="detail-store-name" style="margin:0;">${store.name}</h2>
+              ${store.catchphrase ? `<div class="detail-catchphrase" style="margin-top:4px;">"${store.catchphrase}"</div>` : ''}
             </div>
-
-            ${(store.logoUrl || store.logo_url) ? `
-              <div class="detail-logo-box">
-                <img src="${store.logoUrl || store.logo_url}" alt="${store.name}のロゴ" class="detail-logo-img" onerror="this.closest('.detail-logo-box').style.display='none';">
-              </div>
-            ` : ''}
+            <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}" style="flex-shrink:0;">
+              ${store.isOpenToday ? 'どれクエ対応中' : 'どれクエ対象時間外'}
+            </span>
           </div>
+
+          <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:10px;">
+            ${isCouponTarget ? `<span class="tag" style="background:#4d3800; color:#ffeeba; border-color:#ffc107;">🎁 特典対象</span>` : ''}
+            ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
+            ${store.category ? `<span class="tag">${store.category}</span>` : ''}
+            ${store.style ? `<span class="tag tag-style">${store.style}</span>` : ''}
+            ${store.type ? `<span class="tag tag-type">${store.type}</span>` : ''}
+            ${store.isTakeout ? `<span class="tag tag-takeout">${store.takeout}</span>` : ''}
+          </div>
+
+          ${store.address ? `
+            <div class="detail-address-row" style="margin-top:10px; font-size:13px; color:#cbd5e1; display:flex; align-items:flex-start; gap:6px; line-height:1.4;">
+              <span style="color:var(--text-yellow); flex-shrink:0;">📍</span>
+              <span style="word-break:break-all;">${this.escapeHtml(store.address)}</span>
+            </div>
+          ` : ''}
 
           ${paymentTagsHtml ? `
             <div style="margin-top:12px; padding-top:10px; border-top:1px dashed var(--border-gold, #8b7333); display:flex; align-items:center; gap:8px; flex-wrap:wrap;">

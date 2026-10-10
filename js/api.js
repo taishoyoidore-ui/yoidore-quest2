@@ -567,13 +567,20 @@ class QuestApiManager {
     ];
 
     if (Array.isArray(tiers) && tiers.length > 0) {
+      let lastValidTitle = defaultTitle.title;
+      let lastValidColor = defaultTitle.badge_color;
+
       tiers.forEach((t, idx) => {
+        if (t.hero_title && typeof t.hero_title === 'string' && t.hero_title.trim() !== '') {
+          lastValidTitle = t.hero_title.trim();
+          lastValidColor = t.badge_color || '#facc15';
+        }
         titles.push({
           level: idx + 2,
           min_visits: idx + 1,
-          title: t.hero_title || `${t.required_visits}軒制覇の猛者`,
-          badge_color: t.badge_color || '#facc15',
-          description: `${t.title}を達成した勇者`
+          title: lastValidTitle,
+          badge_color: lastValidColor,
+          description: t.description || `${t.title}を達成した勇者`
         });
       });
     }

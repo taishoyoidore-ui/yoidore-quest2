@@ -64,7 +64,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.03';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.05';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -2194,7 +2194,7 @@ class YoidoreAdminApp {
         id: '',
         reward_type: 'store_coupon',
         title: `${nextVisits}軒ハシゴ達成特典`,
-        hero_title: nextVisits >= 10 ? '百戦錬磨の呑兵衛' : '酒場巡りの達人',
+        hero_title: '',
         badge_color: '#facc15',
         required_visits: nextVisits,
         selectable_count: 5,
