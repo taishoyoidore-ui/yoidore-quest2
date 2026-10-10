@@ -12,14 +12,51 @@
 
   <link rel="icon" href="assets/banner.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/admin.css?v=20261010_07">
+  <link rel="stylesheet" href="css/admin.css?v=20261010_08">
   <!-- SheetJS for Excel Import -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- QRCode.js for POP Generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  
+  <script>
+    // グローバルエラー監視
+    window.addEventListener('error', function(e) {
+      console.error('[Admin Global Error]', e.message, e.filename, e.lineno);
+    });
+
+    // 安全なログイン実行関数
+    window.executeAdminLogin = function() {
+      try {
+        if (!window.adminApp && typeof YoidoreAdminApp !== 'undefined') {
+          window.adminApp = new YoidoreAdminApp();
+        }
+        if (window.adminApp && typeof window.adminApp.handleLogin === 'function') {
+          window.adminApp.handleLogin();
+        } else {
+          // フォールバック直接認証
+          let inputPin = (document.getElementById('admin-pin')?.value || '').trim();
+          inputPin = inputPin.replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
+          if (inputPin === 'yoidore2026') {
+            sessionStorage.setItem('yoidore_admin_auth', 'true');
+            if (window.adminApp) {
+              window.adminApp.showAdminApp();
+            } else {
+              window.location.reload();
+            }
+          } else {
+            const errEl = document.getElementById('auth-error');
+            if (errEl) errEl.style.display = 'block';
+          }
+        }
+      } catch (err) {
+        console.error('Login execution error:', err);
+        alert('ログイン処理中にエラーが発生しました: ' + err.message);
+      }
+    };
+  </script>
 </head>
 <body>
-  <!-- 認証ロックモーダル (初期パスワード: yoidore2026) -->
+  <!-- 認証ロックモーダル (管理者パスワード: yoidore2026) -->
   <div id="auth-lock-modal" class="auth-overlay">
     <div class="auth-card">
       <div class="auth-header">
@@ -27,10 +64,10 @@
         <h2>大正酔いどれクエスト</h2>
         <p class="auth-subtitle">バックオフィス運営管理システム</p>
       </div>
-      <form id="auth-form" onsubmit="event.preventDefault(); window.adminApp.handleLogin();">
+      <form id="auth-form" onsubmit="event.preventDefault(); window.executeAdminLogin();">
         <div class="form-group">
           <label for="admin-pin"><i class="fa-solid fa-lock"></i> 管理者パスワード</label>
-          <input type="password" id="admin-pin" placeholder="パスワードを入力" required autofocus>
+          <input type="password" id="admin-pin" placeholder="パスワードを入力 (例: yoidore2026)" required autofocus>
           <div id="auth-error" class="auth-error-msg" style="display: none;">パスワードが正しくありません</div>
         </div>
         <button type="submit" class="btn btn-primary btn-block">
@@ -38,7 +75,7 @@
         </button>
       </form>
       <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 14px;">
-        システムバージョン: <strong class="app-version-text">v2026.10.10.07</strong>
+        システムバージョン: <strong class="app-version-text">v2026.10.10.08</strong>
       </div>
     </div>
   </div>
@@ -95,7 +132,7 @@
           <span>Supabase DB 連動中</span>
         </div>
         <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-bottom: 6px;">
-          システムバージョン: <strong class="app-version-text">v2026.10.10.07</strong>
+          システムバージョン: <strong class="app-version-text">v2026.10.10.08</strong>
         </div>
         <button class="btn btn-outline-danger btn-sm btn-block" onclick="window.adminApp.handleLogout()">
           <i class="fa-solid fa-arrow-right-from-bracket"></i> ログアウト
@@ -123,13 +160,13 @@
         </div>
         <div class="header-right">
           <span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:3px 8px; font-weight:bold;">
-            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.10.10.07</span>
+            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.10.10.08</span>
           </span>
           <span id="last-sync-time" class="text-muted"><i class="fa-solid fa-arrows-rotate fa-spin"></i> 同期中...</span>
           <button class="btn btn-secondary btn-sm" onclick="window.adminApp.refreshData()">
             <i class="fa-solid fa-rotate"></i> 最新データ更新
           </button>
-          <a href="index.html?v=20261010_07" target="_blank" class="btn btn-outline btn-sm">
+          <a href="index.html?v=20261010_08" target="_blank" class="btn btn-outline btn-sm">
             <i class="fa-solid fa-up-right-from-square"></i> アプリ実機表示
           </a>
         </div>

@@ -39,13 +39,18 @@ class YoidoreAdminApp {
   }
 
   handleLogin() {
-    const inputPin = document.getElementById('admin-pin').value.trim();
+    let inputPin = (document.getElementById('admin-pin')?.value || '').trim();
+    // 全角英数字を半角に自動変換
+    inputPin = inputPin.replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
+
     if (inputPin === this.adminPin) {
       sessionStorage.setItem('yoidore_admin_auth', 'true');
-      document.getElementById('auth-error').style.display = 'none';
+      const errEl = document.getElementById('auth-error');
+      if (errEl) errEl.style.display = 'none';
       this.showAdminApp();
     } else {
-      document.getElementById('auth-error').style.display = 'block';
+      const errEl = document.getElementById('auth-error');
+      if (errEl) errEl.style.display = 'block';
     }
   }
 
@@ -57,14 +62,16 @@ class YoidoreAdminApp {
   }
 
   showAdminApp() {
-    document.getElementById('auth-lock-modal').style.display = 'none';
-    document.getElementById('admin-app').style.display = 'flex';
+    const lockModal = document.getElementById('auth-lock-modal');
+    if (lockModal) lockModal.style.display = 'none';
+    const adminAppEl = document.getElementById('admin-app');
+    if (adminAppEl) adminAppEl.style.display = 'flex';
     this.applyVersionBadges();
     this.loadAllData();
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.07';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.08';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -2565,14 +2572,6 @@ class YoidoreAdminApp {
     this.showToast(`CSV「${filename}」をダウンロードしました`);
   }
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-    this.showToast(`CSV「${filename}」をダウンロードしました`);
-  }
-
   /* ------------------------------------------------------------------------
    * 5. 運営店専用 特典達成QR・POP一括印刷
    * ------------------------------------------------------------------------ */
@@ -2688,7 +2687,15 @@ class YoidoreAdminApp {
   }
 }
 
-// 初期化
-document.addEventListener('DOMContentLoaded', () => {
-  window.adminApp = new YoidoreAdminApp();
-});
+// 初期化（DOM準備完了または即時実行）
+function initAdminApp() {
+  if (!window.adminApp) {
+    window.adminApp = new YoidoreAdminApp();
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAdminApp);
+} else {
+  initAdminApp();
+}
