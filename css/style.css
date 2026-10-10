@@ -2235,8 +2235,8 @@ body {
   background: #101424;
   border: 1px solid #33406b;
   border-radius: 8px;
-  padding: 8px 10px;
-  min-height: 56px;
+  padding: 8px 12px;
+  min-height: 52px;
   box-sizing: border-box;
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease;
@@ -2845,29 +2845,3 @@ body {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7), 0 0 16px rgba(251, 191, 36, 0.6);
   transform: translateY(1px);
 }
-
-.coupon-select-item-logo-box {
-  width: 38px;
-  height: 38px;
-  border-radius: 6px;
-  background: #1e293b;
-  border: 1px solid var(--border-gold);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.coupon-select-item-logo-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.coupon-select-item-logo-fallback {
-  font-size: 18px;
-}
-
-
-

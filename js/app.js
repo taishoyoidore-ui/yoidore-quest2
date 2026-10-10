@@ -964,7 +964,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.11';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.12';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1882,18 +1882,6 @@ class YoidoreQuestApp {
 
       return list.map(s => {
         const isUsed = usedStoreIds.has(s.id);
-        const logoUrl = s.logoUrl || s.logo_url || '';
-
-        const logoHtml = `
-          <div class="coupon-select-item-logo-box" style="width:38px; height:38px; min-width:38px; border-radius:6px; flex-shrink:0;">
-            ${logoUrl ? `
-              <img src="${logoUrl}" alt="${this.escapeHtml(s.name)}" class="coupon-select-item-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-              <span class="coupon-select-item-logo-fallback" style="display:none; font-size:18px;">🏮</span>
-            ` : `
-              <span class="coupon-select-item-logo-fallback" style="font-size:18px;">🏮</span>
-            `}
-          </div>
-        `;
 
         const metaInfo = [
           s.area ? `📍 ${this.escapeHtml(s.area)}` : '',
@@ -1902,8 +1890,7 @@ class YoidoreQuestApp {
 
         if (isUsed) {
           return `
-            <div class="coupon-select-item is-used" style="min-height:56px; box-sizing:border-box; background:rgba(30,41,59,0.7); border:1px solid #475569; border-radius:8px; padding:8px 10px; display:flex; align-items:center; gap:10px; cursor:not-allowed;">
-              ${logoHtml}
+            <div class="coupon-select-item is-used" style="min-height:52px; box-sizing:border-box; background:rgba(30,41,59,0.7); border:1px solid #475569; border-radius:8px; padding:8px 12px; display:flex; align-items:center; gap:10px; cursor:not-allowed;">
               <div class="coupon-select-item-info" style="flex:1; min-width:0; overflow:hidden;">
                 <div class="coupon-select-item-name" style="font-weight:bold; color:#cbd5e1; font-size:14px; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${this.escapeHtml(s.name)}</div>
                 ${metaInfo ? `<div style="font-size:11px; color:#94a3b8; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${metaInfo}</div>` : ''}
@@ -1916,8 +1903,7 @@ class YoidoreQuestApp {
         }
 
         return `
-          <div class="coupon-select-item selectable-store-item" data-store-id="${s.id}" style="min-height:56px; box-sizing:border-box; background:#101424; border:1px solid #33406b; border-radius:8px; padding:8px 10px; display:flex; align-items:center; gap:10px; cursor:pointer;">
-            ${logoHtml}
+          <div class="coupon-select-item selectable-store-item" data-store-id="${s.id}" style="min-height:52px; box-sizing:border-box; background:#101424; border:1px solid #33406b; border-radius:8px; padding:8px 12px; display:flex; align-items:center; gap:10px; cursor:pointer;">
             <div class="coupon-select-item-info" style="flex:1; min-width:0; overflow:hidden;">
               <div class="coupon-select-item-name" style="font-weight:bold; color:var(--text-yellow); font-size:14px; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${this.escapeHtml(s.name)}</div>
               ${metaInfo ? `<div style="font-size:11px; color:var(--text-cyan); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${metaInfo}</div>` : ''}
