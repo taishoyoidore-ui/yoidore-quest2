@@ -1256,7 +1256,146 @@ body {
   flex-direction: column;
   align-items: center;
   padding: 6px;
+  transition: opacity 0.7s ease, transform 0.7s ease, filter 0.7s ease;
 }
+
+/* デモモード発動時のタイトル要素（暗転・縮小） */
+.start-overlay.demo-mode .start-container {
+  opacity: 0.18;
+  transform: scale(0.90);
+  filter: blur(3px) brightness(0.5);
+  pointer-events: none;
+}
+
+/* プロローグデモ（オープニングデモ）コンテナ */
+.prologue-demo-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 16px 14px;
+  box-sizing: border-box;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: scale(0.95);
+  transition: opacity 0.7s ease, transform 0.7s ease, visibility 0.7s ease;
+  z-index: 20010;
+  background: radial-gradient(circle at center, rgba(6, 9, 22, 0.82) 0%, rgba(2, 3, 10, 0.94) 100%);
+}
+
+.start-overlay.demo-mode .prologue-demo-container {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: scale(1);
+  cursor: pointer;
+}
+
+.prologue-demo-inner {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: prologue-float 4s ease-in-out infinite alternate;
+}
+
+@keyframes prologue-float {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-4px); }
+}
+
+.prologue-demo-header {
+  margin-bottom: 12px;
+}
+
+.prologue-demo-badge {
+  display: inline-block;
+  background: linear-gradient(180deg, #2b1f09 0%, #150f04 100%);
+  border: 1.5px solid var(--border-gold);
+  color: var(--text-yellow);
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  font-weight: bold;
+  padding: 5px 16px;
+  border-radius: 20px;
+  letter-spacing: 2px;
+  box-shadow: 0 0 10px rgba(247, 208, 112, 0.4);
+}
+
+.prologue-demo-box {
+  width: 100%;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, rgba(16, 22, 42, 0.96) 0%, rgba(8, 11, 24, 0.98) 100%);
+  padding: 20px 18px;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.9), 0 0 20px rgba(247, 208, 112, 0.25);
+  text-align: left;
+  min-height: 160px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.prologue-demo-text {
+  font-family: var(--font-pixel);
+  font-size: 14px;
+  line-height: 1.85;
+  color: #f8fafc;
+  letter-spacing: 0.8px;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.prologue-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  background: var(--text-yellow);
+  margin-left: 2px;
+  vertical-align: -2px;
+  animation: cursor-blink 0.7s infinite;
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.prologue-tap-prompt {
+  margin-top: 18px;
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  color: var(--text-yellow);
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  text-shadow: 0 0 8px rgba(247, 208, 112, 0.6);
+  animation: blink-tap-prompt 1.3s infinite ease-in-out;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.prologue-tap-icon {
+  font-size: 11px;
+}
+
+@keyframes blink-tap-prompt {
+  0%, 100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.4;
+    transform: translateY(2px);
+  }
+}
+
 
 .start-title-badge {
   font-size: 13px;

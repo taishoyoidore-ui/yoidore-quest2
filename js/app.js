@@ -171,6 +171,7 @@ class YoidoreQuestApp {
     try {
       this.initAudio();
       this.initEvents();
+      this.initPrologueDemo();
       this.render();
       this.initQuestSystem();
       if (window.debugLog) window.debugLog('✅ アプリ初期化完了');
@@ -337,6 +338,13 @@ class YoidoreQuestApp {
         await window.questApi.getCurrentSeason();
         await window.questApi.getSeasons();
         this.selectedBookSeasonId = window.questApi.currentSeason?.id || 2;
+        const curSeason = window.questApi.currentSeason;
+        if (curSeason && curSeason.start_date && curSeason.end_date) {
+          const periodBadge = document.getElementById('start-period-badge');
+          if (periodBadge) {
+            periodBadge.textContent = `📅 ${this.formatDateWithDay(curSeason.start_date)} 〜 ${this.formatDateWithDay(curSeason.end_date)} 開催`;
+          }
+        }
         const stores = await window.questApi.getStores();
         if (stores && stores.length > 0) {
           window.STORES_DATA = stores;
@@ -423,7 +431,106 @@ class YoidoreQuestApp {
     } catch (e) {}
   }
 
+  /* ------------------------------------------------------------------------
+   * 起動タイトル放置プロローグデモ（オープニングデモ）
+   * ------------------------------------------------------------------------ */
+  initPrologueDemo() {
+    if (this.isStarted) return;
+    this.prologueIdleTimer = null;
+    this.prologueTypingTimer = null;
+    this.prologueLoopTimer = null;
+    this.isPrologueDemoActive = false;
+
+    // 4.5秒の放置タイマーを開始
+    this.resetPrologueIdleTimer();
+
+    // デモコンテナまたはオーバーレイ全体のタップでゲーム開始
+    const demoContainer = document.getElementById('prologue-demo-container');
+    if (demoContainer) {
+      demoContainer.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.startGame();
+      });
+    }
+
+    const overlay = document.getElementById('start-overlay');
+    if (overlay) {
+      overlay.addEventListener('click', () => {
+        if (this.isPrologueDemoActive) {
+          this.startGame();
+        }
+      });
+    }
+  }
+
+  resetPrologueIdleTimer() {
+    if (this.prologueIdleTimer) clearTimeout(this.prologueIdleTimer);
+    if (this.isStarted) return;
+    this.prologueIdleTimer = setTimeout(() => {
+      this.startPrologueDemo();
+    }, 4500);
+  }
+
+  startPrologueDemo() {
+    if (this.isStarted || this.isPrologueDemoActive) return;
+    const overlay = document.getElementById('start-overlay');
+    const textEl = document.getElementById('prologue-demo-text');
+    if (!overlay || !textEl) return;
+
+    this.isPrologueDemoActive = true;
+    overlay.classList.add('demo-mode');
+
+    // 表示するプロローグ文を取得（DB設定優先 ➔ フォールバック）
+    const currentSeason = (window.questApi && window.questApi.currentSeason) || {};
+    const fallback = window.APP_CONFIG?.fallbackSeasonGuidance || {};
+    const rawText = currentSeason.overview || fallback.overview || '大正区全域に広がる33の個性豊かな酒場をめぐるハシゴ酒RPG！\n各店自慢の限定「酔いどれセット」や「酒場クエスト」に挑み、ハシゴ酒の証を刻んで宝箱（酒場クーポン＆特製グッズ）を解放せよ！';
+
+    textEl.innerHTML = '<span class="prologue-cursor"></span>';
+    let index = 0;
+    if (this.prologueTypingTimer) clearInterval(this.prologueTypingTimer);
+    if (this.prologueLoopTimer) clearTimeout(this.prologueLoopTimer);
+
+    // 1文字ずつタイプ表示
+    this.prologueTypingTimer = setInterval(() => {
+      if (this.isStarted || !this.isPrologueDemoActive) {
+        clearInterval(this.prologueTypingTimer);
+        return;
+      }
+
+      if (index < rawText.length) {
+        index++;
+        const currentSub = this.escapeHtml(rawText.substring(0, index)).replace(/\n/g, '<br>');
+        textEl.innerHTML = currentSub + '<span class="prologue-cursor"></span>';
+      } else {
+        clearInterval(this.prologueTypingTimer);
+        textEl.innerHTML = this.escapeHtml(rawText).replace(/\n/g, '<br>');
+
+        // 読み終えてから約10秒間放置されたら、タイトル画面に戻してループ（アーケード風アトラクトモード）
+        this.prologueLoopTimer = setTimeout(() => {
+          this.stopPrologueDemo(false);
+        }, 10000);
+      }
+    }, 45);
+  }
+
+  stopPrologueDemo(shouldCancelTimer = true) {
+    this.isPrologueDemoActive = false;
+    if (this.prologueTypingTimer) clearInterval(this.prologueTypingTimer);
+    if (this.prologueLoopTimer) clearTimeout(this.prologueLoopTimer);
+    if (this.prologueIdleTimer) clearTimeout(this.prologueIdleTimer);
+
+    const overlay = document.getElementById('start-overlay');
+    if (overlay) {
+      overlay.classList.remove('demo-mode');
+    }
+
+    if (!shouldCancelTimer && !this.isStarted) {
+      this.resetPrologueIdleTimer();
+    }
+  }
+
   startGame() {
+    this.stopPrologueDemo(true);
     if (window.debugLog) window.debugLog('▶ PUSH STARTがクリックされました');
     
     // 即座にオーバーレイを非表示（CSSアニメーションとdisplay:none併用）
@@ -964,7 +1071,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.12';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.13';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>

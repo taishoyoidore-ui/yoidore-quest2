@@ -55,14 +55,14 @@
   <main class="app-container">
     <!-- レトロRPG風 スタート画面オーバーレイ -->
     <div id="start-overlay" class="start-overlay">
-      <div class="start-container">
+      <div class="start-container" id="start-main-container">
         <div class="start-title-badge">⚔️ 大正街ぶらイベント 公式ガイド ⚔️</div>
         
         <div class="start-hero-full-box">
           <img src="assets/banner.png" alt="大正酔いどれクエスト" class="start-hero-full-img">
         </div>
 
-        <div class="start-period-badge" style="font-size:13px; color:#ffd700; font-weight:bold; text-shadow:0 0 6px rgba(0,0,0,0.8); margin:4px 0 10px 0;">
+        <div class="start-period-badge" id="start-period-badge" style="font-size:13px; color:#ffd700; font-weight:bold; text-shadow:0 0 6px rgba(0,0,0,0.8); margin:4px 0 10px 0;">
           📅 2026.8.1(土) 〜 8.31(月) 開催
         </div>
         
@@ -72,6 +72,21 @@
           </button>
         </div>
         <p class="start-hint">※タップすると効果音が流れます</p>
+      </div>
+
+      <!-- オープニングデモ・プロローグ画面 (放置で自動出現) -->
+      <div class="prologue-demo-container" id="prologue-demo-container">
+        <div class="prologue-demo-inner">
+          <div class="prologue-demo-header">
+            <span class="prologue-demo-badge">📜 冒険のプロローグ</span>
+          </div>
+          <div class="prologue-demo-box gold-border">
+            <div class="prologue-demo-text" id="prologue-demo-text"></div>
+          </div>
+          <div class="prologue-tap-prompt">
+            <span class="prologue-tap-icon">▼</span> 画面をタップして冒険を始める
+          </div>
+        </div>
       </div>
     </div>
 
