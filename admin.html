@@ -572,17 +572,39 @@
 
             <!-- サブタブ1: 参加者一覧 (個別削除対応) -->
             <div id="subtab-users" class="subtab-content active">
+              <div class="header-filters" style="margin-bottom: 12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <div class="search-input-wrapper" style="flex:1; min-width:200px;">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                  <input type="text" id="users-search-input" placeholder="ユーザー名・LINE IDで絞り込み..." oninput="window.adminApp.renderParticipants()">
+                </div>
+                <select id="users-tier-filter" onchange="window.adminApp.renderParticipants()" style="padding:6px 12px; border-radius:4px; border:1px solid #cbd5e1; font-size:13px;">
+                  <option value="all">すべての参加者</option>
+                  <option value="has_rewards">🎁 特典獲得者のみ</option>
+                  <option value="has_remaining">🎟️ クーポン残枠あり</option>
+                  <option value="all_used">✅ 全クーポン消込済</option>
+                  <option value="goods_unclaimed">📦 記念品未引換あり</option>
+                  <option value="no_rewards">⏳ 特典未獲得</option>
+                </select>
+                <select id="users-sort-select" onchange="window.adminApp.renderParticipants()" style="padding:6px 12px; border-radius:4px; border:1px solid #cbd5e1; font-size:13px;">
+                  <option value="created_desc">🕒 登録が新しい順</option>
+                  <option value="active_desc">⚡ 最終アクセス順</option>
+                  <option value="coupons_desc">🍺 特典・枠数が多い順</option>
+                  <option value="used_desc">✅ 消込数が多い順</option>
+                  <option value="name_asc">🔤 ユーザー名順</option>
+                </select>
+              </div>
+
               <div class="table-responsive">
                 <table class="data-table">
                   <thead>
                     <tr>
                       <th style="width: 170px;">ユーザー</th>
-                      <th style="width: 160px;">LINE User ID</th>
-                      <th style="min-width: 200px;">獲得特典・マイルストーン</th>
-                      <th style="min-width: 240px;">クーポン保有・消込状況</th>
-                      <th style="width: 125px;">参加登録日時</th>
-                      <th style="width: 125px;">最終アクセス</th>
-                      <th style="text-align: center; width: 85px;">操作</th>
+                      <th style="width: 140px;">LINE User ID</th>
+                      <th style="min-width: 180px;">獲得特典</th>
+                      <th style="min-width: 220px;">クーポン保有・消込状況</th>
+                      <th style="width: 120px;">参加登録</th>
+                      <th style="width: 120px;">最終アクセス</th>
+                      <th style="text-align: center; width: 110px;">操作</th>
                     </tr>
                   </thead>
                   <tbody id="users-table-body">
@@ -1133,12 +1155,61 @@
     </div>
   </div>
 
+  <!-- 参加者 特典・消込詳細モーダル -->
+  <div id="participant-detail-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-dialog" style="max-width: 800px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <img id="pmodal-avatar" src="assets/banner.png" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #e2e8f0;">
+          <div>
+            <h3 id="pmodal-name" style="margin: 0; font-size: 17px; color: #0f172a;">参加者詳細</h3>
+            <div style="display: flex; gap: 8px; align-items: center; margin-top: 2px;">
+              <code id="pmodal-id" style="font-size: 11px; color: #64748b;">LINE_ID</code>
+              <span id="pmodal-stats-badge" class="badge" style="background:#e0f2fe; color:#0369a1; font-size: 11px; padding: 2px 6px;">-</span>
+            </div>
+          </div>
+        </div>
+        <button class="modal-close-btn" onclick="window.adminApp.closeParticipantDetailModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+        <!-- 登録・アクセス基本情報 -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px;">
+          <div>
+            <span style="font-size: 11px; color: #64748b; display: block;">参加登録日時</span>
+            <strong id="pmodal-created" style="font-size: 12px; color: #1e293b;">-</strong>
+          </div>
+          <div>
+            <span style="font-size: 11px; color: #64748b; display: block;">最終アクセス日時</span>
+            <strong id="pmodal-active" style="font-size: 12px; color: #1e293b;">-</strong>
+          </div>
+          <div>
+            <span style="font-size: 11px; color: #64748b; display: block;">獲得特典・記念品総数</span>
+            <strong id="pmodal-summary-count" style="font-size: 12px; color: #1e293b;">-</strong>
+          </div>
+        </div>
+
+        <!-- 特典別 消込・保有状況詳細リスト -->
+        <div>
+          <h4 style="font-size: 14px; margin: 0 0 10px 0; color: #1e293b; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-ticket text-primary"></i> 特典マイルストーン別 保有・消込内訳
+          </h4>
+          <div id="pmodal-tiers-container" style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- 動的挿入 -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="window.adminApp.closeParticipantDetailModal()">閉じる</button>
+      </div>
+    </div>
+  </div>
+
   <!-- トースト通知 -->
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=20261011_04"></script>
-  <script src="js/api.js?v=20261011_04"></script>
-  <script src="js/admin.js?v=20261011_04"></script>
+  <script src="js/config.js?v=20261011_08"></script>
+  <script src="js/api.js?v=20261011_08"></script>
+  <script src="js/admin.js?v=20261011_08"></script>
 </body>
 </html>

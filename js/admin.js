@@ -2397,177 +2397,8 @@ class YoidoreAdminApp {
     const couponsCountElem = document.getElementById('count-coupons');
     if (couponsCountElem) couponsCountElem.textContent = usedCouponsCount;
 
-    // 1. ユーザーテーブル (個別削除ボタン付き)
-    const userTbody = document.getElementById('users-table-body');
-    if (userTbody) {
-      if (this.users.length === 0) {
-        userTbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">参加者データがありません</td></tr>';
-      } else {
-        const sortedTiers = [...(this.tiers || [])].sort((a, b) => (Number(a.required_visits || 0)) - (Number(b.required_visits || 0)));
-
-        userTbody.innerHTML = this.users.map(u => {
-          const userCoupons = (this.coupons || []).filter(c => c.user_id === u.line_user_id);
-          
-          // 獲得した特典マイルストーン (reward_tier) の特定
-          const unlockedTierIds = Array.from(new Set(userCoupons.map(c => Number(c.reward_tier_id)).filter(id => !isNaN(id) && id > 0)));
-          
-          // 特典別にレコードをグループ化
-          const tierStatusList = [];
-
-          if (sortedTiers.length > 0) {
-            let fallbackSlotCounter = 0;
-            sortedTiers.forEach(tier => {
-              const tierIdNum = Number(tier.id);
-              const isGoods = tier.reward_type === 'goods';
-              const reqCount = Number(tier.selectable_count) || (isGoods ? 1 : 5);
-
-              // 1. reward_tier_id による厳密マッチ
-              let matchingCoupons = userCoupons.filter(c => Number(c.reward_tier_id) === tierIdNum);
-
-              // 2. グッズ名のフォールバックマッチ
-              if (matchingCoupons.length === 0 && isGoods) {
-                matchingCoupons = userCoupons.filter(c => c.reward_type === 'goods' || c.goods_name === tier.goods_name || c.goods_name === tier.title);
-              }
-
-              // 3. reward_tier_id 未設定の旧データに対するスロット順フォールバックマッチ
-              if (matchingCoupons.length === 0 && userCoupons.some(c => !c.reward_tier_id)) {
-                const unassignedCoupons = userCoupons.filter(c => !c.reward_tier_id && c.reward_type !== 'goods');
-                if (unassignedCoupons.length > fallbackSlotCounter) {
-                  matchingCoupons = unassignedCoupons.slice(fallbackSlotCounter, fallbackSlotCounter + reqCount);
-                  fallbackSlotCounter += reqCount;
-                }
-              }
-
-              if (matchingCoupons.length > 0 || unlockedTierIds.includes(tierIdNum)) {
-                const total = matchingCoupons.length || reqCount;
-                const usedList = matchingCoupons.filter(c => c.status === 'used');
-                const used = usedList.length;
-                const remaining = Math.max(0, total - used);
-                
-                const usedStores = usedList.map(c => {
-                  const st = this.stores.find(s => s.id === c.store_id);
-                  return st ? st.name : (c.store_id || '酒場');
-                });
-
-                tierStatusList.push({
-                  tier,
-                  isGoods,
-                  total,
-                  used,
-                  remaining,
-                  usedStores
-                });
-              }
-            });
-          }
-
-          // 特典バッジ群の生成
-          let rewardsHtml = '';
-          if (tierStatusList.length > 0) {
-            rewardsHtml = `
-              <div style="display: flex; flex-direction: column; gap: 4px;">
-                ${tierStatusList.map(item => {
-                  const t = item.tier;
-                  const req = t.required_visits ?? t.required_count ?? 0;
-                  return item.isGoods 
-                    ? `<span class="badge" style="background:#fef3c7; color:#92400e; border:1px solid #fde047; font-size:11px; padding:3px 8px; text-align:left; display:inline-block;"><i class="fa-solid fa-gift text-warning"></i> 【${req}軒】${this.escapeHtml(t.title)} (記念品)</span>`
-                    : `<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:3px 8px; text-align:left; display:inline-block;"><i class="fa-solid fa-ticket text-primary"></i> 【${req}軒】${this.escapeHtml(t.title)} (${t.selectable_count || 5}枠)</span>`;
-                }).join('')}
-              </div>
-            `;
-          } else if (userCoupons.length > 0) {
-            rewardsHtml = `<span class="badge" style="background:#f1f5f9; color:#475569; font-size:11px; padding:3px 8px;"><i class="fa-solid fa-trophy"></i> 特典付与済 (${userCoupons.length}件)</span>`;
-          } else {
-            rewardsHtml = `<span class="text-muted" style="font-size:12px;"><i class="fa-solid fa-hourglass-start"></i> 特典未獲得</span>`;
-          }
-
-          // 特典ごとの個別ステータスカード生成
-          let statusHtml = '';
-          if (tierStatusList.length > 0) {
-            statusHtml = `
-              <div style="display: flex; flex-direction: column; gap: 6px;">
-                ${tierStatusList.map(item => {
-                  const t = item.tier;
-                  const req = t.required_visits ?? t.required_count ?? 0;
-
-                  if (item.isGoods) {
-                    const isClaimed = item.used > 0;
-                    return `
-                      <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 5px 8px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
-                          <strong style="color: #92400e;"><i class="fa-solid fa-gift"></i> 【${req}軒: 記念品】</strong>
-                          ${isClaimed 
-                            ? `<span class="tag tag-active" style="font-size: 10px; padding: 1px 6px; background:#10b981; color:#fff;"><i class="fa-solid fa-check"></i> 引換済</span>`
-                            : `<span class="tag" style="font-size: 10px; padding: 1px 6px; background:#f59e0b; color:#fff;"><i class="fa-solid fa-clock"></i> 未引換</span>`
-                          }
-                        </div>
-                        <div style="font-size: 11px; color: #78350f; margin-top: 2px;">
-                          ${this.escapeHtml(t.goods_name || t.title)}
-                        </div>
-                      </div>
-                    `;
-                  } else {
-                    const isCompleted = item.total > 0 && item.remaining === 0;
-                    return `
-                      <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 5px 8px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
-                          <strong style="color: #0369a1;"><i class="fa-solid fa-ticket"></i> 【${req}軒: クーポン】</strong>
-                          <span style="font-weight: bold; font-size: 11px; color: ${isCompleted ? '#64748b' : '#0284c7'};">
-                            ${item.used} / ${item.total} 枠消込
-                          </span>
-                        </div>
-                        <div style="font-size: 11px; margin-top: 2px;">
-                          ${isCompleted 
-                            ? `<span class="text-muted"><i class="fa-solid fa-check-double"></i> 全枠利用済</span>`
-                            : `<span style="color: #16a34a; font-weight: bold;"><i class="fa-solid fa-circle-check"></i> 残り ${item.remaining} 枠利用可</span>`
-                          }
-                        </div>
-                        ${item.usedStores.length > 0 ? `
-                          <div style="font-size: 10px; color: #475569; margin-top: 3px; background: rgba(255,255,255,0.8); border: 1px solid #e2e8f0; padding: 2px 6px; border-radius: 4px; line-height: 1.3;">
-                            <strong style="color: #334155;">消込店:</strong> ${this.escapeHtml(item.usedStores.slice(0, 3).join(', '))}${item.usedStores.length > 3 ? ` 他${item.usedStores.length - 3}軒` : ''}
-                          </div>
-                        ` : ''}
-                      </div>
-                    `;
-                  }
-                }).join('')}
-              </div>
-            `;
-          } else if (userCoupons.length > 0) {
-            const used = userCoupons.filter(c => c.status === 'used').length;
-            statusHtml = `<span style="font-size:12px; color:#475569;">付与済計 ${userCoupons.length}件 (${used}件消込済)</span>`;
-          } else {
-            statusHtml = `<span class="text-muted" style="font-size:12px;">-</span>`;
-          }
-
-          const createdStr = u.created_at ? new Date(u.created_at).toLocaleString('ja-JP') : '-';
-          const activeStr = u.last_active_at ? new Date(u.last_active_at).toLocaleString('ja-JP') : '-';
-
-          return `
-            <tr>
-              <td>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <img src="${u.picture_url || 'assets/banner.png'}" style="width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0;">
-                  <div>
-                    <strong style="display: block; font-size: 13px; color:#0f172a;">${this.escapeHtml(u.display_name || '冒険者')}</strong>
-                  </div>
-                </div>
-              </td>
-              <td><code>${this.escapeHtml(u.line_user_id || '')}</code></td>
-              <td>${rewardsHtml}</td>
-              <td>${statusHtml}</td>
-              <td><small class="text-muted">${createdStr}</small></td>
-              <td><small class="text-muted">${activeStr}</small></td>
-              <td style="text-align: center;">
-                <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.confirmDeleteUser('${u.line_user_id}', '${this.escapeHtml(u.display_name || '')}')" title="ユーザーを削除">
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-              </td>
-            </tr>
-          `;
-        }).join('');
-      }
-    }
+    // 1. 参加者一覧テーブル描画
+    this.renderParticipants();
 
     // 2. クーポン・特典利用履歴テーブル (状態切替 & 削除ボタン付き)
     const couponTbody = document.getElementById('coupons-table-body');
@@ -2624,6 +2455,467 @@ class YoidoreAdminApp {
         }).join('');
       }
     }
+  }
+
+  /* 参加者一覧テーブルの描画（検索・絞り込み・ソート・コンパクト表示） */
+  renderParticipants() {
+    const userTbody = document.getElementById('users-table-body');
+    if (!userTbody) return;
+
+    if (!this.users || this.users.length === 0) {
+      userTbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">参加者データがありません</td></tr>';
+      return;
+    }
+
+    const searchInput = document.getElementById('users-search-input');
+    const searchTerm = (searchInput ? searchInput.value : '').trim().toLowerCase();
+
+    const tierFilter = document.getElementById('users-tier-filter');
+    const filterValue = tierFilter ? tierFilter.value : 'all';
+
+    const sortSelect = document.getElementById('users-sort-select');
+    const sortValue = sortSelect ? sortSelect.value : 'created_desc';
+
+    const sortedTiers = [...(this.tiers || [])].sort((a, b) => (Number(a.required_visits || 0)) - (Number(b.required_visits || 0)));
+
+    // 各ユーザーの特典・消込データを集計
+    const enrichedUsers = this.users.map(u => {
+      const userCoupons = (this.coupons || []).filter(c => c.user_id === u.line_user_id);
+      const unlockedTierIds = Array.from(new Set(userCoupons.map(c => Number(c.reward_tier_id)).filter(id => !isNaN(id) && id > 0)));
+
+      const tierStatusList = [];
+      let totalStoreCoupons = 0;
+      let usedStoreCoupons = 0;
+      let totalGoods = 0;
+      let claimedGoods = 0;
+
+      if (sortedTiers.length > 0) {
+        let fallbackSlotCounter = 0;
+        sortedTiers.forEach(tier => {
+          const tierIdNum = Number(tier.id);
+          const isGoods = tier.reward_type === 'goods';
+          const reqCount = Number(tier.selectable_count) || (isGoods ? 1 : 5);
+
+          let matchingCoupons = userCoupons.filter(c => Number(c.reward_tier_id) === tierIdNum);
+          if (matchingCoupons.length === 0 && isGoods) {
+            matchingCoupons = userCoupons.filter(c => c.reward_type === 'goods' || c.goods_name === tier.goods_name || c.goods_name === tier.title);
+          }
+          if (matchingCoupons.length === 0 && userCoupons.some(c => !c.reward_tier_id)) {
+            const unassignedCoupons = userCoupons.filter(c => !c.reward_tier_id && c.reward_type !== 'goods');
+            if (unassignedCoupons.length > fallbackSlotCounter) {
+              matchingCoupons = unassignedCoupons.slice(fallbackSlotCounter, fallbackSlotCounter + reqCount);
+              fallbackSlotCounter += reqCount;
+            }
+          }
+
+          if (matchingCoupons.length > 0 || unlockedTierIds.includes(tierIdNum)) {
+            const total = matchingCoupons.length || reqCount;
+            const usedList = matchingCoupons.filter(c => c.status === 'used');
+            const used = usedList.length;
+            const remaining = Math.max(0, total - used);
+
+            const usedStores = usedList.map(c => {
+              const st = this.stores.find(s => s.id === c.store_id);
+              return st ? st.name : (c.store_id || '酒場');
+            });
+
+            if (isGoods) {
+              totalGoods += 1;
+              if (used > 0) claimedGoods += 1;
+            } else {
+              totalStoreCoupons += total;
+              usedStoreCoupons += used;
+            }
+
+            tierStatusList.push({
+              tier,
+              isGoods,
+              total,
+              used,
+              remaining,
+              usedStores,
+              coupons: matchingCoupons
+            });
+          }
+        });
+      }
+
+      // フォールバック: tierStatusList に入らなかったクーポン
+      const remainingStoreCoupons = Math.max(0, totalStoreCoupons - usedStoreCoupons);
+      const unclaimedGoods = Math.max(0, totalGoods - claimedGoods);
+      const totalRewardsCount = tierStatusList.length || (userCoupons.length > 0 ? 1 : 0);
+
+      return {
+        user: u,
+        userCoupons,
+        tierStatusList,
+        totalStoreCoupons,
+        usedStoreCoupons,
+        remainingStoreCoupons,
+        totalGoods,
+        claimedGoods,
+        unclaimedGoods,
+        totalRewardsCount
+      };
+    });
+
+    // フィルタリング
+    let filtered = enrichedUsers.filter(item => {
+      const u = item.user;
+      // 検索フィルター
+      if (searchTerm) {
+        const name = (u.display_name || '').toLowerCase();
+        const lineId = (u.line_user_id || '').toLowerCase();
+        if (!name.includes(searchTerm) && !lineId.includes(searchTerm)) {
+          return false;
+        }
+      }
+
+      // 状態フィルター
+      if (filterValue === 'has_rewards') {
+        return item.totalRewardsCount > 0;
+      } else if (filterValue === 'has_remaining') {
+        return item.remainingStoreCoupons > 0;
+      } else if (filterValue === 'all_used') {
+        return item.totalStoreCoupons > 0 && item.remainingStoreCoupons === 0;
+      } else if (filterValue === 'goods_unclaimed') {
+        return item.unclaimedGoods > 0;
+      } else if (filterValue === 'no_rewards') {
+        return item.totalRewardsCount === 0;
+      }
+
+      return true;
+    });
+
+    // ソート
+    filtered.sort((a, b) => {
+      const uA = a.user;
+      const uB = b.user;
+      if (sortValue === 'created_desc') {
+        return new Date(uB.created_at || 0) - new Date(uA.created_at || 0);
+      } else if (sortValue === 'active_desc') {
+        return new Date(uB.last_active_at || 0) - new Date(uA.last_active_at || 0);
+      } else if (sortValue === 'coupons_desc') {
+        return (b.totalStoreCoupons + b.totalGoods) - (a.totalStoreCoupons + a.totalGoods);
+      } else if (sortValue === 'used_desc') {
+        return (b.usedStoreCoupons + b.claimedGoods) - (a.usedStoreCoupons + a.claimedGoods);
+      } else if (sortValue === 'name_asc') {
+        return (uA.display_name || '').localeCompare(uB.display_name || '', 'ja');
+      }
+      return 0;
+    });
+
+    if (filtered.length === 0) {
+      userTbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">該当する参加者が見つかりません</td></tr>';
+      return;
+    }
+
+    userTbody.innerHTML = filtered.map(item => {
+      const u = item.user;
+      const tierList = item.tierStatusList;
+
+      // 1. 獲得特典ピル（横並びコンパクト表示）
+      let rewardsHtml = '';
+      if (tierList.length > 0) {
+        rewardsHtml = `
+          <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
+            ${tierList.map(tItem => {
+              const t = tItem.tier;
+              const req = t.required_visits ?? t.required_count ?? 0;
+              if (tItem.isGoods) {
+                return `<span class="badge" style="background:#fef3c7; color:#92400e; border:1px solid #fde047; font-size:11px; padding:2px 6px;" title="${this.escapeHtml(t.title)} (記念品)"><i class="fa-solid fa-gift"></i> ${req}軒</span>`;
+              } else {
+                return `<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:2px 6px;" title="${this.escapeHtml(t.title)} (${t.selectable_count || 5}枠)"><i class="fa-solid fa-ticket"></i> ${req}軒(${t.selectable_count || 5}枠)</span>`;
+              }
+            }).join('')}
+          </div>
+        `;
+      } else if (item.userCoupons.length > 0) {
+        rewardsHtml = `<span class="badge" style="background:#f1f5f9; color:#475569; font-size:11px; padding:2px 6px;"><i class="fa-solid fa-trophy"></i> 特典付与済 (${item.userCoupons.length}件)</span>`;
+      } else {
+        rewardsHtml = `<span class="text-muted" style="font-size:11px;"><i class="fa-solid fa-hourglass-start"></i> 未獲得</span>`;
+      }
+
+      // 2. クーポン保有・消込状況（サマリー ＋ 小型プログレス）
+      let statusHtml = '';
+      if (item.totalStoreCoupons > 0 || item.totalGoods > 0) {
+        const parts = [];
+
+        // 店舗クーポンサマリー
+        if (item.totalStoreCoupons > 0) {
+          const usedPct = Math.round((item.usedStoreCoupons / item.totalStoreCoupons) * 100);
+          const isComplete = item.remainingStoreCoupons === 0;
+          parts.push(`
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-size:11px; font-weight:600; color:${isComplete ? '#64748b' : '#0369a1'};">
+                <i class="fa-solid fa-ticket"></i> ${item.usedStoreCoupons}/${item.totalStoreCoupons}枠消込
+              </span>
+              <div style="width:50px; height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden; flex-shrink:0;">
+                <div style="width:${usedPct}%; height:100%; background:${isComplete ? '#10b981' : '#0284c7'};"></div>
+              </div>
+              ${isComplete 
+                ? '<span style="font-size:10px; color:#10b981; font-weight:bold;">完</span>' 
+                : `<span style="font-size:10px; color:#16a34a; font-weight:bold;">残${item.remainingStoreCoupons}</span>`
+              }
+            </div>
+          `);
+        }
+
+        // 記念品サマリー
+        if (item.totalGoods > 0) {
+          const isAllClaimed = item.unclaimedGoods === 0;
+          parts.push(`
+            <div style="display:flex; align-items:center; gap:6px; font-size:11px;">
+              <span style="color:#92400e; font-weight:600;"><i class="fa-solid fa-gift"></i> 記念品:</span>
+              ${isAllClaimed
+                ? `<span class="badge" style="background:#dcfce7; color:#15803d; font-size:10px; padding:1px 5px;"><i class="fa-solid fa-check"></i> 引換済 (${item.claimedGoods}/${item.totalGoods})</span>`
+                : `<span class="badge" style="background:#fef3c7; color:#b45309; font-size:10px; padding:1px 5px;"><i class="fa-solid fa-clock"></i> 未引換あり (${item.claimedGoods}/${item.totalGoods})</span>`
+              }
+            </div>
+          `);
+        }
+
+        statusHtml = `
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            ${parts.join('')}
+          </div>
+        `;
+      } else if (item.userCoupons.length > 0) {
+        const used = item.userCoupons.filter(c => c.status === 'used').length;
+        statusHtml = `<span style="font-size:11px; color:#475569;">付与計 ${item.userCoupons.length}件 (${used}件消込済)</span>`;
+      } else {
+        statusHtml = `<span class="text-muted" style="font-size:11px;">-</span>`;
+      }
+
+      const createdStr = u.created_at ? new Date(u.created_at).toLocaleDateString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
+      const activeStr = u.last_active_at ? new Date(u.last_active_at).toLocaleDateString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
+
+      return `
+        <tr>
+          <td>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <img src="${u.picture_url || 'assets/banner.png'}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0; flex-shrink:0;">
+              <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px;">
+                <strong style="font-size: 12px; color:#0f172a;" title="${this.escapeHtml(u.display_name || '冒険者')}">${this.escapeHtml(u.display_name || '冒険者')}</strong>
+              </div>
+            </div>
+          </td>
+          <td><code style="font-size: 11px; padding: 1px 4px;">${this.escapeHtml(u.line_user_id || '')}</code></td>
+          <td>${rewardsHtml}</td>
+          <td>${statusHtml}</td>
+          <td><small class="text-muted" style="font-size:11px;">${createdStr}</small></td>
+          <td><small class="text-muted" style="font-size:11px;">${activeStr}</small></td>
+          <td style="text-align: center; white-space: nowrap;">
+            <div style="display: flex; gap: 4px; justify-content: center; align-items: center;">
+              <button class="btn btn-sm btn-outline-primary" style="padding: 2px 7px; font-size: 11px;" onclick="window.adminApp.openParticipantDetailModal('${u.line_user_id}')" title="特典・消込詳細を確認">
+                <i class="fa-solid fa-magnifying-glass"></i> 詳細
+              </button>
+              <button class="btn btn-sm btn-outline-danger" style="padding: 2px 6px; font-size: 11px;" onclick="window.adminApp.confirmDeleteUser('${u.line_user_id}', '${this.escapeHtml(u.display_name || '')}')" title="ユーザーを削除">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  /* 参加者 特典・消込詳細モーダルを開く */
+  openParticipantDetailModal(lineUserId) {
+    const user = (this.users || []).find(u => u.line_user_id === lineUserId);
+    if (!user) {
+      alert('ユーザー情報が見つかりません');
+      return;
+    }
+
+    const modal = document.getElementById('participant-detail-modal');
+    if (!modal) return;
+
+    // 基本情報セット
+    const avatarElem = document.getElementById('pmodal-avatar');
+    if (avatarElem) avatarElem.src = user.picture_url || 'assets/banner.png';
+
+    const nameElem = document.getElementById('pmodal-name');
+    if (nameElem) nameElem.textContent = user.display_name || '冒険者';
+
+    const idElem = document.getElementById('pmodal-id');
+    if (idElem) idElem.textContent = user.line_user_id || '';
+
+    const createdElem = document.getElementById('pmodal-created');
+    if (createdElem) createdElem.textContent = user.created_at ? new Date(user.created_at).toLocaleString('ja-JP') : '-';
+
+    const activeElem = document.getElementById('pmodal-active');
+    if (activeElem) activeElem.textContent = user.last_active_at ? new Date(user.last_active_at).toLocaleString('ja-JP') : '-';
+
+    // クーポン・特典集計
+    const userCoupons = (this.coupons || []).filter(c => c.user_id === lineUserId);
+    const sortedTiers = [...(this.tiers || [])].sort((a, b) => (Number(a.required_visits || 0)) - (Number(b.required_visits || 0)));
+    const unlockedTierIds = Array.from(new Set(userCoupons.map(c => Number(c.reward_tier_id)).filter(id => !isNaN(id) && id > 0)));
+
+    const container = document.getElementById('pmodal-tiers-container');
+    const statsBadge = document.getElementById('pmodal-stats-badge');
+    const summaryCountElem = document.getElementById('pmodal-summary-count');
+
+    let totalCoupons = 0;
+    let usedCoupons = 0;
+    let totalGoods = 0;
+    let claimedGoods = 0;
+
+    const cardsHtml = [];
+    let fallbackSlotCounter = 0;
+
+    sortedTiers.forEach(tier => {
+      const tierIdNum = Number(tier.id);
+      const isGoods = tier.reward_type === 'goods';
+      const reqCount = Number(tier.selectable_count) || (isGoods ? 1 : 5);
+      const reqVisits = tier.required_visits ?? tier.required_count ?? 0;
+
+      let matchingCoupons = userCoupons.filter(c => Number(c.reward_tier_id) === tierIdNum);
+      if (matchingCoupons.length === 0 && isGoods) {
+        matchingCoupons = userCoupons.filter(c => c.reward_type === 'goods' || c.goods_name === tier.goods_name || c.goods_name === tier.title);
+      }
+      if (matchingCoupons.length === 0 && userCoupons.some(c => !c.reward_tier_id)) {
+        const unassignedCoupons = userCoupons.filter(c => !c.reward_tier_id && c.reward_type !== 'goods');
+        if (unassignedCoupons.length > fallbackSlotCounter) {
+          matchingCoupons = unassignedCoupons.slice(fallbackSlotCounter, fallbackSlotCounter + reqCount);
+          fallbackSlotCounter += reqCount;
+        }
+      }
+
+      const isUnlocked = matchingCoupons.length > 0 || unlockedTierIds.includes(tierIdNum);
+
+      if (isUnlocked) {
+        const total = matchingCoupons.length || reqCount;
+        const usedList = matchingCoupons.filter(c => c.status === 'used');
+        const used = usedList.length;
+        const remaining = Math.max(0, total - used);
+
+        if (isGoods) {
+          totalGoods += 1;
+          if (used > 0) claimedGoods += 1;
+
+          const isClaimed = used > 0;
+          const claimCoupon = matchingCoupons[0];
+          const claimTime = claimCoupon && (claimCoupon.used_at || claimCoupon.acquired_at) 
+            ? new Date(claimCoupon.used_at || claimCoupon.acquired_at).toLocaleString('ja-JP') 
+            : '-';
+          const storeName = claimCoupon && claimCoupon.store_id 
+            ? (this.stores.find(s => s.id === claimCoupon.store_id)?.name || claimCoupon.store_id) 
+            : (tier.exchange_location || '指定引換所');
+
+          cardsHtml.push(`
+            <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 14px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="badge" style="background:#fef3c7; color:#92400e; font-size:12px; padding:3px 8px; font-weight:bold;">
+                    <i class="fa-solid fa-gift"></i> 【${reqVisits}軒達成】 ${this.escapeHtml(tier.title)}
+                  </span>
+                  <span style="font-size:11px; color:#78350f;">(記念品グッズ)</span>
+                </div>
+                ${isClaimed 
+                  ? `<span class="badge" style="background:#10b981; color:#fff; font-size:11px; padding:3px 8px;"><i class="fa-solid fa-check"></i> 引換完了</span>`
+                  : `<span class="badge" style="background:#f59e0b; color:#fff; font-size:11px; padding:3px 8px;"><i class="fa-solid fa-clock"></i> 未引換</span>`
+                }
+              </div>
+              <div style="font-size: 13px; color: #1e293b; margin-bottom: 6px;">
+                <strong>記念品名:</strong> ${this.escapeHtml(tier.goods_name || tier.title)}
+              </div>
+              <div style="font-size: 12px; color: #64748b; background: rgba(255,255,255,0.8); padding: 8px 10px; border-radius: 6px; border: 1px solid #fed7aa;">
+                <div><i class="fa-solid fa-location-dot"></i> <strong>引換場所:</strong> ${this.escapeHtml(storeName)}</div>
+                ${isClaimed ? `<div style="margin-top:2px;"><i class="fa-solid fa-calendar-check"></i> <strong>引換日時:</strong> ${claimTime}</div>` : ''}
+              </div>
+            </div>
+          `);
+        } else {
+          totalCoupons += total;
+          usedCoupons += used;
+
+          const isCompleted = remaining === 0;
+
+          // 各スロット（枠）の詳細リスト
+          const slotsHtml = [];
+          for (let i = 0; i < total; i++) {
+            const coupon = matchingCoupons[i];
+            const isSlotUsed = coupon && coupon.status === 'used';
+            const store = coupon ? this.stores.find(s => s.id === coupon.store_id) : null;
+            const storeName = store ? store.name : (coupon && coupon.store_id ? coupon.store_id : '（店舗未指定）');
+            const usedAtStr = coupon && coupon.used_at ? new Date(coupon.used_at).toLocaleString('ja-JP') : '-';
+
+            slotsHtml.push(`
+              <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px; font-size:12px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-weight:bold; color:#64748b; font-size:11px;">枠 ${i + 1}</span>
+                  ${isSlotUsed 
+                    ? `<span class="badge" style="background:#10b981; color:#fff; font-size:10px; padding:2px 6px;"><i class="fa-solid fa-check"></i> 消込済</span>`
+                    : `<span class="badge" style="background:#e0f2fe; color:#0369a1; font-size:10px; padding:2px 6px;"><i class="fa-solid fa-circle-check"></i> 未使用 (利用可)</span>`
+                  }
+                  <span style="color:#1e293b; font-weight:600;">${this.escapeHtml(storeName)}</span>
+                </div>
+                <div style="font-size:11px; color:#64748b;">
+                  ${isSlotUsed ? `<i class="fa-solid fa-clock"></i> ${usedAtStr}` : '未利用'}
+                </div>
+              </div>
+            `);
+          }
+
+          cardsHtml.push(`
+            <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 12px 14px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="badge" style="background:#e0f2fe; color:#0369a1; font-size:12px; padding:3px 8px; font-weight:bold;">
+                    <i class="fa-solid fa-ticket"></i> 【${reqVisits}軒達成】 ${this.escapeHtml(tier.title)}
+                  </span>
+                  <span style="font-size:11px; color:#0369a1;">(${total}枠中 <strong>${used}枠消込</strong> / 残り${remaining}枠)</span>
+                </div>
+                ${isCompleted
+                  ? `<span class="badge" style="background:#10b981; color:#fff; font-size:11px; padding:3px 8px;"><i class="fa-solid fa-check-double"></i> 全枠消込済</span>`
+                  : `<span class="badge" style="background:#0284c7; color:#fff; font-size:11px; padding:3px 8px;"><i class="fa-solid fa-circle-check"></i> 残り ${remaining} 枠利用可</span>`
+                }
+              </div>
+
+              <!-- スロット一覧 -->
+              <div style="display:flex; flex-direction:column; gap:4px; margin-top:8px;">
+                ${slotsHtml.join('')}
+              </div>
+            </div>
+          `);
+        }
+      }
+    });
+
+    if (cardsHtml.length === 0) {
+      if (userCoupons.length > 0) {
+        container.innerHTML = `
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px; text-align:center;">
+            <p style="margin:0; font-size:13px; color:#475569;">特典レコード: 計 ${userCoupons.length}件登録あり</p>
+          </div>
+        `;
+      } else {
+        container.innerHTML = `
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:20px; text-align:center;">
+            <i class="fa-solid fa-hourglass-start" style="font-size:24px; color:#94a3b8; margin-bottom:6px;"></i>
+            <p style="margin:0; font-size:13px; color:#64748b;">まだ特典を獲得していません（スタンプラリー参加中）</p>
+          </div>
+        `;
+      }
+    } else {
+      container.innerHTML = cardsHtml.join('');
+    }
+
+    if (statsBadge) {
+      statsBadge.textContent = `酒場クーポン: ${usedCoupons}/${totalCoupons}枠消込 | 記念品: ${claimedGoods}/${totalGoods}品受取`;
+    }
+    if (summaryCountElem) {
+      summaryCountElem.textContent = `${cardsHtml.length} 特典ランク解放 (クーポン ${totalCoupons}枠 / 記念品 ${totalGoods}点)`;
+    }
+
+    modal.style.display = 'flex';
+  }
+
+  /* 参加者 特典・消込詳細モーダルを閉じる */
+  closeParticipantDetailModal() {
+    const modal = document.getElementById('participant-detail-modal');
+    if (modal) modal.style.display = 'none';
   }
 
   switchLogSubTab(subTabId) {
