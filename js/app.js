@@ -228,8 +228,10 @@ class YoidoreQuestApp {
     try {
       this.initAudio();
       this.initEvents();
-      this.initPrologueDemo();
-      this.render();
+      if (!hasClaimTier) {
+        this.initPrologueDemo();
+        this.render();
+      }
       this.initQuestSystem();
       if (window.debugLog) window.debugLog('✅ アプリ初期化完了');
     } catch (err) {
@@ -390,6 +392,9 @@ class YoidoreQuestApp {
    * ------------------------------------------------------------------------ */
   async initQuestSystem() {
     if (window.questApi) {
+      // URLパラメータからのマイルストーン特典達成検出 (LINE LIFFのliff.stateや通常パラメータ・ハッシュを全自動解析)
+      const claimTierId = extractClaimTierParam(window.location.href);
+
       try {
         await window.questApi.initAuth();
         await window.questApi.getCurrentSeason();
@@ -406,15 +411,14 @@ class YoidoreQuestApp {
         if (stores && stores.length > 0) {
           window.STORES_DATA = stores;
           window.TAISHO_STORES = stores;
-          this.render(); // Supabase店舗データで即座に描画！
+          if (!claimTierId) {
+            this.render(); // 通常起動時のみSupabase店舗データで即座に描画
+          }
         }
         await window.questApi.getRewardTiers();
         await window.questApi.getHeroTitles();
         await window.questApi.getUserVisits();
         await window.questApi.getUserCoupons();
-
-        // URLパラメータからのマイルストーン特典達成検出 (LINE LIFFのliff.stateや通常パラメータ・ハッシュを全自動解析)
-        const claimTierId = extractClaimTierParam(window.location.href);
 
         if (claimTierId) {
           // スタート画面オーバーレイを確実に非表示にして冒険の書にセット
@@ -436,11 +440,22 @@ class YoidoreQuestApp {
           } catch (e) {}
 
           await this.handleClaimMilestoneTier(claimTierId);
+        } else {
+          this.render();
         }
       } catch (e) {
         console.warn('Quest system initialization failed:', e);
+        this.render();
+      } finally {
+        // 同期ローダーをスムーズにフェードアウト・非表示
+        const syncLoader = document.getElementById('qr-claim-sync-loader');
+        if (syncLoader) {
+          syncLoader.style.opacity = '0';
+          setTimeout(() => {
+            syncLoader.style.display = 'none';
+          }, 300);
+        }
       }
-      this.render();
     }
   }
 
@@ -2663,8 +2678,17 @@ class YoidoreQuestApp {
       const activeSeasonId = window.questApi?.currentSeason?.id || 2;
       const res = await window.questApi.claimRewardTierCascade(tierId, activeSeasonId);
 
-      // 冒険の書画面を背景に描画
+      // 冒険の書画面を最新状態で描画
       await this.render();
+
+      // 同期ローダーをスムーズに非表示
+      const syncLoader = document.getElementById('qr-claim-sync-loader');
+      if (syncLoader) {
+        syncLoader.style.opacity = '0';
+        setTimeout(() => {
+          syncLoader.style.display = 'none';
+        }, 300);
+      }
 
       if (res.success) {
         if (res.alreadyClaimed) {
