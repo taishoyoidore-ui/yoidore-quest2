@@ -120,13 +120,70 @@ function checkIsOpenToday(store, now = new Date()) {
 // グローバル公開
 window.checkIsOpenToday = checkIsOpenToday;
 
+/**
+ * URLやQRコード読み取り文字列からマイルストーン特典達成ID (claim_tier) を安全・確実に抽出
+ * (LINE LIFFの liff.state パラメータ、通常クエリ、ハッシュフラグメント、生URLすべてに対応)
+ */
+function extractClaimTierParam(input = window.location.href) {
+  if (!input) return null;
+  const str = String(input).trim();
+
+  // 1. プレーンなIDまたはtier文字列 (例: "1", "tier-1", "claim-tier-1")
+  if (/^(tier-|claim-tier-)?\d+$/i.test(str)) {
+    return str.replace(/^(tier-|claim-tier-)/i, '');
+  }
+
+  try {
+    // 2. URLオブジェクトからパラメータ抽出
+    const url = new URL(str, window.location.origin);
+    
+    // 2.1 標準クエリパラメータ
+    let tier = url.searchParams.get('claim_tier') || 
+               url.searchParams.get('tier_id') || 
+               (url.searchParams.get('action') === 'claim_tier' ? url.searchParams.get('tier') : null) || 
+               url.searchParams.get('tier');
+    if (tier) return tier;
+
+    // 2.2 LIFF state パラメータ (?liff.state=%3Fclaim_tier%3D1, /?claim_tier=1 等)
+    const liffState = url.searchParams.get('liff.state');
+    if (liffState) {
+      const decodedState = decodeURIComponent(liffState);
+      const stateMatch = decodedState.match(/[?&#](?:claim_tier|tier_id|tier)=([^&#]+)/i);
+      if (stateMatch) return decodeURIComponent(stateMatch[1]);
+      try {
+        const dummyUrl = new URL(decodedState.startsWith('/') ? `https://dummy.local${decodedState}` : (decodedState.startsWith('?') ? `https://dummy.local/${decodedState}` : decodedState));
+        const tierFromState = dummyUrl.searchParams.get('claim_tier') || dummyUrl.searchParams.get('tier_id') || dummyUrl.searchParams.get('tier');
+        if (tierFromState) return tierFromState;
+      } catch (e) {}
+    }
+
+    // 2.3 ハッシュフラグメント (#/?claim_tier=1, #claim_tier=1 等)
+    if (url.hash) {
+      const hashClean = url.hash.replace(/^#\/?/, '');
+      const hashQuery = hashClean.includes('?') ? hashClean.split('?')[1] : hashClean;
+      const hashParams = new URLSearchParams(hashQuery);
+      const tierFromHash = hashParams.get('claim_tier') || hashParams.get('tier_id') || hashParams.get('tier');
+      if (tierFromHash) return tierFromHash;
+      const hashMatch = url.hash.match(/[?&#](?:claim_tier|tier_id|tier)=([^&#]+)/i);
+      if (hashMatch) return decodeURIComponent(hashMatch[1]);
+    }
+  } catch (e) {}
+
+  // 3. 正規表現でのフォールバック抽出
+  const rawMatch = str.match(/[?&#](?:claim_tier|tier_id|tier)=([^&#]+)/i);
+  if (rawMatch) return decodeURIComponent(rawMatch[1]);
+
+  return null;
+}
+
+window.extractClaimTierParam = extractClaimTierParam;
+
 class YoidoreQuestApp {
   constructor() {
     if (window.debugLog) window.debugLog('🚀 YoidoreQuestApp 起動開始');
     
     // URLパラメータからマイルストーン達成/店舗指定の事前チェック
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasClaimTier = urlParams.get('claim_tier') || urlParams.get('tier_id') || (urlParams.get('action') === 'claim_tier' ? urlParams.get('tier') : null) || urlParams.get('tier');
+    const hasClaimTier = extractClaimTierParam(window.location.href);
 
     this.currentView = hasClaimTier ? 'quest-book' : 'top';
     this.selectedStore = null;
@@ -356,10 +413,8 @@ class YoidoreQuestApp {
         await window.questApi.getUserVisits();
         await window.questApi.getUserCoupons();
 
-        // URLパラメータからのマイルストーン特典達成検出
-        // (?claim_tier=1, ?tier_id=1, ?tier=1, ?action=claim_tier&tier=1)
-        const params = new URLSearchParams(window.location.search);
-        const claimTierId = params.get('claim_tier') || params.get('tier_id') || (params.get('action') === 'claim_tier' ? params.get('tier') : null) || params.get('tier');
+        // URLパラメータからのマイルストーン特典達成検出 (LINE LIFFのliff.stateや通常パラメータ・ハッシュを全自動解析)
+        const claimTierId = extractClaimTierParam(window.location.href);
 
         if (claimTierId) {
           // スタート画面オーバーレイを確実に非表示にして冒険の書にセット
@@ -2556,20 +2611,8 @@ class YoidoreQuestApp {
 
           this.playSelectSE();
 
-          let claimTierId = null;
-
-          // 1. claim_tier / tier パラメータの判定 (例: ?claim_tier=1, ?tier=2, tier-1 等)
-          if (decodedText.startsWith('tier-') || decodedText.startsWith('claim-tier-')) {
-            claimTierId = decodedText.replace(/^(tier-|claim-tier-)/, '');
-          } else {
-            try {
-              const url = new URL(decodedText);
-              claimTierId = url.searchParams.get('claim_tier') || (url.searchParams.get('action') === 'claim_tier' ? url.searchParams.get('tier') : null) || url.searchParams.get('tier');
-            } catch (e) {
-              const matchTier = decodedText.match(/[?&](?:claim_tier|tier)=([^&#]+)/);
-              if (matchTier) claimTierId = decodeURIComponent(matchTier[1]);
-            }
-          }
+          // 1. claim_tier / tier パラメータの判定 (LIFF URL / 通常URL / プレーンIDを包括解析)
+          const claimTierId = extractClaimTierParam(decodedText);
 
           await stopCamera();
           overlay.remove();
