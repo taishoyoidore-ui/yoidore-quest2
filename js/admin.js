@@ -2415,17 +2415,31 @@ class YoidoreAdminApp {
           const tierStatusList = [];
 
           if (sortedTiers.length > 0) {
+            let fallbackSlotCounter = 0;
             sortedTiers.forEach(tier => {
               const tierIdNum = Number(tier.id);
               const isGoods = tier.reward_type === 'goods';
-              const matchingCoupons = userCoupons.filter(c => {
-                if (c.reward_tier_id) return Number(c.reward_tier_id) === tierIdNum;
-                if (isGoods && (c.reward_type === 'goods' || c.goods_name === tier.goods_name || c.goods_name === tier.title)) return true;
-                return false;
-              });
+              const reqCount = Number(tier.selectable_count) || (isGoods ? 1 : 5);
+
+              // 1. reward_tier_id による厳密マッチ
+              let matchingCoupons = userCoupons.filter(c => Number(c.reward_tier_id) === tierIdNum);
+
+              // 2. グッズ名のフォールバックマッチ
+              if (matchingCoupons.length === 0 && isGoods) {
+                matchingCoupons = userCoupons.filter(c => c.reward_type === 'goods' || c.goods_name === tier.goods_name || c.goods_name === tier.title);
+              }
+
+              // 3. reward_tier_id 未設定の旧データに対するスロット順フォールバックマッチ
+              if (matchingCoupons.length === 0 && userCoupons.some(c => !c.reward_tier_id)) {
+                const unassignedCoupons = userCoupons.filter(c => !c.reward_tier_id && c.reward_type !== 'goods');
+                if (unassignedCoupons.length > fallbackSlotCounter) {
+                  matchingCoupons = unassignedCoupons.slice(fallbackSlotCounter, fallbackSlotCounter + reqCount);
+                  fallbackSlotCounter += reqCount;
+                }
+              }
 
               if (matchingCoupons.length > 0 || unlockedTierIds.includes(tierIdNum)) {
-                const total = matchingCoupons.length;
+                const total = matchingCoupons.length || reqCount;
                 const usedList = matchingCoupons.filter(c => c.status === 'used');
                 const used = usedList.length;
                 const remaining = Math.max(0, total - used);

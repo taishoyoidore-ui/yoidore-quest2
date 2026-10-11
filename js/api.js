@@ -788,12 +788,9 @@ class QuestApiManager {
 
     let coupons = [];
     try {
-      // select=* で安全に取得 (外部キー結合 stores(*) のスキーマ不一致による400エラーを防止)
       const data = await this.supabaseFetch(`user_coupons?user_id=eq.${encodeURIComponent(this.currentUser.userId)}&select=*&order=acquired_at.asc`);
       if (Array.isArray(data)) {
         const tiers = await this.getRewardTiers(targetSeasonId);
-        const goodsTiers = tiers.filter(t => t.reward_type === 'goods');
-        const couponTiers = tiers.filter(t => t.reward_type !== 'goods');
 
         // 指定シーズンで絞り込み
         const filteredCoupons = data.filter(c => {
@@ -804,39 +801,13 @@ class QuestApiManager {
         // 獲得順にソート (古い順)
         const sortedFiltered = [...filteredCoupons].sort((a, b) => new Date(a.acquired_at || 0) - new Date(b.acquired_at || 0));
 
-        let couponSlotCounter = 0;
-        let goodsSlotCounter = 0;
-
         coupons = sortedFiltered.map((c) => {
           let matchedTier = null;
           if (c.reward_tier_id) {
             matchedTier = tiers.find(t => Number(t.id) === Number(c.reward_tier_id));
           }
 
-          // reward_tier_id が欠落している旧データへの安全なフォールバック
-          if (!matchedTier) {
-            const isGoodsLike = c.reward_type === 'goods' || (c.store_id === 'store-01' && goodsTiers.length > 0 && !c.store_name);
-            if (isGoodsLike && goodsTiers.length > 0) {
-              const gIdx = Math.min(goodsSlotCounter, goodsTiers.length - 1);
-              matchedTier = goodsTiers[gIdx];
-              goodsSlotCounter++;
-            } else if (couponTiers.length > 0) {
-              // selectable_count に基づいて正確にランク付け
-              let accumulatedCount = 0;
-              for (const ct of couponTiers) {
-                const count = Number(ct.selectable_count) || 5;
-                if (couponSlotCounter < accumulatedCount + count) {
-                  matchedTier = ct;
-                  break;
-                }
-                accumulatedCount += count;
-              }
-              if (!matchedTier) matchedTier = couponTiers[couponTiers.length - 1];
-              couponSlotCounter++;
-            }
-          }
-
-          const isGoods = matchedTier?.reward_type === 'goods' || c.reward_type === 'goods';
+          const isGoods = (matchedTier?.reward_type === 'goods') || (c.reward_type === 'goods');
           return {
             ...c,
             season_id: targetSeasonId,
@@ -845,20 +816,20 @@ class QuestApiManager {
             goods_name: matchedTier?.goods_name || c.goods_name || matchedTier?.title || null,
             exchange_location: matchedTier?.exchange_location || c.exchange_location || null,
             exchange_notice: matchedTier?.exchange_notice || c.exchange_notice || null,
-            title: matchedTier?.title || c.title || ''
+            title: matchedTier?.title || c.title || (isGoods ? '限定グッズ引換券' : '酒場クーポン')
           };
         });
       }
-    } catch (e) {
-      console.error('データベースからのクーポン一覧取得エラー:', e);
+    } catch (err) {
+      console.error('ユーザーのクーポン取得エラー:', err);
     }
 
     this.userCoupons = coupons;
-    return this.userCoupons;
+    return coupons;
   }
 
   /* ------------------------------------------------------------------------
-   * 特典マイルストーンQR読み取り時のカスケード獲得処理（超高速一括バッチ保存）
+   * 特典マイルストーンQR読み取り時のカスケード獲得処理（正規化・一括バッチ保存）
    * （指定tier以下の未獲得特典をすべて一括バッチINSERTして即時完了）
    * ------------------------------------------------------------------------ */
   async claimRewardTierCascade(targetTierId, seasonId = null) {
@@ -871,13 +842,19 @@ class QuestApiManager {
 
     const targetSeasonId = Number(seasonId || this.currentSeason?.id || 2);
     const tiers = await this.getRewardTiers(targetSeasonId);
-    
-    // tier-1 や claim-tier-1 等のプレフィックス付きIDにも対応
+    if (!tiers || tiers.length === 0) {
+      return { success: false, message: '特典マスタが見つかりません。' };
+    }
+
+    // tier-1 や claim-tier-1、軒数指定（5, 10, 15...）等に対応
     const cleanNumId = parseInt(String(targetTierId).replace(/\D/g, ''), 10) || Number(targetTierId);
-    const targetTier = tiers.find(t => Number(t.id) === cleanNumId) || tiers.find(t => String(t.id) === String(targetTierId));
+    let targetTier = tiers.find(t => Number(t.id) === cleanNumId) || 
+                     tiers.find(t => String(t.id) === String(targetTierId)) ||
+                     tiers.find(t => Number(t.required_visits) === cleanNumId) ||
+                     tiers.find(t => t.title && t.title.includes(String(targetTierId)));
 
     if (!targetTier) {
-      return { success: false, message: '指定された特典ランクが見つかりません。' };
+      targetTier = tiers[0];
     }
 
     const targetRequiredVisits = Number(targetTier.required_visits) || 0;
@@ -915,11 +892,15 @@ class QuestApiManager {
         newGoodsList.push(tier.goods_name || tier.title);
         allRowsToInsert.push({
           user_id: this.currentUser.userId,
-          store_id: 'store-01', // 記念品共通プレースホルダー
+          store_id: null,
           reward_tier_id: tierIdNum,
           season_id: targetSeasonId,
           status: 'active',
-          acquired_at: nowIso
+          acquired_at: nowIso,
+          reward_type: 'goods',
+          goods_name: tier.goods_name || tier.title,
+          exchange_location: tier.exchange_location || null,
+          exchange_notice: tier.exchange_notice || null
         });
       } else {
         const ticketCount = Number(tier.selectable_count) || 5;
@@ -931,7 +912,8 @@ class QuestApiManager {
             reward_tier_id: tierIdNum,
             season_id: targetSeasonId,
             status: 'active',
-            acquired_at: nowIso
+            acquired_at: nowIso,
+            reward_type: 'store_coupon'
           });
         }
       }
@@ -948,63 +930,17 @@ class QuestApiManager {
       };
     }
 
-    // Supabaseへの一括バッチINSERT（直列リクエストを排除し1回で高速保存）
-    try {
-      await this.syncUserToDatabase();
-
-      let batchSuccess = false;
-      let lastErr = null;
-
-      // 1. 標準一括INSERT (store_id: null または 'store-01')
-      try {
-        await this.supabaseFetch('user_coupons', {
-          method: 'POST',
-          headers: { 'Prefer': 'return=representation' },
-          body: JSON.stringify(allRowsToInsert)
-        });
-        batchSuccess = true;
-      } catch (err1) {
-        lastErr = err1;
-        // 2. store_id NOT NULL 制約対策 (全レコードに store_id: 'store-01' を適用)
-        try {
-          const fallbackRows = allRowsToInsert.map(r => ({ ...r, store_id: r.store_id || 'store-01' }));
-          await this.supabaseFetch('user_coupons', {
-            method: 'POST',
-            headers: { 'Prefer': 'return=representation' },
-            body: JSON.stringify(fallbackRows)
-          });
-          batchSuccess = true;
-        } catch (err2) {
-          lastErr = err2;
-          // 3. 個別順次フォールバック（最終手段）
-          for (const row of allRowsToInsert) {
-            try {
-              await this.supabaseFetch('user_coupons', {
-                method: 'POST',
-                body: JSON.stringify(row)
-              });
-            } catch (e) {
-              console.warn('個別行保存フォールバック:', e);
-            }
-          }
-          batchSuccess = true;
-        }
-      }
-
-      if (!batchSuccess) {
-        throw lastErr || new Error('特典データの保存に失敗しました');
-      }
-
-      // クーポン一覧を更新して完了
-      await this.getUserCoupons(targetSeasonId);
-
-    } catch (saveErr) {
-      console.error('マイルストーン一括獲得エラー:', saveErr);
+    // データベースへの安全な一括保存
+    const saveResult = await this.saveCouponRowsSafely(allRowsToInsert, targetSeasonId);
+    if (!saveResult.success) {
       return {
         success: false,
-        message: '特典の保存に失敗しました: ' + (saveErr.message || '通信エラー')
+        message: '特典の保存に失敗しました: ' + (saveResult.message || '通信エラー')
       };
     }
+
+    // クーポン一覧を更新して完了
+    await this.getUserCoupons(targetSeasonId);
 
     return {
       success: true,
@@ -1021,219 +957,105 @@ class QuestApiManager {
   }
 
   /* ------------------------------------------------------------------------
-   * クーポン型特典の宝箱開封・回数枠獲得 (シーズン連動・データベースに保存)
+   * 🛡️ クーポン・特典レコードの安全な一括保存処理
+   * ------------------------------------------------------------------------ */
+  async saveCouponRowsSafely(rows, seasonId = 2) {
+    if (!rows || rows.length === 0) return { success: true };
+    await this.syncUserToDatabase();
+
+    // 試行1: 正規一括INSERT（store_id: null, 全カラム付与）
+    try {
+      await this.supabaseFetch('user_coupons', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify(rows)
+      });
+      return { success: true };
+    } catch (err1) {
+      console.warn('正規一括INSERTエラー、フォールバックで再試行:', err1.message);
+    }
+
+    // 試行2: 基本カラムのみでの一括INSERT（拡張カラム未追加の旧DB環境対応）
+    try {
+      const basicRows = rows.map(r => ({
+        user_id: r.user_id,
+        store_id: r.store_id || null,
+        reward_tier_id: r.reward_tier_id,
+        season_id: r.season_id || seasonId,
+        status: r.status || 'active',
+        acquired_at: r.acquired_at || new Date().toISOString()
+      }));
+
+      await this.supabaseFetch('user_coupons', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify(basicRows)
+      });
+      return { success: true };
+    } catch (err2) {
+      console.warn('基本カラム一括INSERTエラー、1件ずつ順次INSERTで再試行:', err2.message);
+    }
+
+    // 試行3: 個別行順次保存
+    let successCount = 0;
+    let lastError = null;
+
+    for (const row of rows) {
+      try {
+        await this.supabaseFetch('user_coupons', {
+          method: 'POST',
+          body: JSON.stringify(row)
+        });
+        successCount++;
+      } catch (e) {
+        lastError = e;
+        try {
+          await this.supabaseFetch('user_coupons', {
+            method: 'POST',
+            body: JSON.stringify({
+              user_id: row.user_id,
+              store_id: row.store_id || null,
+              reward_tier_id: row.reward_tier_id,
+              status: row.status || 'active',
+              acquired_at: row.acquired_at || new Date().toISOString()
+            })
+          });
+          successCount++;
+        } catch (e2) {
+          lastError = e2;
+        }
+      }
+    }
+
+    if (successCount > 0) {
+      return { success: true, count: successCount };
+    }
+
+    return {
+      success: false,
+      message: lastError ? (lastError.message || String(lastError)) : '保存に失敗しました'
+    };
+  }
+
+  /* ------------------------------------------------------------------------
+   * クーポン型特典の宝箱開封・回数枠獲得 (個別手動獲得用)
    * ------------------------------------------------------------------------ */
   async claimStoreCouponTier(rewardTierId, seasonId = null) {
-    if (!this.currentUser || !this.currentUser.userId) {
-      return { success: false, message: 'LINEログインが必要です' };
-    }
-
-    const targetSeasonId = Number(seasonId || this.currentSeason?.id || 2);
-    await this.getUserCoupons(targetSeasonId);
-    if (this.userCoupons.some(c => Number(c.reward_tier_id) === Number(rewardTierId))) {
-      return { success: false, message: '既にこの特典クーポンは獲得済みです。' };
-    }
-
-    const tiers = await this.getRewardTiers(targetSeasonId);
-    const tier = tiers.find(t => Number(t.id) === Number(rewardTierId));
-    const ticketCount = Number(tier?.selectable_count) || 5;
-    const numTierId = parseInt(String(rewardTierId).replace(/\D/g, ''), 10) || parseInt(rewardTierId, 10);
-
-    const makeRows = (useTierId, withSeason = false, fallbackStoreId = null) => {
-      const rows = [];
-      for (let i = 0; i < ticketCount; i++) {
-        const row = {
-          user_id: this.currentUser.userId,
-          store_id: fallbackStoreId,
-          status: 'active',
-          acquired_at: new Date().toISOString()
-        };
-        if (useTierId && !isNaN(numTierId)) {
-          row.reward_tier_id = numTierId;
-        }
-        if (withSeason && targetSeasonId) {
-          row.season_id = targetSeasonId;
-        }
-        rows.push(row);
-      }
-      return rows;
-    };
-
-    try {
-      await this.syncUserToDatabase();
-      let insertSuccess = false;
-      let lastErr = null;
-
-      try {
-        await this.supabaseFetch('user_coupons', {
-          method: 'POST',
-          headers: { 'Prefer': 'return=representation' },
-          body: JSON.stringify(makeRows(true, true, null))
-        });
-        insertSuccess = true;
-      } catch (e1) {
-        lastErr = e1;
-        try {
-          await this.supabaseFetch('user_coupons', {
-            method: 'POST',
-            headers: { 'Prefer': 'return=representation' },
-            body: JSON.stringify(makeRows(true, true, 'store-01'))
-          });
-          insertSuccess = true;
-        } catch (e2) {
-          lastErr = e2;
-        }
-      }
-
-      if (!insertSuccess) {
-        throw lastErr || new Error('クーポンのデータベース保存に失敗しました');
-      }
-
-      await this.getUserCoupons(targetSeasonId);
-    } catch (err) {
-      console.error('データベースへのクーポン枠保存エラー:', err);
-      return {
-        success: false,
-        message: 'クーポンの保存に失敗しました: ' + (err.message || '通信エラー')
-      };
-    }
-
-    return { success: true, count: ticketCount, tier };
+    return await this.claimRewardTierCascade(rewardTierId, seasonId);
   }
 
   /* ------------------------------------------------------------------------
-   * クーポン選択・獲得 (後方互換・一括指定保存用)
-   * ------------------------------------------------------------------------ */
-  async claimCoupons(rewardTierId, selectedStoreIds, seasonId = null) {
-    if (!this.currentUser || !this.currentUser.userId) {
-      return { success: false, message: 'LINEログインが必要です' };
-    }
-    if (!selectedStoreIds || selectedStoreIds.length === 0) {
-      return { success: false, message: '店舗が選択されていません' };
-    }
-
-    const targetSeasonId = Number(seasonId || this.currentSeason?.id || 2);
-    const numTierId = parseInt(rewardTierId, 10);
-    const makeRows = (useTierId, withSeason = false) => selectedStoreIds.map(storeId => {
-      const row = {
-        user_id: this.currentUser.userId,
-        store_id: storeId,
-        status: 'active',
-        acquired_at: new Date().toISOString()
-      };
-      if (useTierId && !isNaN(numTierId)) {
-        row.reward_tier_id = numTierId;
-      }
-      if (withSeason && targetSeasonId) {
-        row.season_id = targetSeasonId;
-      }
-      return row;
-    });
-
-    try {
-      await this.syncUserToDatabase();
-      try {
-        await this.supabaseFetch('user_coupons', {
-          method: 'POST',
-          headers: { 'Prefer': 'return=representation' },
-          body: JSON.stringify(makeRows(true, false))
-        });
-      } catch (err1) {
-        try {
-          await this.supabaseFetch('user_coupons', {
-            method: 'POST',
-            headers: { 'Prefer': 'return=representation' },
-            body: JSON.stringify(makeRows(true, true))
-          });
-        } catch (err2) {
-          await this.supabaseFetch('user_coupons', {
-            method: 'POST',
-            headers: { 'Prefer': 'return=representation' },
-            body: JSON.stringify(makeRows(false, false))
-          });
-        }
-      }
-      await this.getUserCoupons(targetSeasonId);
-    } catch (err) {
-      console.error('データベースへのクーポン保存エラー:', err);
-      return {
-        success: false,
-        message: 'クーポンの保存に失敗しました: ' + (err.message || '通信エラー')
-      };
-    }
-
-    return { success: true, count: selectedStoreIds.length };
-  }
-
-  /* ------------------------------------------------------------------------
-   * グッズ・記念品引換券の即時獲得 (シーズン連動・データベースに保存)
+   * グッズ・記念品引換券の獲得 (個別手動獲得用)
    * ------------------------------------------------------------------------ */
   async claimGoodsReward(rewardTierId, seasonId = null) {
-    if (!this.currentUser || !this.currentUser.userId) {
-      return { success: false, message: 'LINEログインが必要です' };
-    }
-
-    const targetSeasonId = Number(seasonId || this.currentSeason?.id || 2);
-    await this.getUserCoupons(targetSeasonId);
-    if (this.userCoupons.some(c => Number(c.reward_tier_id) === Number(rewardTierId))) {
-      return { success: false, message: '既にこのグッズ引換券は獲得済みです。' };
-    }
-
-    const tiers = await this.getRewardTiers(targetSeasonId);
-    const tier = tiers.find(t => Number(t.id) === Number(rewardTierId));
-
-    try {
-      await this.syncUserToDatabase();
-      const numTierId = parseInt(rewardTierId, 10);
-      const baseRow = {
-        user_id: this.currentUser.userId,
-        store_id: 'store-01', // 共通デフォルト店舗
-        status: 'active',
-        acquired_at: new Date().toISOString()
-      };
-      if (!isNaN(numTierId)) {
-        baseRow.reward_tier_id = numTierId;
-      }
-
-      const tryInsert = async (payload) => {
-        return await this.supabaseFetch('user_coupons', {
-          method: 'POST',
-          headers: { 'Prefer': 'return=representation' },
-          body: JSON.stringify(payload)
-        });
-      };
-
-      // 1. 標準: reward_tier_id あり、season_id なし
-      try {
-        await tryInsert(baseRow);
-      } catch (err1) {
-        try {
-          const rowWithSeason = { ...baseRow, season_id: targetSeasonId };
-          await tryInsert(rowWithSeason);
-        } catch (err2) {
-          const minimalRow = {
-            user_id: this.currentUser.userId,
-            store_id: 'store-01',
-            status: 'active',
-            acquired_at: new Date().toISOString()
-          };
-          await tryInsert(minimalRow);
-        }
-      }
-
-      await this.getUserCoupons(targetSeasonId);
-      return { success: true, goods: { ...baseRow, goods_name: tier?.goods_name || tier?.title } };
-    } catch (e) {
-      console.error('グッズ引換券のデータベース保存エラー:', e);
-      return { success: false, message: 'グッズ引換券の発行に失敗しました: ' + (e.message || '通信エラー') };
-    }
+    return await this.claimRewardTierCascade(rewardTierId, seasonId);
   }
 
   /* ------------------------------------------------------------------------
-   * クーポン・引換券の消し込み（店舗指定 & 直接データベース更新）
+   * クーポン・引換券の個別消し込み（直接データベース更新）
    * ------------------------------------------------------------------------ */
   async redeemCoupon(couponId, storeId = null) {
-    if (!couponId) return { success: false, message: 'クーポン・引換券IDが指定されていません' };
+    if (!couponId) return { success: false, message: 'クーポンIDが指定されていません' };
 
     const updateBody = {
       status: 'used',
@@ -1251,25 +1073,22 @@ class QuestApiManager {
       });
       await this.getUserCoupons();
     } catch (err) {
-      console.error('データベースのクーポン消し込みエラー:', err);
-      // ローカル更新フォールバック
-      const target = this.userCoupons.find(c => c.id === couponId);
-      if (target) {
-        target.status = 'used';
-        target.used_at = updateBody.used_at;
-        if (storeId) target.store_id = storeId;
-      }
+      console.error('クーポン消し込みエラー:', err);
+      return { success: false, message: '消し込みに失敗しました: ' + (err.message || '通信エラー') };
     }
 
     return { success: true };
   }
 
   /* ------------------------------------------------------------------------
-   * 特典ランクから1店舗分のクーポンを店頭消し込み（オンデマンド即時記録）
+   * 店頭での酒場クーポン消し込み（1店舗1枠をオンデマンド消費）
    * ------------------------------------------------------------------------ */
   async redeemCouponForStore(tierId, storeId, seasonId = null) {
     if (!this.currentUser || !this.currentUser.userId) {
       return { success: false, message: 'ユーザー情報が見つかりません。' };
+    }
+    if (!storeId) {
+      return { success: false, message: '利用店舗が指定されていません。' };
     }
 
     const targetSeasonId = Number(seasonId || this.currentSeason?.id || 2);
@@ -1281,8 +1100,8 @@ class QuestApiManager {
       return { success: false, message: 'この酒場では既にクーポンをご利用済みです（シーズン中1店舗1回限り）。' };
     }
 
-    // 未使用で、該当tier（またはクーポン型）の既存空枠レコードを探す
-    const availableCoupons = this.userCoupons.filter(c => {
+    // 未使用で、空枠レコード（store_id is null, status is active, reward_type is store_coupon）を探す
+    let availableCoupon = this.userCoupons.find(c => {
       if (c.status === 'used') return false;
       if (c.reward_type === 'goods') return false;
       if (tierId) {
@@ -1291,49 +1110,17 @@ class QuestApiManager {
       return true;
     });
 
-    if (availableCoupons.length > 0) {
-      // 既存の空枠レコードがあればそれを used に更新
-      const couponToUse = availableCoupons[0];
-      return await this.redeemCoupon(couponToUse.id, storeId);
+    // tierId指定で見つからない場合、任意の未利用酒場クーポン枠を使用
+    if (!availableCoupon) {
+      availableCoupon = this.userCoupons.find(c => c.status !== 'used' && c.reward_type !== 'goods');
     }
 
-    // 事前空枠がない場合は、直接 used レコードをINSERTして即時消費
-    try {
-      await this.syncUserToDatabase();
-      const numTierId = parseInt(tierId, 10);
-      const now = new Date().toISOString();
-      const baseRow = {
-        user_id: this.currentUser.userId,
-        store_id: storeId,
-        status: 'used',
-        acquired_at: now,
-        used_at: now
-      };
-
-      const tryInsert = async (payload) => {
-        return await this.supabaseFetch('user_coupons', {
-          method: 'POST',
-          headers: { 'Prefer': 'return=representation' },
-          body: JSON.stringify(payload)
-        });
-      };
-
-      // スキーマの段階的フォールバック（PGRST204回避）
-      try {
-        const fullRow = { ...baseRow };
-        if (!isNaN(numTierId)) fullRow.reward_tier_id = numTierId;
-        await tryInsert(fullRow);
-      } catch (err1) {
-        // 万が一 reward_tier_id カラムがない環境のみ baseRow で保存
-        await tryInsert(baseRow);
-      }
-
-      await this.getUserCoupons(targetSeasonId);
-      return { success: true };
-    } catch (err) {
-      console.error('店頭クーポン直接消し込みエラー:', err);
-      return { success: false, message: 'クーポンの利用記録に失敗しました: ' + (err.message || '通信エラー') };
+    if (!availableCoupon) {
+      return { success: false, message: '利用可能な酒場クーポン枠がありません。特典QRを読み込んでクーポンを獲得してください。' };
     }
+
+    // 該当のクーポン枠を店舗ID付きで used に更新
+    return await this.redeemCoupon(availableCoupon.id, storeId);
   }
 
   /* ------------------------------------------------------------------------
