@@ -397,28 +397,34 @@ class YoidoreQuestApp {
 
       try {
         await window.questApi.initAuth();
-        await window.questApi.getCurrentSeason();
-        await window.questApi.getSeasons();
-        this.selectedBookSeasonId = window.questApi.currentSeason?.id || 2;
-        const curSeason = window.questApi.currentSeason;
+        
+        // シーズン・設定・店舗・特典・履歴データを並列取得で高速化
+        const [curSeason, seasons, stores] = await Promise.all([
+          window.questApi.getCurrentSeason(),
+          window.questApi.getSeasons(),
+          window.questApi.getStores()
+        ]);
+
+        this.selectedBookSeasonId = curSeason?.id || 2;
         if (curSeason && curSeason.start_date && curSeason.end_date) {
           const periodBadge = document.getElementById('start-period-badge');
           if (periodBadge) {
             periodBadge.textContent = `📅 ${this.formatDateWithDay(curSeason.start_date)} 〜 ${this.formatDateWithDay(curSeason.end_date)} 開催`;
           }
         }
-        const stores = await window.questApi.getStores();
+
         if (stores && stores.length > 0) {
           window.STORES_DATA = stores;
           window.TAISHO_STORES = stores;
-          if (!claimTierId) {
-            this.render(); // 通常起動時のみSupabase店舗データで即座に描画
-          }
         }
-        await window.questApi.getRewardTiers();
-        await window.questApi.getHeroTitles();
-        await window.questApi.getUserVisits();
-        await window.questApi.getUserCoupons();
+
+        // 特典設定・称号・来店履歴・クーポン履歴を並列取得
+        await Promise.all([
+          window.questApi.getRewardTiers(),
+          window.questApi.getHeroTitles(),
+          window.questApi.getUserVisits(),
+          window.questApi.getUserCoupons()
+        ]);
 
         if (claimTierId) {
           // スタート画面オーバーレイを確実に非表示にして冒険の書にセット

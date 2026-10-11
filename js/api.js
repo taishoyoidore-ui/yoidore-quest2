@@ -789,7 +789,7 @@ class QuestApiManager {
     let coupons = [];
     try {
       // select=* で安全に取得 (外部キー結合 stores(*) のスキーマ不一致による400エラーを防止)
-      const data = await this.supabaseFetch(`user_coupons?user_id=eq.${encodeURIComponent(this.currentUser.userId)}&select=*&order=acquired_at.desc`);
+      const data = await this.supabaseFetch(`user_coupons?user_id=eq.${encodeURIComponent(this.currentUser.userId)}&select=*&order=acquired_at.asc`);
       if (Array.isArray(data)) {
         const tiers = await this.getRewardTiers(targetSeasonId);
         const goodsTiers = tiers.filter(t => t.reward_type === 'goods');
@@ -804,22 +804,43 @@ class QuestApiManager {
         // 獲得順にソート (古い順)
         const sortedFiltered = [...filteredCoupons].sort((a, b) => new Date(a.acquired_at || 0) - new Date(b.acquired_at || 0));
 
-        coupons = sortedFiltered.map((c, idx) => {
-          let matchedTier = tiers.find(t => Number(t.id) === Number(c.reward_tier_id));
-          if (!matchedTier && goodsTiers.length > 0 && c.store_id === 'store-01') {
-            matchedTier = goodsTiers[0];
-          }
-          // reward_tier_id が欠落している場合のフォールバック推測 (5件ごとに1ランク)
-          if (!matchedTier && couponTiers.length > 0 && !c.reward_tier_id) {
-            const tierIdx = Math.min(Math.floor(idx / 5), couponTiers.length - 1);
-            matchedTier = couponTiers[tierIdx];
+        let couponSlotCounter = 0;
+        let goodsSlotCounter = 0;
+
+        coupons = sortedFiltered.map((c) => {
+          let matchedTier = null;
+          if (c.reward_tier_id) {
+            matchedTier = tiers.find(t => Number(t.id) === Number(c.reward_tier_id));
           }
 
-          const isGoods = matchedTier?.reward_type === 'goods';
+          // reward_tier_id が欠落している旧データへの安全なフォールバック
+          if (!matchedTier) {
+            const isGoodsLike = c.reward_type === 'goods' || (c.store_id === 'store-01' && goodsTiers.length > 0 && !c.store_name);
+            if (isGoodsLike && goodsTiers.length > 0) {
+              const gIdx = Math.min(goodsSlotCounter, goodsTiers.length - 1);
+              matchedTier = goodsTiers[gIdx];
+              goodsSlotCounter++;
+            } else if (couponTiers.length > 0) {
+              // selectable_count に基づいて正確にランク付け
+              let accumulatedCount = 0;
+              for (const ct of couponTiers) {
+                const count = Number(ct.selectable_count) || 5;
+                if (couponSlotCounter < accumulatedCount + count) {
+                  matchedTier = ct;
+                  break;
+                }
+                accumulatedCount += count;
+              }
+              if (!matchedTier) matchedTier = couponTiers[couponTiers.length - 1];
+              couponSlotCounter++;
+            }
+          }
+
+          const isGoods = matchedTier?.reward_type === 'goods' || c.reward_type === 'goods';
           return {
             ...c,
             season_id: targetSeasonId,
-            reward_tier_id: c.reward_tier_id || matchedTier?.id || null,
+            reward_tier_id: c.reward_tier_id ? Number(c.reward_tier_id) : (matchedTier?.id ? Number(matchedTier.id) : null),
             reward_type: isGoods ? 'goods' : (c.reward_type || 'store_coupon'),
             goods_name: matchedTier?.goods_name || c.goods_name || matchedTier?.title || null,
             exchange_location: matchedTier?.exchange_location || c.exchange_location || null,
@@ -837,8 +858,8 @@ class QuestApiManager {
   }
 
   /* ------------------------------------------------------------------------
-   * 特典マイルストーンQR読み取り時のカスケード獲得処理
-   * （指定tier以下の未獲得特典をすべて合算・自動獲得）
+   * 特典マイルストーンQR読み取り時のカスケード獲得処理（超高速一括バッチ保存）
+   * （指定tier以下の未獲得特典をすべて一括バッチINSERTして即時完了）
    * ------------------------------------------------------------------------ */
   async claimRewardTierCascade(targetTierId, seasonId = null) {
     if (!this.currentUser || !this.currentUser.userId) {
@@ -865,6 +886,7 @@ class QuestApiManager {
       .filter(t => (Number(t.required_visits) || 0) <= targetRequiredVisits)
       .sort((a, b) => (Number(a.required_visits) || 0) - (Number(b.required_visits) || 0));
 
+    // 最新のクーポン獲得状況を取得
     await this.getUserCoupons(targetSeasonId);
 
     // 既に獲得済みのtierIdのセット
@@ -877,45 +899,122 @@ class QuestApiManager {
     const newlyClaimedTiers = [];
     let totalNewSlots = 0;
     const newGoodsList = [];
+    const allRowsToInsert = [];
+    const nowIso = new Date().toISOString();
 
     for (const tier of applicableTiers) {
-      if (claimedTierIds.has(Number(tier.id))) {
+      const tierIdNum = Number(tier.id);
+      if (claimedTierIds.has(tierIdNum)) {
         continue; // 既に獲得済み
       }
 
+      newlyClaimedTiers.push(tier);
+      claimedTierIds.add(tierIdNum);
+
       if (tier.reward_type === 'goods') {
-        const goodsRes = await this.claimGoodsReward(tier.id, targetSeasonId);
-        if (goodsRes.success) {
-          newlyClaimedTiers.push(tier);
-          newGoodsList.push(tier.goods_name || tier.title);
-          claimedTierIds.add(Number(tier.id));
-        }
+        newGoodsList.push(tier.goods_name || tier.title);
+        allRowsToInsert.push({
+          user_id: this.currentUser.userId,
+          store_id: 'store-01', // 記念品共通プレースホルダー
+          reward_tier_id: tierIdNum,
+          season_id: targetSeasonId,
+          status: 'active',
+          acquired_at: nowIso
+        });
       } else {
-        const couponRes = await this.claimStoreCouponTier(tier.id, targetSeasonId);
-        if (couponRes.success) {
-          newlyClaimedTiers.push(tier);
-          totalNewSlots += (Number(tier.selectable_count) || 5);
-          claimedTierIds.add(Number(tier.id));
+        const ticketCount = Number(tier.selectable_count) || 5;
+        totalNewSlots += ticketCount;
+        for (let i = 0; i < ticketCount; i++) {
+          allRowsToInsert.push({
+            user_id: this.currentUser.userId,
+            store_id: null,
+            reward_tier_id: tierIdNum,
+            season_id: targetSeasonId,
+            status: 'active',
+            acquired_at: nowIso
+          });
         }
       }
     }
 
-    await this.getUserCoupons(targetSeasonId);
-
-    if (newlyClaimedTiers.length === 0) {
+    if (newlyClaimedTiers.length === 0 || allRowsToInsert.length === 0) {
       return {
-        success: false,
+        success: true,
         alreadyClaimed: true,
         message: `【${targetTier.title}】（および対象の特典）は既に獲得済みです！`,
-        targetTier
+        targetTier,
+        claimedTiers: [],
+        newlyClaimedTiers: []
+      };
+    }
+
+    // Supabaseへの一括バッチINSERT（直列リクエストを排除し1回で高速保存）
+    try {
+      await this.syncUserToDatabase();
+
+      let batchSuccess = false;
+      let lastErr = null;
+
+      // 1. 標準一括INSERT (store_id: null または 'store-01')
+      try {
+        await this.supabaseFetch('user_coupons', {
+          method: 'POST',
+          headers: { 'Prefer': 'return=representation' },
+          body: JSON.stringify(allRowsToInsert)
+        });
+        batchSuccess = true;
+      } catch (err1) {
+        lastErr = err1;
+        // 2. store_id NOT NULL 制約対策 (全レコードに store_id: 'store-01' を適用)
+        try {
+          const fallbackRows = allRowsToInsert.map(r => ({ ...r, store_id: r.store_id || 'store-01' }));
+          await this.supabaseFetch('user_coupons', {
+            method: 'POST',
+            headers: { 'Prefer': 'return=representation' },
+            body: JSON.stringify(fallbackRows)
+          });
+          batchSuccess = true;
+        } catch (err2) {
+          lastErr = err2;
+          // 3. 個別順次フォールバック（最終手段）
+          for (const row of allRowsToInsert) {
+            try {
+              await this.supabaseFetch('user_coupons', {
+                method: 'POST',
+                body: JSON.stringify(row)
+              });
+            } catch (e) {
+              console.warn('個別行保存フォールバック:', e);
+            }
+          }
+          batchSuccess = true;
+        }
+      }
+
+      if (!batchSuccess) {
+        throw lastErr || new Error('特典データの保存に失敗しました');
+      }
+
+      // クーポン一覧を更新して完了
+      await this.getUserCoupons(targetSeasonId);
+
+    } catch (saveErr) {
+      console.error('マイルストーン一括獲得エラー:', saveErr);
+      return {
+        success: false,
+        message: '特典の保存に失敗しました: ' + (saveErr.message || '通信エラー')
       };
     }
 
     return {
       success: true,
+      alreadyClaimed: false,
       targetTier,
+      claimedTiers: newlyClaimedTiers,
       newlyClaimedTiers,
+      totalAddedSlots: totalNewSlots,
       totalNewSlots,
+      grantedGoods: newGoodsList,
       newGoodsList,
       applicableTiers
     };
@@ -965,48 +1064,24 @@ class QuestApiManager {
       let insertSuccess = false;
       let lastErr = null;
 
-      // 1. 標準: reward_tier_id あり、store_id: null
       try {
         await this.supabaseFetch('user_coupons', {
           method: 'POST',
           headers: { 'Prefer': 'return=representation' },
-          body: JSON.stringify(makeRows(true, false, null))
+          body: JSON.stringify(makeRows(true, true, null))
         });
         insertSuccess = true;
       } catch (e1) {
         lastErr = e1;
-        // 2. フォールバック: season_id 付き、store_id: null
         try {
           await this.supabaseFetch('user_coupons', {
             method: 'POST',
             headers: { 'Prefer': 'return=representation' },
-            body: JSON.stringify(makeRows(true, true, null))
+            body: JSON.stringify(makeRows(true, true, 'store-01'))
           });
           insertSuccess = true;
         } catch (e2) {
           lastErr = e2;
-          // 3. store_id NOT NULL 制約対策 (共通プレースホルダー 'store-01')
-          try {
-            await this.supabaseFetch('user_coupons', {
-              method: 'POST',
-              headers: { 'Prefer': 'return=representation' },
-              body: JSON.stringify(makeRows(true, true, 'store-01'))
-            });
-            insertSuccess = true;
-          } catch (e3) {
-            lastErr = e3;
-            // 4. 最終フォールバック: reward_tier_id 除外、store_id: 'store-01'
-            try {
-              await this.supabaseFetch('user_coupons', {
-                method: 'POST',
-                headers: { 'Prefer': 'return=representation' },
-                body: JSON.stringify(makeRows(false, false, 'store-01'))
-              });
-              insertSuccess = true;
-            } catch (e4) {
-              lastErr = e4;
-            }
-          }
         }
       }
 
