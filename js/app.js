@@ -2701,9 +2701,8 @@ class YoidoreQuestApp {
           this.playCursorSE();
           this.showAlreadyClaimedMilestoneModal(res);
         } else {
-          // 🎉 特典獲得・ドラクエ風達成演出モーダル表示
-          this.playLevelUpSE();
-          this.showMilestoneUnlockModal(res);
+          // 🎉 秘宝の宝箱発見モーダルを表示（タップで効果音アンロック＆ドラクエ風レベルアップ演出へ移行）
+          this.showTreasureBoxOpenPrompt(res);
         }
       } else {
         alert(res.message || '特典の獲得処理に失敗しました。');
@@ -2712,6 +2711,87 @@ class YoidoreQuestApp {
       console.error('Milestone claim error:', err);
       alert('エラーが発生しました: ' + err.message);
     }
+  }
+
+  /* ------------------------------------------------------------------------
+   * 🎁 秘宝の宝箱 タップ開封演出モーダル (AudioContextアンロック＆演出トリガー)
+   * ------------------------------------------------------------------------ */
+  showTreasureBoxOpenPrompt(res = {}) {
+    const { targetTier } = res;
+    const tierTitle = targetTier?.title || 'ハシゴ酒達成特典';
+    const requiredVisits = targetTier?.required_visits || 5;
+
+    // 既存モーダルがあれば削除
+    const existing = document.getElementById('treasure-box-prompt-modal');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'rpg-modal-overlay treasure-open-overlay';
+    overlay.id = 'treasure-box-prompt-modal';
+
+    overlay.innerHTML = `
+      <div class="rpg-modal-window gold-border treasure-open-window" id="treasure-window-content">
+        <div class="treasure-open-badge">
+          ✨ SPECIAL REWARD ✨
+        </div>
+
+        <div class="treasure-open-title">
+          🎁 秘宝の宝箱を発見！
+        </div>
+
+        <div class="treasure-open-box-visual" id="treasure-box-click-target" title="タップして宝箱を開ける！">
+          <img src="assets/treasure_box.png" alt="秘宝の宝箱" class="treasure-box-img" onerror="this.src='assets/banner.png';">
+        </div>
+
+        <div class="treasure-tap-guide-text">
+          【<strong>${requiredVisits}軒ハシゴ達成</strong>】の証が収められている！<br>
+          <span style="color: #fde047; font-size: 14px; font-weight: bold;">タップして宝箱を開封しよう！</span>
+        </div>
+
+        <button class="treasure-open-action-btn" id="treasure-open-btn">
+          <span>✨ 宝箱を開ける！(TAP)</span>
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    let isOpened = false;
+    const triggerOpen = () => {
+      if (isOpened) return;
+      isOpened = true;
+
+      // ユーザーのタップによりAudioContextの再生制限を確実に解除
+      if (!this.audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          this.audioCtx = new AudioContext();
+        }
+      }
+      if (this.audioCtx && this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume();
+      }
+
+      // レベルアップファンファーレSEを高らかに再生！
+      this.playLevelUpSE();
+
+      // 開封フラッシュアニメーション
+      const windowContent = document.getElementById('treasure-window-content');
+      if (windowContent) {
+        windowContent.classList.add('treasure-opening-flash');
+      }
+
+      // 少しの余韻の後に本モーダルを削除し、詳細アンロック演出モーダルを表示
+      setTimeout(() => {
+        overlay.remove();
+        this.showMilestoneUnlockModal(res);
+      }, 500);
+    };
+
+    const clickTarget = document.getElementById('treasure-box-click-target');
+    const openBtn = document.getElementById('treasure-open-btn');
+    if (clickTarget) clickTarget.addEventListener('click', triggerOpen);
+    if (openBtn) openBtn.addEventListener('click', triggerOpen);
   }
 
   /* ------------------------------------------------------------------------
