@@ -206,7 +206,20 @@ class YoidoreAdminApp {
         }) : [];
 
         this.coupons = filteredCoupons.map(c => {
-          let matchedTier = (this.tiers || []).find(t => Number(t.id) === Number(c.reward_tier_id));
+          const tierStatusMatch = typeof c.status === 'string' ? c.status.match(/^tier_(\d+)_(active|used)$/) : null;
+          let tierIdNum = c.reward_tier_id ? Number(c.reward_tier_id) : null;
+          let normalizedStatus = c.status;
+
+          if (tierStatusMatch) {
+            tierIdNum = parseInt(tierStatusMatch[1], 10);
+            normalizedStatus = tierStatusMatch[2];
+          } else if (c.status === 'used') {
+            normalizedStatus = 'used';
+          } else {
+            normalizedStatus = 'active';
+          }
+
+          let matchedTier = (this.tiers || []).find(t => Number(t.id) === tierIdNum);
           if (!matchedTier && goodsTiers.length > 0 && c.store_id === 'store-01') {
             matchedTier = goodsTiers[0];
           }
@@ -214,8 +227,9 @@ class YoidoreAdminApp {
           const isGoods = matchedTier?.reward_type === 'goods';
           return {
             ...c,
+            status: normalizedStatus,
             season_id: this.selectedSeasonId,
-            reward_tier_id: c.reward_tier_id || matchedTier?.id || null,
+            reward_tier_id: tierIdNum || matchedTier?.id || null,
             reward_type: isGoods ? 'goods' : (c.reward_type || 'store_coupon'),
             goods_name: matchedTier?.goods_name || c.goods_name || matchedTier?.title || null,
             exchange_location: matchedTier?.exchange_location || c.exchange_location || null,

@@ -813,23 +813,33 @@ class QuestApiManager {
         // 獲得順にソート (古い順)
         const sortedFiltered = [...filteredCoupons].sort((a, b) => new Date(a.acquired_at || 0) - new Date(b.acquired_at || 0));
 
-        // 1. reward_tier_id が設定されているレコードを優先マッピング
+        // 1. 各レコードの status / reward_tier_id から tier_id と normalizedStatus を直接特定
         const tierAssignedCounts = new Map();
         sortedTiers.forEach(t => tierAssignedCounts.set(Number(t.id), 0));
 
         const preMapped = sortedFiltered.map(c => {
+          let normalizedStatus = c.status || 'active';
+          let explicitTierId = c.reward_tier_id ? Number(c.reward_tier_id) : null;
+
+          // status に tier_{id}_{active|used} が埋め込まれている場合を最優先解析
+          const statusMatch = String(c.status || '').match(/^tier_(\d+)_(active|used)$/);
+          if (statusMatch) {
+            explicitTierId = parseInt(statusMatch[1], 10);
+            normalizedStatus = statusMatch[2];
+          }
+
           let matchedTier = null;
-          if (c.reward_tier_id) {
-            matchedTier = sortedTiers.find(t => Number(t.id) === Number(c.reward_tier_id));
+          if (explicitTierId) {
+            matchedTier = sortedTiers.find(t => Number(t.id) === explicitTierId);
             if (matchedTier) {
               const current = tierAssignedCounts.get(Number(matchedTier.id)) || 0;
               tierAssignedCounts.set(Number(matchedTier.id), current + 1);
             }
           }
-          return { coupon: c, tier: matchedTier };
+          return { coupon: { ...c, status: normalizedStatus }, tier: matchedTier };
         });
 
-        // 2. reward_tier_id が未設定（外部キー制約回避でnull保存された15軒・20軒等）のレコードをスロット順にスマートマッピング
+        // 2. tier_id が未特定のレガシーレコードをスロット順にスマートマッピング
         coupons = preMapped.map(({ coupon: c, tier: alreadyMatched }) => {
           let matchedTier = alreadyMatched;
 
@@ -921,7 +931,8 @@ class QuestApiManager {
     let totalNewSlots = 0;
     const newGoodsList = [];
     const allRowsToInsert = [];
-    const nowIso = new Date().toISOString();
+    const baseTime = Date.now();
+    let offsetMs = 0;
 
     for (const tier of applicableTiers) {
       const tierIdNum = Number(tier.id);
@@ -934,13 +945,14 @@ class QuestApiManager {
 
       if (tier.reward_type === 'goods') {
         newGoodsList.push(tier.goods_name || tier.title);
+        offsetMs += 10;
         allRowsToInsert.push({
           user_id: this.currentUser.userId,
           store_id: null,
-          reward_tier_id: tierIdNum,
+          reward_tier_id: tierIdNum <= 2 ? tierIdNum : null,
           season_id: targetSeasonId,
-          status: 'active',
-          acquired_at: nowIso,
+          status: `tier_${tierIdNum}_active`,
+          acquired_at: new Date(baseTime + offsetMs).toISOString(),
           reward_type: 'goods',
           goods_name: tier.goods_name || tier.title,
           exchange_location: tier.exchange_location || null,
@@ -950,13 +962,14 @@ class QuestApiManager {
         const ticketCount = Number(tier.selectable_count) || 5;
         totalNewSlots += ticketCount;
         for (let i = 0; i < ticketCount; i++) {
+          offsetMs += 10;
           allRowsToInsert.push({
             user_id: this.currentUser.userId,
             store_id: null,
-            reward_tier_id: tierIdNum,
+            reward_tier_id: tierIdNum <= 2 ? tierIdNum : null,
             season_id: targetSeasonId,
-            status: 'active',
-            acquired_at: nowIso,
+            status: `tier_${tierIdNum}_active`,
+            acquired_at: new Date(baseTime + offsetMs).toISOString(),
             reward_type: 'store_coupon'
           });
         }
@@ -1086,8 +1099,13 @@ class QuestApiManager {
     if (!couponId) return { success: false, message: 'クーポンIDが指定されていません' };
 
     const targetSeasonId = Number(seasonId || this.currentSeason?.id || 2);
+    // 対象クーポンのtierIdを取得して、tier_${tierId}_used にする
+    const existing = this.userCoupons?.find(c => String(c.id) === String(couponId));
+    const tierIdNum = existing ? Number(existing.reward_tier_id) : null;
+    const newStatus = (tierIdNum && !isNaN(tierIdNum)) ? `tier_${tierIdNum}_used` : 'used';
+
     const updateBody = {
-      status: 'used',
+      status: newStatus,
       used_at: new Date().toISOString()
     };
     if (storeId) {
@@ -1180,10 +1198,18 @@ class QuestApiManager {
 
   // クーポン状態の手動変更 (使用済み ⇔ 未使用)
   async adminUpdateCouponStatus(couponId, status, usedAt = null) {
+    // 既存クーポンのtierIdを取得してstatusをエンコード
+    let finalStatus = status;
+    const existing = this.userCoupons?.find(c => String(c.id) === String(couponId));
+    const tierIdNum = existing ? Number(existing.reward_tier_id) : null;
+    if (tierIdNum && !isNaN(tierIdNum)) {
+      finalStatus = `tier_${tierIdNum}_${status === 'used' ? 'used' : 'active'}`;
+    }
+
     return await this.supabaseFetch(`user_coupons?id=eq.${encodeURIComponent(couponId)}`, {
       method: 'PATCH',
       body: JSON.stringify({
-        status,
+        status: finalStatus,
         used_at: status === 'used' ? (usedAt || new Date().toISOString()) : null
       })
     });
