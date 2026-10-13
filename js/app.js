@@ -1374,7 +1374,7 @@ class YoidoreQuestApp {
         <div class="rpg-window-header">
           <span>📜 冒険の心得</span>
         </div>
-        <div style="padding:10px 4px 6px; display:flex; flex-direction:column; gap:10px;">
+        <div style="padding:10px 6px 8px; display:flex; flex-direction:column; gap:12px;">
           ${guideSteps.map((st, idx) => `
             <div class="guide-step-card">
               <div class="guide-step-header">

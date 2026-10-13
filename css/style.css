@@ -2763,49 +2763,49 @@ body {
 .guide-step-card {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  padding: 8px 10px;
+  border-radius: 6px;
+  padding: 10px 12px;
 }
 
 .guide-step-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 8px;
+  font-size: 15px;
   font-weight: bold;
   color: var(--text-cyan);
-  margin-bottom: 3px;
+  margin-bottom: 6px;
 }
 
 .guide-step-desc {
-  font-size: 12px;
-  color: #cbd5e1;
-  line-height: 1.4;
+  font-size: 14px;
+  color: #e2e8f0;
+  line-height: 1.6;
   margin-left: 2px;
 }
 
 .guide-rules-box {
   background: rgba(239, 68, 68, 0.08);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 4px;
-  padding: 8px 10px;
-  margin-top: 4px;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-top: 6px;
 }
 
 .guide-rules-title {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: bold;
   color: #f87171;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
 .guide-rules-content {
-  font-size: 11px;
-  color: #e2e8f0;
-  line-height: 1.4;
+  font-size: 13.5px;
+  color: #f1f5f9;
+  line-height: 1.65;
 }
 
 /* ==========================================================================
