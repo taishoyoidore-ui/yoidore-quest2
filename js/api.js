@@ -1197,13 +1197,44 @@ class QuestApiManager {
   }
 
   // クーポン状態の手動変更 (使用済み ⇔ 未使用、利用店舗指定対応)
-  async adminUpdateCouponStatus(couponId, status, usedAt = null, storeId = null) {
-    // 既存クーポンのtierIdを取得してstatusをエンコード
+  async adminUpdateCouponStatus(couponId, status, usedAt = null, storeId = null, tierId = null) {
+    let targetTierId = tierId ? Number(tierId) : null;
+
+    // tierId が直接渡されていない場合は既存データから抽出
+    if (!targetTierId) {
+      const existing = (this.userCoupons || []).find(c => String(c.id) === String(couponId))
+        || (window.adminApp?.coupons || []).find(c => String(c.id) === String(couponId));
+      if (existing) {
+        if (existing.reward_tier_id) {
+          targetTierId = Number(existing.reward_tier_id);
+        } else if (existing.status) {
+          const m = String(existing.status).match(/^tier_(\d+)_/);
+          if (m) targetTierId = parseInt(m[1], 10);
+        } else if (existing.tier?.id) {
+          targetTierId = Number(existing.tier.id);
+        }
+      }
+    }
+
+    // それでも特定できない場合はDBから1件取得してstatusからtierIdを抽出
+    if (!targetTierId) {
+      try {
+        const rows = await this.supabaseFetch(`user_coupons?id=eq.${encodeURIComponent(couponId)}&select=status,reward_tier_id`);
+        if (Array.isArray(rows) && rows.length > 0) {
+          const r = rows[0];
+          if (r.reward_tier_id) {
+            targetTierId = Number(r.reward_tier_id);
+          } else if (r.status) {
+            const m = String(r.status).match(/^tier_(\d+)_/);
+            if (m) targetTierId = parseInt(m[1], 10);
+          }
+        }
+      } catch (e) {}
+    }
+
     let finalStatus = status;
-    const existing = this.userCoupons?.find(c => String(c.id) === String(couponId));
-    const tierIdNum = existing ? Number(existing.reward_tier_id) : null;
-    if (tierIdNum && !isNaN(tierIdNum)) {
-      finalStatus = `tier_${tierIdNum}_${status === 'used' ? 'used' : 'active'}`;
+    if (targetTierId && !isNaN(targetTierId)) {
+      finalStatus = `tier_${targetTierId}_${status === 'used' ? 'used' : 'active'}`;
     }
 
     const payload = {

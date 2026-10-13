@@ -220,18 +220,14 @@ class YoidoreAdminApp {
           }
 
           let matchedTier = (this.tiers || []).find(t => Number(t.id) === tierIdNum);
-          if (!matchedTier && goodsTiers.length > 0 && c.store_id === 'store-01') {
-            matchedTier = goodsTiers[0];
-          }
-
-          const isGoods = matchedTier?.reward_type === 'goods';
+          const isGoods = matchedTier ? (matchedTier.reward_type === 'goods') : (c.reward_type === 'goods');
           return {
             ...c,
             status: normalizedStatus,
             season_id: this.selectedSeasonId,
             reward_tier_id: tierIdNum || matchedTier?.id || null,
             reward_type: isGoods ? 'goods' : (c.reward_type || 'store_coupon'),
-            goods_name: matchedTier?.goods_name || c.goods_name || matchedTier?.title || null,
+            goods_name: matchedTier?.goods_name || c.goods_name || (isGoods ? matchedTier?.title : null),
             exchange_location: matchedTier?.exchange_location || c.exchange_location || null,
             exchange_notice: matchedTier?.exchange_notice || c.exchange_notice || null,
             title: matchedTier?.title || c.title || ''
@@ -2418,46 +2414,34 @@ class YoidoreAdminApp {
           const store = this.stores.find(s => s.id === c.store_id);
           const isGoods = c.reward_type === 'goods';
           const typeBadge = isGoods 
-            ? '<span class="badge" style="background:#fef3c7; color:#b45309;"><i class="fa-solid fa-gift"></i> グッズ</span>' 
+            ? '<span class="badge" style="background:#fef3c7; color:#b45309;"><i class="fa-solid fa-gift"></i> 記念品</span>' 
             : '<span class="badge" style="background:#e0f2fe; color:#0369a1;"><i class="fa-solid fa-wine-glass"></i> クーポン</span>';
           
           const targetName = isGoods 
-            ? `🎁 ${this.escapeHtml(c.goods_name || '記念品引換')}` 
-            : (store ? this.escapeHtml(store.name) : (c.store_id ? this.escapeHtml(c.store_id) : '🎟️ （酒場未指定）'));
+            ? `🎁 ${this.escapeHtml(c.goods_name || c.title || '記念品引換')}` 
+            : (store ? `🍺 ${this.escapeHtml(store.name)} <small style="color:#64748b;">(${c.store_id})</small>` : (c.store_id ? `🍺 ${this.escapeHtml(c.store_id)}` : '<span style="color:#94a3b8;">🎟️ （利用店舗未指定）</span>'));
           
           const user = this.users.find(u => u.line_user_id === c.user_id);
           const userName = user ? user.display_name : c.user_id;
           const usedTime = c.used_at || c.acquired_at;
-          const timeStr = usedTime ? new Date(usedTime).toLocaleString('ja-JP') : '-';
+          const timeStr = usedTime ? new Date(usedTime).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
           const isUsed = c.status === 'used';
 
           const statusTag = isUsed 
-            ? (isGoods ? '<span class="tag tag-active">受取済</span>' : '<span class="tag tag-active">✅ 利用済</span>')
-            : '<span class="tag tag-area">未使用・保有中</span>';
+            ? (isGoods ? '<span class="tag tag-active" style="background:#dcfce7; color:#15803d; font-size:11px;"><i class="fa-solid fa-check"></i> 受取済</span>' : '<span class="tag tag-active" style="background:#dcfce7; color:#15803d; font-size:11px;"><i class="fa-solid fa-check"></i> 利用済</span>')
+            : '<span class="tag tag-area" style="background:#f1f5f9; color:#475569; font-size:11px;"><i class="fa-solid fa-clock"></i> 未使用・保有</span>';
 
           return `
             <tr>
-              <td>${timeStr}</td>
+              <td><small class="text-muted">${timeStr}</small></td>
               <td>${typeBadge}</td>
               <td><strong>${this.escapeHtml(userName)}</strong></td>
               <td><strong>${targetName}</strong></td>
-              <td>${statusTag}</td>
+              <td style="text-align: center;">${statusTag}</td>
               <td style="text-align: center;">
-                <div style="display: flex; gap: 4px; justify-content: center;">
-                  ${isUsed ? `
-                    <button class="btn btn-sm btn-secondary" onclick="window.adminApp.updateCouponStatus('${c.id}', 'active')" title="未使用に戻す">
-                      <i class="fa-solid fa-rotate-left"></i> 未使用へ
-                    </button>
-                  ` : (isGoods ? `
-                    <button class="btn btn-sm btn-success" onclick="window.adminApp.updateCouponStatus('${c.id}', 'used')" title="手動で受取済みにする">
-                      <i class="fa-solid fa-check"></i> 受取済へ
-                    </button>
-                  ` : `
-                    <button class="btn btn-sm btn-primary" onclick="window.adminApp.openManualRedeemModal('${c.id}')" title="利用酒場を指定して消し込む">
-                      <i class="fa-solid fa-check"></i> 消込(店舗選択)
-                    </button>
-                  `)}
-                </div>
+                <button class="btn btn-sm btn-outline-primary" style="padding: 2px 8px; font-size: 11px;" onclick="window.adminApp.openParticipantDetailModal('${c.user_id}')" title="この冒険者の詳細モーダルを開く">
+                  <i class="fa-solid fa-magnifying-glass"></i> 詳細
+                </button>
               </td>
             </tr>
           `;
@@ -2503,7 +2487,7 @@ class YoidoreAdminApp {
           const tierIdNum = Number(tier.id);
           const isGoods = tier.reward_type === 'goods';
 
-          const matchingCoupons = userCoupons.filter(c => Number(c.reward_tier_id) === tierIdNum);
+          const matchingCoupons = userCoupons.filter(c => Number(c.reward_tier_id) === tierIdNum || (c.status && String(c.status).startsWith(`tier_${tierIdNum}_`)));
 
           if (matchingCoupons.length > 0) {
             const total = matchingCoupons.length;
@@ -2766,7 +2750,7 @@ class YoidoreAdminApp {
       const isGoods = tier.reward_type === 'goods';
       const reqVisits = tier.required_visits ?? tier.required_count ?? 0;
 
-      const matchingCoupons = userCoupons.filter(c => Number(c.reward_tier_id) === tierIdNum);
+      const matchingCoupons = userCoupons.filter(c => Number(c.reward_tier_id) === tierIdNum || (c.status && String(c.status).startsWith(`tier_${tierIdNum}_`)));
       const isUnlocked = matchingCoupons.length > 0;
 
       if (isUnlocked) {
@@ -2972,6 +2956,7 @@ class YoidoreAdminApp {
     if (!modal) return;
 
     document.getElementById('manual-redeem-coupon-id').value = couponId;
+    document.getElementById('manual-redeem-tier-id').value = coupon.reward_tier_id || tier?.id || '';
     document.getElementById('manual-redeem-user-name').textContent = userName || '冒険者';
     document.getElementById('manual-redeem-tier-name').textContent = tierName;
 
@@ -3006,6 +2991,7 @@ class YoidoreAdminApp {
 
   async submitManualRedeem() {
     const couponId = document.getElementById('manual-redeem-coupon-id').value;
+    const tierId = document.getElementById('manual-redeem-tier-id')?.value;
     const storeId = document.getElementById('manual-redeem-store-select').value;
 
     if (!storeId) {
@@ -3016,10 +3002,11 @@ class YoidoreAdminApp {
     const coupon = (this.coupons || []).find(c => String(c.id) === String(couponId));
     const store = (this.stores || []).find(s => s.id === storeId);
     const storeName = store ? store.name : storeId;
+    const finalTierId = tierId || coupon?.reward_tier_id;
 
     try {
       this.showToast(`酒場「${storeName}」で消込中...`);
-      await this.api.adminUpdateCouponStatus(couponId, 'used', new Date().toISOString(), storeId);
+      await this.api.adminUpdateCouponStatus(couponId, 'used', new Date().toISOString(), storeId, finalTierId);
       this.closeManualRedeemModal();
       this.showToast(`酒場「${storeName}」でクーポンを消込（使用済）にしました！`);
       await this.loadAllData();
@@ -3036,7 +3023,7 @@ class YoidoreAdminApp {
     const coupon = (this.coupons || []).find(c => String(c.id) === String(couponId));
     try {
       this.showToast('状態を更新中...');
-      await this.api.adminUpdateCouponStatus(couponId, newStatus, usedAt, storeId);
+      await this.api.adminUpdateCouponStatus(couponId, newStatus, usedAt, storeId, coupon?.reward_tier_id);
       this.showToast(`状態を【${newStatus === 'used' ? '利用済' : '未使用'}】に変更しました`);
       await this.loadAllData();
       if (coupon && document.getElementById('participant-detail-modal')?.style.display === 'flex') {

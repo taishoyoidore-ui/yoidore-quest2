@@ -614,18 +614,18 @@
               </div>
             </div>
 
-            <!-- サブタブ2: クーポン・特典履歴 (消し込み状態切替 & 削除対応) -->
+            <!-- サブタブ2: クーポン・特典消込履歴 (確認・ログ閲覧専用) -->
             <div id="subtab-coupons" class="subtab-content">
               <div class="table-responsive">
                 <table class="data-table">
                   <thead>
                     <tr>
-                      <th style="width: 140px;">利用/受取日時</th>
-                      <th style="width: 110px;">種別</th>
-                      <th>ユーザー</th>
-                      <th>利用酒場 / 記念品名</th>
-                      <th style="width: 110px;">状態</th>
-                      <th style="text-align: center; width: 180px;">操作</th>
+                      <th style="width: 150px;">利用/獲得日時</th>
+                      <th style="width: 120px;">種別</th>
+                      <th>冒険者（ユーザー）</th>
+                      <th>獲得特典 / 利用酒場</th>
+                      <th style="width: 110px; text-align: center;">状態</th>
+                      <th style="text-align: center; width: 100px;">詳細確認</th>
                     </tr>
                   </thead>
                   <tbody id="coupons-table-body">
@@ -1205,8 +1205,8 @@
   </div>
 
   <!-- クーポン手動消込・店舗選択モーダル -->
-  <div id="manual-redeem-modal" class="modal" style="display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); z-index: 99999;">
-    <div class="modal-content" style="max-width: 480px; width: 90%; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+  <div id="manual-redeem-modal" class="modal-overlay" style="display: none; z-index: 10000;">
+    <div class="modal-dialog" style="max-width: 480px; width: 90%;">
       <div class="modal-header" style="background: #0284c7; color: #fff; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;">
         <h3 style="margin: 0; font-size: 16px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
           <i class="fa-solid fa-wine-glass"></i> 酒場クーポンの手動消込
@@ -1215,6 +1215,7 @@
       </div>
       <div class="modal-body" style="padding: 18px;">
         <input type="hidden" id="manual-redeem-coupon-id">
+        <input type="hidden" id="manual-redeem-tier-id">
         <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
           <div style="font-size: 12px; color: #0369a1; margin-bottom: 4px;">冒険者</div>
           <strong id="manual-redeem-user-name" style="font-size: 14px; color: #0f172a;">-</strong>
@@ -1248,8 +1249,8 @@
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=20261013_17"></script>
-  <script src="js/api.js?v=20261013_17"></script>
-  <script src="js/admin.js?v=20261013_17"></script>
+  <script src="js/config.js?v=20261013_18"></script>
+  <script src="js/api.js?v=20261013_18"></script>
+  <script src="js/admin.js?v=20261013_18"></script>
 </body>
 </html>
