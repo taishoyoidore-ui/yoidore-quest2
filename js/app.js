@@ -1155,7 +1155,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.13.09';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.13.10';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1299,7 +1299,7 @@ class YoidoreQuestApp {
     }
     const couponEnd = currentSeason.coupon_valid_until || '2026-10-30';
 
-    const welcomeMessage = '大正酔いどれクエストへようこそ！コマンドを選んで酒場を探そう！楽しみ方は下の【導き】をチェック！';
+    const welcomeMessage = '大正酔いどれクエストへようこそ！コマンドを選んで酒場を探そう！楽しみ方は下の【冒険の心得】をチェック！';
 
     if (this.isStarted) {
       this.typeMessage(welcomeMessage);
@@ -1365,10 +1365,10 @@ class YoidoreQuestApp {
         </ul>
       </div>
 
-      <!-- ハシゴ酒の導き・冒険の心得（常時オープン表示） -->
+      <!-- 冒険の心得（常時オープン表示） -->
       <div class="rpg-window gold-border" style="margin-top:14px;">
         <div class="rpg-window-header">
-          <span>📜 ハシゴ酒の導き＆冒険の心得</span>
+          <span>📜 冒険の心得</span>
         </div>
         <div style="padding:10px 4px 6px; display:flex; flex-direction:column; gap:10px;">
           ${guideSteps.map((st, idx) => `
@@ -1616,10 +1616,13 @@ class YoidoreQuestApp {
     // 2. グッズ記念品型特典の一覧HTML（A案：スリム＆シンプルカード）
     const goodsTiersList = rewardTiers.filter(t => t.reward_type === 'goods');
     const goodsHtml = (goodsTiersList.length > 0) ? goodsTiersList.map(tier => {
-      const goodsCoupon = userCoupons.find(c => c.reward_type === 'goods' && (Number(c.reward_tier_id) === Number(tier.id) || c.goods_name === tier.goods_name || c.goods_name === tier.title));
+      const goodsCoupons = userCoupons.filter(c => c.reward_type === 'goods' && (Number(c.reward_tier_id) === Number(tier.id) || c.goods_name === tier.goods_name || c.goods_name === tier.title));
+      const usedGoodsCoupon = goodsCoupons.find(c => c.status === 'used');
+      const activeGoodsCoupon = goodsCoupons.find(c => c.status !== 'used');
+      const goodsCoupon = usedGoodsCoupon || activeGoodsCoupon || goodsCoupons[0];
       const isClaimed = Boolean(goodsCoupon);
-      const isReached = isClaimed || userCoupons.some(c => Number(c.reward_tier_id) === Number(tier.id));
-      const isUsed = goodsCoupon?.status === 'used';
+      const isReached = isClaimed || userVisits.length >= Number(tier.required_visits);
+      const isUsed = Boolean(usedGoodsCoupon) || goodsCoupon?.status === 'used';
 
       let actionHtml = '';
       let statusBadge = '';
@@ -1629,7 +1632,7 @@ class YoidoreQuestApp {
         statusBadge = '';
         actionHtml = `
           <div style="font-size:12px; color:#94a3b8; text-align:center; padding:4px 0;">
-            受取日時: ${new Date(goodsCoupon.used_at || goodsCoupon.acquired_at).toLocaleString('ja-JP')}
+            受取日時: ${new Date(goodsCoupon?.used_at || goodsCoupon?.acquired_at || Date.now()).toLocaleString('ja-JP')}
           </div>
         `;
       } else if (isReached) {
@@ -1690,19 +1693,19 @@ class YoidoreQuestApp {
               <img src="${user.pictureUrl || 'assets/banner.png'}" alt="Avatar" class="hero-avatar" onerror="this.src='assets/banner.png';" style="width:54px; height:54px; border:2px solid var(--border-gold); border-radius:8px; object-fit:cover; display:block;">
             </div>
             <div class="hero-status-grid" style="flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; font-size:12.5px;">
-              <div style="display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px dashed rgba(248,225,108,0.25); padding-bottom:3px;">
+              <div style="display:grid; grid-template-columns:82px 1fr; align-items:center; border-bottom:1px dashed rgba(248,225,108,0.25); padding-bottom:3px;">
                 <span style="color:#94a3b8; font-size:11px; flex-shrink:0;">なまえ</span>
-                <span style="color:#ffffff; font-weight:bold; font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-left:8px;">${this.escapeHtml ? this.escapeHtml(user.displayName) : user.displayName}</span>
+                <span style="color:#ffffff; font-weight:bold; font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left;">${this.escapeHtml ? this.escapeHtml(user.displayName) : user.displayName}</span>
               </div>
-              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed rgba(248,225,108,0.25); padding-bottom:3px;">
+              <div style="display:grid; grid-template-columns:82px 1fr; align-items:center; border-bottom:1px dashed rgba(248,225,108,0.25); padding-bottom:3px;">
                 <span style="color:#94a3b8; font-size:11px; flex-shrink:0;">しょうごう</span>
-                <span style="color:${heroColor}; font-weight:bold; display:flex; align-items:center; gap:4px; text-shadow:0 0 6px ${heroColor}55;">
-                  <i class="fa-solid fa-medal" style="font-size:11px;"></i> ${heroTitle}
+                <span style="color:${heroColor}; font-weight:bold; display:inline-flex; align-items:center; gap:4px; text-shadow:0 0 6px ${heroColor}55; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                  <i class="fa-solid fa-medal" style="font-size:11px; flex-shrink:0;"></i> <span>${heroTitle}</span>
                 </span>
               </div>
-              <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="display:grid; grid-template-columns:82px 1fr; align-items:center;">
                 <span style="color:#94a3b8; font-size:11px; flex-shrink:0;">酒場クーポン</span>
-                <span style="color:#fde047; font-weight:bold;">
+                <span style="color:#fde047; font-weight:bold; text-align:left;">
                   ${remainingAvailableCoupons > 0 ? `🎫 残り ${remainingAvailableCoupons} 軒分` : (unlockedTierCount > 0 ? '全利用済み' : '未解放')}
                 </span>
               </div>
@@ -1738,7 +1741,7 @@ class YoidoreQuestApp {
           <div style="padding:10px 4px 6px; font-size:12px; color:#e2e8f0; line-height:1.6;">
             <div style="margin-bottom:6px; display:flex; align-items:flex-start; gap:6px;">
               <span style="color:#fde047; font-weight:bold; flex-shrink:0;">①</span>
-              <span><strong>紙の冒険の書</strong>に、各酒場で酔いどれセットを注文、または店舗クエストを攻略し、店主のサインを集めます。</span>
+              <span><strong>紙の冒険の書</strong>に、各酒場で酔いどれセット、または店舗クエストを攻略し、店主のサインを集めます。</span>
             </div>
             <div style="margin-bottom:6px; display:flex; align-items:flex-start; gap:6px;">
               <span style="color:#fde047; font-weight:bold; flex-shrink:0;">②</span>
@@ -1845,17 +1848,17 @@ class YoidoreQuestApp {
     if (!window.questApi || this._isQuestBookSyncing) return;
     this._isQuestBookSyncing = true;
     try {
-      const prevCouponsLen = (window.questApi.userCoupons || []).length;
+      const prevCouponsSign = (window.questApi.userCoupons || []).map(c => `${c.id}:${c.status}:${c.store_id || ''}:${c.used_at || ''}`).join('|');
       const prevVisitsLen = (window.questApi.visits || []).length;
       await Promise.all([
         window.questApi.getRewardTiers(seasonId),
         window.questApi.getUserCoupons(seasonId),
         window.questApi.getUserVisits(seasonId)
       ]);
-      const newCouponsLen = (window.questApi.userCoupons || []).length;
+      const newCouponsSign = (window.questApi.userCoupons || []).map(c => `${c.id}:${c.status}:${c.store_id || ''}:${c.used_at || ''}`).join('|');
       const newVisitsLen = (window.questApi.visits || []).length;
       // ユーザーがまだ冒険の書画面を表示していて、データに変更があった場合のみ再描画
-      if (this.currentView === 'quest-book' && (prevCouponsLen !== newCouponsLen || prevVisitsLen !== newVisitsLen)) {
+      if (this.currentView === 'quest-book' && (prevCouponsSign !== newCouponsSign || prevVisitsLen !== newVisitsLen)) {
         const container = document.getElementById('view-container');
         if (container) {
           this.renderQuestBookView(container);
@@ -2370,7 +2373,7 @@ class YoidoreQuestApp {
 
         // 既存の未受取クーポンを探す、無ければ自動発行
         const userCoupons = await window.questApi.getUserCoupons(targetSeasonId);
-        let goodsCoupon = userCoupons.find(c => c.reward_type === 'goods' && (Number(c.reward_tier_id) === Number(tier.id) || c.goods_name === tier.goods_name || c.goods_name === tier.title));
+        let goodsCoupon = userCoupons.find(c => c.reward_type === 'goods' && c.status !== 'used' && (Number(c.reward_tier_id) === Number(tier.id) || c.goods_name === tier.goods_name || c.goods_name === tier.title));
 
         if (!goodsCoupon) {
           const claimRes = await window.questApi.claimGoodsReward(tier.id, targetSeasonId);
@@ -2379,14 +2382,15 @@ class YoidoreQuestApp {
           } else {
             // 再度取得
             const updatedCoupons = await window.questApi.getUserCoupons(targetSeasonId);
-            goodsCoupon = updatedCoupons.find(c => c.reward_type === 'goods' && (Number(c.reward_tier_id) === Number(tier.id) || c.goods_name === tier.goods_name || c.goods_name === tier.title));
+            goodsCoupon = updatedCoupons.find(c => c.reward_type === 'goods' && c.status !== 'used' && (Number(c.reward_tier_id) === Number(tier.id) || c.goods_name === tier.goods_name || c.goods_name === tier.title))
+              || updatedCoupons.find(c => c.reward_type === 'goods' && (Number(c.reward_tier_id) === Number(tier.id) || c.goods_name === tier.goods_name || c.goods_name === tier.title));
           }
         }
 
         const couponId = goodsCoupon?.id;
         let redeemRes = { success: false };
         if (couponId) {
-          redeemRes = await window.questApi.redeemCoupon(couponId);
+          redeemRes = await window.questApi.redeemCoupon(couponId, null, targetSeasonId);
         } else {
           redeemRes = { success: false, message: '引換券の発行に失敗しました。' };
         }
@@ -2869,409 +2873,6 @@ class YoidoreQuestApp {
     });
   }
 
-  /* ------------------------------------------------------------------------
-   * 酒場サイン受取・冒険の書への記録処理 (QRコード読み取り時 - 互換用)
-   * ------------------------------------------------------------------------ */
-  async handleCheckin(storeId) {
-    if (!storeId) return;
-    const prevVisits = (window.questApi && window.questApi.visits) ? window.questApi.visits.length : 0;
-    const prevHero = this.getHeroTitleForVisits(prevVisits);
-
-    const res = await window.questApi.recordVisit(storeId);
-    if (res.success) {
-      const newHero = this.getHeroTitleForVisits(res.totalVisits);
-      const stores = this.getStores();
-      const store = stores.find(s => s.id === res.storeId);
-      const storeName = res.storeName || (store ? store.name : res.storeId);
-      const storeArea = store ? store.area : '';
-
-      const rewardTiers = window.questApi?.rewardTiers || [];
-      const unlockedTier = rewardTiers.find(t => t.required_visits === res.totalVisits);
-
-      if (newHero.level > prevHero.level) {
-        // 🌟 レベルアップ＆新称号昇格ファンファーレ演出
-        this.playLevelUpSE();
-        this.showLevelUpModal({
-          newHero,
-          totalVisits: res.totalVisits,
-          storeName,
-          storeArea,
-          unlockedTier
-        });
-      } else {
-        // 通常のサイン完了モーダル
-        this.playFanfareSE();
-        this.showCheckinSuccessModal(res);
-      }
-      this.navigateTo('quest-book');
-    } else if (res.alreadyVisited) {
-      this.playCursorSE();
-      this.showAlreadyVisitedModal(res);
-      this.navigateTo('quest-book');
-    } else {
-      alert(res.message || '冒険の書への記録に失敗しました。');
-    }
-  }
-
-  /* ------------------------------------------------------------------------
-   * 🌟 ドラクエ風 LEVEL UP!! ＆ 称号昇格 演出モーダル（ゴールド紙吹雪付き）
-   * ------------------------------------------------------------------------ */
-  showLevelUpModal(params = {}) {
-    // オブジェクト以外で渡された場合の安全チェック
-    const { newHero, totalVisits, storeName, storeArea, unlockedTier } = (typeof params === 'object' && params !== null) ? params : {};
-
-    const overlay = document.createElement('div');
-    overlay.className = 'rpg-modal-overlay';
-    overlay.id = 'levelup-success-modal';
-
-    const safeStoreName = storeName ? (this.escapeHtml ? this.escapeHtml(storeName) : storeName) : '参加酒場';
-    const newLv = newHero?.level ?? '-';
-    const newTitle = newHero?.title ?? '-';
-    const newDesc = newHero?.description || '';
-    const badgeColor = newHero?.badge_color || '#facc15';
-    const visitCountDisplay = typeof totalVisits === 'number' ? totalVisits : (Number(totalVisits) || 0);
-
-    const user = window.questApi?.currentUser || { displayName: '勇者', pictureUrl: 'assets/banner.png' };
-    const avatarUrl = user.pictureUrl || 'assets/banner.png';
-    const displayName = this.escapeHtml ? this.escapeHtml(user.displayName || '勇者') : (user.displayName || '勇者');
-
-    overlay.innerHTML = `
-      <canvas id="levelup-confetti-canvas" style="position:fixed; top:0; left:0; width:100vw; height:100vh; pointer-events:none; z-index:9999;"></canvas>
-      <div class="rpg-modal-window gold-border levelup-modal-window" style="max-width:390px; width:92%; text-align:center;">
-        <div class="levelup-sunburst"></div>
-        <div class="levelup-content-relative">
-          <div style="font-size:36px; margin-bottom:2px;">✨🍺👑</div>
-          <div class="levelup-header-banner">LEVEL UP!!</div>
-          <div style="font-size:12px; color:#fde047; font-weight:bold; letter-spacing:1px; margin-bottom:6px;">
-            勇者ランクが昇格しました！
-          </div>
-
-          <!-- LINE本人のアバター ＆ レベルバッジ -->
-          <div class="levelup-avatar-wrap">
-            <img src="${avatarUrl}" alt="${displayName}" class="levelup-avatar" onerror="this.src='assets/banner.png';">
-            <span class="levelup-level-badge">Lv.${newLv}</span>
-          </div>
-          <div style="font-size:14px; font-weight:bold; color:#ffffff; margin-bottom:8px;">${displayName}</div>
-
-          <!-- 昇格した新称号プレート -->
-          <div style="margin-bottom:10px;">
-            <div style="font-size:11px; color:#94a3b8; margin-bottom:4px;">獲得した新称号</div>
-            <div style="display:inline-block; transform:scale(1.05);">
-              <span class="hero-title-plate" style="font-size:15px; padding:6px 14px; border-color:${badgeColor}; box-shadow:0 0 16px ${badgeColor}88; color:#ffffff; font-weight:bold;">
-                <i class="fa-solid fa-crown" style="color:${badgeColor};"></i> ${this.escapeHtml(newTitle)}
-              </span>
-            </div>
-            ${newDesc ? `<div class="hero-title-desc" style="color:#cbd5e1; margin-top:6px; font-size:12px;">${this.escapeHtml(newDesc)}</div>` : ''}
-          </div>
-
-          <!-- サイン獲得酒場 & 制覇数カード -->
-          <div class="levelup-card-box">
-            <div style="font-size:11px; color:#94a3b8;">酒場サイン獲得</div>
-            <div style="font-size:14px; color:#fef08a; font-weight:bold;">『${safeStoreName}』</div>
-            ${storeArea ? `<div style="font-size:11px; color:#cbd5e1; margin-bottom:4px;">(${storeArea})</div>` : ''}
-            <div style="margin-top:6px; font-size:13px; color:#e2e8f0;">
-              🏆 制覇酒場数: <strong style="color:#4ade80; font-size:16px;">${visitCountDisplay} 軒達成</strong>
-            </div>
-          </div>
-
-          ${unlockedTier ? `
-            <div class="levelup-tier-unlock-box">
-              <div style="font-size:16px; margin-bottom:2px;">🎁✨</div>
-              <div style="font-size:14px; font-weight:bold; color:#fef08a;">
-                【${this.escapeHtml(unlockedTier.title)}】特典宝箱 解放！
-              </div>
-              <div style="font-size:12px; color:#fed7aa; margin-top:3px;">
-                ${unlockedTier.reward_type === 'goods' ? 
-                  `🎁 記念品（${this.escapeHtml(unlockedTier.goods_name || unlockedTier.title)}）を受け取り可能！` : 
-                  `お好きな対象酒場のクーポンを ${unlockedTier.selectable_count} 軒分利用可能！`
-                }
-              </div>
-            </div>
-          ` : ''}
-
-          <button id="btn-close-levelup-modal" class="treasure-claim-btn" style="width:100%; font-size:14px; padding:11px; margin-top:4px; white-space:nowrap;">
-            📜 冒険の書を確認する ▶
-          </button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-
-    // 🎆 Canvas による本格的な打ち上げ花火（Fireworks）パーティクル描画
-    let animId = null;
-    const canvas = document.getElementById('levelup-confetti-canvas');
-    if (canvas) {
-      const ctx = canvas.getContext('2d');
-      const dpr = window.devicePixelRatio || 1;
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
-      ctx.scale(dpr, dpr);
-
-      const colorPalettes = [
-        ['#facc15', '#f59e0b', '#fbbf24', '#fef08a', '#ffffff'], // ゴールド
-        ['#f43f5e', '#fb7185', '#fda4af', '#ffffff', '#facc15'], // ルビーレッド
-        ['#38bdf8', '#0284c7', '#7dd3fc', '#ffffff', '#facc15'], // スカイブルー
-        ['#4ade80', '#22c55e', '#86efac', '#ffffff', '#facc15'], // エメラルドグリーン
-        ['#c084fc', '#a855f7', '#e9d5ff', '#ffffff', '#fb7185']  // パープル＆マゼンタ
-      ];
-
-      const rockets = [];
-      const sparks = [];
-
-      class Rocket {
-        constructor(startX, targetX, targetY, palette) {
-          this.x = startX;
-          this.y = h;
-          this.startX = startX;
-          this.targetX = targetX;
-          this.targetY = targetY;
-          this.palette = palette;
-          this.speed = Math.random() * 3 + 12;
-          this.angle = Math.atan2(targetY - h, targetX - startX);
-          this.vx = Math.cos(this.angle) * this.speed;
-          this.vy = Math.sin(this.angle) * this.speed;
-          this.trail = [];
-          this.exploded = false;
-        }
-
-        update() {
-          this.trail.push({ x: this.x, y: this.y, alpha: 1 });
-          if (this.trail.length > 5) this.trail.shift();
-          this.trail.forEach(t => t.alpha *= 0.65);
-
-          this.x += this.vx;
-          this.y += this.vy;
-
-          if (this.vy < 0 && this.y <= this.targetY) {
-            this.exploded = true;
-            this.createSparks();
-          }
-        }
-
-        createSparks() {
-          const sparkCount = Math.floor(Math.random() * 20) + 40;
-          for (let i = 0; i < sparkCount; i++) {
-            sparks.push(new Spark(this.x, this.y, this.palette));
-          }
-        }
-
-        draw() {
-          for (let i = 0; i < this.trail.length; i++) {
-            const pt = this.trail[i];
-            ctx.beginPath();
-            ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(250, 204, 21, ${pt.alpha})`;
-            ctx.fill();
-          }
-          ctx.beginPath();
-          ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
-          ctx.fillStyle = '#ffffff';
-          ctx.fill();
-        }
-      }
-
-      class Spark {
-        constructor(x, y, palette) {
-          this.x = x;
-          this.y = y;
-          this.color = palette[Math.floor(Math.random() * palette.length)];
-          const angle = Math.random() * Math.PI * 2;
-          const speed = Math.random() * 5.5 + 1.2;
-          this.vx = Math.cos(angle) * speed;
-          this.vy = Math.sin(angle) * speed;
-          this.friction = 0.955;
-          this.gravity = 0.11;
-          this.alpha = 1;
-          this.decay = Math.random() * 0.016 + 0.012;
-          this.size = Math.random() * 2.5 + 1.5;
-          this.trail = [];
-        }
-
-        update() {
-          this.trail.push({ x: this.x, y: this.y, alpha: this.alpha });
-          if (this.trail.length > 4) this.trail.shift();
-          this.trail.forEach(t => t.alpha *= 0.72);
-
-          this.vx *= this.friction;
-          this.vy *= this.friction;
-          this.vy += this.gravity;
-          this.x += this.vx;
-          this.y += this.vy;
-          this.alpha -= this.decay;
-        }
-
-        draw() {
-          for (let i = 0; i < this.trail.length; i++) {
-            const pt = this.trail[i];
-            ctx.beginPath();
-            ctx.arc(pt.x, pt.y, this.size * 0.55, 0, Math.PI * 2);
-            ctx.fillStyle = this.color;
-            ctx.globalAlpha = Math.max(0, pt.alpha * 0.55);
-            ctx.fill();
-          }
-
-          ctx.beginPath();
-          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-          ctx.fillStyle = this.color;
-          ctx.globalAlpha = Math.max(0, this.alpha);
-          ctx.shadowBlur = 6;
-          ctx.shadowColor = this.color;
-          ctx.fill();
-          ctx.shadowBlur = 0;
-          ctx.globalAlpha = 1;
-        }
-      }
-
-      const launchFirework = (targetX, targetY) => {
-        const startX = w * (0.2 + Math.random() * 0.6);
-        const tx = targetX !== undefined ? targetX : w * (0.15 + Math.random() * 0.7);
-        const ty = targetY !== undefined ? targetY : h * (0.12 + Math.random() * 0.35);
-        const palette = colorPalettes[Math.floor(Math.random() * colorPalettes.length)];
-        rockets.push(new Rocket(startX, tx, ty, palette));
-      };
-
-      // 初回発射：左右・中央から即座に打ち上げ
-      launchFirework(w * 0.22, h * 0.22);
-      launchFirework(w * 0.78, h * 0.22);
-      setTimeout(() => launchFirework(w * 0.5, h * 0.16), 220);
-
-      let frameCount = 0;
-      const render = () => {
-        ctx.clearRect(0, 0, w, h);
-
-        frameCount++;
-        if (frameCount % 32 === 0) {
-          launchFirework();
-        }
-
-        for (let i = rockets.length - 1; i >= 0; i--) {
-          rockets[i].update();
-          rockets[i].draw();
-          if (rockets[i].exploded) {
-            rockets.splice(i, 1);
-          }
-        }
-
-        for (let i = sparks.length - 1; i >= 0; i--) {
-          sparks[i].update();
-          sparks[i].draw();
-          if (sparks[i].alpha <= 0) {
-            sparks.splice(i, 1);
-          }
-        }
-
-        animId = requestAnimationFrame(render);
-      };
-
-      render();
-    }
-
-    document.getElementById('btn-close-levelup-modal').addEventListener('click', () => {
-      this.playSelectSE();
-      if (animId) cancelAnimationFrame(animId);
-      overlay.remove();
-    });
-  }
-
-  /* ------------------------------------------------------------------------
-   * 酒場サイン受取・記録完了モーダル (RPG達成演出)
-   * ------------------------------------------------------------------------ */
-  showCheckinSuccessModal(res) {
-    const overlay = document.createElement('div');
-    overlay.className = 'rpg-modal-overlay';
-    overlay.id = 'checkin-success-modal';
-
-    const stores = this.getStores();
-    const store = stores.find(s => s.id === res.storeId);
-    const storeName = res.storeName || (store ? store.name : res.storeId);
-    const storeArea = store ? store.area : '';
-
-    const rewardTiers = window.questApi?.rewardTiers || [];
-    const unlockedTier = rewardTiers.find(t => t.required_visits === res.totalVisits);
-
-    overlay.innerHTML = `
-      <div class="rpg-modal-window gold-border" style="max-width:380px; width:90%; text-align:center;">
-        <div style="font-size:36px; margin-bottom:6px;">⚔️🍺✨</div>
-        <div style="font-size:13px; color:var(--text-cyan); font-weight:bold;">【冒険の書 記録完了】</div>
-        <h3 style="color:var(--text-yellow); margin:6px 0 10px 0; font-size:18px;">
-          『${this.escapeHtml ? this.escapeHtml(storeName) : storeName}』
-        </h3>
-        ${storeArea ? `<div style="font-size:12px; color:#cbd5e1; margin-bottom:8px;">エリア: ${storeArea}</div>` : ''}
-
-        <div style="background:#0f152b; border:1px solid #33406b; border-radius:6px; padding:10px; margin-bottom:12px;">
-          <div style="font-size:14px; color:#fff; font-weight:bold;">
-            🏆 現在の制覇数: <span style="color:var(--text-green); font-size:18px;">${res.totalVisits} 軒</span>
-          </div>
-        </div>
-
-        ${unlockedTier ? `
-          <div style="background:linear-gradient(135deg, #78350f 0%, #451a03 100%); border:2px solid var(--border-gold); border-radius:6px; padding:12px; margin-bottom:14px; animation:pulseGold 1.5s infinite;">
-            <div style="font-size:18px; margin-bottom:4px;">🎁✨</div>
-            <div style="font-size:15px; font-weight:bold; color:var(--text-yellow);">
-              【${this.escapeHtml ? this.escapeHtml(unlockedTier.title) : unlockedTier.title}】解放！
-            </div>
-            <div style="font-size:13px; color:#fed7aa; margin-top:4px;">
-              ${unlockedTier.reward_type === 'goods' ? 
-                `🎁 記念品・グッズ引換券（${this.escapeHtml(unlockedTier.goods_name || unlockedTier.title)}）を獲得できます！` : 
-                `対象酒場からお好きなクーポンを ${unlockedTier.selectable_count} 軒獲得できます！`
-              }
-            </div>
-          </div>
-        ` : ''}
-
-        <button id="btn-close-checkin-modal" class="treasure-claim-btn" style="width:100%; font-size:14px; padding:10px;">
-          📜 冒険の書を確認する ▶
-        </button>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-
-    document.getElementById('btn-close-checkin-modal').addEventListener('click', () => {
-      this.playSelectSE();
-      overlay.remove();
-    });
-  }
-
-  /* ------------------------------------------------------------------------
-   * 重複チェックイン案内モーダル (同一酒場はシーズン中1回のみ)
-   * ------------------------------------------------------------------------ */
-  showAlreadyVisitedModal(res) {
-    const overlay = document.createElement('div');
-    overlay.className = 'rpg-modal-overlay';
-    overlay.id = 'already-visited-modal';
-
-    const stores = this.getStores();
-    const store = stores.find(s => s.id === res.storeId);
-    const storeName = store ? store.name : res.storeId;
-
-    overlay.innerHTML = `
-      <div class="rpg-modal-window" style="max-width:360px; width:90%; text-align:center;">
-        <div style="font-size:32px; margin-bottom:6px;">📜✅</div>
-        <h3 style="color:var(--text-yellow); margin:6px 0 10px 0; font-size:16px;">
-          すでに冒険済みの酒場です
-        </h3>
-        <p style="font-size:14px; color:#e2e8f0; line-height:1.6; margin-bottom:14px;">
-          『<strong>${this.escapeHtml ? this.escapeHtml(storeName) : storeName}</strong>』は<br>
-          今シーズンすでに冒険の書に記録されています。<br>
-          <span style="font-size:12px; color:#94a3b8;">※ハシゴ制覇カウントは1酒場につき1回となります</span>
-        </p>
-        <button id="btn-close-already-modal" class="treasure-claim-btn" style="width:100%; font-size:13px; padding:8px; background:#334155; border-color:#64748b;">
-          OK (冒険を続ける)
-        </button>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-
-    document.getElementById('btn-close-already-modal').addEventListener('click', () => {
-      this.playSelectSE();
-      overlay.remove();
-    });
-  }
 
   /* ------------------------------------------------------------------------
    * 3.2 エリア一覧
@@ -3741,7 +3342,7 @@ class YoidoreQuestApp {
     // 最新日時に基づき「どれクエ対応中」フラグを動的再計算
     store.isOpenToday = checkIsOpenToday(store);
 
-    this.typeMessage(`「${store.name}」の情報です。「酔いどれセット」を注文、または「店舗クエスト」を攻略して店主のサインをもらおう！`);
+    this.typeMessage(`「${store.name}」の情報です。「酔いどれセット」または「店舗クエスト」を攻略して店主のサインをもらおう！`);
 
     const paymentTagsHtml = (store.paymentMethods && store.paymentMethods.length > 0)
       ? store.paymentMethods.map(p => `<span class="payment-tag">${p}</span>`).join('')

@@ -1074,9 +1074,10 @@ class QuestApiManager {
   /* ------------------------------------------------------------------------
    * クーポン・引換券の個別消し込み（直接データベース更新）
    * ------------------------------------------------------------------------ */
-  async redeemCoupon(couponId, storeId = null) {
+  async redeemCoupon(couponId, storeId = null, seasonId = null) {
     if (!couponId) return { success: false, message: 'クーポンIDが指定されていません' };
 
+    const targetSeasonId = Number(seasonId || this.currentSeason?.id || 2);
     const updateBody = {
       status: 'used',
       used_at: new Date().toISOString()
@@ -1091,7 +1092,7 @@ class QuestApiManager {
         headers: { 'Prefer': 'return=representation' },
         body: JSON.stringify(updateBody)
       });
-      await this.getUserCoupons();
+      await this.getUserCoupons(targetSeasonId);
     } catch (err) {
       console.error('クーポン消し込みエラー:', err);
       return { success: false, message: '消し込みに失敗しました: ' + (err.message || '通信エラー') };
@@ -1140,7 +1141,7 @@ class QuestApiManager {
     }
 
     // 該当のクーポン枠を店舗ID付きで used に更新
-    return await this.redeemCoupon(availableCoupon.id, storeId);
+    return await this.redeemCoupon(availableCoupon.id, storeId, targetSeasonId);
   }
 
   /* ------------------------------------------------------------------------
