@@ -1155,7 +1155,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.13.08';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.13.09';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1517,67 +1517,10 @@ class YoidoreQuestApp {
     let totalEarnedSlots = 0;
     let totalUsedSlots = 0;
 
-    const tiersHtml = (rewardTiers.length > 0) ? rewardTiers.map(tier => {
-      // 該当マイルストーンの獲得判定（user_couponsに対象tierが存在するか）
-      const isReached = userCoupons.some(c => Number(c.reward_tier_id) === Number(tier.id) || (tier.reward_type === 'goods' && (c.goods_name === tier.goods_name || c.goods_name === tier.title)));
-      const isGoods = tier.reward_type === 'goods';
-
-      if (isGoods) {
-        // グッズ型特典
-        const goodsCoupon = userCoupons.find(c => c.reward_type === 'goods' && (Number(c.reward_tier_id) === Number(tier.id) || c.goods_name === tier.goods_name || c.goods_name === tier.title));
-        const isClaimed = Boolean(goodsCoupon);
-        const isUsed = goodsCoupon?.status === 'used';
-
-        let actionHtml = '';
-        let statusBadge = '';
-        const stampHtml = isUsed ? `<div class="treasure-card-stamp-used">USED</div>` : '';
-
-        if (isUsed) {
-          statusBadge = '';
-          actionHtml = `
-            <div style="font-size:12px; color:#94a3b8; text-align:center; padding:4px 0;">
-              受取日時: ${new Date(goodsCoupon.used_at || goodsCoupon.acquired_at).toLocaleString('ja-JP')}
-            </div>
-          `;
-        } else if (isReached) {
-          statusBadge = '<span class="treasure-tier-status status-unlocked">🎁 引換可能</span>';
-          actionHtml = `
-            <button class="treasure-claim-btn btn-view-goods" data-tier-id="${tier.id}" style="background:linear-gradient(180deg, #d97706 0%, #b45309 100%); border-color:#f59e0b; margin-top:6px; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">
-              🎁 記念品を受け取る
-            </button>
-          `;
-        } else {
-          statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成</span>`;
-          actionHtml = `<div style="font-size:13px; color:#cbd5e1;">🏢 運営店で「<strong>${tier.required_visits}軒達成QR</strong>」をスキャンすると受取可能！</div>`;
-        }
-
-        return `
-          <div class="treasure-tier-card ${isReached || isClaimed ? 'unlocked' : ''}" style="position:relative; overflow:hidden;">
-            ${stampHtml}
-            <div class="treasure-tier-topbar">
-              <span class="treasure-tier-type-badge badge-goods">🎁 グッズ引換</span>
-              ${statusBadge}
-            </div>
-            <div class="treasure-tier-title-row">
-              <h4 class="treasure-tier-title">🏆 ${this.escapeHtml(tier.title)}</h4>
-            </div>
-            <div class="treasure-tier-condition">
-              <span>🍺 条件: <strong class="text-yellow">${tier.required_visits}軒ハシゴ</strong></span>
-              <span> | 🎁 <strong style="color:#ffffff;">${this.escapeHtml(tier.goods_name || tier.title || '記念品')}</strong></span>
-            </div>
-            ${tier.exchange_location ? `
-              <div class="treasure-tier-location">📍 <strong>引換場所:</strong> ${this.escapeHtml(tier.exchange_location)}</div>
-            ` : ''}
-            ${tier.exchange_notice ? `
-              <div class="treasure-tier-notice">⚠️ ${this.escapeHtml(tier.exchange_notice)}</div>
-            ` : ''}
-            ${tier.description ? `<div class="treasure-tier-desc">${this.escapeHtml(tier.description)}</div>` : ''}
-            <div class="treasure-tier-action">${actionHtml}</div>
-          </div>
-        `;
-      }
-
-      // クーポン型特典
+    // 1. クーポン型特典の一覧HTML（A案：スリム＆シンプルカード）
+    const couponTiersList = rewardTiers.filter(t => t.reward_type !== 'goods');
+    const couponsHtml = (couponTiersList.length > 0) ? couponTiersList.map(tier => {
+      const isReached = userCoupons.some(c => Number(c.reward_tier_id) === Number(tier.id));
       const maxCount = tier.selectable_count || 5;
       const usedCoupons = tierCouponMap.get(Number(tier.id)) || [];
       const usedCount = usedCoupons.length;
@@ -1598,7 +1541,7 @@ class YoidoreQuestApp {
       } else if (isReached) {
         statusBadge = `<span class="treasure-tier-status status-unlocked" style="background:#0284c7; border-color:#38bdf8;">✨ 利用可能 (${remainCount}/${maxCount}回)</span>`;
       } else {
-        statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成</span>`;
+        statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成 (${tier.required_visits}軒)</span>`;
       }
 
       // 利用済み店舗の履歴HTML
@@ -1649,8 +1592,6 @@ class YoidoreQuestApp {
             </button>
           `;
         }
-      } else {
-        actionHtml = `<div style="font-size:13px; color:#cbd5e1;">🏢 運営店で「<strong>${tier.required_visits}軒達成QR</strong>」をスキャンすると利用可能！</div>`;
       }
 
       return `
@@ -1667,11 +1608,65 @@ class YoidoreQuestApp {
             <span>🍺 条件: <strong class="text-yellow">${tier.required_visits}軒ハシゴ</strong></span>
             <span> | 🎟️ <strong style="color:#ffffff;">お好きな${maxCount}軒で利用可能</strong></span>
           </div>
-          ${tier.description ? `<div class="treasure-tier-desc">${this.escapeHtml(tier.description)}</div>` : ''}
-          <div class="treasure-tier-action">${actionHtml}</div>
+          ${actionHtml ? `<div class="treasure-tier-action">${actionHtml}</div>` : ''}
         </div>
       `;
-    }).join('') : '<div style="padding:15px; text-align:center; color:#e2e8f0; font-size:14px;">特典マイルストーンを読み込み中です。</div>';
+    }).join('') : '<div style="padding:15px; text-align:center; color:#e2e8f0; font-size:14px;">クーポン特典はありません</div>';
+
+    // 2. グッズ記念品型特典の一覧HTML（A案：スリム＆シンプルカード）
+    const goodsTiersList = rewardTiers.filter(t => t.reward_type === 'goods');
+    const goodsHtml = (goodsTiersList.length > 0) ? goodsTiersList.map(tier => {
+      const goodsCoupon = userCoupons.find(c => c.reward_type === 'goods' && (Number(c.reward_tier_id) === Number(tier.id) || c.goods_name === tier.goods_name || c.goods_name === tier.title));
+      const isClaimed = Boolean(goodsCoupon);
+      const isReached = isClaimed || userCoupons.some(c => Number(c.reward_tier_id) === Number(tier.id));
+      const isUsed = goodsCoupon?.status === 'used';
+
+      let actionHtml = '';
+      let statusBadge = '';
+      const stampHtml = isUsed ? `<div class="treasure-card-stamp-used">USED</div>` : '';
+
+      if (isUsed) {
+        statusBadge = '';
+        actionHtml = `
+          <div style="font-size:12px; color:#94a3b8; text-align:center; padding:4px 0;">
+            受取日時: ${new Date(goodsCoupon.used_at || goodsCoupon.acquired_at).toLocaleString('ja-JP')}
+          </div>
+        `;
+      } else if (isReached) {
+        statusBadge = '<span class="treasure-tier-status status-unlocked">🎁 引換可能</span>';
+        actionHtml = `
+          <button class="treasure-claim-btn btn-view-goods" data-tier-id="${tier.id}" style="background:linear-gradient(180deg, #d97706 0%, #b45309 100%); border-color:#f59e0b; margin-top:6px; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">
+            🎁 記念品を受け取る
+          </button>
+        `;
+      } else {
+        statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成 (${tier.required_visits}軒)</span>`;
+      }
+
+      return `
+        <div class="treasure-tier-card ${isReached || isClaimed ? 'unlocked' : ''}" style="position:relative; overflow:hidden;">
+          ${stampHtml}
+          <div class="treasure-tier-topbar">
+            <span class="treasure-tier-type-badge badge-goods">🎁 グッズ引換</span>
+            ${statusBadge}
+          </div>
+          <div class="treasure-tier-title-row">
+            <h4 class="treasure-tier-title">🏆 ${this.escapeHtml(tier.title)}</h4>
+          </div>
+          <div class="treasure-tier-condition">
+            <span>🍺 条件: <strong class="text-yellow">${tier.required_visits}軒ハシゴ</strong></span>
+            <span> | 🎁 <strong style="color:#ffffff;">${this.escapeHtml(tier.goods_name || tier.title || '記念品')}</strong></span>
+          </div>
+          ${tier.exchange_location ? `
+            <div class="treasure-tier-location" style="font-size:12px; color:#cbd5e1; margin-top:2px;">📍 <strong>引換場所:</strong> ${this.escapeHtml(tier.exchange_location)}</div>
+          ` : ''}
+          ${tier.exchange_notice ? `
+            <div class="treasure-tier-notice" style="font-size:11.5px; color:#fbbf24; margin-top:2px;">⚠️ ${this.escapeHtml(tier.exchange_notice)}</div>
+          ` : ''}
+          ${actionHtml ? `<div class="treasure-tier-action">${actionHtml}</div>` : ''}
+        </div>
+      `;
+    }).join('') : '<div style="padding:15px; text-align:center; color:#e2e8f0; font-size:14px;">記念品グッズはありません</div>';
 
     const seasonStartDate = activeSeason?.start_date || (seasonId === 2 ? window.APP_CONFIG?.eventPeriod?.startDate : '');
     const seasonEndDate = activeSeason?.end_date || (seasonId === 2 ? window.APP_CONFIG?.eventPeriod?.endDate : '');
@@ -1715,17 +1710,27 @@ class YoidoreQuestApp {
           </div>
         </div>
 
-        <!-- 2. 特典宝箱・酒場クーポン統合一覧 -->
+        <!-- 2. ハシゴ達成・酒場クーポン一覧 -->
         <div class="rpg-window window-gold gold-border" style="margin-bottom:14px;">
           <div class="rpg-window-header header-gold">
-            <span>🎁 ハシゴ達成特典・酒場クーポン</span>
+            <span>🍺 ハシゴ達成・酒場クーポン</span>
           </div>
           <div style="margin-top:10px;">
-            ${tiersHtml}
+            ${couponsHtml}
           </div>
         </div>
 
-        <!-- 3. ハシゴ酒・特典受取のながれ（最下部へ移動したガイド） -->
+        <!-- 3. ハシゴ達成・記念グッズ引換一覧 -->
+        <div class="rpg-window window-gold gold-border" style="margin-bottom:14px;">
+          <div class="rpg-window-header header-gold">
+            <span>🎁 ハシゴ達成・記念グッズ</span>
+          </div>
+          <div style="margin-top:10px;">
+            ${goodsHtml}
+          </div>
+        </div>
+
+        <!-- 4. ハシゴ酒・特典受取のながれ（最下部へ移動したガイド） -->
         <div class="rpg-window window-green" style="margin-bottom:14px;">
           <div class="rpg-window-header header-green">
             <span>📜 特典獲得＆酒場クーポンの使い方</span>
