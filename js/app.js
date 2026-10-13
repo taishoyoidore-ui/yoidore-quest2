@@ -1625,7 +1625,7 @@ class YoidoreQuestApp {
       const activeGoodsCoupon = goodsCoupons.find(c => c.status !== 'used');
       const goodsCoupon = usedGoodsCoupon || activeGoodsCoupon || goodsCoupons[0];
       const isClaimed = Boolean(goodsCoupon);
-      const isReached = isClaimed || userVisits.length >= Number(tier.required_visits);
+      const isReached = isClaimed;
       const isUsed = Boolean(usedGoodsCoupon) || goodsCoupon?.status === 'used';
 
       let actionHtml = '';
@@ -3398,8 +3398,7 @@ class YoidoreQuestApp {
           const isUsedHere = seasonCoupons.some(c => c.store_id === store.id && c.status === 'used');
           
           const rewardTiers = (window.questApi && window.questApi.rewardTiers) || [];
-          const visits = (window.questApi && window.questApi.visits) || [];
-          const reachedCouponTiers = rewardTiers.filter(t => t.reward_type !== 'goods' && (seasonCoupons.some(c => Number(c.reward_tier_id) === Number(t.id)) || visits.length >= (Number(t.required_visits) || 0)));
+          const reachedCouponTiers = rewardTiers.filter(t => t.reward_type !== 'goods' && seasonCoupons.some(c => Number(c.reward_tier_id) === Number(t.id)));
           const totalEarnedSlots = reachedCouponTiers.reduce((sum, t) => sum + (Number(t.selectable_count) || 5), 0);
           const usedCount = seasonCoupons.filter(c => c.status === 'used').length;
           const availableCount = Math.max(0, totalEarnedSlots - usedCount);
@@ -3623,10 +3622,11 @@ class YoidoreQuestApp {
       detailCouponBtn.addEventListener('click', () => {
         this.playSelectSE();
         const activeSeasonId = window.questApi?.currentSeason?.id || 2;
-        const visitedCount = (window.questApi && window.questApi.visits) ? window.questApi.visits.length : 0;
+        const userCoupons = (window.questApi && window.questApi.userCoupons) || [];
+        const seasonCoupons = userCoupons.filter(c => (c.season_id === activeSeasonId || (!c.season_id && activeSeasonId === 2)) && c.reward_type !== 'goods');
         const rewardTiers = window.questApi?.rewardTiers || [];
-        const reachedCouponTiers = rewardTiers.filter(t => t.reward_type !== 'goods' && visitedCount >= (Number(t.required_visits) || 0));
-        const tier = reachedCouponTiers[0] || rewardTiers[0] || { id: 1, title: 'ハシゴ酒達成特典' };
+        const reachedCouponTiers = rewardTiers.filter(t => t.reward_type !== 'goods' && seasonCoupons.some(c => Number(c.reward_tier_id) === Number(t.id)));
+        const tier = reachedCouponTiers[0] || rewardTiers.find(t => t.reward_type !== 'goods') || rewardTiers[0] || { id: 1, title: 'ハシゴ酒達成特典' };
         
         this.openStoreCouponRedeemModal(tier, store, activeSeasonId);
       });
