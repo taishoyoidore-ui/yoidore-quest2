@@ -3493,7 +3493,7 @@ class YoidoreQuestApp {
         <!-- 外部リンク (Googleマップ / Instagram) -->
         ${(() => {
           const mapQuery = (store.address ? `${store.address} ${store.name || ''}` : `大阪市大正区 ${store.name || ''}`).trim();
-          const effectiveMapUrl = store.googleMapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
+          const effectiveMapUrl = store.googleMapUrl || store.map_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
 
           return `
             <div class="rpg-window">

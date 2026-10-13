@@ -1189,6 +1189,7 @@ class YoidoreAdminApp {
     document.getElementById('edit-store-quest-charge').value = store.quest_charge || '';
     document.getElementById('edit-store-quest-notes').value = store.quest_notes || '';
 
+    document.getElementById('edit-store-map-url').value = store.map_url || store.googleMapUrl || '';
     document.getElementById('edit-store-insta-url').value = store.insta_url || store.instagramUrl || '';
     document.getElementById('edit-store-photo-url').value = store.photo_url || store.photoUrl || (numId ? `photo/${numId}.jpg` : '');
     document.getElementById('edit-store-badge-sales').value = store.badge_sales_count || '';
@@ -1201,6 +1202,7 @@ class YoidoreAdminApp {
 
   updateMediaPreview() {
     const photoVal = (document.getElementById('edit-store-photo-url').value || '').trim();
+    const mapVal = (document.getElementById('edit-store-map-url').value || '').trim();
     const instaVal = (document.getElementById('edit-store-insta-url').value || '').trim();
     const nameVal = (document.getElementById('edit-store-name').value || '').trim();
     const addressVal = (document.getElementById('edit-store-address').value || '').trim();
@@ -1214,6 +1216,17 @@ class YoidoreAdminApp {
         addressMapBtn.style.display = 'inline-flex';
       } else {
         addressMapBtn.style.display = 'none';
+      }
+    }
+
+    // 地図URLテストリンク
+    const mapBtn = document.getElementById('btn-check-map');
+    if (mapBtn) {
+      if (mapVal && mapVal.startsWith('http')) {
+        mapBtn.href = mapVal;
+        mapBtn.style.display = 'inline-flex';
+      } else {
+        mapBtn.style.display = 'none';
       }
     }
 
@@ -1332,6 +1345,7 @@ class YoidoreAdminApp {
     const questCharge = document.getElementById('edit-store-quest-charge').value.trim();
     const questNotes = document.getElementById('edit-store-quest-notes').value.trim();
     const badgeSalesCount = document.getElementById('edit-store-badge-sales').value.trim();
+    const mapUrl = document.getElementById('edit-store-map-url').value.trim();
     const instaUrl = document.getElementById('edit-store-insta-url').value.trim();
     const photoUrl = document.getElementById('edit-store-photo-url').value.trim();
     const isCouponTarget = document.getElementById('edit-store-coupon-target').checked;
@@ -1377,6 +1391,7 @@ class YoidoreAdminApp {
       takeout: takeout,
       catchphrase: catchphrase,
       payment: payment,
+      map_url: mapUrl,
       insta_url: instaUrl,
       photo_url: photoUrl,
       // 2層分離: シーズン別企画データ
@@ -1709,6 +1724,7 @@ class YoidoreAdminApp {
 
         // 既存店舗から引き継ぐ情報（写真・ロゴ・地図URL・キャッチコピー等）
         const numId = storeId.replace(/\D/g, '').padStart(3, '0');
+        const map_url = existing?.map_url || existing?.raw_data?.map_url || existing?.raw_data?.googleMapUrl || existing?.raw_data?.['Google Map URL'] || '';
         const insta_url = existing?.insta_url || existing?.raw_data?.instagramUrl || existing?.raw_data?.['Instagram URL'] || '';
         const photo_url = existing?.photo_url || existing?.raw_data?.photo || (numId ? `photo/${numId}.jpg` : '');
         const catchphrase = existing?.catchphrase || existing?.raw_data?.キャッチコピー || existing?.raw_data?.catchphrase || '';
@@ -1742,6 +1758,7 @@ class YoidoreAdminApp {
           quest_charge: (questCharge === 'None' || questCharge === '0.0') ? 'なし' : (questCharge || existing?.quest_charge || existing?.raw_data?.クエストチャージ || '不要'),
           quest_notes: questNotes === 'None' ? '' : (questNotes || existing?.quest_notes || existing?.raw_data?.クエスト備考 || ''),
           badge_sales_count: badgeSalesRaw,
+          map_url,
           insta_url,
           photo_url
         };
@@ -1865,6 +1882,7 @@ class YoidoreAdminApp {
           takeout: item.takeout,
           catchphrase: item.catchphrase || '',
           payment: item.payment,
+          map_url: item.map_url || '',
           insta_url: item.insta_url || '',
           photo_url: item.photo_url || '',
           // 2層分離: シーズン別企画データ
