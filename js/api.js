@@ -631,31 +631,39 @@ class QuestApiManager {
 
     // 店舗情報を取得して今期参加状況をチェック
     await this.getStores(targetSeasonId);
-    const store = (this.stores && this.stores.find(s => s.id === storeId)) ||
-                  (window.STORES_DATA && window.STORES_DATA.find(s => s.id === storeId));
+    const allStores = this.stores || window.STORES_DATA || [];
+    const cleanInputId = String(storeId).trim();
+    const store = allStores.find(s => 
+      s.id === cleanInputId || 
+      String(s.id).toLowerCase() === cleanInputId.toLowerCase() ||
+      (cleanInputId.length >= 1 && String(s.id).replace(/\D/g, '') === cleanInputId.replace(/\D/g, '') && cleanInputId.replace(/\D/g, '').length > 0)
+    ) || (window.STORES_DATA && window.STORES_DATA.find(s => s.id === cleanInputId));
+
+    const canonicalStoreId = store ? store.id : cleanInputId;
     
     if (store && store.is_participating === false) {
       return {
         success: false,
         notParticipating: true,
-        storeId,
-        message: `『${store.name || storeId}』は現在の開催シーズンには参加していません。`
+        storeId: canonicalStoreId,
+        message: `『${store.name || canonicalStoreId}』は現在の開催シーズンには参加していません。`
       };
     }
 
     // 現在のシーズンの来店履歴を取得して既にハシゴ済みかチェック
     await this.getUserVisits(targetSeasonId);
-    const existing = (this.visits || []).find(v => v.store_id === storeId);
+    const existing = (this.visits || []).find(v => v.store_id === canonicalStoreId);
     if (existing) {
       return {
         success: false,
         alreadyVisited: true,
-        storeId,
+        storeId: canonicalStoreId,
+        storeName: store ? store.name : canonicalStoreId,
         message: 'この酒場の店主サインはすでに冒険の書に記録済みです！'
       };
     }
 
-    const storeName = store ? store.name : storeId;
+    const storeName = store ? store.name : canonicalStoreId;
 
     try {
       // 外部キー制約のためユーザーを確実に同期
@@ -665,7 +673,7 @@ class QuestApiManager {
         headers: { 'Prefer': 'return=representation' },
         body: JSON.stringify({
           user_id: this.currentUser.userId,
-          store_id: storeId,
+          store_id: canonicalStoreId,
           visited_at: new Date().toISOString()
         })
       });
@@ -681,7 +689,7 @@ class QuestApiManager {
     return {
       success: true,
       alreadyVisited: false,
-      storeId,
+      storeId: canonicalStoreId,
       storeName,
       totalVisits: (this.visits || []).length,
       message: `『${storeName}』の店主サインを冒険の書に記録した！`

@@ -121,16 +121,18 @@ function checkIsOpenToday(store, now = new Date()) {
 window.checkIsOpenToday = checkIsOpenToday;
 
 /**
- * URLやQRコード読み取り文字列からマイルストーン特典達成ID (claim_tier) を安全・確実に抽出
- * (LINE LIFFの liff.state パラメータ、通常クエリ、ハッシュフラグメント、生URLすべてに対応)
+ * URLやQRコード読み取り文字列からマイルストーン特典達成ID (claim_tier / tier_id) を安全・確実に抽出
+ * (LINE LIFFの liff.state パラメータ、通常クエリ、ハッシュフラグメント、生URL、プレーンIDすべてに対応)
+ * @param {string} input 
+ * @returns {string|null} 達成特典ランクID（例: "1", "2", "3"）または null
  */
 function extractClaimTierParam(input = window.location.href) {
   if (!input) return null;
   const str = String(input).trim();
 
-  // 1. プレーンなIDまたはtier文字列 (例: "1", "tier-1", "claim-tier-1")
-  if (/^(tier-|claim-tier-)?\d+$/i.test(str)) {
-    return str.replace(/^(tier-|claim-tier-)/i, '');
+  // 1. プレーンなIDまたはtier文字列 (例: "1", "2", "tier-1", "claim-tier-1", "tier_1")
+  if (/^(tier[-_]?|claim[-_]?tier[-_]?)?\d+$/i.test(str)) {
+    return str.replace(/^(tier[-_]?|claim[-_]?tier[-_]?)/i, '');
   }
 
   try {
@@ -142,18 +144,18 @@ function extractClaimTierParam(input = window.location.href) {
                url.searchParams.get('tier_id') || 
                (url.searchParams.get('action') === 'claim_tier' ? url.searchParams.get('tier') : null) || 
                url.searchParams.get('tier');
-    if (tier) return tier;
+    if (tier) return String(tier).trim();
 
     // 2.2 LIFF state パラメータ (?liff.state=%3Fclaim_tier%3D1, /?claim_tier=1 等)
     const liffState = url.searchParams.get('liff.state');
     if (liffState) {
       const decodedState = decodeURIComponent(liffState);
       const stateMatch = decodedState.match(/[?&#](?:claim_tier|tier_id|tier)=([^&#]+)/i);
-      if (stateMatch) return decodeURIComponent(stateMatch[1]);
+      if (stateMatch) return decodeURIComponent(stateMatch[1]).trim();
       try {
         const dummyUrl = new URL(decodedState.startsWith('/') ? `https://dummy.local${decodedState}` : (decodedState.startsWith('?') ? `https://dummy.local/${decodedState}` : decodedState));
         const tierFromState = dummyUrl.searchParams.get('claim_tier') || dummyUrl.searchParams.get('tier_id') || dummyUrl.searchParams.get('tier');
-        if (tierFromState) return tierFromState;
+        if (tierFromState) return String(tierFromState).trim();
       } catch (e) {}
     }
 
@@ -163,15 +165,15 @@ function extractClaimTierParam(input = window.location.href) {
       const hashQuery = hashClean.includes('?') ? hashClean.split('?')[1] : hashClean;
       const hashParams = new URLSearchParams(hashQuery);
       const tierFromHash = hashParams.get('claim_tier') || hashParams.get('tier_id') || hashParams.get('tier');
-      if (tierFromHash) return tierFromHash;
+      if (tierFromHash) return String(tierFromHash).trim();
       const hashMatch = url.hash.match(/[?&#](?:claim_tier|tier_id|tier)=([^&#]+)/i);
-      if (hashMatch) return decodeURIComponent(hashMatch[1]);
+      if (hashMatch) return decodeURIComponent(hashMatch[1]).trim();
     }
   } catch (e) {}
 
   // 3. 正規表現でのフォールバック抽出
   const rawMatch = str.match(/[?&#](?:claim_tier|tier_id|tier)=([^&#]+)/i);
-  if (rawMatch) return decodeURIComponent(rawMatch[1]);
+  if (rawMatch) return decodeURIComponent(rawMatch[1]).trim();
 
   return null;
 }
@@ -182,7 +184,7 @@ class YoidoreQuestApp {
   constructor() {
     if (window.debugLog) window.debugLog('🚀 YoidoreQuestApp 起動開始');
     
-    // URLパラメータからマイルストーン達成/店舗指定の事前チェック
+    // URLパラメータからマイルストーン達成QRアクセスの事前チェック
     const hasClaimTier = extractClaimTierParam(window.location.href);
 
     this.currentView = hasClaimTier ? 'quest-book' : 'top';
@@ -203,7 +205,7 @@ class YoidoreQuestApp {
       searchQuery: ''
     };
 
-    // QRから直接アクセス時はスタートオーバーレイを即座に非表示
+    // 特典達成QRから直接アクセス時はスタートオーバーレイを即座に非表示
     if (hasClaimTier) {
       const overlay = document.getElementById('start-overlay');
       if (overlay) {
@@ -423,6 +425,8 @@ class YoidoreQuestApp {
           window.questApi.getUserVisits(),
           window.questApi.getUserCoupons()
         ]);
+
+        const claimTierId = extractClaimTierParam(window.location.href);
 
         if (claimTierId) {
           // スタート画面オーバーレイを確実に非表示にして冒険の書にセット
@@ -2449,7 +2453,7 @@ class YoidoreQuestApp {
   }
 
   /* ------------------------------------------------------------------------
-   * アプリ内蔵 QRコードスキャナーモーダル
+   * アプリ内蔵 QRコードスキャナーモーダル（運営店舗のマイルストーン達成QR専用）
    * ------------------------------------------------------------------------ */
   openQrScannerModal() {
     this.playSelectSE();
@@ -2465,12 +2469,12 @@ class YoidoreQuestApp {
     overlay.innerHTML = `
       <div class="rpg-modal-window gold-border" style="max-width:380px; width:92%; text-align:center;">
         <div class="rpg-window-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-          <span style="font-size:16px;">📷 酒場QRコード読取</span>
+          <span style="font-size:16px;">📷 特典達成QRコード読取</span>
           <button id="qr-modal-close-btn" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer;">✕</button>
         </div>
 
-        <div style="font-size:14px; color:var(--text-yellow); margin-bottom:8px; font-weight:bold;">
-          📷 卓上POPのQRコードを読み取ろう！
+        <div style="font-size:13px; color:var(--text-yellow); margin-bottom:8px; font-weight:bold; line-height:1.4;">
+          🏆 運営店舗（6店舗）に掲示された<br>「達成QRコード」を読み取ってください
         </div>
 
         <div class="qr-scanner-box" id="qr-scanner-view-box">
@@ -2484,14 +2488,14 @@ class YoidoreQuestApp {
 
         <div style="display:flex; flex-direction:column; gap:6px;">
           <div style="display:flex; gap:6px;">
-            <button id="qr-modal-test-tier1" class="command-button" style="flex:1; background: rgba(217, 119, 6, 0.25); border: 1px dashed #f59e0b; color: #fbbf24; font-size: 12px; padding: 8px 4px; border-radius: 4px; cursor: pointer; font-weight: bold;">
-              🧪 5軒達成QR
+            <button id="qr-modal-test-tier1" class="command-button" style="flex:1; background: rgba(217, 119, 6, 0.25); border: 1px dashed #f59e0b; color: #fbbf24; font-size: 11px; padding: 6px 2px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+              🏆 5軒達成
             </button>
-            <button id="qr-modal-test-tier2" class="command-button" style="flex:1; background: rgba(217, 119, 6, 0.25); border: 1px dashed #f59e0b; color: #fbbf24; font-size: 12px; padding: 8px 4px; border-radius: 4px; cursor: pointer; font-weight: bold;">
-              🧪 10軒達成QR
+            <button id="qr-modal-test-tier2" class="command-button" style="flex:1; background: rgba(217, 119, 6, 0.25); border: 1px dashed #f59e0b; color: #fbbf24; font-size: 11px; padding: 6px 2px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+              🏆 10軒達成
             </button>
-            <button id="qr-modal-test-tier3" class="command-button" style="flex:1; background: rgba(217, 119, 6, 0.25); border: 1px dashed #f59e0b; color: #fbbf24; font-size: 12px; padding: 8px 4px; border-radius: 4px; cursor: pointer; font-weight: bold;">
-              🧪 15軒達成QR
+            <button id="qr-modal-test-tier3" class="command-button" style="flex:1; background: rgba(217, 119, 6, 0.25); border: 1px dashed #f59e0b; color: #fbbf24; font-size: 11px; padding: 6px 2px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+              🏆 15軒達成
             </button>
           </div>
           <button id="qr-modal-cancel-btn" class="treasure-claim-btn" style="background:#333; border-color:#888; padding:8px; font-size:13px;">
@@ -2564,8 +2568,6 @@ class YoidoreQuestApp {
           isScanned = true;
 
           this.playSelectSE();
-
-          // 1. claim_tier / tier パラメータの判定 (LIFF URL / 通常URL / プレーンIDを包括解析)
           const claimTierId = extractClaimTierParam(decodedText);
 
           await stopCamera();
@@ -2574,7 +2576,7 @@ class YoidoreQuestApp {
           if (claimTierId) {
             await this.handleClaimMilestoneTier(claimTierId);
           } else {
-            alert(`読み取ったQRコードの内容: ${decodedText}\n有効な特典達成QRコードではありません。運営店舗（6店舗）に設置された達成QRコードを読み取ってください。`);
+            alert(`読み取ったQRコードの内容:\n${decodedText}\n\n⚠️ 有効な達成QRコードではありません。\n運営店舗（6店舗）に設置されたマイルストーン達成QRコードを読み取ってください。`);
           }
         };
 

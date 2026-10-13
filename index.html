@@ -12,22 +12,22 @@
   <meta http-equiv="Expires" content="0">
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/style.css?v=20261013_11">
+  <link rel="stylesheet" href="css/style.css?v=20261013_13">
 
-  <!-- 特典達成QRアクセス時の画面チラつき防止（即時初期判定） -->
+  <!-- 特典達成QR・店舗QRアクセス時の画面チラつき防止（即時初期判定） -->
   <script>
     (function() {
       try {
         var href = window.location.href;
-        var isClaim = /[?&#](?:claim_tier|tier_id|tier)=/i.test(href) || /liff\.state=[^&#]*(?:claim_tier|tier)/i.test(href);
-        if (isClaim) {
+        var isQr = /[?&#](?:claim_tier|tier_id|tier|store_id|storeId|store)=/i.test(href) || /liff\.state=[^&#]*(?:claim_tier|tier|store)/i.test(href);
+        if (isQr) {
           document.documentElement.classList.add('qr-claim-direct-access');
         }
       } catch(e) {}
     })();
   </script>
   <style>
-    /* 特典QRアクセス時はスタート画面を一瞬たりとも表示させない */
+    /* QRアクセス時はスタート画面を一瞬たりとも表示させない */
     html.qr-claim-direct-access #start-overlay {
       display: none !important;
     }
@@ -239,8 +239,8 @@
   <!-- JS Scripts -->
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="js/config.js?v=20261013_11"></script>
-  <script src="js/api.js?v=20261013_11"></script>
-  <script src="js/app.js?v=20261013_11"></script>
+  <script src="js/config.js?v=20261013_13"></script>
+  <script src="js/api.js?v=20261013_13"></script>
+  <script src="js/app.js?v=20261013_13"></script>
 </body>
 </html>
