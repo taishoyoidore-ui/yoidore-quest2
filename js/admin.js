@@ -653,10 +653,7 @@ class YoidoreAdminApp {
           : '<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd;"><i class="fa-solid fa-wine-glass"></i> 酒場クーポン型</span>';
 
         // 達成者数計算（実際に運営店QRを読み取って特典を獲得したユニークユーザー数）
-        const tierCoupons = this.coupons.filter(c => 
-          Number(c.reward_tier_id) === Number(tier.id) ||
-          (isGoods && (c.goods_name === tier.goods_name || c.goods_name === tier.title))
-        );
+        const tierCoupons = this.coupons.filter(c => Number(c.reward_tier_id) === Number(tier.id));
         const reachedUsersSet = new Set(tierCoupons.map(c => c.user_id));
         const reachedUsersCount = reachedUsersSet.size;
 
@@ -752,10 +749,7 @@ class YoidoreAdminApp {
     
     (this.tiers || []).forEach(tier => {
       const isGoods = tier.reward_type === 'goods';
-      const tierCoupons = this.coupons.filter(c => 
-        Number(c.reward_tier_id) === Number(tier.id) ||
-        (isGoods && (c.goods_name === tier.goods_name || c.goods_name === tier.title))
-      );
+      const tierCoupons = this.coupons.filter(c => Number(c.reward_tier_id) === Number(tier.id));
       const reachedUsersCount = new Set(tierCoupons.map(c => c.user_id)).size;
 
       let detailName = '';
@@ -2504,26 +2498,14 @@ class YoidoreAdminApp {
       let claimedGoods = 0;
 
       if (sortedTiers.length > 0) {
-        let fallbackSlotCounter = 0;
         sortedTiers.forEach(tier => {
           const tierIdNum = Number(tier.id);
           const isGoods = tier.reward_type === 'goods';
-          const reqCount = Number(tier.selectable_count) || (isGoods ? 1 : 5);
 
-          let matchingCoupons = userCoupons.filter(c => Number(c.reward_tier_id) === tierIdNum);
-          if (matchingCoupons.length === 0 && isGoods) {
-            matchingCoupons = userCoupons.filter(c => c.reward_type === 'goods' || c.goods_name === tier.goods_name || c.goods_name === tier.title);
-          }
-          if (matchingCoupons.length === 0 && userCoupons.some(c => !c.reward_tier_id)) {
-            const unassignedCoupons = userCoupons.filter(c => !c.reward_tier_id && c.reward_type !== 'goods');
-            if (unassignedCoupons.length > fallbackSlotCounter) {
-              matchingCoupons = unassignedCoupons.slice(fallbackSlotCounter, fallbackSlotCounter + reqCount);
-              fallbackSlotCounter += reqCount;
-            }
-          }
+          const matchingCoupons = userCoupons.filter(c => Number(c.reward_tier_id) === tierIdNum);
 
-          if (matchingCoupons.length > 0 || unlockedTierIds.includes(tierIdNum)) {
-            const total = matchingCoupons.length || reqCount;
+          if (matchingCoupons.length > 0) {
+            const total = matchingCoupons.length;
             const usedList = matchingCoupons.filter(c => c.status === 'used');
             const used = usedList.length;
             const remaining = Math.max(0, total - used);
@@ -2781,25 +2763,13 @@ class YoidoreAdminApp {
     sortedTiers.forEach(tier => {
       const tierIdNum = Number(tier.id);
       const isGoods = tier.reward_type === 'goods';
-      const reqCount = Number(tier.selectable_count) || (isGoods ? 1 : 5);
       const reqVisits = tier.required_visits ?? tier.required_count ?? 0;
 
-      let matchingCoupons = userCoupons.filter(c => Number(c.reward_tier_id) === tierIdNum);
-      if (matchingCoupons.length === 0 && isGoods) {
-        matchingCoupons = userCoupons.filter(c => c.reward_type === 'goods' || c.goods_name === tier.goods_name || c.goods_name === tier.title);
-      }
-      if (matchingCoupons.length === 0 && userCoupons.some(c => !c.reward_tier_id)) {
-        const unassignedCoupons = userCoupons.filter(c => !c.reward_tier_id && c.reward_type !== 'goods');
-        if (unassignedCoupons.length > fallbackSlotCounter) {
-          matchingCoupons = unassignedCoupons.slice(fallbackSlotCounter, fallbackSlotCounter + reqCount);
-          fallbackSlotCounter += reqCount;
-        }
-      }
-
-      const isUnlocked = matchingCoupons.length > 0 || unlockedTierIds.includes(tierIdNum);
+      const matchingCoupons = userCoupons.filter(c => Number(c.reward_tier_id) === tierIdNum);
+      const isUnlocked = matchingCoupons.length > 0;
 
       if (isUnlocked) {
-        const total = matchingCoupons.length || reqCount;
+        const total = matchingCoupons.length;
         const usedList = matchingCoupons.filter(c => c.status === 'used');
         const used = usedList.length;
         const remaining = Math.max(0, total - used);
