@@ -1155,7 +1155,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.13.05';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.13.06';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1299,7 +1299,7 @@ class YoidoreQuestApp {
     }
     const couponEnd = currentSeason.coupon_valid_until || '2026-10-30';
 
-    const welcomeMessage = '大正酔いどれクエストへようこそ！コマンドを選んで酒場を探そう！遊び方は下の【導き】をチェック！';
+    const welcomeMessage = '大正酔いどれクエストへようこそ！コマンドを選んで酒場を探そう！楽しみ方は下の【導き】をチェック！';
 
     if (this.isStarted) {
       this.typeMessage(welcomeMessage);
@@ -1491,11 +1491,11 @@ class YoidoreQuestApp {
     if (isExpired) {
       this.typeMessage('イベント期間は終了しました。これまでの冒険の記録をご確認ください。');
     } else if (!isCouponUsable && couponStartDateStr) {
-      this.typeMessage(`スタンプを集めて特典を解放しよう！クーポンの利用開始は ${this.formatShortDateWithDay(couponStartDateStr)} から！`);
+      this.typeMessage(`店主のサインを集めて特典を解放しよう！酒場クーポンの利用開始は ${this.formatShortDateWithDay(couponStartDateStr)} から！`);
     } else if (unlockedTierCount > 0) {
-      this.typeMessage('酒場クーポンが使えるぞ！下の『クーポンを使う』からお店を選ぼう！');
+      this.typeMessage('酒場クーポンが使えるぞ！下の『酒場を選んでクーポンを使う』からお店を選ぼう！');
     } else {
-      this.typeMessage('台紙にスタンプが集まったら、運営店でQRを読み込んで特典を解放しよう！');
+      this.typeMessage('紙の冒険の書に店主のサインが集まったら、運営店でQRを読み込んで特典を解放しよう！');
     }
 
     // 特典・クーポン統合カードのレンダリング
@@ -1738,20 +1738,20 @@ class YoidoreQuestApp {
         <!-- 3. はしご酒・特典受取のながれ（最下部へ移動したガイド） -->
         <div class="rpg-window window-green" style="margin-bottom:14px;">
           <div class="rpg-window-header header-green">
-            <span>📜 特典獲得＆クーポンの使い方</span>
+            <span>📜 特典獲得＆酒場クーポンの使い方</span>
           </div>
           <div style="padding:10px 4px 6px; font-size:12px; color:#e2e8f0; line-height:1.6;">
             <div style="margin-bottom:6px; display:flex; align-items:flex-start; gap:6px;">
               <span style="color:#fde047; font-weight:bold; flex-shrink:0;">①</span>
-              <span><strong>紙の冒険の書</strong>に、各酒場で限定セットを注文してサイン・スタンプを集めます。</span>
+              <span><strong>紙の冒険の書</strong>に、各酒場で酔いどれセットを注文、または店舗クエストを攻略し、店主のサインを集めます。</span>
             </div>
             <div style="margin-bottom:6px; display:flex; align-items:flex-start; gap:6px;">
               <span style="color:#fde047; font-weight:bold; flex-shrink:0;">②</span>
-              <span><strong>運営店（6店舗）</strong>の店頭POPに掲示されている「<strong>達成QRコード</strong>（5軒・10軒・15軒達成等）」をスマホで読み取ります。</span>
+              <span><strong>運営店（6店舗）</strong>へ行き「<strong>達成QRコード</strong>（5軒・10軒・15軒達成等）」をスマホで読み取ります。</span>
             </div>
             <div style="display:flex; align-items:flex-start; gap:6px;">
               <span style="color:#fde047; font-weight:bold; flex-shrink:0;">③</span>
-              <span>冒険の書に特典クーポン・グッズ引換券が一括付与され、後夜祭期間に各店舗でご利用いただけます！</span>
+              <span>冒険の書に酒場クーポン・グッズ引換券が解放されます！</span>
             </div>
           </div>
         </div>
@@ -3512,9 +3512,9 @@ class YoidoreQuestApp {
 
       const hasFilter = this.filters.area !== 'ALL' || this.filters.category !== 'ALL' || this.filters.style !== 'ALL' || this.filters.type !== 'ALL' || this.filters.takeout === 'YES' || this.filters.openToday || Boolean(this.filters.searchQuery);
       if (hasFilter) {
-        this.typeMessage(`条件に一致する酒場が ${filtered.length}軒 見つかりました！行きたい店を決めて出発しよう！`);
+        this.typeMessage(`条件に一致する酒場が ${filtered.length}軒見つかりました！気になる酒場を決めて出発しよう！`);
       } else {
-        this.typeMessage(`大正区の酒場が ${filtered.length}軒 集結！気になる酒場をタップしてクエスト内容を確かめよう！`);
+        this.typeMessage(`大正区の酒場が ${filtered.length}軒集結！気になる酒場をタップして酔いどれセットや店舗クエストの内容を確かめよう！`);
       }
 
       const cardsHtml = filtered.length > 0 ? filtered.map(store => {
@@ -3713,7 +3713,7 @@ class YoidoreQuestApp {
     // 最新日時に基づき「どれクエ対応中」フラグを動的再計算
     store.isOpenToday = checkIsOpenToday(store);
 
-    this.typeMessage(`「${store.name}」の情報です。「酔いどれセット」を注文してスタンプをもらおう！`);
+    this.typeMessage(`「${store.name}」の情報です。「酔いどれセット」を注文、または「店舗クエスト」を攻略して店主のサインをもらおう！`);
 
     const paymentTagsHtml = (store.paymentMethods && store.paymentMethods.length > 0)
       ? store.paymentMethods.map(p => `<span class="payment-tag">${p}</span>`).join('')
