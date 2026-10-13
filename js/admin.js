@@ -988,7 +988,7 @@ class YoidoreAdminApp {
     const participatingCb = document.getElementById('edit-store-participating');
     const participatingLabel = document.getElementById('label-store-participating');
     if (participatingLabel) {
-      participatingLabel.textContent = `✨ この酒場を「${seasonName}」に参加させる（冒険者アプリ・POPに表示）`;
+      participatingLabel.textContent = `✨ この酒場を「${seasonName}」に参加させる`;
     }
 
     const idInput = document.getElementById('edit-store-id');
@@ -1448,7 +1448,6 @@ class YoidoreAdminApp {
     const storePayload = {
       id: storeId,
       name: name,
-      address: address,
       area: area,
       ...(targetSeasonId === 2 ? { is_coupon_target: isCouponTarget } : {}),
       display_order: displayOrder,
