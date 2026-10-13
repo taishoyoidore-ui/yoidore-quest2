@@ -745,13 +745,13 @@
 
           <div class="form-group">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-              <label style="margin:0;">店舗住所 (Googleマップ検索・フォールバック用)</label>
+              <label style="margin:0;">店舗住所 (Googleマップ連動) <span class="required">*</span></label>
               <a id="btn-check-address-map" href="#" target="_blank" class="btn btn-outline btn-sm" style="padding:1px 6px; font-size:11px; display:none;">
                 <i class="fa-solid fa-location-dot text-primary"></i> 住所で地図確認
               </a>
             </div>
-            <input type="text" id="edit-store-address" class="form-control" placeholder="例: 大阪府大阪市大正区三軒家東1-1-1" oninput="window.adminApp.updateMediaPreview()">
-            <small class="text-muted" style="font-size:11px;">※Googleマップの個別店舗URLを持たない店舗でも、住所を入力しておくとアプリからGoogleマップで場所検索できるようになります。</small>
+            <input type="text" id="edit-store-address" class="form-control" placeholder="例: 大阪市大正区三軒家西1-4-15" oninput="window.adminApp.updateMediaPreview()">
+            <small class="text-muted" style="font-size:11px;">※住所を入力すると、アプリ上の「Googleマップで酒場へ行く」ボタンからこの場所が開きます。</small>
           </div>
 
           <div class="grid-3col">
@@ -941,44 +941,22 @@
           </div>
 
           <!-- リンク & フラグ -->
-          <div class="form-section-title">🔗 外部リンク & メディア設定</div>
-          <div class="grid-2col">
-            <div class="form-group">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                <label style="margin:0;">Google Map URL (店舗個別URL)</label>
-                <a id="btn-check-map" href="#" target="_blank" class="btn btn-outline btn-sm" style="padding:1px 6px; font-size:11px; display:none;">
-                  <i class="fa-solid fa-up-right-from-square"></i> 開いて確認
-                </a>
-              </div>
-              <input type="url" id="edit-store-map-url" class="form-control" placeholder="https://maps.app.goo.gl/..." oninput="window.adminApp.updateMediaPreview()">
-              <small class="text-muted" style="font-size:11px;">※空欄の場合、上記の「店舗住所」から自動的にGoogleマップ検索が開きます。</small>
+          <div class="form-section-title">🔗 SNS・メディア設定</div>
+          <div class="form-group">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <label style="margin:0;">Instagram URL</label>
+              <a id="btn-check-insta" href="#" target="_blank" class="btn btn-outline btn-sm" style="padding:1px 6px; font-size:11px; display:none;">
+                <i class="fa-brands fa-instagram"></i> 開いて確認
+              </a>
             </div>
-            <div class="form-group">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                <label style="margin:0;">Instagram URL</label>
-                <a id="btn-check-insta" href="#" target="_blank" class="btn btn-outline btn-sm" style="padding:1px 6px; font-size:11px; display:none;">
-                  <i class="fa-brands fa-instagram"></i> 開いて確認
-                </a>
-              </div>
-              <input type="url" id="edit-store-insta-url" class="form-control" placeholder="https://instagram.com/..." oninput="window.adminApp.updateMediaPreview()">
-            </div>
+            <input type="url" id="edit-store-insta-url" class="form-control" placeholder="https://instagram.com/..." oninput="window.adminApp.updateMediaPreview()">
           </div>
-          <div class="grid-2col">
-            <div class="form-group">
-              <label>写真画像パス / URL</label>
-              <input type="text" id="edit-store-photo-url" class="form-control" placeholder="photo/001.jpg または 外部URL" oninput="window.adminApp.updateMediaPreview()">
-              <div id="preview-photo-box" class="media-preview-box" style="margin-top:6px; display:none;">
-                <img id="preview-photo-img" src="" alt="写真プレビュー" style="max-height:80px; border-radius:4px; border:1px solid #cbd5e1; display:none;">
-                <div id="preview-photo-status" style="font-size:11px; color:#64748b; margin-top:2px;"></div>
-              </div>
-            </div>
-            <div class="form-group">
-              <label>ロゴ画像パス / URL</label>
-              <input type="text" id="edit-store-logo-url" class="form-control" placeholder="logo/001.png または 外部URL" oninput="window.adminApp.updateMediaPreview()">
-              <div id="preview-logo-box" class="media-preview-box" style="margin-top:6px; display:none;">
-                <img id="preview-logo-img" src="" alt="ロゴプレビュー" style="max-height:80px; border-radius:4px; border:1px solid #cbd5e1; background:#f8fafc; padding:2px; display:none;">
-                <div id="preview-logo-status" style="font-size:11px; color:#64748b; margin-top:2px;"></div>
-              </div>
+          <div class="form-group">
+            <label>写真画像パス / URL</label>
+            <input type="text" id="edit-store-photo-url" class="form-control" placeholder="photo/001.jpg または 外部URL" oninput="window.adminApp.updateMediaPreview()">
+            <div id="preview-photo-box" class="media-preview-box" style="margin-top:6px; display:none;">
+              <img id="preview-photo-img" src="" alt="写真プレビュー" style="max-height:80px; border-radius:4px; border:1px solid #cbd5e1; display:none;">
+              <div id="preview-photo-status" style="font-size:11px; color:#64748b; margin-top:2px;"></div>
             </div>
           </div>
 
@@ -1249,8 +1227,8 @@
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=20261013_20"></script>
-  <script src="js/api.js?v=20261013_20"></script>
-  <script src="js/admin.js?v=20261013_20"></script>
+  <script src="js/config.js?v=20261013_22"></script>
+  <script src="js/api.js?v=20261013_22"></script>
+  <script src="js/admin.js?v=20261013_22"></script>
 </body>
 </html>

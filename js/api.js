@@ -170,7 +170,6 @@ class QuestApiManager {
 
           const numId = s.id ? s.id.replace(/\D/g, '').padStart(3, '0') : '001';
           const resolvedPhoto = formatMediaUrl(s.photo_url || raw['photo_url'] || raw['photoUrl'] || raw['photo'], 'photo', 'jpg', numId);
-          const resolvedLogo = formatMediaUrl(s.logo_url || raw['logo_url'] || raw['logoUrl'] || raw['logo'], 'logo', 'png', numId);
 
           // 参加フラグの判定（データがないシーズンは未参加）
           let isParticipating = false;
@@ -208,7 +207,8 @@ class QuestApiManager {
 
           // 固定基本情報
           const address = s.address || raw['address'] || raw['住所'] || raw['店舗住所'] || '';
-          const mapUrl = s.map_url || raw['map_url'] || raw['googleMapUrl'] || raw['Google Map URL'] || '';
+          const mapQuery = (address ? `${address} ${s.name || ''}` : `大阪市大正区 ${s.name || ''}`).trim();
+          const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
           const instaUrl = s.insta_url || raw['insta_url'] || raw['instagramUrl'] || raw['Instagram URL'] || '';
           const catchphrase = s.catchphrase || raw['catchphrase'] || raw['キャッチコピー'] || '';
           const area = s.area || raw['area'] || raw['エリア'] || '';
@@ -289,8 +289,6 @@ class QuestApiManager {
             instagramUrl: instaUrl,
             photoUrl: resolvedPhoto,
             photo_url: resolvedPhoto,
-            logoUrl: resolvedLogo,
-            logo_url: resolvedLogo,
             mapPos: raw.mapPos || { x: 50, y: 50 },
             raw_data: raw
           };
