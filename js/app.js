@@ -1155,7 +1155,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.13.06';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.13.08';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1365,35 +1365,32 @@ class YoidoreQuestApp {
         </ul>
       </div>
 
-      <!-- はしご酒の導き・冒険の心得（コマンド選択下部に配置） -->
+      <!-- ハシゴ酒の導き・冒険の心得（常時オープン表示） -->
       <div class="rpg-window gold-border" style="margin-top:14px;">
-        <div class="guidance-accordion-wrapper" style="margin-top:0;">
-          <button class="guidance-accordion-btn" id="guidance-accordion-toggle" type="button">
-            <span><i class="fa-solid fa-scroll"></i> 📜 はしご酒の導き＆冒険の心得</span>
-            <span id="guidance-accordion-icon" style="font-size:12px; color:var(--text-cyan);">詳しく見る ▼</span>
-          </button>
-          <div id="guidance-accordion-body" class="guidance-accordion-content" style="display:none;">
-            ${guideSteps.map((st, idx) => `
-              <div class="guide-step-card">
-                <div class="guide-step-header">
-                  <span>${idx === 0 ? '⚔️' : (idx === 1 ? '📱' : '🎁')}</span>
-                  <span>${this.escapeHtml(st.step || `其の${idx+1}`)}【${this.escapeHtml(st.title || '')}】</span>
-                </div>
-                <div class="guide-step-desc">${this.escapeHtml(st.desc || '')}</div>
+        <div class="rpg-window-header">
+          <span>📜 ハシゴ酒の導き＆冒険の心得</span>
+        </div>
+        <div style="padding:10px 4px 6px; display:flex; flex-direction:column; gap:10px;">
+          ${guideSteps.map((st, idx) => `
+            <div class="guide-step-card">
+              <div class="guide-step-header">
+                <span>${idx === 0 ? '⚔️' : (idx === 1 ? '📱' : '🎁')}</span>
+                <span>${this.escapeHtml(st.step || `其の${idx+1}`)}【${this.escapeHtml(st.title || '')}】</span>
               </div>
-            `).join('')}
+              <div class="guide-step-desc">${this.escapeHtml(st.desc || '')}</div>
+            </div>
+          `).join('')}
 
-            ${rulesNotes ? `
-              <div class="guide-rules-box">
-                <div class="guide-rules-title">
-                  <i class="fa-solid fa-shield-halved"></i> 冒険の心得（注意事項）
-                </div>
-                <div class="guide-rules-content">
-                  ${this.escapeHtml(rulesNotes).replace(/\n/g, '<br>')}
-                </div>
+          ${rulesNotes ? `
+            <div class="guide-rules-box">
+              <div class="guide-rules-title">
+                <i class="fa-solid fa-shield-halved"></i> 冒険の心得（注意事項）
               </div>
-            ` : ''}
-          </div>
+              <div class="guide-rules-content">
+                ${this.escapeHtml(rulesNotes).replace(/\n/g, '<br>')}
+              </div>
+            </div>
+          ` : ''}
         </div>
       </div>
 
@@ -1422,27 +1419,12 @@ class YoidoreQuestApp {
         }
       });
     });
-
-    // アコーディオントグルイベント
-    const accordionBtn = document.getElementById('guidance-accordion-toggle');
-    const accordionBody = document.getElementById('guidance-accordion-body');
-    const accordionIcon = document.getElementById('guidance-accordion-icon');
-    if (accordionBtn && accordionBody) {
-      accordionBtn.addEventListener('click', () => {
-        this.playSelectSE();
-        const isOpen = accordionBody.style.display !== 'none';
-        accordionBody.style.display = isOpen ? 'none' : 'flex';
-        if (accordionIcon) {
-          accordionIcon.textContent = isOpen ? '詳しく見る ▼' : '閉じる ▲';
-        }
-      });
-    }
   }
 
   /* ------------------------------------------------------------------------
-   * 冒険の書 (Quest Book / Passport) 画面
+   * 冒険の書 (Quest Book / Passport) 画面 (即時同期レンダリング)
    * ------------------------------------------------------------------------ */
-  async renderQuestBookView(container) {
+  renderQuestBookView(container) {
     const user = (window.questApi && window.questApi.currentUser) || {
       displayName: '酔いどれ勇者',
       pictureUrl: 'assets/banner.png'
@@ -1452,24 +1434,20 @@ class YoidoreQuestApp {
     const seasonId = activeSeason.id || 2;
     const seasonName = activeSeason.name || '大正酔いどれクエスト';
 
-    // 該当シーズンのデータをAPIから取得
-    const [seasonStores, seasonVisits, seasonRewardTiers, seasonCoupons, _cloudHeroTitles] = await Promise.all([
-      window.questApi ? window.questApi.getStores(seasonId) : Promise.resolve([]),
-      window.questApi ? window.questApi.getUserVisits(seasonId) : Promise.resolve([]),
-      window.questApi ? window.questApi.getRewardTiers(seasonId) : Promise.resolve([]),
-      window.questApi ? window.questApi.getUserCoupons(seasonId) : Promise.resolve([]),
-      window.questApi ? window.questApi.getHeroTitles() : Promise.resolve([])
-    ]);
+    // メモリ上のキャッシュデータから即時同期レンダリング (0ms)
+    const seasonStores = this.getStores(seasonId);
+    const seasonVisits = window.questApi?.visits || [];
+    const seasonRewardTiers = (window.questApi?.rewardTiers && window.questApi.rewardTiers.length > 0)
+      ? window.questApi.rewardTiers 
+      : (window.APP_CONFIG?.fallbackRewardTiers || []);
+    const seasonCoupons = window.questApi?.userCoupons || [];
 
     // 参加店舗のみを対象とする
     const stores = (seasonStores || []).filter(s => s.is_participating !== false);
     const totalStores = stores.length || 33;
     const visits = seasonVisits || [];
     const userCoupons = seasonCoupons || [];
-
-    const rewardTiers = (seasonRewardTiers && seasonRewardTiers.length > 0)
-      ? seasonRewardTiers 
-      : (window.APP_CONFIG?.fallbackRewardTiers || []);
+    const rewardTiers = seasonRewardTiers;
 
     // 獲得済みマイルストーン段階数の算出
     const unlockedTiers = rewardTiers.filter(t => userCoupons.some(c => Number(c.reward_tier_id) === Number(t.id) || (t.reward_type === 'goods' && (c.goods_name === t.goods_name || c.goods_name === t.title))));
@@ -1706,20 +1684,32 @@ class YoidoreQuestApp {
 
     container.innerHTML = `
       <div class="quest-book-container">
-        <!-- 1. 勇者ステータス -->
-        <div class="hero-status-card" style="margin-bottom:14px;">
-          <div class="hero-avatar-wrap">
-            <img src="${user.pictureUrl || 'assets/banner.png'}" alt="Avatar" class="hero-avatar" onerror="this.src='assets/banner.png';">
-            <span class="hero-level-badge">Lv.${heroLv}</span>
+        <!-- 1. 勇者ステータス（ドラクエ風クラシックステータス枠） -->
+        <div class="rpg-window gold-border hero-status-window" style="margin-bottom:14px;">
+          <div class="rpg-window-header header-gold">
+            <span>▶ 冒険者のステータス</span>
+            <span class="header-badge" style="background:#b45309; border:1px solid #fde047; color:#fff; padding:1px 6px; border-radius:4px; font-size:11px;">Lv.${heroLv}</span>
           </div>
-          <div class="hero-info">
-            <div class="hero-name">
-              <span>${user.displayName}</span>
+          <div class="hero-status-body" style="display:flex; gap:12px; align-items:center;">
+            <div class="hero-avatar-wrap" style="flex-shrink:0; text-align:center;">
+              <img src="${user.pictureUrl || 'assets/banner.png'}" alt="Avatar" class="hero-avatar" onerror="this.src='assets/banner.png';" style="width:54px; height:54px; border:2px solid var(--border-gold); border-radius:8px; object-fit:cover; display:block;">
             </div>
-            <div class="hero-title-badge-wrap">
-              <div class="hero-title-badge" style="border-color: ${heroColor};">
-                <i class="fa-solid fa-medal hero-title-icon" style="color: ${heroColor};"></i>
-                <span class="hero-title-text" style="color: ${heroColor}; text-shadow: 0 0 8px ${heroColor}66;">${heroTitle}</span>
+            <div class="hero-status-grid" style="flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; font-size:12.5px;">
+              <div style="display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px dashed rgba(248,225,108,0.25); padding-bottom:3px;">
+                <span style="color:#94a3b8; font-size:11px; flex-shrink:0;">なまえ</span>
+                <span style="color:#ffffff; font-weight:bold; font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-left:8px;">${this.escapeHtml ? this.escapeHtml(user.displayName) : user.displayName}</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed rgba(248,225,108,0.25); padding-bottom:3px;">
+                <span style="color:#94a3b8; font-size:11px; flex-shrink:0;">しょうごう</span>
+                <span style="color:${heroColor}; font-weight:bold; display:flex; align-items:center; gap:4px; text-shadow:0 0 6px ${heroColor}55;">
+                  <i class="fa-solid fa-medal" style="font-size:11px;"></i> ${heroTitle}
+                </span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="color:#94a3b8; font-size:11px; flex-shrink:0;">酒場クーポン</span>
+                <span style="color:#fde047; font-weight:bold;">
+                  ${remainingAvailableCoupons > 0 ? `🎫 残り ${remainingAvailableCoupons} 軒分` : (unlockedTierCount > 0 ? '全利用済み' : '未解放')}
+                </span>
               </div>
             </div>
           </div>
@@ -1735,7 +1725,7 @@ class YoidoreQuestApp {
           </div>
         </div>
 
-        <!-- 3. はしご酒・特典受取のながれ（最下部へ移動したガイド） -->
+        <!-- 3. ハシゴ酒・特典受取のながれ（最下部へ移動したガイド） -->
         <div class="rpg-window window-green" style="margin-bottom:14px;">
           <div class="rpg-window-header header-green">
             <span>📜 特典獲得＆酒場クーポンの使い方</span>
@@ -1837,6 +1827,39 @@ class YoidoreQuestApp {
           btnReset.textContent = '🗑️ 履歴リセット';
         }
       });
+    }
+
+    // バックグラウンドで最新データをサイレント同期（画面は即時表示したまま、裏で通信）
+    this.refreshQuestBookInBackground(seasonId);
+  }
+
+  /* ------------------------------------------------------------------------
+   * 冒険の書 バックグラウンド・サイレント同期
+   * ------------------------------------------------------------------------ */
+  async refreshQuestBookInBackground(seasonId) {
+    if (!window.questApi || this._isQuestBookSyncing) return;
+    this._isQuestBookSyncing = true;
+    try {
+      const prevCouponsLen = (window.questApi.userCoupons || []).length;
+      const prevVisitsLen = (window.questApi.visits || []).length;
+      await Promise.all([
+        window.questApi.getRewardTiers(seasonId),
+        window.questApi.getUserCoupons(seasonId),
+        window.questApi.getUserVisits(seasonId)
+      ]);
+      const newCouponsLen = (window.questApi.userCoupons || []).length;
+      const newVisitsLen = (window.questApi.visits || []).length;
+      // ユーザーがまだ冒険の書画面を表示していて、データに変更があった場合のみ再描画
+      if (this.currentView === 'quest-book' && (prevCouponsLen !== newCouponsLen || prevVisitsLen !== newVisitsLen)) {
+        const container = document.getElementById('view-container');
+        if (container) {
+          this.renderQuestBookView(container);
+        }
+      }
+    } catch (e) {
+      console.warn('QuestBook background sync skipped:', e);
+    } finally {
+      this._isQuestBookSyncing = false;
     }
   }
 
