@@ -1155,7 +1155,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.13.04';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.13.05';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1706,31 +1706,6 @@ class YoidoreQuestApp {
 
     container.innerHTML = `
       <div class="quest-book-container">
-        <!-- 0. 冒険の書シーズンヘッダー & 開催期間表示 -->
-        <div class="rpg-window gold-border" style="margin-bottom:14px; padding:12px;">
-          <div class="rpg-window-header" style="margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
-            <div style="display:flex; align-items:center; gap:6px; font-size:15px; font-weight:bold; color:var(--text-yellow);">
-              <span>📜 【${this.escapeHtml(seasonName)}】冒険の書</span>
-            </div>
-            <span class="header-badge" style="background:#059669; color:#fff;">開催中</span>
-          </div>
-
-          ${seasonPeriodStr ? `
-            <div style="background:rgba(15, 23, 42, 0.75); border:1px solid rgba(248, 225, 108, 0.35); border-radius:6px; padding:8px 12px; font-size:12px;">
-              <div style="display:flex; align-items:center; gap:6px; color:#fde68a; font-weight:bold;">
-                <span>📅 開催期間:</span>
-                <span>${seasonPeriodStr}</span>
-              </div>
-              ${seasonCouponUntil ? `
-                <div style="display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:11px; margin-top:3px;">
-                  <span style="color:#38bdf8;">🎫 クーポン期限:</span>
-                  <span>〜 ${this.formatDateWithDay(seasonCouponUntil)}</span>
-                </div>
-              ` : ''}
-            </div>
-          ` : ''}
-        </div>
-
         <!-- 1. 勇者ステータス -->
         <div class="hero-status-card" style="margin-bottom:14px;">
           <div class="hero-avatar-wrap">
