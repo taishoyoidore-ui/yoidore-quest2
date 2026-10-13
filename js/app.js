@@ -191,7 +191,6 @@ class YoidoreQuestApp {
     this.audioCtx = null;
     this.isStarted = Boolean(hasClaimTier);
     this.lastStoresScrollY = 0;
-    this.selectedBookSeasonId = 2;
     
     // フィルター状態
     this.filters = {
@@ -405,7 +404,6 @@ class YoidoreQuestApp {
           window.questApi.getStores()
         ]);
 
-        this.selectedBookSeasonId = curSeason?.id || 2;
         if (curSeason && curSeason.start_date && curSeason.end_date) {
           const periodBadge = document.getElementById('start-period-badge');
           if (periodBadge) {
@@ -1157,7 +1155,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.10.13';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.13.04';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1301,10 +1299,10 @@ class YoidoreQuestApp {
     }
     const couponEnd = currentSeason.coupon_valid_until || '2026-10-30';
 
-    const periodMessage = `開催: ${this.formatShortDateWithDay(seasonStart)}〜${this.formatShortDateWithDay(seasonEnd)} / クーポン利用: ${this.formatShortDateWithDay(couponStart)}〜${this.formatShortDateWithDay(couponEnd)}`;
+    const welcomeMessage = '大正酔いどれクエストへようこそ！コマンドを選んで酒場を探そう！遊び方は下の【導き】をチェック！';
 
     if (this.isStarted) {
-      this.typeMessage(periodMessage);
+      this.typeMessage(welcomeMessage);
     } else {
       const msgEl = document.getElementById('rpg-message-text');
       if (msgEl) {
@@ -1364,20 +1362,6 @@ class YoidoreQuestApp {
             </div>
             <span class="command-badge">${takeoutCount}軒</span>
           </li>
-          <li class="command-item" data-action="map">
-            <div class="command-item-left">
-              <span class="command-cursor">▶</span>
-              <span class="command-label">Googleマップで探す</span>
-            </div>
-            <span class="command-badge text-yellow">Google MAP</span>
-          </li>
-          <li class="command-item" data-action="all">
-            <div class="command-item-left">
-              <span class="command-cursor">▶</span>
-              <span class="command-label">全酒場一覧を見る</span>
-            </div>
-            <span class="command-badge">${totalCount}軒</span>
-          </li>
         </ul>
       </div>
 
@@ -1436,13 +1420,6 @@ class YoidoreQuestApp {
           this.filters.takeout = 'YES';
           this.navigateTo('stores');
         }
-        else if (action === 'map') {
-          window.open('https://maps.app.goo.gl/SqskFzoxuso7NwwL8', '_blank');
-        }
-        else if (action === 'all') {
-          this.resetFilters();
-          this.navigateTo('stores');
-        }
       });
     });
 
@@ -1472,17 +1449,15 @@ class YoidoreQuestApp {
     };
 
     const activeSeason = window.questApi?.currentSeason || { id: 2, name: '大正酔いどれクエスト' };
-    const activeSeasonId = activeSeason.id || 2;
-    const seasonId = this.selectedBookSeasonId || activeSeasonId;
-    const isCurrentSeason = (seasonId === activeSeasonId);
+    const seasonId = activeSeason.id || 2;
+    const seasonName = activeSeason.name || '大正酔いどれクエスト';
 
     // 該当シーズンのデータをAPIから取得
-    const [seasonStores, seasonVisits, seasonRewardTiers, seasonCoupons, cloudSeasons, _cloudHeroTitles] = await Promise.all([
+    const [seasonStores, seasonVisits, seasonRewardTiers, seasonCoupons, _cloudHeroTitles] = await Promise.all([
       window.questApi ? window.questApi.getStores(seasonId) : Promise.resolve([]),
       window.questApi ? window.questApi.getUserVisits(seasonId) : Promise.resolve([]),
       window.questApi ? window.questApi.getRewardTiers(seasonId) : Promise.resolve([]),
       window.questApi ? window.questApi.getUserCoupons(seasonId) : Promise.resolve([]),
-      window.questApi ? window.questApi.getSeasons() : Promise.resolve([]),
       window.questApi ? window.questApi.getHeroTitles() : Promise.resolve([])
     ]);
 
@@ -1491,14 +1466,6 @@ class YoidoreQuestApp {
     const totalStores = stores.length || 33;
     const visits = seasonVisits || [];
     const userCoupons = seasonCoupons || [];
-
-    const allSeasons = (Array.isArray(cloudSeasons) && cloudSeasons.length > 0)
-      ? cloudSeasons
-      : (window.questApi?.seasons || []);
-    const targetSeasonObj = allSeasons.find(s => s.id === seasonId) || (isCurrentSeason ? activeSeason : { name: activeSeason.name || 'イベント' });
-    const seasonName = targetSeasonObj.name || activeSeason.name || 'イベント';
-
-    this.typeMessage(`『${user.displayName}』の【${seasonName}】冒険の書です。`);
 
     const rewardTiers = (seasonRewardTiers && seasonRewardTiers.length > 0)
       ? seasonRewardTiers 
@@ -1516,9 +1483,20 @@ class YoidoreQuestApp {
     const heroDesc = matchedHero.description || '';
 
     const info = activeSeason?.statusInfo;
-    const isExpired = !isCurrentSeason || (info ? info.isExpired : false);
-    const isCouponUsable = isCurrentSeason && (info ? info.isCouponUsable : true);
+    const isExpired = info ? info.isExpired : false;
+    const isCouponUsable = info ? info.isCouponUsable : true;
     const couponStartDateStr = info?.couponStartDateStr || '';
+
+    // 冒険の書ナビゲーションメッセージの動的設定
+    if (isExpired) {
+      this.typeMessage('イベント期間は終了しました。これまでの冒険の記録をご確認ください。');
+    } else if (!isCouponUsable && couponStartDateStr) {
+      this.typeMessage(`スタンプを集めて特典を解放しよう！クーポンの利用開始は ${this.formatShortDateWithDay(couponStartDateStr)} から！`);
+    } else if (unlockedTierCount > 0) {
+      this.typeMessage('酒場クーポンが使えるぞ！下の『クーポンを使う』からお店を選ぼう！');
+    } else {
+      this.typeMessage('台紙にスタンプが集まったら、運営店でQRを読み込んで特典を解放しよう！');
+    }
 
     // 特典・クーポン統合カードのレンダリング
     // 全利用済みクーポン（グッズ除外）をランクごとにスマートに割り当て
@@ -1584,12 +1562,12 @@ class YoidoreQuestApp {
             </div>
           `;
         } else if (isReached) {
-          statusBadge = isCurrentSeason ? '<span class="treasure-tier-status status-unlocked">🎁 引換可能</span>' : '<span class="treasure-tier-status status-locked">過去回達成</span>';
-          actionHtml = isCurrentSeason ? `
+          statusBadge = '<span class="treasure-tier-status status-unlocked">🎁 引換可能</span>';
+          actionHtml = `
             <button class="treasure-claim-btn btn-view-goods" data-tier-id="${tier.id}" style="background:linear-gradient(180deg, #d97706 0%, #b45309 100%); border-color:#f59e0b; margin-top:6px; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">
               🎁 記念品を受け取る
             </button>
-          ` : `<div style="font-size:13px; color:#94a3b8;">🔒 過去シーズンのため引換不可</div>`;
+          `;
         } else {
           statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成</span>`;
           actionHtml = `<div style="font-size:13px; color:#cbd5e1;">🏢 運営店で「<strong>${tier.required_visits}軒達成QR</strong>」をスキャンすると受取可能！</div>`;
@@ -1677,7 +1655,7 @@ class YoidoreQuestApp {
       if (isAllUsed) {
         actionHtml = historyHtml;
       } else if (isReached) {
-        if (!isCurrentSeason || isExpired) {
+        if (isExpired) {
           actionHtml = `
             ${historyHtml}
             <div style="width:100%; box-sizing:border-box; padding:10px; text-align:center; color:#ef4444; font-weight:bold; font-size:13px; background:rgba(239,68,68,0.1); border-radius:6px;">🔒 クーポン利用期間は終了しました</div>
@@ -1717,20 +1695,9 @@ class YoidoreQuestApp {
       `;
     }).join('') : '<div style="padding:15px; text-align:center; color:#e2e8f0; font-size:14px;">特典マイルストーンを読み込み中です。</div>';
 
-    // シーズン切り替えセレクター用オプション
-    const seasonsList = (Array.isArray(allSeasons) && allSeasons.length > 0)
-      ? allSeasons
-      : (activeSeason ? [activeSeason] : [{ id: 2, name: '大正酔いどれクエスト2', is_active: true }]);
-
-    const hasMultipleSeasons = seasonsList.length > 1;
-    const seasonOptionsHtml = seasonsList.map(s => {
-      const isSelected = (s.id === seasonId);
-      return `<option value="${s.id}" ${isSelected ? 'selected' : ''}>${this.escapeHtml(s.name || 'イベント')}</option>`;
-    }).join('');
-
-    const seasonStartDate = targetSeasonObj?.start_date || (seasonId === 2 ? window.APP_CONFIG?.eventPeriod?.startDate : '');
-    const seasonEndDate = targetSeasonObj?.end_date || (seasonId === 2 ? window.APP_CONFIG?.eventPeriod?.endDate : '');
-    const seasonCouponUntil = targetSeasonObj?.coupon_valid_until;
+    const seasonStartDate = activeSeason?.start_date || (seasonId === 2 ? window.APP_CONFIG?.eventPeriod?.startDate : '');
+    const seasonEndDate = activeSeason?.end_date || (seasonId === 2 ? window.APP_CONFIG?.eventPeriod?.endDate : '');
+    const seasonCouponUntil = activeSeason?.coupon_valid_until;
     const seasonPeriodStr = (seasonStartDate && seasonEndDate)
       ? `${this.formatDateWithDay(seasonStartDate)} 〜 ${this.formatDateWithDay(seasonEndDate)}`
       : '';
@@ -1739,41 +1706,14 @@ class YoidoreQuestApp {
 
     container.innerHTML = `
       <div class="quest-book-container">
-        <!-- 開催フェーズ動的告知バナー -->
-        ${isCurrentSeason ? this.getSeasonBannerHTML() : `
-          <div class="season-notice-banner banner-expired" style="background:#1e293b; border-color:#64748b;">
-            <div class="season-notice-inner">
-              <span class="season-notice-icon">📜</span>
-              <div class="season-notice-text">
-                <strong>【${this.escapeHtml(seasonName)} 過去の冒険の書（閲覧専用）】</strong>
-                <div style="font-size:11px; opacity:0.9;">過去の制覇記録・獲得履歴を確認できます</div>
-              </div>
-            </div>
-          </div>
-        `}
-
         <!-- 0. 冒険の書シーズンヘッダー & 開催期間表示 -->
         <div class="rpg-window gold-border" style="margin-bottom:14px; padding:12px;">
           <div class="rpg-window-header" style="margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
             <div style="display:flex; align-items:center; gap:6px; font-size:15px; font-weight:bold; color:var(--text-yellow);">
               <span>📜 【${this.escapeHtml(seasonName)}】冒険の書</span>
             </div>
-            ${isCurrentSeason ? `<span class="header-badge" style="background:#059669; color:#fff;">開催中</span>` : `<span class="header-badge" style="background:#64748b; color:#fff;">過去回</span>`}
+            <span class="header-badge" style="background:#059669; color:#fff;">開催中</span>
           </div>
-
-          ${hasMultipleSeasons ? `
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; background:rgba(0,0,0,0.3); padding:6px 8px; border-radius:4px;">
-              <label for="book-season-select" style="font-size:12px; font-weight:bold; color:#cbd5e1; display:flex; align-items:center; gap:4px; white-space:nowrap; margin:0; cursor:pointer;">
-                <i class="fa-solid fa-clock-rotate-left"></i> シーズン切替:
-              </label>
-              <div style="position:relative; flex:1; max-width:220px;">
-                <select id="book-season-select" class="filter-select" style="width:100%; margin:0; padding:6px 26px 6px 10px; font-size:12px; font-weight:bold; background:#0f172a; color:#ffffff; border:1px solid var(--border-gold); border-radius:4px; appearance:none; -webkit-appearance:none; cursor:pointer;">
-                  ${seasonOptionsHtml}
-                </select>
-                <i class="fa-solid fa-chevron-down" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); color:var(--text-yellow); pointer-events:none; font-size:11px;"></i>
-              </div>
-            </div>
-          ` : ''}
 
           ${seasonPeriodStr ? `
             <div style="background:rgba(15, 23, 42, 0.75); border:1px solid rgba(248, 225, 108, 0.35); border-radius:6px; padding:8px 12px; font-size:12px;">
@@ -1806,7 +1746,6 @@ class YoidoreQuestApp {
                 <i class="fa-solid fa-medal hero-title-icon" style="color: ${heroColor};"></i>
                 <span class="hero-title-text" style="color: ${heroColor}; text-shadow: 0 0 8px ${heroColor}66;">${heroTitle}</span>
               </div>
-              ${heroDesc ? `<div class="hero-title-desc">${this.escapeHtml(heroDesc)}</div>` : ''}
             </div>
           </div>
         </div>
@@ -1846,42 +1785,29 @@ class YoidoreQuestApp {
       </div>
     `;
 
-    // シーズンセレクター切り替えイベント
-    const seasonSelect = container.querySelector('#book-season-select');
-    if (seasonSelect) {
-      seasonSelect.addEventListener('change', async () => {
+    // 2. 宝箱を開けてお店を選ぶ / 続けてクーポンを使うボタン
+    container.querySelectorAll('.btn-direct-open-store-coupon').forEach(btn => {
+      btn.addEventListener('click', () => {
         this.playSelectSE();
-        this.selectedBookSeasonId = parseInt(seasonSelect.value, 10);
-        await this.render();
+        const tierId = parseInt(btn.dataset.tierId, 10);
+        const tier = rewardTiers.find(t => Number(t.id) === tierId);
+        if (tier) {
+          this.openStoreSelectForCoupon(tier, seasonId);
+        }
       });
-    }
+    });
 
-    // 宝箱を開くボタンのイベント (アクティブシーズンのみ)
-    if (isCurrentSeason) {
-      // 2. 宝箱を開けてお店を選ぶ / 続けてクーポンを使うボタン
-      container.querySelectorAll('.btn-direct-open-store-coupon').forEach(btn => {
-        btn.addEventListener('click', () => {
-          this.playSelectSE();
-          const tierId = parseInt(btn.dataset.tierId, 10);
-          const tier = rewardTiers.find(t => Number(t.id) === tierId);
-          if (tier) {
-            this.openStoreSelectForCoupon(tier, seasonId);
-          }
-        });
+    // 3. グッズ記念品受け取りボタン
+    container.querySelectorAll('.btn-view-goods').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.playSelectSE();
+        const tierId = parseInt(btn.dataset.tierId, 10);
+        const tier = rewardTiers.find(t => Number(t.id) === tierId);
+        if (tier) {
+          this.openGoodsRedeemModal(tier, seasonId);
+        }
       });
-
-      // 3. グッズ記念品受け取りボタン
-      container.querySelectorAll('.btn-view-goods').forEach(btn => {
-        btn.addEventListener('click', () => {
-          this.playSelectSE();
-          const tierId = parseInt(btn.dataset.tierId, 10);
-          const tier = rewardTiers.find(t => Number(t.id) === tierId);
-          if (tier) {
-            this.openGoodsRedeemModal(tier, seasonId);
-          }
-        });
-      });
-    }
+    });
 
     // 共通テストマイルストーン実行関数
     const handleTestTierClaim = async (tierIdx, btnEl) => {
@@ -3609,7 +3535,12 @@ class YoidoreQuestApp {
 
       filtered.sort((a, b) => a.id.localeCompare(b.id, 'ja', { numeric: true }));
 
-      this.typeMessage(`条件に一致する酒場が ${filtered.length} 軒見つかりました。`);
+      const hasFilter = this.filters.area !== 'ALL' || this.filters.category !== 'ALL' || this.filters.style !== 'ALL' || this.filters.type !== 'ALL' || this.filters.takeout === 'YES' || this.filters.openToday || Boolean(this.filters.searchQuery);
+      if (hasFilter) {
+        this.typeMessage(`条件に一致する酒場が ${filtered.length}軒 見つかりました！行きたい店を決めて出発しよう！`);
+      } else {
+        this.typeMessage(`大正区の酒場が ${filtered.length}軒 集結！気になる酒場をタップしてクエスト内容を確かめよう！`);
+      }
 
       const cardsHtml = filtered.length > 0 ? filtered.map(store => {
         const isCoupon = Boolean(store.isCouponTarget);
@@ -3807,7 +3738,7 @@ class YoidoreQuestApp {
     // 最新日時に基づき「どれクエ対応中」フラグを動的再計算
     store.isOpenToday = checkIsOpenToday(store);
 
-    this.typeMessage(`「${store.name}」の情報です。`);
+    this.typeMessage(`「${store.name}」の情報です。「酔いどれセット」を注文してスタンプをもらおう！`);
 
     const paymentTagsHtml = (store.paymentMethods && store.paymentMethods.length > 0)
       ? store.paymentMethods.map(p => `<span class="payment-tag">${p}</span>`).join('')
