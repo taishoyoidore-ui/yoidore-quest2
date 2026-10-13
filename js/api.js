@@ -1196,8 +1196,8 @@ class QuestApiManager {
     return await this.supabaseFetch(`user_coupons?id=eq.${encodeURIComponent(couponId)}`, { method: 'DELETE' });
   }
 
-  // クーポン状態の手動変更 (使用済み ⇔ 未使用)
-  async adminUpdateCouponStatus(couponId, status, usedAt = null) {
+  // クーポン状態の手動変更 (使用済み ⇔ 未使用、利用店舗指定対応)
+  async adminUpdateCouponStatus(couponId, status, usedAt = null, storeId = null) {
     // 既存クーポンのtierIdを取得してstatusをエンコード
     let finalStatus = status;
     const existing = this.userCoupons?.find(c => String(c.id) === String(couponId));
@@ -1206,13 +1206,39 @@ class QuestApiManager {
       finalStatus = `tier_${tierIdNum}_${status === 'used' ? 'used' : 'active'}`;
     }
 
+    const payload = {
+      status: finalStatus,
+      used_at: status === 'used' ? (usedAt || new Date().toISOString()) : null,
+      store_id: status === 'used' ? (storeId || null) : null
+    };
+
     return await this.supabaseFetch(`user_coupons?id=eq.${encodeURIComponent(couponId)}`, {
       method: 'PATCH',
-      body: JSON.stringify({
-        status: finalStatus,
-        used_at: status === 'used' ? (usedAt || new Date().toISOString()) : null
-      })
+      body: JSON.stringify(payload)
     });
+  }
+
+  // 特定ユーザーの指定Tier特典（クーポン枠群または記念品）を一括取消・未獲得に戻す
+  async adminRevokeUserRewardTier(userId, tierId, seasonId = null) {
+    if (!userId || !tierId) return { success: false, message: 'ユーザーIDまたは特典IDが不足しています' };
+    const tierIdNum = Number(tierId);
+
+    // 該当する user_coupons レコードを一括削除
+    // 1. reward_tier_id が一致するもの
+    try {
+      await this.supabaseFetch(`user_coupons?user_id=eq.${encodeURIComponent(userId)}&reward_tier_id=eq.${tierIdNum}`, {
+        method: 'DELETE'
+      });
+    } catch (e1) {}
+
+    // 2. status が tier_{tierIdNum}_* のもの
+    try {
+      await this.supabaseFetch(`user_coupons?user_id=eq.${encodeURIComponent(userId)}&status=like.tier_${tierIdNum}_*`, {
+        method: 'DELETE'
+      });
+    } catch (e2) {}
+
+    return { success: true };
   }
 
   // シーズンの新規登録 / 更新

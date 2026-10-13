@@ -2448,14 +2448,15 @@ class YoidoreAdminApp {
                     <button class="btn btn-sm btn-secondary" onclick="window.adminApp.updateCouponStatus('${c.id}', 'active')" title="未使用に戻す">
                       <i class="fa-solid fa-rotate-left"></i> 未使用へ
                     </button>
-                  ` : `
-                    <button class="btn btn-sm btn-secondary" onclick="window.adminApp.updateCouponStatus('${c.id}', 'used')" title="手動で使用済みにする">
-                      <i class="fa-solid fa-check"></i> 消込
+                  ` : (isGoods ? `
+                    <button class="btn btn-sm btn-success" onclick="window.adminApp.updateCouponStatus('${c.id}', 'used')" title="手動で受取済みにする">
+                      <i class="fa-solid fa-check"></i> 受取済へ
                     </button>
-                  `}
-                  <button class="btn btn-sm btn-outline-danger" onclick="window.adminApp.confirmDeleteCoupon('${c.id}')" title="履歴を削除">
-                    <i class="fa-solid fa-trash"></i>
-                  </button>
+                  ` : `
+                    <button class="btn btn-sm btn-primary" onclick="window.adminApp.openManualRedeemModal('${c.id}')" title="利用酒場を指定して消し込む">
+                      <i class="fa-solid fa-check"></i> 消込(店舗選択)
+                    </button>
+                  `)}
                 </div>
               </td>
             </tr>
@@ -2789,17 +2790,28 @@ class YoidoreAdminApp {
 
           cardsHtml.push(`
             <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 14px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
                 <div style="display:flex; align-items:center; gap:8px;">
                   <span class="badge" style="background:#fef3c7; color:#92400e; font-size:12px; padding:3px 8px; font-weight:bold;">
                     <i class="fa-solid fa-gift"></i> 【${reqVisits}軒達成】 ${this.escapeHtml(tier.title)}
                   </span>
                   <span style="font-size:11px; color:#78350f;">(記念品グッズ)</span>
                 </div>
-                ${isClaimed 
-                  ? `<span class="badge" style="background:#10b981; color:#fff; font-size:11px; padding:3px 8px;"><i class="fa-solid fa-check"></i> 引換完了</span>`
-                  : `<span class="badge" style="background:#f59e0b; color:#fff; font-size:11px; padding:3px 8px;"><i class="fa-solid fa-clock"></i> 未引換</span>`
-                }
+                <div style="display:flex; align-items:center; gap:6px;">
+                  ${isClaimed 
+                    ? `<span class="badge" style="background:#10b981; color:#fff; font-size:11px; padding:3px 8px;"><i class="fa-solid fa-check"></i> 引換完了</span>
+                       <button class="btn btn-sm btn-secondary" style="padding: 2px 7px; font-size: 11px;" onclick="window.adminApp.updateCouponStatus('${claimCoupon.id}', 'active')" title="未受取に戻す">
+                         <i class="fa-solid fa-rotate-left"></i> 未受取へ
+                       </button>`
+                    : `<span class="badge" style="background:#f59e0b; color:#fff; font-size:11px; padding:3px 8px;"><i class="fa-solid fa-clock"></i> 未引換</span>
+                       <button class="btn btn-sm btn-success" style="padding: 2px 7px; font-size: 11px;" onclick="window.adminApp.updateCouponStatus('${claimCoupon.id}', 'used')" title="受取済みに更新">
+                         <i class="fa-solid fa-check"></i> 受取済へ
+                       </button>`
+                  }
+                  <button class="btn btn-sm btn-outline-danger" style="padding: 2px 7px; font-size: 11px;" onclick="window.adminApp.confirmRevokeUserRewardTier('${lineUserId}', ${tier.id}, '${this.escapeHtml(tier.title)}')" title="この特典の獲得自体を取り消す">
+                    <i class="fa-solid fa-trash"></i> 特典取消
+                  </button>
+                </div>
               </div>
               <div style="font-size: 13px; color: #1e293b; margin-bottom: 6px;">
                 <strong>記念品名:</strong> ${this.escapeHtml(tier.goods_name || tier.title)}
@@ -2831,12 +2843,23 @@ class YoidoreAdminApp {
                   <span style="font-weight:bold; color:#64748b; font-size:11px;">枠 ${i + 1}</span>
                   ${isSlotUsed 
                     ? `<span class="badge" style="background:#10b981; color:#fff; font-size:10px; padding:2px 6px;"><i class="fa-solid fa-check"></i> 消込済</span>`
-                    : `<span class="badge" style="background:#e0f2fe; color:#0369a1; font-size:10px; padding:2px 6px;"><i class="fa-solid fa-circle-check"></i> 未使用 (利用可)</span>`
+                    : `<span class="badge" style="background:#e0f2fe; color:#0369a1; font-size:10px; padding:2px 6px;"><i class="fa-solid fa-circle-check"></i> 未使用</span>`
                   }
                   <span style="color:#1e293b; font-weight:600;">${this.escapeHtml(storeName)}</span>
                 </div>
-                <div style="font-size:11px; color:#64748b;">
-                  ${isSlotUsed ? `<i class="fa-solid fa-clock"></i> ${usedAtStr}` : '未利用'}
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:11px; color:#64748b;">
+                    ${isSlotUsed ? `<i class="fa-solid fa-clock"></i> ${usedAtStr}` : '未利用'}
+                  </span>
+                  ${isSlotUsed ? `
+                    <button class="btn btn-sm btn-secondary" style="padding: 1px 6px; font-size: 10px;" onclick="window.adminApp.updateCouponStatus('${coupon.id}', 'active')" title="この枠を未使用に戻す">
+                      <i class="fa-solid fa-rotate-left"></i> 未使用へ
+                    </button>
+                  ` : `
+                    <button class="btn btn-sm btn-primary" style="padding: 1px 6px; font-size: 10px;" onclick="window.adminApp.openManualRedeemModal('${coupon.id}')" title="利用酒場を指定して消込">
+                      <i class="fa-solid fa-check"></i> 消込
+                    </button>
+                  `}
                 </div>
               </div>
             `);
@@ -2844,17 +2867,22 @@ class YoidoreAdminApp {
 
           cardsHtml.push(`
             <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 12px 14px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
                 <div style="display:flex; align-items:center; gap:8px;">
                   <span class="badge" style="background:#e0f2fe; color:#0369a1; font-size:12px; padding:3px 8px; font-weight:bold;">
                     <i class="fa-solid fa-ticket"></i> 【${reqVisits}軒達成】 ${this.escapeHtml(tier.title)}
                   </span>
                   <span style="font-size:11px; color:#0369a1;">(${total}枠中 <strong>${used}枠消込</strong> / 残り${remaining}枠)</span>
                 </div>
-                ${isCompleted
-                  ? `<span class="badge" style="background:#10b981; color:#fff; font-size:11px; padding:3px 8px;"><i class="fa-solid fa-check-double"></i> 全枠消込済</span>`
-                  : `<span class="badge" style="background:#0284c7; color:#fff; font-size:11px; padding:3px 8px;"><i class="fa-solid fa-circle-check"></i> 残り ${remaining} 枠利用可</span>`
-                }
+                <div style="display:flex; align-items:center; gap:6px;">
+                  ${isCompleted
+                    ? `<span class="badge" style="background:#10b981; color:#fff; font-size:11px; padding:3px 8px;"><i class="fa-solid fa-check-double"></i> 全枠消込済</span>`
+                    : `<span class="badge" style="background:#0284c7; color:#fff; font-size:11px; padding:3px 8px;"><i class="fa-solid fa-circle-check"></i> 残り ${remaining} 枠利用可</span>`
+                  }
+                  <button class="btn btn-sm btn-outline-danger" style="padding: 2px 7px; font-size: 11px;" onclick="window.adminApp.confirmRevokeUserRewardTier('${lineUserId}', ${tier.id}, '${this.escapeHtml(tier.title)}')" title="この特典の獲得自体（全${total}枠）を取り消す">
+                    <i class="fa-solid fa-trash"></i> 特典取消
+                  </button>
+                </div>
               </div>
 
               <!-- スロット一覧 -->
@@ -2927,28 +2955,117 @@ class YoidoreAdminApp {
     }
   }
 
-  // クーポン削除
-  async confirmDeleteCoupon(couponId) {
-    if (!confirm('このクーポン・特典利用履歴を削除しますか？')) return;
+  // クーポン手動消込モーダルを開く (店舗選択用)
+  openManualRedeemModal(couponId) {
+    const coupon = (this.coupons || []).find(c => String(c.id) === String(couponId));
+    if (!coupon) {
+      alert('対象のクーポンデータが見つかりません');
+      return;
+    }
+
+    const user = (this.users || []).find(u => u.line_user_id === coupon.user_id);
+    const userName = user ? user.display_name : coupon.user_id;
+    const tier = (this.tiers || []).find(t => Number(t.id) === Number(coupon.reward_tier_id));
+    const tierName = tier ? `【${tier.required_visits || 5}軒達成】${tier.title}` : '酒場クーポン';
+
+    const modal = document.getElementById('manual-redeem-modal');
+    if (!modal) return;
+
+    document.getElementById('manual-redeem-coupon-id').value = couponId;
+    document.getElementById('manual-redeem-user-name').textContent = userName || '冒険者';
+    document.getElementById('manual-redeem-tier-name').textContent = tierName;
+
+    // 対象ユーザーが今期既に利用（used）した店舗IDのセット
+    const userUsedStoreIds = new Set(
+      (this.coupons || [])
+        .filter(c => c.user_id === coupon.user_id && c.status === 'used' && c.store_id)
+        .map(c => c.store_id)
+    );
+
+    // クーポン取扱対象（かつ参加中）の店舗のみを抽出
+    const couponStores = (this.stores || []).filter(s => s.is_participating !== false && s.is_coupon_target);
+    couponStores.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+
+    const select = document.getElementById('manual-redeem-store-select');
+    select.innerHTML = '<option value="">-- 利用する酒場を選択してください --</option>' +
+      couponStores.map(s => {
+        const isUsedInThisStore = userUsedStoreIds.has(s.id);
+        if (isUsedInThisStore) {
+          return `<option value="${s.id}" disabled style="color:#94a3b8;">🍺 [${s.id}] ${this.escapeHtml(s.name)} (${this.escapeHtml(s.area || '')}) ※利用済</option>`;
+        }
+        return `<option value="${s.id}">🍺 [${s.id}] ${this.escapeHtml(s.name)} (${this.escapeHtml(s.area || '')})</option>`;
+      }).join('');
+
+    modal.style.display = 'flex';
+  }
+
+  closeManualRedeemModal() {
+    const modal = document.getElementById('manual-redeem-modal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  async submitManualRedeem() {
+    const couponId = document.getElementById('manual-redeem-coupon-id').value;
+    const storeId = document.getElementById('manual-redeem-store-select').value;
+
+    if (!storeId) {
+      alert('利用する酒場を選択してください。');
+      return;
+    }
+
+    const coupon = (this.coupons || []).find(c => String(c.id) === String(couponId));
+    const store = (this.stores || []).find(s => s.id === storeId);
+    const storeName = store ? store.name : storeId;
+
     try {
-      this.showToast('履歴データを削除中...');
-      await this.api.adminDeleteCoupon(couponId);
-      this.showToast('履歴データを削除しました');
+      this.showToast(`酒場「${storeName}」で消込中...`);
+      await this.api.adminUpdateCouponStatus(couponId, 'used', new Date().toISOString(), storeId);
+      this.closeManualRedeemModal();
+      this.showToast(`酒場「${storeName}」でクーポンを消込（使用済）にしました！`);
       await this.loadAllData();
+      if (coupon && document.getElementById('participant-detail-modal')?.style.display === 'flex') {
+        this.openParticipantDetailModal(coupon.user_id);
+      }
     } catch (err) {
-      alert('削除に失敗しました: ' + err.message);
+      alert('消込に失敗しました: ' + err.message);
     }
   }
 
   // クーポンステータス変更 (未使用 ⇔ 利用済)
-  async updateCouponStatus(couponId, newStatus) {
+  async updateCouponStatus(couponId, newStatus, usedAt = null, storeId = null) {
+    const coupon = (this.coupons || []).find(c => String(c.id) === String(couponId));
     try {
       this.showToast('状態を更新中...');
-      await this.api.adminUpdateCouponStatus(couponId, newStatus);
+      await this.api.adminUpdateCouponStatus(couponId, newStatus, usedAt, storeId);
       this.showToast(`状態を【${newStatus === 'used' ? '利用済' : '未使用'}】に変更しました`);
       await this.loadAllData();
+      if (coupon && document.getElementById('participant-detail-modal')?.style.display === 'flex') {
+        this.openParticipantDetailModal(coupon.user_id);
+      }
     } catch (err) {
       alert('更新に失敗しました: ' + err.message);
+    }
+  }
+
+  // 特典（Tier）単位での獲得取消・未獲得リセット
+  async confirmRevokeUserRewardTier(userId, tierId, tierTitle) {
+    const user = (this.users || []).find(u => u.line_user_id === userId);
+    const userName = user ? user.display_name : userId;
+
+    if (!confirm(`⚠️ 【確認】冒険者「${userName}」の特典【${tierTitle}】の獲得を取り消しますか？\n\n※この特典に紐づくすべてのクーポン枠（または記念品）データが削除され、未獲得（解放前）の状態に戻ります。\n※よろしければ「OK」を押してください。`)) {
+      return;
+    }
+
+    try {
+      this.showToast('特典の獲得を取り消し中...');
+      await this.api.adminRevokeUserRewardTier(userId, tierId, this.selectedSeasonId);
+      this.showToast(`【${tierTitle}】の獲得を取り消し、未獲得に戻しました。`);
+      await this.loadAllData();
+      if (document.getElementById('participant-detail-modal')?.style.display === 'flex') {
+        this.openParticipantDetailModal(userId);
+      }
+    } catch (err) {
+      alert('取消に失敗しました: ' + err.message);
     }
   }
 
