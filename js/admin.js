@@ -1986,7 +1986,6 @@ class YoidoreAdminApp {
           id: item.id,
           name: item.name,
           area: item.area,
-          address: item.address || '',
           is_coupon_target: Boolean(item.is_coupon_target),
           display_order: displayOrder,
           raw_data: rawData
