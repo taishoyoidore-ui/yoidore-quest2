@@ -385,7 +385,7 @@ class YoidoreQuestApp {
       const types = Array.from(new Set(stores.map(s => s.type))).filter(Boolean);
       if (types.length > 0) return types;
     }
-    return ['腹ごしらえ', 'サク飲み', 'サク呑み', 'ひと休み', '夜遊び', 'テイクアウト'];
+    return ['サク飲み', '腹ごしらえ', 'ひと休み', '昼飲み', '夜遊び', 'テイクアウト'];
   }
 
   /* ------------------------------------------------------------------------
@@ -2989,7 +2989,7 @@ class YoidoreQuestApp {
     ).join('');
 
     const typesList = this.getTypes();
-    const OFFICIAL_TYPE_NAMES = ['サク飲み', '腹ごしらえ', 'ひと休み', '夜遊び'];
+    const OFFICIAL_TYPE_NAMES = ['サク飲み', '腹ごしらえ', 'ひと休み', '昼飲み', '夜遊び'];
     const allTypes = Array.from(new Set([...OFFICIAL_TYPE_NAMES, ...typesList]));
     const typeOptions = ['ALL', ...allTypes].map(t => 
       `<option value="${t}" ${this.filters.type === t ? 'selected' : ''}>${t === 'ALL' ? '全酔いどれタイプ' : t}</option>`

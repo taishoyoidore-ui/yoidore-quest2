@@ -1042,7 +1042,7 @@ class YoidoreAdminApp {
     document.getElementById('edit-store-address').value = store.address || raw['address'] || raw['住所'] || raw['店舗住所'] || '';
 
     // 1. エリア設定
-    const knownAreas = ['三軒家西', '三軒家東', '駅前', '泉尾', '平尾'];
+    const knownAreas = ['三軒家西', '三軒家東', '駅前', '泉尾', '千島', '平尾'];
     const currentArea = store.area || raw['area'] || raw['エリア'] || '三軒家西';
     const areaSelect = document.getElementById('edit-store-area-select');
     const areaCustom = document.getElementById('edit-store-area-custom');
@@ -1112,7 +1112,7 @@ class YoidoreAdminApp {
     const currentType = store.yoidore_type || store.type || 'サク飲み';
     const normalizedType = currentType === 'サク呑み' ? 'サク飲み' : currentType;
     document.getElementById('edit-store-type').value = 
-      ['サク飲み', '腹ごしらえ', 'ひと休み', '夜遊び'].includes(normalizedType) ? normalizedType : 'サク飲み';
+      ['サク飲み', '腹ごしらえ', 'ひと休み', '昼飲み', '夜遊び'].includes(normalizedType) ? normalizedType : 'サク飲み';
 
     // 5. テイクアウト設定
     let takeoutVal = 'テイクアウト不可';
@@ -1551,13 +1551,56 @@ class YoidoreAdminApp {
       const headers = rows[0].map(h => String(h || '').trim());
       const dataRows = rows.slice(1);
 
-      // 既存店舗一覧から名前マッチング用ロジックを作成
+      // 店舗名正規化関数（マッチング用）
       const normalizeStoreName = (name) => {
         if (!name) return '';
         let n = String(name).normalize('NFKC').toLowerCase();
-        return n.replace(/[\s!！?？~〜\-_・·'"()（）\[\]/／\\]+/g, '');
+        return n.replace(/[\s!！?？~〜\-_・·'"()（）「」『』\[\]/／\\]+/g, '');
       };
 
+      // 2枚目のシート（「シート1」など店舗マスタ辞書）が存在する場合はマスタマップを作成
+      const masterMap = new Map();
+      if (wb.SheetNames.length > 1) {
+        const secondSheetName = wb.SheetNames[1];
+        const secondSheet = wb.Sheets[secondSheetName];
+        const masterRows = XLSX.utils.sheet_to_json(secondSheet, { header: 1, defval: '' });
+        if (masterRows.length > 1) {
+          for (let i = 1; i < masterRows.length; i++) {
+            const mRow = masterRows[i];
+            const mId = mRow[0] !== undefined ? String(mRow[0]).trim() : '';
+            const mName = mRow[1] !== undefined ? String(mRow[1]).trim() : '';
+            const mCatch = mRow[2] !== undefined ? String(mRow[2]).trim() : '';
+            const mInsta = mRow[3] !== undefined ? String(mRow[3]).trim() : '';
+            const mAddr = mRow[4] !== undefined ? String(mRow[4]).trim() : '';
+            const mMap = mRow[5] !== undefined ? String(mRow[5]).trim() : '';
+            if (mName) {
+              const normKey = normalizeStoreName(mName);
+              masterMap.set(normKey, {
+                id: mId,
+                name: mName,
+                catchphrase: mCatch,
+                insta_url: mInsta,
+                address: mAddr,
+                map_url: mMap
+              });
+            }
+          }
+        }
+      }
+
+      const findMasterInfo = (excelName) => {
+        const normExcel = normalizeStoreName(excelName);
+        if (!normExcel) return null;
+        if (masterMap.has(normExcel)) return masterMap.get(normExcel);
+        for (const [key, val] of masterMap.entries()) {
+          if (key.includes(normExcel) || normExcel.includes(key)) {
+            return val;
+          }
+        }
+        return null;
+      };
+
+      // 既存店舗一覧から名前マッチング用ロジックを作成
       const findExistingStore = (excelName) => {
         const normExcel = normalizeStoreName(excelName);
         if (!normExcel) return null;
@@ -1597,19 +1640,43 @@ class YoidoreAdminApp {
         const participateAns = String(row[2] || rowObj['大正酔いどれクエストに参加されますか？'] || rowObj['大正酔いどれクエストⅡに参加されますか？'] || '').trim();
         const isSkip = (participateAns === '参加しない' || storeName.includes('テスト'));
 
+        // マスタ辞書（シート1）からの補完情報
+        const masterInfo = findMasterInfo(storeName);
+
         // 既存店舗検索（正規化＆部分一致）
         const existing = findExistingStore(storeName);
-        const storeId = existing ? existing.id : `store-${String(newCounter++).padStart(2, '0')}`;
-        // 店舗名は既存があれば正式名称（例: バーガー酒場ハンバーガー・ママ）を優先
-        const finalStoreName = existing ? existing.name : storeName;
 
-        // 1. エリア
+        // Col 38〜42（AM〜AQ）: ID, キャッチコピー, Instagram, 住所, googlemap
+        const rawExcelId = String(row[38] !== undefined && row[38] !== '' ? row[38] : (rowObj['ID'] || masterInfo?.id || '')).trim();
+        let storeNum = null;
+        if (rawExcelId) {
+          const parsed = parseInt(rawExcelId.replace(/\D/g, ''), 10);
+          if (!isNaN(parsed)) storeNum = parsed;
+        }
+
+        let storeId = '';
+        if (storeNum !== null) {
+          storeId = `store-${String(storeNum).padStart(2, '0')}`;
+        } else if (existing) {
+          storeId = existing.id;
+          const exNum = parseInt(existing.id.replace(/\D/g, ''), 10);
+          if (!isNaN(exNum)) storeNum = exNum;
+        } else {
+          storeNum = newCounter++;
+          storeId = `store-${String(storeNum).padStart(2, '0')}`;
+        }
+
+        // 店舗名は既存があれば正式名称（例: バーガー酒場ハンバーガー・ママ）を優先
+        const finalStoreName = existing ? existing.name : (masterInfo?.name || storeName);
+
+        // 1. エリア（千島対応）
         let area = String(row[3] || rowObj['エリア'] || rowObj['  エリア  '] || (existing?.area || '三軒家西')).trim();
-        if (!['三軒家西', '三軒家東', '駅前', '泉尾', '平尾'].includes(area)) {
+        if (!['三軒家西', '三軒家東', '駅前', '泉尾', '千島', '平尾'].includes(area)) {
           if (area.includes('三軒家西')) area = '三軒家西';
           else if (area.includes('三軒家東')) area = '三軒家東';
           else if (area.includes('駅前')) area = '駅前';
           else if (area.includes('泉尾')) area = '泉尾';
+          else if (area.includes('千島')) area = '千島';
           else if (area.includes('平尾')) area = '平尾';
           else area = existing?.area || '三軒家西';
         }
@@ -1640,11 +1707,12 @@ class YoidoreAdminApp {
         if (style.includes('テールブ') && !style.includes('カウンター')) style = 'テーブルあり';
         else if (style === 'テールブあり') style = 'テーブルあり';
 
-        // 4. タイプ (表記ゆれ補正)
+        // 4. タイプ (表記ゆれ補正: 昼飲み追加)
         let yoidore_type = String(row[6] || rowObj['タイプ'] || existing?.type || 'サク飲み').trim();
         if (yoidore_type.includes('サク')) yoidore_type = 'サク飲み';
         else if (yoidore_type.includes('腹')) yoidore_type = '腹ごしらえ';
         else if (yoidore_type.includes('休')) yoidore_type = 'ひと休み';
+        else if (yoidore_type.includes('昼')) yoidore_type = '昼飲み';
         else if (yoidore_type.includes('遊')) yoidore_type = '夜遊び';
 
         // 5. テイクアウト
@@ -1722,19 +1790,23 @@ class YoidoreAdminApp {
         // 11. 参加証(缶バッチ)販売希望数
         const badgeSalesRaw = String(row[37] || rowObj['お客様向け参加証(缶バッチ)\u3000販売希望数は？'] || rowObj['お客様向け参加証(缶バッチ) 販売希望数は？'] || '').trim();
 
-        // 既存店舗から引き継ぐ情報（写真・ロゴ・地図URL・キャッチコピー等）
-        const numId = storeId.replace(/\D/g, '').padStart(3, '0');
-        const map_url = existing?.map_url || existing?.raw_data?.map_url || existing?.raw_data?.googleMapUrl || existing?.raw_data?.['Google Map URL'] || '';
-        const insta_url = existing?.insta_url || existing?.raw_data?.instagramUrl || existing?.raw_data?.['Instagram URL'] || '';
-        const photo_url = existing?.photo_url || existing?.raw_data?.photo || (numId ? `photo/${numId}.jpg` : '');
-        const catchphrase = existing?.catchphrase || existing?.raw_data?.キャッチコピー || existing?.raw_data?.catchphrase || '';
+        // 12. 追加マスタ情報（キャッチコピー, Instagram, 住所, GoogleマップURL, 写真）
+        const catchphrase = String(row[39] !== undefined && row[39] !== '' ? row[39] : (rowObj['キャッチコピー'] || masterInfo?.catchphrase || existing?.catchphrase || existing?.raw_data?.キャッチコピー || existing?.raw_data?.catchphrase || '')).trim();
+        const insta_url = String(row[40] !== undefined && row[40] !== '' ? row[40] : (rowObj['Instagram'] || masterInfo?.insta_url || existing?.insta_url || existing?.raw_data?.insta_url || existing?.raw_data?.instagramUrl || existing?.raw_data?.['Instagram URL'] || '')).trim();
+        const address = String(row[41] !== undefined && row[41] !== '' ? row[41] : (rowObj['住所'] || masterInfo?.address || existing?.address || existing?.raw_data?.address || existing?.raw_data?.['住所'] || '')).trim();
+        const map_url = String(row[42] !== undefined && row[42] !== '' ? row[42] : (rowObj['googlemap'] || masterInfo?.map_url || existing?.map_url || existing?.raw_data?.map_url || existing?.raw_data?.googleMapUrl || existing?.raw_data?.['Google Map URL'] || '')).trim();
+
+        const numStr3 = storeNum !== null ? String(storeNum).padStart(3, '0') : '';
+        const photo_url = (numStr3 ? `photo/${numStr3}.jpg` : (existing?.photo_url || existing?.raw_data?.photo || ''));
 
         const item = {
           id: storeId,
           name: finalStoreName,
+          display_order: storeNum || (newCounter),
           isExisting: Boolean(existing),
           isSkip,
           area,
+          address,
           category,
           style,
           yoidore_type,
@@ -1842,7 +1914,7 @@ class YoidoreAdminApp {
 
       for (let i = 0; i < validItems.length; i++) {
         const item = validItems[i];
-        const displayOrder = parseInt(String(item.id).replace(/\D/g, ''), 10) || (i + 1);
+        const displayOrder = item.display_order || parseInt(String(item.id).replace(/\D/g, ''), 10) || (i + 1);
 
         const existingStore = this.stores.find(s => s.id === item.id);
         const existingRaw = existingStore?.raw_data || {};
@@ -1876,6 +1948,7 @@ class YoidoreAdminApp {
           id: item.id,
           name: item.name,
           area: item.area,
+          address: item.address || '',
           category: item.category,
           style: item.style,
           type: item.yoidore_type,
@@ -1913,6 +1986,7 @@ class YoidoreAdminApp {
           id: item.id,
           name: item.name,
           area: item.area,
+          address: item.address || '',
           is_coupon_target: Boolean(item.is_coupon_target),
           display_order: displayOrder,
           raw_data: rawData
