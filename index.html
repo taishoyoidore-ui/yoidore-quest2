@@ -12,7 +12,7 @@
   <meta http-equiv="Expires" content="0">
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/style.css?v=20261015_05">
+  <link rel="stylesheet" href="css/style.css?v=20261015_06">
 
   <!-- 特典達成QR・店舗QRアクセス時の画面チラつき防止（即時初期判定） -->
   <script>
@@ -121,6 +121,33 @@
 
   <!-- スマホ風アプリコンテナ -->
   <main class="app-container">
+    <!-- LINE公式アカウント 友だち限定セーフティガード画面 (未登録・ブロック時に画面をロック) -->
+    <div id="friendship-gate-overlay" class="start-overlay" style="display: none; z-index: 999999;">
+      <div class="start-container" style="max-width: 360px; text-align: center; padding: 24px 16px;">
+        <div class="start-title-badge" style="color: #ff4757; border-color: #ff4757;">⚔️ 公式LINE 友だち登録が必要です ⚔️</div>
+        
+        <div style="font-size: 48px; margin: 16px 0;">🍺</div>
+        
+        <div class="gold-border" style="background: rgba(15, 23, 42, 0.95); padding: 16px; border-radius: 8px; margin-bottom: 20px; text-align: left;">
+          <p style="font-size: 14px; line-height: 1.6; color: #f8fafc; margin: 0 0 10px 0;">
+            「大正酔いどれクエスト」をプレイするには、<strong>大正酔いどれ公式LINEアカウントの友だち追加</strong>（ブロック解除）が必要です。
+          </p>
+          <p style="font-size: 12px; line-height: 1.5; color: #94a3b8; margin: 0;">
+            ※友だち追加後、下の「冒険を再開する」ボタンをタップしてください。
+          </p>
+        </div>
+
+        <div class="start-btn-box" style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+          <a id="friendship-add-btn" href="https://line.me/R/ti/p/@277lqewi" target="_blank" class="start-game-btn" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; background: #06c755; color: #fff; border-color: #05a847; font-size: 14px; padding: 12px 16px;">
+            <i class="fa-brands fa-line" style="font-size: 20px;"></i> 公式LINEを友だち追加する
+          </a>
+          <button id="friendship-retry-btn" type="button" class="btn-retro" style="padding: 10px; font-size: 13px; background: #1e293b; color: #facc15; border: 1px solid #facc15; border-radius: 4px; cursor: pointer; width: 100%;" onclick="window.location.reload();">
+            🔄 友だち追加後に冒険を再開する
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- レトロRPG風 スタート画面オーバーレイ -->
     <div id="start-overlay" class="start-overlay">
       <div class="start-container" id="start-main-container">
@@ -239,8 +266,8 @@
   <!-- JS Scripts -->
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="js/config.js?v=20261015_05"></script>
-  <script src="js/api.js?v=20261015_05"></script>
-  <script src="js/app.js?v=20261015_05"></script>
+  <script src="js/config.js?v=20261015_06"></script>
+  <script src="js/api.js?v=20261015_06"></script>
+  <script src="js/app.js?v=20261015_06"></script>
 </body>
 </html>

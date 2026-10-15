@@ -4,12 +4,17 @@
 
 const APP_CONFIG = {
   // システム共通バージョン番号（バックオフィス＆アプリ全体で連動）
-  version: 'v2026.10.15.05',
+  version: 'v2026.10.15.06',
 
   // Supabase 接続設定
   supabase: {
     url: 'https://fjpvmbzanbuwwpcjnajt.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqcHZtYnphbmJ1d3dwY2puYWp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1ODg5MjYsImV4cCI6MjEwNTE2NDkyNn0.p_RCrxlxsF7HP0J_zgPP_PY5xDMkeDO00A37jvuDxpo'
+  },
+
+  // 公式LINEアカウント設定
+  lineOfficialAccount: {
+    addFriendUrl: 'https://line.me/R/ti/p/@277lqewi' // 公式LINE 友だち追加URL
   },
 
   // イベント開催期間

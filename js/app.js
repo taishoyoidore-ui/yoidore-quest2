@@ -400,6 +400,18 @@ class YoidoreQuestApp {
       try {
         await window.questApi.initAuth();
         
+        // 友だち限定セーフティガード判定 (未登録またはブロック中の場合は画面をロック)
+        if (window.questApi.isFriend === false) {
+          const gateOverlay = document.getElementById('friendship-gate-overlay');
+          const startOverlay = document.getElementById('start-overlay');
+          const syncLoader = document.getElementById('qr-claim-sync-loader');
+          if (syncLoader) syncLoader.style.display = 'none';
+          if (startOverlay) startOverlay.style.display = 'none';
+          if (gateOverlay) gateOverlay.style.display = 'flex';
+          this.typeMessage('⚠️ 公式LINEの友だち登録（ブロック解除）が必要です。');
+          return;
+        }
+        
         // シーズン・設定・店舗・特典・履歴データを並列取得で高速化
         const [curSeason, seasons, stores] = await Promise.all([
           window.questApi.getCurrentSeason(),

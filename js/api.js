@@ -12,6 +12,7 @@ class QuestApiManager {
     this.currentUser = null;
     this.isLiffReady = false;
     this.isOfflineMode = false;
+    this.isFriend = true; // LINE公式アカウント友だち状態 (デフォルトtrue)
     
     // シーズン管理
     const fallbackGuidance = window.APP_CONFIG?.fallbackSeasonGuidance || {};
@@ -105,6 +106,21 @@ class QuestApiManager {
       };
 
       if (window.debugLog) window.debugLog('LINE LIFFログイン成功: ' + this.currentUser.displayName + ' (' + this.currentUser.userId + ')');
+
+      // 3.5 LINE公式アカウントの友だち状態確認 (liff.getFriendship)
+      let isFriend = true;
+      try {
+        if (typeof window.liff.getFriendship === 'function') {
+          const friendship = await window.liff.getFriendship();
+          if (friendship && typeof friendship.friendFlag === 'boolean') {
+            isFriend = friendship.friendFlag;
+          }
+        }
+      } catch (fErr) {
+        console.warn('LINE友だち状態の確認スキップ/エラー:', fErr);
+      }
+      this.isFriend = isFriend;
+      if (window.debugLog) window.debugLog(`LINE友だち状態: ${isFriend ? '✅ 友だち登録中' : '❌ 未追加またはブロック中'}`);
 
       // 4. SupabaseのusersテーブルにLINEユーザー情報を確実に同期（UPSERT）
       await this.syncUserToDatabase();

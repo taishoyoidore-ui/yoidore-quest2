@@ -388,8 +388,23 @@ class YoidoreAdminApp {
     const usedStoreCoupons = this.coupons.filter(c => c.reward_type !== 'goods' && c.status === 'used' && c.store_id);
     const usedGoods = this.coupons.filter(c => c.reward_type === 'goods' && c.status === 'used');
 
+    const curSeason = this.seasons.find(s => s.id === this.selectedSeasonId) || this.api.currentSeason;
+    const seasonStartDate = curSeason?.start_date ? new Date(curSeason.start_date + 'T00:00:00') : null;
+    let newUsersCount = 0;
+    let existingUsersCount = 0;
+    this.users.forEach(u => {
+      const createdDate = u.created_at ? new Date(u.created_at) : null;
+      if (seasonStartDate && createdDate && createdDate < seasonStartDate) {
+        existingUsersCount++;
+      } else {
+        newUsersCount++;
+      }
+    });
+
     const usersElem = document.getElementById('kpi-users-count');
-    if (usersElem) usersElem.textContent = this.users.length.toLocaleString();
+    if (usersElem) {
+      usersElem.innerHTML = `${this.users.length.toLocaleString()} <span style="font-size:12px; font-weight:normal; color:#64748b; margin-left:4px;">(新規: <strong style="color:#10b981;">${newUsersCount}</strong> / 既存: <strong style="color:#0284c7;">${existingUsersCount}</strong>)</span>`;
+    }
 
     const storesElem = document.getElementById('kpi-stores-count');
     if (storesElem) storesElem.textContent = this.stores.filter(s => s.is_participating !== false).length.toLocaleString();
@@ -2520,10 +2535,14 @@ class YoidoreAdminApp {
     const sortSelect = document.getElementById('users-sort-select');
     const sortValue = sortSelect ? sortSelect.value : 'created_desc';
 
-    const sortedTiers = [...(this.tiers || [])].sort((a, b) => (Number(a.required_visits || 0)) - (Number(b.required_visits || 0)));
+    const curSeason = this.seasons.find(s => s.id === this.selectedSeasonId) || this.api.currentSeason;
+    const seasonStartDate = curSeason?.start_date ? new Date(curSeason.start_date + 'T00:00:00') : null;
 
     // 各ユーザーの特典・消込データを集計
     const enrichedUsers = this.users.map(u => {
+      const createdDate = u.created_at ? new Date(u.created_at) : null;
+      const isExistingFriend = Boolean(seasonStartDate && createdDate && createdDate < seasonStartDate);
+
       const userCoupons = (this.coupons || []).filter(c => c.user_id === u.line_user_id);
       const unlockedTierIds = Array.from(new Set(userCoupons.map(c => Number(c.reward_tier_id)).filter(id => !isNaN(id) && id > 0)));
 
@@ -2579,6 +2598,7 @@ class YoidoreAdminApp {
 
       return {
         user: u,
+        isExistingFriend,
         userCoupons,
         tierStatusList,
         totalStoreCoupons,
@@ -2604,7 +2624,11 @@ class YoidoreAdminApp {
       }
 
       // 状態フィルター
-      if (filterValue === 'has_rewards') {
+      if (filterValue === 'new_friends') {
+        return !item.isExistingFriend;
+      } else if (filterValue === 'existing_friends') {
+        return item.isExistingFriend;
+      } else if (filterValue === 'has_rewards') {
         return item.totalRewardsCount > 0;
       } else if (filterValue === 'has_remaining') {
         return item.remainingStoreCoupons > 0;
@@ -2722,6 +2746,10 @@ class YoidoreAdminApp {
       const createdStr = u.created_at ? new Date(u.created_at).toLocaleDateString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
       const activeStr = u.last_active_at ? new Date(u.last_active_at).toLocaleDateString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
 
+      const friendBadge = item.isExistingFriend
+        ? `<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:10px; padding:1px 5px; margin-top:2px; display:inline-block;" title="今期開始前からの既存友だち"><i class="fa-solid fa-star"></i> 既存友だち</span>`
+        : `<span class="badge" style="background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; font-size:10px; padding:1px 5px; margin-top:2px; display:inline-block;" title="今期イベント開始後の新規獲得"><i class="fa-solid fa-sparkles"></i> 今期新規</span>`;
+
       return `
         <tr>
           <td>
@@ -2729,6 +2757,7 @@ class YoidoreAdminApp {
               <img src="${u.picture_url || 'assets/banner.png'}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0; flex-shrink:0;">
               <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px;">
                 <strong style="font-size: 12px; color:#0f172a;" title="${this.escapeHtml(u.display_name || '冒険者')}">${this.escapeHtml(u.display_name || '冒険者')}</strong>
+                <div>${friendBadge}</div>
               </div>
             </div>
           </td>
@@ -3112,8 +3141,15 @@ class YoidoreAdminApp {
     let csvContent = '\uFEFF';
 
     if (this.activeLogSubTab === 'users') {
-      csvContent += 'LINE_User_ID,表示名,獲得特典一覧,酒場クーポン総枠数,酒場クーポン利用済数,酒場クーポン残枠数,記念品グッズ総数,記念品グッズ受取済数,消込店舗一覧,参加登録日時,最終アクセス\n';
+      const curSeason = this.seasons.find(s => s.id === this.selectedSeasonId) || this.api.currentSeason;
+      const seasonStartDate = curSeason?.start_date ? new Date(curSeason.start_date + 'T00:00:00') : null;
+
+      csvContent += 'LINE_User_ID,表示名,友だち種別,獲得特典一覧,酒場クーポン総枠数,酒場クーポン利用済数,酒場クーポン残枠数,記念品グッズ総数,記念品グッズ受取済数,消込店舗一覧,参加登録日時,最終アクセス\n';
       this.users.forEach(u => {
+        const createdDate = u.created_at ? new Date(u.created_at) : null;
+        const isExistingFriend = Boolean(seasonStartDate && createdDate && createdDate < seasonStartDate);
+        const friendTypeStr = isExistingFriend ? '既存友だち' : '今期新規';
+
         const userCoupons = (this.coupons || []).filter(c => c.user_id === u.line_user_id);
         const unlockedTierIds = Array.from(new Set(userCoupons.map(c => Number(c.reward_tier_id)).filter(Boolean)));
         const unlockedTiers = (this.tiers || []).filter(t => unlockedTierIds.includes(Number(t.id)));
@@ -3132,7 +3168,7 @@ class YoidoreAdminApp {
           return store ? store.name : c.store_id;
         }).join(';');
 
-        csvContent += `"${u.line_user_id}","${(u.display_name || '').replace(/"/g, '""')}","${rewardsSummary.replace(/"/g, '""')}",${storeTotal},${storeUsed},${storeRemaining},${goodsTotal},${goodsUsed},"${usedStores.replace(/"/g, '""')}","${u.created_at || ''}","${u.last_active_at || ''}"\n`;
+        csvContent += `"${u.line_user_id}","${(u.display_name || '').replace(/"/g, '""')}","${friendTypeStr}","${rewardsSummary.replace(/"/g, '""')}",${storeTotal},${storeUsed},${storeRemaining},${goodsTotal},${goodsUsed},"${usedStores.replace(/"/g, '""')}","${u.created_at || ''}","${u.last_active_at || ''}"\n`;
       });
     } else if (this.activeLogSubTab === 'coupons') {
       csvContent += '利用・受取日時,種別,シーズンID,LINE_User_ID,ユーザー名,酒場ID,酒場名/記念品名,状態\n';
