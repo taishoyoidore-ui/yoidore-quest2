@@ -818,11 +818,13 @@ class YoidoreAdminApp {
         <tr style="${!isParticipating ? 'opacity: 0.65; background: #f8fafc;' : ''}">
           <td><code>${this.escapeHtml(store.id)}</code></td>
           <td>
-            <div class="table-store-name" style="display: flex; align-items: center; gap: 6px;">
+            <div class="table-store-name" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
               <strong>${this.escapeHtml(store.name)}</strong>
               ${isParticipating ? 
                 '<span class="badge" style="background:#dcfce7; color:#15803d; font-size:11px; padding:2px 6px;">参加中</span>' : 
                 '<span class="badge" style="background:#f1f5f9; color:#64748b; font-size:11px; padding:2px 6px;">不参加</span>'}
+              ${(store.is_organizer || store.isOrganizer) ? 
+                '<span class="badge" style="background:#dbeafe; color:#1d4ed8; border:1px solid #bfdbfe; font-size:11px; padding:2px 6px; font-weight:bold;">運営店</span>' : ''}
             </div>
             ${store.address ? `<div style="font-size:11px; color:#475569; margin-top:2px;"><i class="fa-solid fa-location-dot" style="color:#d97706; font-size:10px;"></i> ${this.escapeHtml(store.address)}</div>` : ''}
             <small class="text-muted">${this.escapeHtml(store.catchphrase || '')}</small>
@@ -1194,6 +1196,10 @@ class YoidoreAdminApp {
     document.getElementById('edit-store-photo-url').value = store.photo_url || store.photoUrl || (numId ? `photo/${numId}.jpg` : '');
     document.getElementById('edit-store-badge-sales').value = store.badge_sales_count || '';
     document.getElementById('edit-store-coupon-target').checked = Boolean(store.is_coupon_target);
+    const organizerCb = document.getElementById('edit-store-organizer');
+    if (organizerCb) {
+      organizerCb.checked = Boolean(store.is_organizer || store.isOrganizer);
+    }
 
     this.updateMediaPreview();
     document.body.style.overflow = 'hidden';
@@ -1349,6 +1355,7 @@ class YoidoreAdminApp {
     const instaUrl = document.getElementById('edit-store-insta-url').value.trim();
     const photoUrl = document.getElementById('edit-store-photo-url').value.trim();
     const isCouponTarget = document.getElementById('edit-store-coupon-target').checked;
+    const isOrganizer = document.getElementById('edit-store-organizer') ? document.getElementById('edit-store-organizer').checked : false;
     const displayOrder = parseInt(storeId.replace(/\D/g, ''), 10) || 0;
 
     // 既存店舗のraw_dataおよび全シーズン企画データを取得・保護
@@ -1360,6 +1367,7 @@ class YoidoreAdminApp {
     existingSeasons[targetSeasonId] = {
       is_participating: isParticipating,
       is_coupon_target: isCouponTarget,
+      is_organizer: isOrganizer,
       plan_type: planType,
       set_name: setName,
       set_content: setContent,
@@ -1402,6 +1410,7 @@ class YoidoreAdminApp {
         hours,
         time_notes: timeNotes,
         is_coupon_target: isCouponTarget,
+        is_organizer: isOrganizer,
         plan_type: planType,
         set_name: setName,
         set_content: setContent,
@@ -1422,7 +1431,7 @@ class YoidoreAdminApp {
       id: storeId,
       name: name,
       area: area,
-      ...(targetSeasonId === 2 ? { is_coupon_target: isCouponTarget } : {}),
+      ...(targetSeasonId === 2 ? { is_coupon_target: isCouponTarget, is_organizer: isOrganizer } : {}),
       display_order: displayOrder,
       raw_data: rawData
     };

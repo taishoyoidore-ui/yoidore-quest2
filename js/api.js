@@ -221,6 +221,7 @@ class QuestApiManager {
           const badgeSalesCount = seasonData?.badge_sales_count || '';
           const hasQuest = Boolean(questTitle && questTitle.trim() !== '' && questTitle !== '？？？？？' && !planType.includes('「酔いどれセット」のみ'));
           const isCouponTarget = seasonData ? (seasonData.is_coupon_target !== undefined ? Boolean(seasonData.is_coupon_target) : (targetSeasonId === 2 ? (s.is_coupon_target !== false) : false)) : false;
+          const isOrganizer = seasonData ? (seasonData.is_organizer !== undefined ? Boolean(seasonData.is_organizer) : Boolean(raw['is_organizer'] || raw['運営店'] || s.is_organizer)) : Boolean(raw['is_organizer'] || raw['運営店'] || s.is_organizer);
           const takeout = seasonData ? (seasonData.takeout || (typeof s.takeout === 'string' && s.takeout ? s.takeout : (raw['takeout'] || ''))) : '';
 
           return {
@@ -241,6 +242,8 @@ class QuestApiManager {
             is_participating: isParticipating,
             isCouponTarget: isCouponTarget,
             is_coupon_target: isCouponTarget,
+            isOrganizer: isOrganizer,
+            is_organizer: isOrganizer,
             catchphrase: catchphrase,
             plan_type: planType,
             planType: planType,

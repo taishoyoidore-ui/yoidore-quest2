@@ -202,6 +202,7 @@ class YoidoreQuestApp {
       type: 'ALL',
       takeout: 'ALL',
       openToday: false,
+      organizer: false,
       searchQuery: ''
     };
 
@@ -959,10 +960,12 @@ class YoidoreQuestApp {
       if (this.filters.type !== 'ALL') activeTags.push(`<span class="sticky-tag-item">🍺 ${this.filters.type}</span>`);
       if (this.filters.takeout === 'YES') activeTags.push(`<span class="sticky-tag-item">テイクアウト可</span>`);
       if (this.filters.openToday) activeTags.push(`<span class="sticky-tag-item text-green">✓ どれクエ対応中</span>`);
+      if (this.filters.organizer) activeTags.push(`<span class="sticky-tag-item" style="color:#93c5fd;">運営店のみ</span>`);
       if (this.filters.searchQuery) activeTags.push(`<span class="sticky-tag-item">🔎 ${this.filters.searchQuery}</span>`);
 
       let count = 0;
       count = this.getStores().filter(store => {
+        if (this.filters.organizer && !store.isOrganizer) return false;
         if (this.filters.area !== 'ALL' && store.area !== this.filters.area) return false;
         if (this.filters.category !== 'ALL' && store.category !== this.filters.category) return false;
         if (this.filters.style !== 'ALL' && store.style !== this.filters.style) return false;
@@ -1037,6 +1040,7 @@ class YoidoreQuestApp {
       type: 'ALL',
       takeout: 'ALL',
       openToday: false,
+      organizer: false,
       searchQuery: ''
     };
     this.lastStoresScrollY = 0;
@@ -1227,6 +1231,7 @@ class YoidoreQuestApp {
    * ------------------------------------------------------------------------ */
   renderTopView(container) {
     const allStores = this.getStores();
+    const organizerCount = allStores.filter(s => s.isOrganizer).length;
     const takeoutCount = allStores.filter(s => s.isTakeout).length;
     const openCount = allStores.filter(s => s.isOpenToday).length;
     const totalCount = allStores.length;
@@ -1303,6 +1308,13 @@ class YoidoreQuestApp {
             </div>
             <span class="command-badge text-green">対応中 ${openCount}軒</span>
           </li>
+          <li class="command-item" data-action="organizer">
+            <div class="command-item-left">
+              <span class="command-cursor">▶</span>
+              <span class="command-label">運営店から探す</span>
+            </div>
+            <span class="command-badge" style="background:#1e3a8a; color:#93c5fd; border:1px solid #3b82f6;">QR設置 ${organizerCount}軒</span>
+          </li>
           <li class="command-item" data-action="takeout">
             <div class="command-item-left">
               <span class="command-cursor">▶</span>
@@ -1358,6 +1370,11 @@ class YoidoreQuestApp {
         else if (action === 'today') {
           this.resetFilters();
           this.filters.openToday = true;
+          this.navigateTo('stores');
+        }
+        else if (action === 'organizer') {
+          this.resetFilters();
+          this.filters.organizer = true;
           this.navigateTo('stores');
         }
         else if (action === 'takeout') {
@@ -2926,6 +2943,7 @@ class YoidoreQuestApp {
                        this.filters.type !== 'ALL' || 
                        this.filters.takeout !== 'ALL' || 
                        this.filters.openToday || 
+                       this.filters.organizer || 
                        this.filters.searchQuery !== '';
 
     const areasList = this.getAreas();
@@ -2977,6 +2995,9 @@ class YoidoreQuestApp {
             <div class="filter-chip ${this.filters.takeout === 'YES' ? 'active' : ''}" id="chip-takeout">
               ${this.filters.takeout === 'YES' ? '✓ テイクアウト可のみ' : 'テイクアウト可のみ'}
             </div>
+            <div class="filter-chip ${this.filters.organizer ? 'active' : ''}" id="chip-organizer">
+              ${this.filters.organizer ? '✓ 運営店のみ' : '運営店のみ'}
+            </div>
           </div>
         </div>
       </div>
@@ -2989,6 +3010,7 @@ class YoidoreQuestApp {
     // 店舗カード一覧の部分更新関数（入力欄などのDOMを破棄しない）
     const updateStoreList = () => {
       let filtered = this.getStores().filter(store => {
+        if (this.filters.organizer && !store.isOrganizer) return false;
         if (this.filters.area !== 'ALL' && store.area !== this.filters.area) return false;
         if (this.filters.category !== 'ALL' && store.category !== this.filters.category) return false;
         if (this.filters.style !== 'ALL' && store.style !== this.filters.style) return false;
@@ -3005,8 +3027,14 @@ class YoidoreQuestApp {
 
       filtered.sort((a, b) => a.id.localeCompare(b.id, 'ja', { numeric: true }));
 
-      const hasFilter = this.filters.area !== 'ALL' || this.filters.category !== 'ALL' || this.filters.style !== 'ALL' || this.filters.type !== 'ALL' || this.filters.takeout === 'YES' || this.filters.openToday || Boolean(this.filters.searchQuery);
-      if (hasFilter) {
+      const hasFilter = this.filters.area !== 'ALL' || this.filters.category !== 'ALL' || this.filters.style !== 'ALL' || this.filters.type !== 'ALL' || this.filters.takeout === 'YES' || this.filters.openToday || this.filters.organizer || Boolean(this.filters.searchQuery);
+      if (this.filters.organizer) {
+        if (filtered.length === 0) {
+          this.typeMessage('条件に一致する運営店が見つかりませんでした。条件を変えて探してみよう！');
+        } else {
+          this.typeMessage(`達成QR設置・グッズ交換ができる運営店が ${filtered.length}軒あります！気になる酒場へ出発しよう！`);
+        }
+      } else if (hasFilter) {
         if (filtered.length === 0) {
           this.typeMessage('条件に一致する酒場が見つかりませんでした。条件を変えて探してみよう！');
         } else {
@@ -3067,6 +3095,7 @@ class YoidoreQuestApp {
           </div>
 
           <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:8px; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.15);">
+            ${store.isOrganizer ? `<span class="tag" style="background:#1e3a8a; color:#93c5fd; border-color:#3b82f6;">運営店（QR設置）</span>` : ''}
             ${isCoupon ? `<span class="tag" style="background:#4d3800; color:#ffeeba; border-color:#ffc107;">🎁 特典対象</span>` : ''}
             ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
             ${store.category ? `<span class="tag">${store.category}</span>` : ''}
@@ -3106,6 +3135,7 @@ class YoidoreQuestApp {
                               this.filters.type !== 'ALL' || 
                               this.filters.takeout !== 'ALL' || 
                               this.filters.openToday || 
+                              this.filters.organizer || 
                               Boolean(this.filters.searchQuery && this.filters.searchQuery.trim());
       const resetBtnElem = document.getElementById('btn-reset-filters');
       if (resetBtnElem) {
@@ -3197,6 +3227,19 @@ class YoidoreQuestApp {
       this.lastStoresScrollY = 0;
       updateStoreList();
     });
+
+    // 運営店のみチップ
+    document.getElementById('chip-organizer').addEventListener('click', () => {
+      this.playSelectSE();
+      this.filters.organizer = !this.filters.organizer;
+      const chip = document.getElementById('chip-organizer');
+      if (chip) {
+        chip.classList.toggle('active', this.filters.organizer);
+        chip.textContent = this.filters.organizer ? '✓ 運営店のみ' : '運営店のみ';
+      }
+      this.lastStoresScrollY = 0;
+      updateStoreList();
+    });
   }
 
   /* ------------------------------------------------------------------------
@@ -3216,7 +3259,9 @@ class YoidoreQuestApp {
     const info = activeSeason?.statusInfo;
     const isCouponTarget = Boolean(store.isCouponTarget);
 
-    if (info && info.isExpired) {
+    if (store.isOrganizer) {
+      this.typeMessage(`「${store.name}」は大正酔いどれクエストの運営店です！達成QRコードの読み取りやグッズ交換ができます。`);
+    } else if (info && info.isExpired) {
       this.typeMessage(`「${store.name}」の店舗情報です。営業時間やメニューをご確認いただけます。`);
     } else if (info && info.isCouponActive && isCouponTarget) {
       this.typeMessage(`「${store.name}」の情報です。このお店では特典の酒場クーポンが使えます！`);
@@ -3239,6 +3284,7 @@ class YoidoreQuestApp {
           </div>
 
           <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:10px;">
+            ${store.isOrganizer ? `<span class="tag" style="background:#1e3a8a; color:#93c5fd; border-color:#3b82f6;">運営店（達成QR設置・グッズ交換）</span>` : ''}
             ${isCouponTarget ? `<span class="tag" style="background:#4d3800; color:#ffeeba; border-color:#ffc107;">🎁 特典対象</span>` : ''}
             ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
             ${store.category ? `<span class="tag">${store.category}</span>` : ''}
@@ -3261,6 +3307,16 @@ class YoidoreQuestApp {
             </div>
           ` : ''}
         </div>
+
+        <!-- 運営店インフォメーション枠 -->
+        ${store.isOrganizer ? `
+          <div class="rpg-window" style="background: rgba(30, 58, 138, 0.25); border: 1px solid #3b82f6;">
+            <div style="font-size:13px; color:#93c5fd; font-weight:bold;">【大正酔いどれクエスト 運営店】</div>
+            <div style="font-size:12px; color:#cbd5e1; margin-top:4px; line-height:1.5;">
+              この店舗には「達成QRコード」が設置されています。紙の冒険の書にサインが集まったら、店内の達成QRを読み取って特典解放やグッズ交換を行えます。
+            </div>
+          </div>
+        ` : ''}
 
         <!-- 特典クーポン利用アクション (クーポン対象店舗の場合) -->
         ${isCouponTarget ? (() => {
