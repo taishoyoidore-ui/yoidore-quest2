@@ -3269,6 +3269,18 @@ class YoidoreQuestApp {
       this.typeMessage(`「${store.name}」の情報です。「酔いどれセット」や「店舗クエスト」を楽しもう！`);
     }
 
+    const conditions = store.conditions || {
+      days: store.days,
+      hours: store.hours,
+      timeNotes: store.time_notes,
+      limit: store.set_limit
+    };
+
+    const paymentMethods = Array.isArray(store.paymentMethods) && store.paymentMethods.length > 0
+      ? store.paymentMethods
+      : (store.payment ? String(store.payment).split(/[,、/|]/).map(p => p.trim()).filter(Boolean) : []);
+    const paymentTagsHtml = paymentMethods.map(p => `<span class="tag" style="background:rgba(255,255,255,0.08); border-color:#8b7333; font-size:11px; padding:2px 6px;">${this.escapeHtml(p)}</span>`).join('');
+
     container.innerHTML = `
       <div class="detail-section">
         <!-- 1. 酒場基本情報枠 -->
@@ -3375,29 +3387,29 @@ class YoidoreQuestApp {
             <span>⏰ どれクエ対象時間</span>
           </div>
           <table class="info-table">
-            ${store.conditions.days ? `
+            ${conditions.days ? `
               <tr>
                 <th>提供日</th>
-                <td><strong style="color:#ffffff;">${store.conditions.days}</strong></td>
+                <td><strong style="color:#ffffff;">${conditions.days}</strong></td>
               </tr>
             ` : ''}
-            ${store.conditions.hours ? `
+            ${conditions.hours ? `
               <tr>
                 <th>提供時間</th>
                 <td>
-                  <strong style="color:#ffffff;">${store.conditions.hours}</strong>
-                  ${store.conditions.timeNotes ? `
+                  <strong style="color:#ffffff;">${conditions.hours}</strong>
+                  ${conditions.timeNotes ? `
                     <div style="font-size:13px; color:#fde68a; margin-top:4px; line-height:1.4;">
-                      💡 ${this.escapeHtml(store.conditions.timeNotes)}
+                      💡 ${this.escapeHtml(conditions.timeNotes)}
                     </div>
                   ` : ''}
                 </td>
               </tr>
             ` : ''}
-            ${store.conditions.limit ? `
+            ${conditions.limit ? `
               <tr>
                 <th>限定数</th>
-                <td><span style="color:#ffffff;">${store.conditions.limit}</span> ${store.conditions.soldOutEnd ? '<span style="font-size:12px; color:var(--text-yellow);">（売切終了）</span>' : ''}</td>
+                <td><span style="color:#ffffff;">${conditions.limit}</span> ${conditions.soldOutEnd ? '<span style="font-size:12px; color:var(--text-yellow);">（売切終了）</span>' : ''}</td>
               </tr>
             ` : ''}
             ${store.takeout ? `
