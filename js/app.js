@@ -650,9 +650,6 @@ class YoidoreQuestApp {
 
     try {
       this.render();
-      setTimeout(() => {
-        this.typeMessage('大正のオモロイ酒場を探そう！');
-      }, 250);
     } catch (e) {
       console.error('Render error in startGame:', e);
     }
@@ -1159,7 +1156,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.13.10';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.15.01';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1219,58 +1216,11 @@ class YoidoreQuestApp {
   }
 
   /* ------------------------------------------------------------------------
-   * 開催ステータス告知バナー生成
+   * 開催ステータス告知バナー生成（メッセージウィンドウへ統合のため空返却）
    * ------------------------------------------------------------------------ */
   getSeasonBannerHTML() {
-    const season = window.questApi?.currentSeason;
-    if (!season || !season.statusInfo) return '';
-    const info = season.statusInfo;
-    const periodStr = (season.start_date && season.end_date)
-      ? `${this.formatShortDateWithDay(season.start_date)} 〜 ${this.formatShortDateWithDay(season.end_date)}`
-      : '';
-
-    if (info.isEventActive) {
-      return `
-        <div class="season-notice-banner banner-active">
-          <div class="season-notice-inner">
-            <span class="season-notice-icon">🍺</span>
-            <div class="season-notice-text">
-              <strong>【${this.escapeHtml ? this.escapeHtml(season.name) : season.name} 開催中！】</strong>
-              <div style="font-size:11px; opacity:0.95;">
-                ${periodStr ? `📅 期間: <strong>${periodStr}</strong> ` : ''}(残り ${info.daysLeft} 日)
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    } else if (info.isCouponActive) {
-      return `
-        <div class="season-notice-banner banner-warning">
-          <div class="season-notice-inner">
-            <span class="season-notice-icon">⚠️</span>
-            <div class="season-notice-text">
-              <strong>【後夜祭・クーポン利用期間中】</strong>
-              <div style="font-size:11px; opacity:0.95;">🎫 利用期限: ${this.formatDateWithDay(season.coupon_valid_until)} まで！お早めにお使いください</div>
-            </div>
-          </div>
-        </div>
-      `;
-    } else {
-      return `
-        <div class="season-notice-banner banner-expired">
-          <div class="season-notice-inner">
-            <span class="season-notice-icon">🔒</span>
-            <div class="season-notice-text">
-              <strong>【イベント終了】</strong>
-              <div style="font-size:11px; opacity:0.9;">今期の開催・クーポン利用期間は終了いたしました</div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
+    return '';
   }
-
-
 
   /* ------------------------------------------------------------------------
    * 3.1 トップ画面 (酒場案内所)
@@ -1290,34 +1240,28 @@ class YoidoreQuestApp {
     const guideSteps = (currentSeason.guide_steps && currentSeason.guide_steps.length > 0) ? currentSeason.guide_steps : (fallback.guide_steps || []);
     const rulesNotes = currentSeason.rules_notes || fallback.rules_notes || '';
 
-    const seasonStart = currentSeason.start_date || window.APP_CONFIG?.eventPeriod?.startDate || '2026-09-01';
-    const seasonEnd = currentSeason.end_date || window.APP_CONFIG?.eventPeriod?.endDate || '2026-09-15';
-    let couponStart = currentSeason.statusInfo?.couponStartDateStr;
-    if (!couponStart && seasonEnd) {
-      const eDate = new Date(seasonEnd);
-      eDate.setDate(eDate.getDate() + 1);
-      const y = eDate.getFullYear();
-      const m = String(eDate.getMonth() + 1).padStart(2, '0');
-      const d = String(eDate.getDate()).padStart(2, '0');
-      couponStart = `${y}-${m}-${d}`;
-    }
-    const couponEnd = currentSeason.coupon_valid_until || '2026-10-30';
+    // 開催ステータスに応じた動的メッセージ設定
+    const statusInfo = currentSeason.statusInfo;
+    let topMessage = '大正酔いどれクエストへようこそ！コマンドを選んで酒場を探そう！楽しみ方は下の【冒険の心得】をチェック！';
 
-    const welcomeMessage = '大正酔いどれクエストへようこそ！コマンドを選んで酒場を探そう！楽しみ方は下の【冒険の心得】をチェック！';
-
-    if (this.isStarted) {
-      this.typeMessage(welcomeMessage);
-    } else {
-      const msgEl = document.getElementById('rpg-message-text');
-      if (msgEl) {
-        msgEl.textContent = '「PUSH START」を押してください。';
+    if (statusInfo) {
+      if (statusInfo.isEventActive) {
+        const seasonName = currentSeason.name || '大正酔いどれクエスト';
+        const daysLeftText = (statusInfo.daysLeft !== undefined) ? `（残り${statusInfo.daysLeft}日）` : '';
+        topMessage = `【${seasonName} 開催中！】${daysLeftText}コマンドを選んで酒場を探そう！`;
+      } else if (statusInfo.isCouponActive) {
+        const couponEndStr = currentSeason.coupon_valid_until ? `利用期限は${this.formatShortDateWithDay(currentSeason.coupon_valid_until)}まで！` : '';
+        topMessage = `【後夜祭・クーポン利用期間中】${couponEndStr}コマンドを選んで酒場を探そう！`;
+      } else if (statusInfo.isExpired) {
+        topMessage = '大正酔いどれクエストは終了しました。ご参加ありがとうございました！';
       }
     }
 
-    container.innerHTML = `
-      <!-- 開催フェーズ動的告知バナー -->
-      ${this.getSeasonBannerHTML()}
+    if (this.isStarted) {
+      this.typeMessage(topMessage);
+    }
 
+    container.innerHTML = `
       <!-- コマンド選択 -->
       <div class="rpg-window gold-border">
         <div class="rpg-window-header">
@@ -1470,12 +1414,23 @@ class YoidoreQuestApp {
     const couponStartDateStr = info?.couponStartDateStr || '';
 
     // 冒険の書ナビゲーションメッセージの動的設定
+    const availableCoupons = userCoupons.filter(c => c.reward_type !== 'goods' && c.status !== 'used');
+    const hasAnyCouponTier = userCoupons.some(c => c.reward_type !== 'goods');
+    const hasAvailableCoupons = availableCoupons.length > 0;
+    const hasAllUsedCoupons = hasAnyCouponTier && availableCoupons.length === 0;
+
     if (isExpired) {
-      this.typeMessage('イベント期間は終了しました。これまでの冒険の記録をご確認ください。');
+      this.typeMessage('イベント期間は終了しました。これまでの冒険の記録をご確認いただけます。');
     } else if (!isCouponUsable && couponStartDateStr) {
-      this.typeMessage(`店主のサインを集めて特典を解放しよう！酒場クーポンの利用開始は ${this.formatShortDateWithDay(couponStartDateStr)} から！`);
-    } else if (unlockedTierCount > 0) {
+      if (unlockedTierCount > 0) {
+        this.typeMessage(`特典解放済み！酒場クーポンの利用開始は ${this.formatShortDateWithDay(couponStartDateStr)} から！お楽しみに！`);
+      } else {
+        this.typeMessage(`店主のサインを集めて特典を解放しよう！酒場クーポンの利用開始は ${this.formatShortDateWithDay(couponStartDateStr)} から！`);
+      }
+    } else if (hasAvailableCoupons) {
       this.typeMessage('酒場クーポンが使えるぞ！下の『酒場を選んでクーポンを使う』からお店を選ぼう！');
+    } else if (hasAllUsedCoupons) {
+      this.typeMessage('獲得した酒場クーポンはすべて利用済みです！大正の酒場巡りをお楽しみください！');
     } else {
       this.typeMessage('紙の冒険の書に店主のサインが集まったら、運営店でQRを読み込んで特典を解放しよう！');
     }
@@ -3052,9 +3007,13 @@ class YoidoreQuestApp {
 
       const hasFilter = this.filters.area !== 'ALL' || this.filters.category !== 'ALL' || this.filters.style !== 'ALL' || this.filters.type !== 'ALL' || this.filters.takeout === 'YES' || this.filters.openToday || Boolean(this.filters.searchQuery);
       if (hasFilter) {
-        this.typeMessage(`条件に一致する酒場が ${filtered.length}軒見つかりました！気になる酒場を決めて出発しよう！`);
+        if (filtered.length === 0) {
+          this.typeMessage('条件に一致する酒場が見つかりませんでした。条件を変えて探してみよう！');
+        } else {
+          this.typeMessage(`条件に一致する酒場が ${filtered.length}軒見つかりました！気になる酒場を決めて出発しよう！`);
+        }
       } else {
-        this.typeMessage(`大正区の酒場が ${filtered.length}軒集結！気になる酒場をタップして酔いどれセットや店舗クエストの内容を確かめよう！`);
+        this.typeMessage(`大正区の酒場が ${filtered.length}軒集結！気になる酒場をタップしてメニューやクエストを確かめよう！`);
       }
 
       const cardsHtml = filtered.length > 0 ? filtered.map(store => {
@@ -3253,13 +3212,17 @@ class YoidoreQuestApp {
     // 最新日時に基づき「どれクエ対応中」フラグを動的再計算
     store.isOpenToday = checkIsOpenToday(store);
 
-    this.typeMessage(`「${store.name}」の情報です。「酔いどれセット」または「店舗クエスト」を攻略して店主のサインをもらおう！`);
-
-    const paymentTagsHtml = (store.paymentMethods && store.paymentMethods.length > 0)
-      ? store.paymentMethods.map(p => `<span class="payment-tag">${p}</span>`).join('')
-      : '';
-
+    const activeSeason = window.questApi?.currentSeason;
+    const info = activeSeason?.statusInfo;
     const isCouponTarget = Boolean(store.isCouponTarget);
+
+    if (info && info.isExpired) {
+      this.typeMessage(`「${store.name}」の店舗情報です。営業時間やメニューをご確認いただけます。`);
+    } else if (info && info.isCouponActive && isCouponTarget) {
+      this.typeMessage(`「${store.name}」の情報です。このお店では特典の酒場クーポンが使えます！`);
+    } else {
+      this.typeMessage(`「${store.name}」の情報です。「酔いどれセット」や「店舗クエスト」を楽しもう！`);
+    }
 
     container.innerHTML = `
       <div class="detail-section">
