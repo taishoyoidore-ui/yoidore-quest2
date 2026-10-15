@@ -152,27 +152,20 @@ erDiagram
     stores {
         string id PK "店舗ユニークID (例: store-01)"
         string name "店舗名 (正式名称)"
-        string catch_copy "店舗キャッチコピー"
         string area "エリア (三軒家西, 三軒家東, 泉尾, 平尾等)"
-        string category "ジャンル/カテゴリ (居酒屋, おばんざい, バル等)"
-        string style "席スタイル (カウンター, テーブルあり, 立ち飲み等)"
-        string type "酔いどれタイプ (サク飲み, 腹ごしらえ等)"
-        string address "住所"
-        string tel "電話番号"
-        string map_url "GoogleマップURL"
-        string insta_url "Instagram / SNS URL"
-        string payment_methods "決済方法 (現金, PayPay, カード等)"
-        string photo_url "店舗外観・内観の代表写真"
-        string logo_url "店舗ロゴ画像"
+        int display_order "並び順 (任意)"
+        boolean is_coupon_target "クーポン取扱フラグ (互換用)"
+        jsonb raw_data "全拡張属性・シーズン別企画データ格納JSONB"
         timestamp created_at "登録日時"
         timestamp updated_at "更新日時"
     }
 
     season_stores {
-        string id PK "複合キー (store_id + '_' + season_id)"
-        int season_id FK "シーズンID (seasons.id)"
+        string id PK "論理モデル (raw_data.seasons[season_id] として物理実装)"
+        int season_id FK "シーズンID"
         string store_id FK "店舗ID (stores.id)"
         boolean is_participating "そのシーズンへの参加フラグ (true: 参加 / false: 不参加)"
+        boolean is_organizer "運営店フラグ (true: 運営店 / false: 通常店)"
         int display_order "そのシーズンでの表示順 / MAPピン番号"
         boolean is_coupon_target "クーポン取扱店フラグ"
         string plan_type "参加企画 (酔いどれセット / 店舗クエスト / 両方)"
@@ -194,6 +187,9 @@ erDiagram
         string badge_sales_count "缶バッチ販売希望数"
         string season_photo_url "そのシーズンのセット料理写真"
     }
+
+    note for stores "【重要: 物理DB保存規約】<br/>Supabaseの stores テーブルの物理カラムは [id, name, area, display_order, is_coupon_target, raw_data] のみです。<br/>is_organizer や営業時間・メニュー等の拡張データは必ず raw_data 内に格納し、テーブル直下へ送信しないでください (PGRST204エラー防止)。"
+
 
     reward_tiers {
         int id PK "特典ランクID"
@@ -287,10 +283,25 @@ flowchart TD
         SS6["限定セット名 / 価格 / 料理内容 / 備考 / チャージ"]
         SS7["店舗クエスト名 / 内容 / 料金 / 備考"]
         SS8["缶バッチ販売希望数 / シーズン限定写真"]
+        SS9["運営店フラグ (is_organizer)"]
     end
 
     Layer1 -->|"1 対 多 (歴代シーズン)"| Layer2
 ```
+
+### 6.1.1 物理DB実装マッピングと厳格な保存規約（PostgREST 400エラー防止規約）
+
+本システムでは、Supabase（PostgreSQL）のテーブル定義の頻繁なマイグレーションを回避しつつシーズン別2層構造を実現するため、**`stores.raw_data`（JSONB）を用いた物理実装**を採用しています。
+
+| 区分 | 格納場所 | 対象フィールド | 備考・注意点 |
+| :--- | :--- | :--- | :--- |
+| **物理カラム**<br/>（DBテーブル直下） | `stores` テーブルの直下カラム | `id`, `name`, `area`, `display_order`, `is_coupon_target`, `raw_data` | **これら以外のフィールドをルートのペイロードに含めて保存（POST/PATCH）すると `PGRST204`（カラム不在エラー）が発生します。** |
+| **店舗基本情報** | `stores.raw_data` 直下 | `address`, `category`, `style`, `type`, `catchphrase`, `payment`, `map_url`, `insta_url`, `photo_url` 等 | 全シーズン共通の店舗情報 |
+| **シーズン別企画データ** | `stores.raw_data.seasons[seasonId]` | `is_participating`, `is_organizer`, `is_coupon_target`, `plan_type`, `set_name`, `set_price`, `hours`, `days` 等 | 歴代シーズンごとに独立保存される企画情報 |
+
+> [!IMPORTANT]
+> **新属性追加時の鉄則**：
+> 「運営店フラグ（`is_organizer`）」など新しい属性を画面・APIに追加する際は、**絶対に `stores` テーブルのルートペイロードに含めず、必ず `raw_data` および `raw_data.seasons[seasonId]` に格納してください。**
 
 ---
 
@@ -527,8 +538,8 @@ flowchart TD
 
 ## 10. バージョン改定履歴 (Changelog)
 
-| バージョン | 改定日 | 主な改定内容 |
-| :--- | :--- | :--- |
+| **v2026.10.15.03** | 2026-10-15 | **Supabase物理スキーマとJSONB（`raw_data`）格納仕様・厳格保存規約の明文化**<br>・【物理DB保存規約の明文化】`stores` テーブルの物理カラム（`id`, `name`, `area`, `display_order`, `is_coupon_target`, `raw_data`）と `raw_data` JSONB（全拡張属性・シーズン別企画）の物理マッピングを仕様書第4章および第6章（6.1.1）に明記。<br>・【PGRST204エラー防止の徹底】新属性（`is_organizer` 等）追加時にルートペイロードではなく `raw_data` 内に格納する保存ルールを規定。<br>・システム共通バージョンを `v2026.10.15.03` に更新。 |
+| **v2026.10.15.02** | 2026-10-15 | **運営店（達成QR設置・グッズ交換）認識機能の導入 ＆ 案内所・酒場一覧への導線・UI追加**<br>・【運営店導線】案内所のコマンドに「運営店から探す」を追加。酒場一覧で「[✓ 運営店のみ]」フィルタチップによるワンタップ絞り込みを実装。<br>・【運営店バッジ・案内】店舗カード・詳細画面に「運営店」バッジ（絵文字不使用）および「達成QR設置・グッズ交換」案内枠を配置。<br>・【バックオフィス対応】店舗マスタ編集モーダルに「運営店（達成QR設置・グッズ交換）」チェックボックスを追加し、`raw_data` へのシーズン別保存に対応。<br>・システム共通バージョンを `v2026.10.15.02` に更新。 |
 | **v2026.10.13.13** | 2026-10-13 | **店舗チェックイン処理の完全廃止 ＆ 運営店（6店舗）達成QRコード専用化 ＆ 冒険の書特典2大分類分離 ＆ ステータステーブル最適化**<br>・【店舗チェックイン処理の完全撤廃】店舗ごとの来店QRチェックイン・来店DB記録（`visits`）処理を完全廃止。紙の冒険の書（手書きサイン）による周遊運用に純化。<br>・【運営店（6店舗）達成QR読取の専用化】QRコードスキャナーおよびURL起動ロジックを、運営店舗に設置されたマイルストーン達成QRコード（`?claim_tier=XX`）の解析・カスケード特典付与専用に一本化。<br>・【冒険の書 特典表示の完全分離（2大分類）】冒険の書画面において、「🍺 ハシゴ達成・酒場クーポン（回数券方式）」と「🎁 ハシゴ達成・記念グッズ（引換券方式）」を別セクションに完全分離し、A案（スリム＆高視認性カード）で整然と表示。<br>・【冒険者ステータス欄のテーブル整列化】「なまえ」「しょうごう」「酒場クーポン」のラベルと値を左揃えテーブル形式（Gridレイアウト）で整列し、視認性を大幅向上。<br>・【店頭スライド消し込みのDB即時同期】酒場クーポンおよび記念グッズ引換のスライド消し込みにおける `user_coupons` への確実な更新（`status='used'`, `used_at`, `store_id`）と二重利用防止ガードを確立。<br>・システム共通バージョンを `v2026.10.13.13` に更新。 |
 | **v2026.10.10.12** | 2026-10-10 | **クーポン利用酒場選択ダイアログの各行店舗ロゴアイコン削除**<br>・【仕様変更：ロゴアイコン削除】クーポン利用酒場選択モーダル（`openStoreSelectForCoupon`）の各酒場行に表示されていた店舗ロゴアイコン（38px角・フォールバック含む）を削除。<br>・各行のレイアウトをシンプル化し、酒場名とエリア・カテゴリ情報にフォーカスした高視認性デザインに最適化。<br>・システム共通バージョンを `v2026.10.10.12` に更新。 |
 | **v2026.09.21.23** | 2026-09-21 | **バックオフィス「ハシゴ達成特典（宝箱マイルストーン）設定」および「特典・グッズ別 達成＆消し込み集計」の一覧表（テーブル）形式化**<br>・【特典マイルストーン設定の一覧表形式化】シーズン設定タブ内のハシゴ達成特典設定を従来のカードグリッドからデータテーブル形式に刷新。「必要軒数」「特典種別」「特典名」「特典内容（枠数・グッズ名）」「引換場所/説明」「操作（編集/削除）」の列構成で一元俯瞰・管理可能に改善。<br>・【特典別集計の一覧表形式化】集計分析タブ内の「特典・グッズ別 達成＆消し込み集計」をカード形式からデータテーブル形式に刷新。「必要軒数」「種別」「特典名」「特典内容」「達成者数 (資格者)」「消込・受取済数」「未利用・未受取残数」「消化・受取進捗率」を一覧で比較・可視化。<br>・システム共通バージョンを `v2026.09.21.23` に更新。 |

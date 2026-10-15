@@ -1431,7 +1431,7 @@ class YoidoreAdminApp {
       id: storeId,
       name: name,
       area: area,
-      ...(targetSeasonId === 2 ? { is_coupon_target: isCouponTarget, is_organizer: isOrganizer } : {}),
+      ...(targetSeasonId === 2 ? { is_coupon_target: isCouponTarget } : {}),
       display_order: displayOrder,
       raw_data: rawData
     };
