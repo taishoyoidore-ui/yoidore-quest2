@@ -1308,19 +1308,19 @@ class YoidoreQuestApp {
             </div>
             <span class="command-badge text-green">対応中 ${openCount}軒</span>
           </li>
-          <li class="command-item" data-action="organizer">
-            <div class="command-item-left">
-              <span class="command-cursor">▶</span>
-              <span class="command-label">運営店から探す</span>
-            </div>
-            <span class="command-badge" style="background:#1e3a8a; color:#93c5fd; border:1px solid #3b82f6;">QR設置 ${organizerCount}軒</span>
-          </li>
           <li class="command-item" data-action="takeout">
             <div class="command-item-left">
               <span class="command-cursor">▶</span>
               <span class="command-label">テイクアウトOKな酒場</span>
             </div>
             <span class="command-badge">${takeoutCount}軒</span>
+          </li>
+          <li class="command-item" data-action="organizer">
+            <div class="command-item-left">
+              <span class="command-cursor">▶</span>
+              <span class="command-label">運営店一覧</span>
+            </div>
+            <span class="command-badge" style="background:#1e3a8a; color:#93c5fd; border:1px solid #3b82f6;">QR設置 ${organizerCount}軒</span>
           </li>
         </ul>
       </div>
