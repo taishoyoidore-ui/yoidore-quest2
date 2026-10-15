@@ -1232,7 +1232,7 @@ class YoidoreAdminApp {
     const addressMapBtn = document.getElementById('btn-check-address-map');
     if (addressMapBtn) {
       if (addressVal) {
-        const query = encodeURIComponent(`${addressVal} ${nameVal}`.trim());
+        const query = encodeURIComponent(addressVal);
         addressMapBtn.href = `https://www.google.com/maps/search/?api=1&query=${query}`;
         addressMapBtn.style.display = 'inline-flex';
       } else {

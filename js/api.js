@@ -224,7 +224,7 @@ class QuestApiManager {
           // 固定基本情報
           const address = s.address || raw['address'] || raw['住所'] || raw['店舗住所'] || '';
           const directMapUrl = s.map_url || raw['map_url'] || raw['googleMapUrl'] || raw['Google Map URL'] || '';
-          const fallbackMapQuery = (address ? `${address} ${s.name || ''}` : `大阪市大正区 ${s.name || ''}`).trim();
+          const fallbackMapQuery = (address || (s.name ? `大阪市大正区 ${s.name}` : '大阪市大正区')).trim();
           const mapUrl = directMapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fallbackMapQuery)}`;
           const instaUrl = s.insta_url || raw['insta_url'] || raw['instagramUrl'] || raw['Instagram URL'] || '';
           const catchphrase = s.catchphrase || raw['catchphrase'] || raw['キャッチコピー'] || '';
