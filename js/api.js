@@ -223,9 +223,13 @@ class QuestApiManager {
 
           // 固定基本情報
           const address = s.address || raw['address'] || raw['住所'] || raw['店舗住所'] || '';
-          const directMapUrl = s.map_url || raw['map_url'] || raw['googleMapUrl'] || raw['Google Map URL'] || '';
-          const fallbackMapQuery = (address || (s.name ? `大阪市大正区 ${s.name}` : '大阪市大正区')).trim();
-          const mapUrl = directMapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fallbackMapQuery)}`;
+          let directMapUrl = s.map_url || raw['map_url'] || raw['googleMapUrl'] || raw['Google Map URL'] || '';
+          if (directMapUrl && directMapUrl.includes('google.com/maps/search')) {
+            directMapUrl = '';
+          }
+          const rawQuery = address || (s.name ? (s.name.includes('大正') ? s.name : `大阪市大正区 ${s.name}`) : '大阪市大正区');
+          const fallbackMapQuery = rawQuery.trim();
+          const effectiveMapUrl = directMapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fallbackMapQuery)}`;
           const instaUrl = s.insta_url || raw['insta_url'] || raw['instagramUrl'] || raw['Instagram URL'] || '';
           const catchphrase = s.catchphrase || raw['catchphrase'] || raw['キャッチコピー'] || '';
           const area = s.area || raw['area'] || raw['エリア'] || '';
@@ -280,7 +284,9 @@ class QuestApiManager {
             hours: hours,
             time_notes: timeNotes,
             payment: paymentStr,
-            map_url: mapUrl,
+            map_url: directMapUrl,
+            direct_map_url: directMapUrl,
+            effective_map_url: effectiveMapUrl,
             insta_url: instaUrl,
             quest: {
               title: questTitle || 'クエスト',
@@ -305,7 +311,8 @@ class QuestApiManager {
               soldOutEnd: Boolean(seasonData?.conditions?.soldOutEnd || seasonData?.['売切終了'])
             },
             paymentMethods: paymentMethods,
-            googleMapUrl: mapUrl,
+            googleMapUrl: directMapUrl,
+            effectiveMapUrl: effectiveMapUrl,
             instagramUrl: instaUrl,
             photoUrl: resolvedPhoto,
             photo_url: resolvedPhoto,

@@ -1206,7 +1206,8 @@ class YoidoreAdminApp {
     document.getElementById('edit-store-quest-charge').value = store.quest_charge || '';
     document.getElementById('edit-store-quest-notes').value = store.quest_notes || '';
 
-    document.getElementById('edit-store-map-url').value = store.map_url || store.googleMapUrl || '';
+    const rawMapUrl = (store.map_url || store.googleMapUrl || '').trim();
+    document.getElementById('edit-store-map-url').value = rawMapUrl.includes('google.com/maps/search') ? '' : rawMapUrl;
     document.getElementById('edit-store-insta-url').value = store.insta_url || store.instagramUrl || '';
     document.getElementById('edit-store-photo-url').value = store.photo_url || store.photoUrl || (numId ? `photo/${numId}.jpg` : '');
     document.getElementById('edit-store-badge-sales').value = store.badge_sales_count || '';
@@ -1243,7 +1244,7 @@ class YoidoreAdminApp {
     // 地図URLテストリンク
     const mapBtn = document.getElementById('btn-check-map');
     if (mapBtn) {
-      if (mapVal && mapVal.startsWith('http')) {
+      if (mapVal && mapVal.startsWith('http') && !mapVal.includes('google.com/maps/search')) {
         mapBtn.href = mapVal;
         mapBtn.style.display = 'inline-flex';
       } else {
@@ -1366,7 +1367,10 @@ class YoidoreAdminApp {
     const questCharge = document.getElementById('edit-store-quest-charge').value.trim();
     const questNotes = document.getElementById('edit-store-quest-notes').value.trim();
     const badgeSalesCount = document.getElementById('edit-store-badge-sales').value.trim();
-    const mapUrl = document.getElementById('edit-store-map-url').value.trim();
+    let mapUrl = document.getElementById('edit-store-map-url').value.trim();
+    if (mapUrl.includes('google.com/maps/search')) {
+      mapUrl = '';
+    }
     const instaUrl = document.getElementById('edit-store-insta-url').value.trim();
     const photoUrl = document.getElementById('edit-store-photo-url').value.trim();
     const isCouponTarget = document.getElementById('edit-store-coupon-target').checked;
@@ -1817,8 +1821,10 @@ class YoidoreAdminApp {
         // 12. 追加マスタ情報（キャッチコピー, Instagram, 住所, GoogleマップURL, 写真）
         const catchphrase = String(row[39] !== undefined && row[39] !== '' ? row[39] : (rowObj['キャッチコピー'] || masterInfo?.catchphrase || existing?.catchphrase || existing?.raw_data?.キャッチコピー || existing?.raw_data?.catchphrase || '')).trim();
         const insta_url = String(row[40] !== undefined && row[40] !== '' ? row[40] : (rowObj['Instagram'] || masterInfo?.insta_url || existing?.insta_url || existing?.raw_data?.insta_url || existing?.raw_data?.instagramUrl || existing?.raw_data?.['Instagram URL'] || '')).trim();
-        const address = String(row[41] !== undefined && row[41] !== '' ? row[41] : (rowObj['住所'] || masterInfo?.address || existing?.address || existing?.raw_data?.address || existing?.raw_data?.['住所'] || '')).trim();
-        const map_url = String(row[42] !== undefined && row[42] !== '' ? row[42] : (rowObj['googlemap'] || masterInfo?.map_url || existing?.map_url || existing?.raw_data?.map_url || existing?.raw_data?.googleMapUrl || existing?.raw_data?.['Google Map URL'] || '')).trim();
+        let map_url = String(row[42] !== undefined && row[42] !== '' ? row[42] : (rowObj['googlemap'] || masterInfo?.map_url || existing?.map_url || existing?.raw_data?.map_url || existing?.raw_data?.googleMapUrl || existing?.raw_data?.['Google Map URL'] || '')).trim();
+        if (map_url.includes('google.com/maps/search')) {
+          map_url = '';
+        }
 
         const numStr3 = storeNum !== null ? String(storeNum).padStart(3, '0') : '';
         const photo_url = (numStr3 ? `photo/${numStr3}.jpg` : (existing?.photo_url || existing?.raw_data?.photo || ''));

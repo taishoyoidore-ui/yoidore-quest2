@@ -3535,8 +3535,13 @@ class YoidoreQuestApp {
 
         <!-- 外部リンク (Googleマップ / Instagram) -->
         ${(() => {
-          const mapQuery = (store.address || (store.name ? `大阪市大正区 ${store.name}` : '大阪市大正区')).trim();
-          const effectiveMapUrl = store.googleMapUrl || store.map_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
+          let directUrl = (store.googleMapUrl || store.map_url || '').trim();
+          if (directUrl && directUrl.includes('google.com/maps/search')) {
+            directUrl = '';
+          }
+          const rawQuery = store.address || (store.name ? (store.name.includes('大正') ? store.name : `大阪市大正区 ${store.name}`) : '大阪市大正区');
+          const mapQuery = rawQuery.trim();
+          const effectiveMapUrl = directUrl || store.effectiveMapUrl || (mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}` : 'https://www.google.com/maps');
 
           return `
             <div class="rpg-window">
