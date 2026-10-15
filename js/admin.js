@@ -2537,6 +2537,7 @@ class YoidoreAdminApp {
 
     const curSeason = this.seasons.find(s => s.id === this.selectedSeasonId) || this.api.currentSeason;
     const seasonStartDate = curSeason?.start_date ? new Date(curSeason.start_date + 'T00:00:00') : null;
+    const sortedTiers = [...(this.tiers || [])].sort((a, b) => (Number(a.required_visits || 0)) - (Number(b.required_visits || 0)));
 
     // 各ユーザーの特典・消込データを集計
     const enrichedUsers = this.users.map(u => {
