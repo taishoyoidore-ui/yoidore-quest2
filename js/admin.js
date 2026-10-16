@@ -798,12 +798,43 @@ class YoidoreAdminApp {
   /* ------------------------------------------------------------------------
    * 2. 店舗マスター管理
    * ------------------------------------------------------------------------ */
+  updateStoreKPIs() {
+    const total = this.stores.length;
+    const participating = this.stores.filter(s => s.is_participating !== false).length;
+    const nonParticipating = total - participating;
+    const organizer = this.stores.filter(s => Boolean(s.is_organizer || s.isOrganizer)).length;
+    const setStores = this.stores.filter(s => Boolean(s.set_name || s.set_price || (s.plan_type && s.plan_type.includes('セット')))).length;
+    const questStores = this.stores.filter(s => Boolean(s.quest_name || s.quest_price || (s.plan_type && s.plan_type.includes('クエスト')))).length;
+    const couponStores = this.stores.filter(s => Boolean(s.is_coupon_target)).length;
+
+    const elemTotal = document.getElementById('store-kpi-total');
+    if (elemTotal) elemTotal.textContent = `${total.toLocaleString()} 軒`;
+
+    const elemPartSub = document.getElementById('store-kpi-participating-sub');
+    if (elemPartSub) elemPartSub.textContent = `参加 ${participating} / 不参加 ${nonParticipating}`;
+
+    const elemOrganizer = document.getElementById('store-kpi-organizer');
+    if (elemOrganizer) elemOrganizer.textContent = `${organizer.toLocaleString()} 軒`;
+
+    const elemSet = document.getElementById('store-kpi-set');
+    if (elemSet) elemSet.textContent = `${setStores.toLocaleString()} 軒`;
+
+    const elemQuest = document.getElementById('store-kpi-quest');
+    if (elemQuest) elemQuest.textContent = `${questStores.toLocaleString()} 軒`;
+
+    const elemCoupon = document.getElementById('store-kpi-coupon');
+    if (elemCoupon) elemCoupon.textContent = `${couponStores.toLocaleString()} 軒`;
+  }
+
   renderStoresTable(filtered = null) {
-    const stores = filtered || this.stores;
+    this.updateStoreKPIs();
+
+    const stores = filtered !== null ? filtered : this.stores;
     const tbody = document.getElementById('store-table-body');
 
+    // エリアプルダウンの動的生成
     const areaFilter = document.getElementById('area-filter');
-    if (areaFilter.children.length <= 1) {
+    if (areaFilter && areaFilter.children.length <= 1) {
       const areas = Array.from(new Set(this.stores.map(s => s.area))).filter(Boolean);
       areas.forEach(a => {
         const opt = document.createElement('option');
@@ -813,8 +844,14 @@ class YoidoreAdminApp {
       });
     }
 
+    // 表示件数バッジの更新
+    const countBadge = document.getElementById('store-filtered-count');
+    if (countBadge) {
+      countBadge.textContent = `表示中: ${stores.length} / ${this.stores.length} 軒`;
+    }
+
     if (stores.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">該当する店舗がありません</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">該当する店舗がありません</td></tr>';
       return;
     }
 
@@ -878,26 +915,161 @@ class YoidoreAdminApp {
   }
 
   filterStores() {
-    const search = document.getElementById('store-search').value.toLowerCase().trim();
-    const area = document.getElementById('area-filter').value;
-    const couponTarget = document.getElementById('coupon-target-filter').value;
+    const searchElem = document.getElementById('store-search');
+    const areaElem = document.getElementById('area-filter');
+    const partElem = document.getElementById('participating-filter');
+    const planElem = document.getElementById('plan-filter');
+    const couponElem = document.getElementById('coupon-target-filter');
+    const orgElem = document.getElementById('organizer-filter');
+
+    const search = searchElem ? searchElem.value.toLowerCase().trim() : '';
+    const area = areaElem ? areaElem.value : '';
+    const participating = partElem ? partElem.value : '';
+    const plan = planElem ? planElem.value : '';
+    const couponTarget = couponElem ? couponElem.value : '';
+    const organizer = orgElem ? orgElem.value : '';
 
     const filtered = this.stores.filter(s => {
+      // 1. フリーワード検索（店舗名, ID, エリア, ジャンル, 席, セット名, セット内容, クエスト名, クエスト内容, 住所, キャッチ）
       const matchSearch = !search || 
         (s.name && s.name.toLowerCase().includes(search)) ||
+        (s.id && s.id.toLowerCase().includes(search)) ||
         (s.area && s.area.toLowerCase().includes(search)) ||
         (s.category && s.category.toLowerCase().includes(search)) ||
-        (s.set_content && s.set_content.toLowerCase().includes(search));
+        (s.style && s.style.toLowerCase().includes(search)) ||
+        (s.set_name && s.set_name.toLowerCase().includes(search)) ||
+        (s.set_content && s.set_content.toLowerCase().includes(search)) ||
+        (s.quest_name && s.quest_name.toLowerCase().includes(search)) ||
+        (s.quest_content && s.quest_content.toLowerCase().includes(search)) ||
+        (s.address && s.address.toLowerCase().includes(search)) ||
+        (s.catchphrase && s.catchphrase.toLowerCase().includes(search));
       
+      // 2. エリア
       const matchArea = !area || s.area === area;
+
+      // 3. 参加状態
+      const matchPart = !participating ||
+        (participating === 'true' && s.is_participating !== false) ||
+        (participating === 'false' && s.is_participating === false);
+
+      // 4. 参加プラン
+      const hasSet = Boolean(s.set_name || s.set_price || (s.plan_type && s.plan_type.includes('セット')));
+      const hasQuest = Boolean(s.quest_name || s.quest_price || (s.plan_type && s.plan_type.includes('クエスト')));
+      let matchPlan = true;
+      if (plan === 'both') {
+        matchPlan = (hasSet && hasQuest) || (s.plan_type && s.plan_type.includes('両方'));
+      } else if (plan === 'set_only') {
+        matchPlan = hasSet && !hasQuest;
+      } else if (plan === 'quest_only') {
+        matchPlan = hasQuest && !hasSet;
+      }
+
+      // 5. クーポン取扱
       const matchCoupon = !couponTarget || 
         (couponTarget === 'true' && Boolean(s.is_coupon_target)) ||
         (couponTarget === 'false' && !s.is_coupon_target);
 
-      return matchSearch && matchArea && matchCoupon;
+      // 6. 店舗種別 (運営店)
+      const isOrg = Boolean(s.is_organizer || s.isOrganizer);
+      const matchOrg = !organizer ||
+        (organizer === 'true' && isOrg) ||
+        (organizer === 'false' && !isOrg);
+
+      return matchSearch && matchArea && matchPart && matchPlan && matchCoupon && matchOrg;
     });
 
     this.renderStoresTable(filtered);
+  }
+
+  quickFilterStores(type) {
+    // KPIカードのアクティブスタイル更新
+    const cardIds = [
+      'kpi-card-store-total',
+      'kpi-card-store-organizer',
+      'kpi-card-store-set',
+      'kpi-card-store-quest',
+      'kpi-card-store-coupon'
+    ];
+    cardIds.forEach(id => {
+      const card = document.getElementById(id);
+      if (card) card.classList.remove('active');
+    });
+
+    const activeCardMap = {
+      'all': 'kpi-card-store-total',
+      'organizer': 'kpi-card-store-organizer',
+      'set': 'kpi-card-store-set',
+      'quest': 'kpi-card-store-quest',
+      'coupon': 'kpi-card-store-coupon'
+    };
+    if (activeCardMap[type]) {
+      const activeCard = document.getElementById(activeCardMap[type]);
+      if (activeCard) activeCard.classList.add('active');
+    }
+
+    // フィルターの各値をリセット
+    const searchElem = document.getElementById('store-search');
+    const areaElem = document.getElementById('area-filter');
+    const partElem = document.getElementById('participating-filter');
+    const planElem = document.getElementById('plan-filter');
+    const couponElem = document.getElementById('coupon-target-filter');
+    const orgElem = document.getElementById('organizer-filter');
+
+    if (searchElem) searchElem.value = '';
+    if (areaElem) areaElem.value = '';
+    if (partElem) partElem.value = '';
+    if (planElem) planElem.value = '';
+    if (couponElem) couponElem.value = '';
+    if (orgElem) orgElem.value = '';
+
+    // 特定タイプのフィルターをセット
+    if (type === 'organizer') {
+      if (orgElem) orgElem.value = 'true';
+    } else if (type === 'coupon') {
+      if (couponElem) couponElem.value = 'true';
+    } else if (type === 'set') {
+      // セット提供店（両方 または セットのみ）
+      const filtered = this.stores.filter(s => Boolean(s.set_name || s.set_price || (s.plan_type && s.plan_type.includes('セット'))));
+      this.renderStoresTable(filtered);
+      return;
+    } else if (type === 'quest') {
+      // クエスト提供店（両方 または クエストのみ）
+      const filtered = this.stores.filter(s => Boolean(s.quest_name || s.quest_price || (s.plan_type && s.plan_type.includes('クエスト'))));
+      this.renderStoresTable(filtered);
+      return;
+    }
+
+    this.filterStores();
+  }
+
+  resetStoreFilters() {
+    const cardIds = [
+      'kpi-card-store-total',
+      'kpi-card-store-organizer',
+      'kpi-card-store-set',
+      'kpi-card-store-quest',
+      'kpi-card-store-coupon'
+    ];
+    cardIds.forEach(id => {
+      const card = document.getElementById(id);
+      if (card) card.classList.remove('active');
+    });
+
+    const searchElem = document.getElementById('store-search');
+    const areaElem = document.getElementById('area-filter');
+    const partElem = document.getElementById('participating-filter');
+    const planElem = document.getElementById('plan-filter');
+    const couponElem = document.getElementById('coupon-target-filter');
+    const orgElem = document.getElementById('organizer-filter');
+
+    if (searchElem) searchElem.value = '';
+    if (areaElem) areaElem.value = '';
+    if (partElem) partElem.value = '';
+    if (planElem) planElem.value = '';
+    if (couponElem) couponElem.value = '';
+    if (orgElem) orgElem.value = '';
+
+    this.filterStores();
   }
 
   async toggleCouponTarget(storeId) {

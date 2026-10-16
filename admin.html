@@ -75,7 +75,7 @@
         </button>
       </form>
       <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 14px;">
-        システムバージョン: <strong class="app-version-text">v2026.10.15.08</strong>
+        システムバージョン: <strong class="app-version-text">v2026.10.16.01</strong>
       </div>
     </div>
   </div>
@@ -132,7 +132,7 @@
           <span>Supabase DB 連動中</span>
         </div>
         <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-bottom: 6px;">
-          システムバージョン: <strong class="app-version-text">v2026.10.15.08</strong>
+          システムバージョン: <strong class="app-version-text">v2026.10.16.01</strong>
         </div>
         <button class="btn btn-outline-danger btn-sm btn-block" onclick="window.adminApp.handleLogout()">
           <i class="fa-solid fa-arrow-right-from-bracket"></i> ログアウト
@@ -160,13 +160,13 @@
         </div>
         <div class="header-right">
           <span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:3px 8px; font-weight:bold;">
-            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.10.15.08</span>
+            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.10.16.01</span>
           </span>
           <span id="last-sync-time" class="text-muted"><i class="fa-solid fa-arrows-rotate fa-spin"></i> 同期中...</span>
           <button class="btn btn-secondary btn-sm" onclick="window.adminApp.refreshData()">
             <i class="fa-solid fa-rotate"></i> 最新データ更新
           </button>
-          <a href="index.html?v=20261015_08" target="_blank" class="btn btn-outline btn-sm">
+          <a href="index.html?v=20261016_01" target="_blank" class="btn btn-outline btn-sm">
             <i class="fa-solid fa-up-right-from-square"></i> アプリ実機表示
           </a>
         </div>
@@ -378,29 +378,119 @@
 
         <!-- 3. 店舗マスター管理タブ -->
         <section id="tab-stores" class="tab-pane">
+          <!-- 店舗統計サマリーカード（クリックでクイック絞り込み可能） -->
+          <div class="store-kpi-grid">
+            <div class="store-kpi-card" id="kpi-card-store-total" onclick="window.adminApp.quickFilterStores('all')" title="クリックで全店舗表示">
+              <div class="store-kpi-icon" style="background: #e0f2fe; color: #0284c7;">
+                <i class="fa-solid fa-store"></i>
+              </div>
+              <div class="store-kpi-info">
+                <span class="store-kpi-label">登録店舗数</span>
+                <span class="store-kpi-value" id="store-kpi-total">-</span>
+                <span class="store-kpi-sub" id="store-kpi-participating-sub">参加 - / 不参加 -</span>
+              </div>
+            </div>
+
+            <div class="store-kpi-card" id="kpi-card-store-organizer" onclick="window.adminApp.quickFilterStores('organizer')" title="クリックで運営店のみ絞り込み">
+              <div class="store-kpi-icon" style="background: #dbeafe; color: #1d4ed8;">
+                <i class="fa-solid fa-crown"></i>
+              </div>
+              <div class="store-kpi-info">
+                <span class="store-kpi-label">運営店 (達成QR/グッズ)</span>
+                <span class="store-kpi-value" id="store-kpi-organizer">-</span>
+                <span class="store-kpi-sub">拠点店舗</span>
+              </div>
+            </div>
+
+            <div class="store-kpi-card" id="kpi-card-store-set" onclick="window.adminApp.quickFilterStores('set')" title="クリックでセット提供店のみ絞り込み">
+              <div class="store-kpi-icon" style="background: #fef3c7; color: #b45309;">
+                <i class="fa-solid fa-wine-glass"></i>
+              </div>
+              <div class="store-kpi-info">
+                <span class="store-kpi-label">酔いどれセット提供</span>
+                <span class="store-kpi-value" id="store-kpi-set">-</span>
+                <span class="store-kpi-sub">セット設定済</span>
+              </div>
+            </div>
+
+            <div class="store-kpi-card" id="kpi-card-store-quest" onclick="window.adminApp.quickFilterStores('quest')" title="クリックでクエスト提供店のみ絞り込み">
+              <div class="store-kpi-icon" style="background: #f3e8ff; color: #7e22ce;">
+                <i class="fa-solid fa-shield-halved"></i>
+              </div>
+              <div class="store-kpi-info">
+                <span class="store-kpi-label">店舗クエスト提供</span>
+                <span class="store-kpi-value" id="store-kpi-quest">-</span>
+                <span class="store-kpi-sub">クエスト設定済</span>
+              </div>
+            </div>
+
+            <div class="store-kpi-card" id="kpi-card-store-coupon" onclick="window.adminApp.quickFilterStores('coupon')" title="クリックでクーポン対象店のみ絞り込み">
+              <div class="store-kpi-icon" style="background: #dcfce7; color: #15803d;">
+                <i class="fa-solid fa-ticket"></i>
+              </div>
+              <div class="store-kpi-info">
+                <span class="store-kpi-label">クーポン取扱店</span>
+                <span class="store-kpi-value" id="store-kpi-coupon">-</span>
+                <span class="store-kpi-sub">ハシゴ達成特典対象</span>
+              </div>
+            </div>
+          </div>
+
           <div class="card">
             <div class="card-header store-table-header">
-              <div class="header-filters">
-                <div class="search-input-wrapper">
-                  <i class="fa-solid fa-magnifying-glass"></i>
-                  <input type="text" id="store-search" placeholder="店舗名・エリア・料理で検索..." oninput="window.adminApp.filterStores()">
+              <div class="store-filter-container">
+                <!-- 上段: 検索入力・件数バッジ・アクションボタン -->
+                <div class="store-filter-top">
+                  <div class="header-filters" style="flex: 1;">
+                    <div class="search-input-wrapper">
+                      <i class="fa-solid fa-magnifying-glass"></i>
+                      <input type="text" id="store-search" placeholder="店舗名・ID・エリア・料理・セット内容・住所で検索..." oninput="window.adminApp.filterStores()">
+                    </div>
+                    <span class="filter-count-badge" id="store-filtered-count">表示中: - 軒</span>
+                  </div>
+                  <div class="header-actions" style="display:flex; gap:8px;">
+                    <button class="btn btn-outline" onclick="window.adminApp.openExcelImportModal()">
+                      <i class="fa-solid fa-file-excel text-green"></i> アンケートExcel取り込み
+                    </button>
+                    <button class="btn btn-primary" onclick="window.adminApp.openStoreModal('new')">
+                      <i class="fa-solid fa-plus"></i> 新規店舗を追加
+                    </button>
+                  </div>
                 </div>
-                <select id="area-filter" onchange="window.adminApp.filterStores()">
-                  <option value="">すべてのエリア</option>
-                </select>
-                <select id="coupon-target-filter" onchange="window.adminApp.filterStores()">
-                  <option value="">クーポン取扱: すべて</option>
-                  <option value="true">クーポン取扱店のみ</option>
-                  <option value="false">クーポン対象外のみ</option>
-                </select>
-              </div>
-              <div class="header-actions" style="display:flex; gap:8px;">
-                <button class="btn btn-outline" onclick="window.adminApp.openExcelImportModal()">
-                  <i class="fa-solid fa-file-excel text-green"></i> アンケートExcel取り込み
-                </button>
-                <button class="btn btn-primary" onclick="window.adminApp.openStoreModal('new')">
-                  <i class="fa-solid fa-plus"></i> 新規店舗を追加
-                </button>
+
+                <!-- 下段: 属性絞り込みドロップダウン群 ＆ リセット -->
+                <div class="store-filter-bottom">
+                  <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; display: flex; align-items: center; gap: 4px;">
+                    <i class="fa-solid fa-filter"></i> 絞り込み:
+                  </div>
+                  <select id="area-filter" onchange="window.adminApp.filterStores()">
+                    <option value="">エリア: すべて</option>
+                  </select>
+                  <select id="participating-filter" onchange="window.adminApp.filterStores()">
+                    <option value="">参加状態: すべて</option>
+                    <option value="true">参加中のみ</option>
+                    <option value="false">不参加のみ</option>
+                  </select>
+                  <select id="plan-filter" onchange="window.adminApp.filterStores()">
+                    <option value="">参加プラン: すべて</option>
+                    <option value="both">セット＋クエスト両方</option>
+                    <option value="set_only">セットのみ</option>
+                    <option value="quest_only">クエストのみ</option>
+                  </select>
+                  <select id="coupon-target-filter" onchange="window.adminApp.filterStores()">
+                    <option value="">クーポン取扱: すべて</option>
+                    <option value="true">クーポン取扱店のみ</option>
+                    <option value="false">クーポン対象外のみ</option>
+                  </select>
+                  <select id="organizer-filter" onchange="window.adminApp.filterStores()">
+                    <option value="">店舗種別: すべて</option>
+                    <option value="true">運営店のみ</option>
+                    <option value="false">一般参加店のみ</option>
+                  </select>
+                  <button type="button" class="btn btn-sm btn-outline" onclick="window.adminApp.resetStoreFilters()" title="すべての絞り込み条件をリセット">
+                    <i class="fa-solid fa-rotate-left"></i> 条件リセット
+                  </button>
+                </div>
               </div>
             </div>
             <div class="table-responsive">
@@ -420,7 +510,7 @@
                 </thead>
                 <tbody id="store-table-body">
                   <tr>
-                    <td colspan="8" class="text-center py-4">店舗データを読み込み中...</td>
+                    <td colspan="9" class="text-center py-4">店舗データを読み込み中...</td>
                   </tr>
                 </tbody>
               </table>
