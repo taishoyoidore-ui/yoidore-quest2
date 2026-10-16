@@ -914,6 +914,18 @@ class YoidoreAdminApp {
     }).join('');
   }
 
+  setStoreParticipatingFilter(val) {
+    const hidden = document.getElementById('participating-filter');
+    if (hidden) hidden.value = val;
+    const group = document.getElementById('store-participating-segmented');
+    if (group) {
+      group.querySelectorAll('.segment-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === val);
+      });
+    }
+    this.filterStores();
+  }
+
   filterStores() {
     const searchElem = document.getElementById('store-search');
     const areaElem = document.getElementById('area-filter');
@@ -1045,6 +1057,12 @@ class YoidoreAdminApp {
     if (searchElem) searchElem.value = '';
     if (areaElem) areaElem.value = '';
     if (partElem) partElem.value = '';
+    const partGroup = document.getElementById('store-participating-segmented');
+    if (partGroup) {
+      partGroup.querySelectorAll('.segment-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === '');
+      });
+    }
     if (planElem) planElem.value = '';
     if (couponElem) couponElem.value = '';
     if (orgElem) orgElem.value = '';
@@ -1094,6 +1112,12 @@ class YoidoreAdminApp {
     if (searchElem) searchElem.value = '';
     if (areaElem) areaElem.value = '';
     if (partElem) partElem.value = '';
+    const partGroup = document.getElementById('store-participating-segmented');
+    if (partGroup) {
+      partGroup.querySelectorAll('.segment-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === '');
+      });
+    }
     if (planElem) planElem.value = '';
     if (couponElem) couponElem.value = '';
     if (orgElem) orgElem.value = '';
@@ -2684,6 +2708,19 @@ class YoidoreAdminApp {
     this.renderCouponLogs();
   }
 
+  /* 参加者 友だち種別トグルフィルター */
+  setUserFriendFilter(val) {
+    const hidden = document.getElementById('users-friend-filter');
+    if (hidden) hidden.value = val;
+    const group = document.getElementById('users-friend-segmented');
+    if (group) {
+      group.querySelectorAll('.segment-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === val);
+      });
+    }
+    this.renderParticipants();
+  }
+
   /* 参加者 サマリーピル クイック絞り込み切り替え */
   quickFilterParticipants(filterType) {
     const tierFilter = document.getElementById('users-tier-filter');
@@ -2697,6 +2734,14 @@ class YoidoreAdminApp {
   resetParticipantFilters() {
     const searchInput = document.getElementById('users-search-input');
     if (searchInput) searchInput.value = '';
+    const friendFilter = document.getElementById('users-friend-filter');
+    if (friendFilter) friendFilter.value = 'all';
+    const friendGroup = document.getElementById('users-friend-segmented');
+    if (friendGroup) {
+      friendGroup.querySelectorAll('.segment-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === 'all');
+      });
+    }
     const tierFilter = document.getElementById('users-tier-filter');
     if (tierFilter) tierFilter.value = 'all';
     const sortSelect = document.getElementById('users-sort-select');
@@ -2721,6 +2766,9 @@ class YoidoreAdminApp {
 
     const searchInput = document.getElementById('users-search-input');
     const searchTerm = (searchInput ? searchInput.value : '').trim().toLowerCase();
+
+    const friendFilter = document.getElementById('users-friend-filter');
+    const friendVal = friendFilter ? friendFilter.value : 'all';
 
     const tierFilter = document.getElementById('users-tier-filter');
     const filterValue = tierFilter ? tierFilter.value : 'all';
@@ -2871,21 +2919,29 @@ class YoidoreAdminApp {
         }
       }
 
-      // 状態フィルター
+      // 友だち種別トグル
+      if (friendVal === 'new_friends' && item.isExistingFriend) {
+        return false;
+      }
+      if (friendVal === 'existing_friends' && !item.isExistingFriend) {
+        return false;
+      }
+
+      // 状態・獲得枠フィルター
       if (filterValue === 'new_friends') {
-        return !item.isExistingFriend;
+        if (item.isExistingFriend) return false;
       } else if (filterValue === 'existing_friends') {
-        return item.isExistingFriend;
+        if (!item.isExistingFriend) return false;
       } else if (filterValue === 'has_rewards') {
-        return item.totalRewardsCount > 0;
+        if (item.totalRewardsCount === 0) return false;
       } else if (filterValue === 'has_remaining') {
-        return item.remainingStoreCoupons > 0;
+        if (item.remainingStoreCoupons === 0) return false;
       } else if (filterValue === 'all_used') {
-        return item.totalStoreCoupons > 0 && item.remainingStoreCoupons === 0;
+        if (!(item.totalStoreCoupons > 0 && item.remainingStoreCoupons === 0)) return false;
       } else if (filterValue === 'goods_unclaimed') {
-        return item.unclaimedGoods > 0;
+        if (item.unclaimedGoods === 0) return false;
       } else if (filterValue === 'no_rewards') {
-        return item.totalRewardsCount === 0;
+        if (item.totalRewardsCount !== 0) return false;
       }
 
       return true;
@@ -3039,6 +3095,32 @@ class YoidoreAdminApp {
     }).join('');
   }
 
+  /* 特典種別トグル */
+  setCouponTypeSegment(val) {
+    const hidden = document.getElementById('coupons-type-filter');
+    if (hidden) hidden.value = val;
+    const group = document.getElementById('coupons-type-segmented');
+    if (group) {
+      group.querySelectorAll('.segment-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === val);
+      });
+    }
+    this.renderCouponLogs();
+  }
+
+  /* 特典利用状態トグル */
+  setCouponStatusSegment(val) {
+    const hidden = document.getElementById('coupons-status-filter');
+    if (hidden) hidden.value = val;
+    const group = document.getElementById('coupons-status-segmented');
+    if (group) {
+      group.querySelectorAll('.segment-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === val);
+      });
+    }
+    this.renderCouponLogs();
+  }
+
   /* 特典クーポン・グッズ消込履歴の描画（検索・種別状態フィルター連動） */
   renderCouponLogs() {
     const couponTbody = document.getElementById('coupons-table-body');
@@ -3055,7 +3137,10 @@ class YoidoreAdminApp {
     const searchTerm = (searchInput ? searchInput.value : '').trim().toLowerCase();
 
     const typeFilter = document.getElementById('coupons-type-filter');
-    const filterValue = typeFilter ? typeFilter.value : 'all';
+    const typeVal = typeFilter ? typeFilter.value : 'all';
+
+    const statusFilter = document.getElementById('coupons-status-filter');
+    const statusVal = statusFilter ? statusFilter.value : 'all';
 
     // フィルタリング
     const filteredCoupons = this.coupons.filter(c => {
@@ -3075,18 +3160,13 @@ class YoidoreAdminApp {
         }
       }
 
-      // 種別・状態フィルター
-      if (filterValue === 'store_used') {
-        return !isGoods && c.status === 'used';
-      } else if (filterValue === 'goods_claimed') {
-        return isGoods && c.status === 'used';
-      } else if (filterValue === 'goods_all') {
-        return isGoods;
-      } else if (filterValue === 'store_all') {
-        return !isGoods;
-      } else if (filterValue === 'unused') {
-        return c.status !== 'used';
-      }
+      // 種別フィルター (全種別 / クーポン / 記念品)
+      if (typeVal === 'store' && isGoods) return false;
+      if (typeVal === 'goods' && !isGoods) return false;
+
+      // 状態フィルター (全状態 / 消込・受取済 / 未使用・残枠)
+      if (statusVal === 'used' && c.status !== 'used') return false;
+      if (statusVal === 'unused' && c.status === 'used') return false;
 
       return true;
     });
@@ -3146,6 +3226,20 @@ class YoidoreAdminApp {
     if (searchInput) searchInput.value = '';
     const typeFilter = document.getElementById('coupons-type-filter');
     if (typeFilter) typeFilter.value = 'all';
+    const typeGroup = document.getElementById('coupons-type-segmented');
+    if (typeGroup) {
+      typeGroup.querySelectorAll('.segment-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === 'all');
+      });
+    }
+    const statusFilter = document.getElementById('coupons-status-filter');
+    if (statusFilter) statusFilter.value = 'all';
+    const statusGroup = document.getElementById('coupons-status-segmented');
+    if (statusGroup) {
+      statusGroup.querySelectorAll('.segment-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === 'all');
+      });
+    }
     this.renderCouponLogs();
   }
 

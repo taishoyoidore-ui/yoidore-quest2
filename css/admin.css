@@ -614,9 +614,9 @@ body {
 
 .search-input-wrapper-sm {
   position: relative;
-  min-width: 200px;
-  flex: 1;
-  max-width: 320px;
+  min-width: 140px;
+  flex: 0 1 210px;
+  max-width: 240px;
 }
 
 .search-input-wrapper-sm i {
@@ -636,7 +636,11 @@ body {
   font-size: 0.84rem;
 }
 
-.form-select-sm {
+.form-select-sm, select.form-select-sm {
+  width: auto !important;
+  max-width: 175px;
+  min-width: 100px;
+  flex-shrink: 0;
   font-size: 0.82rem;
   padding: 5px 8px;
   border: 1px solid var(--border-color);
@@ -647,9 +651,52 @@ body {
   height: 32px;
 }
 
-.form-select-sm:focus {
+.form-select-sm:focus, select.form-select-sm:focus {
   border-color: var(--primary);
   outline: none;
+}
+
+/* セグメント切り替えボタングループ (トグルボタン) */
+.btn-group-segmented {
+  display: inline-flex;
+  align-items: center;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.segment-btn {
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 0.78rem;
+  color: #475569;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  line-height: 1.2;
+  user-select: none;
+  height: 26px;
+}
+
+.segment-btn:hover {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.segment-btn.active {
+  background: #ffffff;
+  color: #1e293b;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
 .filter-count-badge-sm {
@@ -686,6 +733,12 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.drawer-item select {
+  width: auto !important;
+  min-width: 120px;
+  max-width: 170px;
 }
 
 .drawer-item label {

@@ -12,7 +12,7 @@
 
   <link rel="icon" href="assets/banner.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/admin.css?v=20261016_02">
+  <link rel="stylesheet" href="css/admin.css?v=20261016_03">
   <!-- SheetJS for Excel Import -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- QRCode.js for POP Generation -->
@@ -75,7 +75,7 @@
         </button>
       </form>
       <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 14px;">
-        システムバージョン: <strong class="app-version-text">v2026.10.16.02</strong>
+        システムバージョン: <strong class="app-version-text">v2026.10.16.03</strong>
       </div>
     </div>
   </div>
@@ -132,7 +132,7 @@
           <span>Supabase DB 連動中</span>
         </div>
         <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-bottom: 6px;">
-          システムバージョン: <strong class="app-version-text">v2026.10.16.01</strong>
+          システムバージョン: <strong class="app-version-text">v2026.10.16.03</strong>
         </div>
         <button class="btn btn-outline-danger btn-sm btn-block" onclick="window.adminApp.handleLogout()">
           <i class="fa-solid fa-arrow-right-from-bracket"></i> ログアウト
@@ -160,13 +160,13 @@
         </div>
         <div class="header-right">
           <span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:3px 8px; font-weight:bold;">
-            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.10.16.01</span>
+            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.10.16.03</span>
           </span>
           <span id="last-sync-time" class="text-muted"><i class="fa-solid fa-arrows-rotate fa-spin"></i> 同期中...</span>
           <button class="btn btn-secondary btn-sm" onclick="window.adminApp.refreshData()">
             <i class="fa-solid fa-rotate"></i> 最新データ更新
           </button>
-          <a href="index.html?v=20261016_01" target="_blank" class="btn btn-outline btn-sm">
+          <a href="index.html?v=20261016_03" target="_blank" class="btn btn-outline btn-sm">
             <i class="fa-solid fa-up-right-from-square"></i> アプリ実機表示
           </a>
         </div>
@@ -415,13 +415,14 @@
                   <i class="fa-solid fa-magnifying-glass"></i>
                   <input type="text" id="store-search" placeholder="店舗名・ID・エリア・セット内容等で検索..." oninput="window.adminApp.filterStores()">
                 </div>
+                <div class="btn-group-segmented" id="store-participating-segmented" title="参加状況で絞り込み">
+                  <button type="button" class="segment-btn active" data-val="" onclick="window.adminApp.setStoreParticipatingFilter('')">全店舗</button>
+                  <button type="button" class="segment-btn" data-val="true" onclick="window.adminApp.setStoreParticipatingFilter('true')">参加中</button>
+                  <button type="button" class="segment-btn" data-val="false" onclick="window.adminApp.setStoreParticipatingFilter('false')">不参加</button>
+                </div>
+                <input type="hidden" id="participating-filter" value="">
                 <select id="area-filter" class="form-select-sm" onchange="window.adminApp.filterStores()">
                   <option value="">エリア: すべて</option>
-                </select>
-                <select id="participating-filter" class="form-select-sm" onchange="window.adminApp.filterStores()">
-                  <option value="">参加: すべて</option>
-                  <option value="true">参加中のみ</option>
-                  <option value="false">不参加のみ</option>
                 </select>
                 <button type="button" class="btn btn-sm btn-outline" id="btn-toggle-advanced-filter" onclick="window.adminApp.toggleAdvancedFilters()" title="プラン・クーポン・種別などの詳細条件を展開">
                   <i class="fa-solid fa-sliders"></i> 詳細条件
@@ -684,22 +685,26 @@
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <input type="text" id="users-search-input" placeholder="ユーザー名・LINE IDで検索..." oninput="window.adminApp.renderParticipants()">
                   </div>
+                  <div class="btn-group-segmented" id="users-friend-segmented" title="友だち種別で絞り込み">
+                    <button type="button" class="segment-btn active" data-val="all" onclick="window.adminApp.setUserFriendFilter('all')">全友だち</button>
+                    <button type="button" class="segment-btn" data-val="new_friends" onclick="window.adminApp.setUserFriendFilter('new_friends')">✨ 今期新規</button>
+                    <button type="button" class="segment-btn" data-val="existing_friends" onclick="window.adminApp.setUserFriendFilter('existing_friends')">🌟 既存</button>
+                  </div>
+                  <input type="hidden" id="users-friend-filter" value="all">
                   <select id="users-tier-filter" class="form-select-sm" onchange="window.adminApp.renderParticipants()">
-                    <option value="all">条件: すべての参加者</option>
-                    <option value="new_friends">✨ 今期新規友だち</option>
-                    <option value="existing_friends">🌟 既存友だち（リピート）</option>
+                    <option value="all">獲得・状態: すべて</option>
                     <option value="has_rewards">🎁 特典獲得者のみ</option>
                     <option value="has_remaining">🎟️ クーポン残枠あり</option>
-                    <option value="all_used">✅ 全クーポン消込済</option>
                     <option value="goods_unclaimed">📦 記念品未引換あり</option>
+                    <option value="all_used">✅ 全クーポン消込済</option>
                     <option value="no_rewards">⏳ 特典未獲得</option>
                   </select>
                   <select id="users-sort-select" class="form-select-sm" onchange="window.adminApp.renderParticipants()">
                     <option value="created_desc">🕒 登録が新しい順</option>
                     <option value="active_desc">⚡ 最終アクセス順</option>
-                    <option value="coupons_desc">🍺 特典・枠数が多い順</option>
-                    <option value="used_desc">✅ 消込数が多い順</option>
-                    <option value="name_asc">🔤 ユーザー名順</option>
+                    <option value="coupons_desc">🍺 特典・枠数順</option>
+                    <option value="used_desc">✅ 消込数順</option>
+                    <option value="name_asc">🔤 名前順</option>
                   </select>
                   <button type="button" class="btn btn-sm btn-outline text-muted" onclick="window.adminApp.resetParticipantFilters()" title="全条件リセット">
                     <i class="fa-solid fa-rotate-left"></i> リセット
@@ -737,14 +742,18 @@
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <input type="text" id="coupons-search-input" placeholder="ユーザー名・酒場名・記念品名で検索..." oninput="window.adminApp.renderCouponLogs()">
                   </div>
-                  <select id="coupons-type-filter" class="form-select-sm" onchange="window.adminApp.renderCouponLogs()">
-                    <option value="all">種別・状態: すべて</option>
-                    <option value="store_used">🍺 酒場クーポン（利用済）</option>
-                    <option value="goods_claimed">🎁 記念品（受取済）</option>
-                    <option value="goods_all">🎁 記念品（全件）</option>
-                    <option value="store_all">🍺 酒場クーポン（全件）</option>
-                    <option value="unused">⏳ 未使用・保有中</option>
-                  </select>
+                  <div class="btn-group-segmented" id="coupons-type-segmented" title="特典種別で絞り込み">
+                    <button type="button" class="segment-btn active" data-val="all" onclick="window.adminApp.setCouponTypeSegment('all')">全種別</button>
+                    <button type="button" class="segment-btn" data-val="store" onclick="window.adminApp.setCouponTypeSegment('store')">🍺 クーポン</button>
+                    <button type="button" class="segment-btn" data-val="goods" onclick="window.adminApp.setCouponTypeSegment('goods')">🎁 記念品</button>
+                  </div>
+                  <input type="hidden" id="coupons-type-filter" value="all">
+                  <div class="btn-group-segmented" id="coupons-status-segmented" title="消込・受取状態で絞り込み">
+                    <button type="button" class="segment-btn active" data-val="all" onclick="window.adminApp.setCouponStatusSegment('all')">全状態</button>
+                    <button type="button" class="segment-btn" data-val="used" onclick="window.adminApp.setCouponStatusSegment('used')">✅ 消込・受取済</button>
+                    <button type="button" class="segment-btn" data-val="unused" onclick="window.adminApp.setCouponStatusSegment('unused')">⏳ 未使用・残枠</button>
+                  </div>
+                  <input type="hidden" id="coupons-status-filter" value="all">
                   <button type="button" class="btn btn-sm btn-outline text-muted" onclick="window.adminApp.resetCouponFilters()" title="全条件リセット">
                     <i class="fa-solid fa-rotate-left"></i> リセット
                   </button>
@@ -1385,8 +1394,8 @@
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=20261016_02"></script>
-  <script src="js/api.js?v=20261016_02"></script>
-  <script src="js/admin.js?v=20261016_02"></script>
+  <script src="js/config.js?v=20261016_03"></script>
+  <script src="js/api.js?v=20261016_03"></script>
+  <script src="js/admin.js?v=20261016_03"></script>
 </body>
 </html>
