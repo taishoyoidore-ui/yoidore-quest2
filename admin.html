@@ -12,7 +12,7 @@
 
   <link rel="icon" href="assets/banner.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/admin.css?v=20261015_07">
+  <link rel="stylesheet" href="css/admin.css?v=20261016_02">
   <!-- SheetJS for Excel Import -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- QRCode.js for POP Generation -->
@@ -75,7 +75,7 @@
         </button>
       </form>
       <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 14px;">
-        システムバージョン: <strong class="app-version-text">v2026.10.16.01</strong>
+        システムバージョン: <strong class="app-version-text">v2026.10.16.02</strong>
       </div>
     </div>
   </div>
@@ -643,28 +643,69 @@
 
             <!-- サブタブ1: 参加者一覧 (個別削除対応) -->
             <div id="subtab-users" class="subtab-content active">
-              <div class="header-filters" style="margin-bottom: 12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                <div class="search-input-wrapper" style="flex:1; min-width:200px;">
-                  <i class="fa-solid fa-magnifying-glass"></i>
-                  <input type="text" id="users-search-input" placeholder="ユーザー名・LINE IDで絞り込み..." oninput="window.adminApp.renderParticipants()">
+              <!-- 1. スリムサマリーストリップ（KPIピル型バッジ・クリックでクイック絞り込み） -->
+              <div class="store-summary-strip" id="users-summary-strip" style="border-top: none;">
+                <div class="summary-pill active" id="kpi-pill-user-all" onclick="window.adminApp.quickFilterParticipants('all')" title="すべての参加者を表示">
+                  <i class="fa-solid fa-users" style="color: #0284c7;"></i>
+                  <span>全参加者:</span> <strong id="user-kpi-total">-</strong>
+                  <small style="color: #64748b; font-size: 0.72rem;" id="user-kpi-sub">(-)</small>
                 </div>
-                <select id="users-tier-filter" onchange="window.adminApp.renderParticipants()" style="padding:6px 12px; border-radius:4px; border:1px solid #cbd5e1; font-size:13px;">
-                  <option value="all">すべての参加者</option>
-                  <option value="new_friends">✨ 今期新規友だち</option>
-                  <option value="existing_friends">🌟 既存友だち（リピート）</option>
-                  <option value="has_rewards">🎁 特典獲得者のみ</option>
-                  <option value="has_remaining">🎟️ クーポン残枠あり</option>
-                  <option value="all_used">✅ 全クーポン消込済</option>
-                  <option value="goods_unclaimed">📦 記念品未引換あり</option>
-                  <option value="no_rewards">⏳ 特典未獲得</option>
-                </select>
-                <select id="users-sort-select" onchange="window.adminApp.renderParticipants()" style="padding:6px 12px; border-radius:4px; border:1px solid #cbd5e1; font-size:13px;">
-                  <option value="created_desc">🕒 登録が新しい順</option>
-                  <option value="active_desc">⚡ 最終アクセス順</option>
-                  <option value="coupons_desc">🍺 特典・枠数が多い順</option>
-                  <option value="used_desc">✅ 消込数が多い順</option>
-                  <option value="name_asc">🔤 ユーザー名順</option>
-                </select>
+
+                <div class="summary-pill" id="kpi-pill-user-has-rewards" onclick="window.adminApp.quickFilterParticipants('has_rewards')" title="特典獲得者のみ絞り込み">
+                  <i class="fa-solid fa-gift" style="color: #b45309;"></i>
+                  <span>特典獲得:</span> <strong id="user-kpi-has-rewards">-</strong>
+                </div>
+
+                <div class="summary-pill" id="kpi-pill-user-has-remaining" onclick="window.adminApp.quickFilterParticipants('has_remaining')" title="クーポン残枠ありの参加者のみ絞り込み">
+                  <i class="fa-solid fa-ticket" style="color: #0284c7;"></i>
+                  <span>クーポン残あり:</span> <strong id="user-kpi-has-remaining">-</strong>
+                </div>
+
+                <div class="summary-pill" id="kpi-pill-user-goods-unclaimed" onclick="window.adminApp.quickFilterParticipants('goods_unclaimed')" title="記念品未引換がある参加者のみ絞り込み">
+                  <i class="fa-solid fa-box-open" style="color: #d97706;"></i>
+                  <span>記念品未引換:</span> <strong id="user-kpi-goods-unclaimed">-</strong>
+                </div>
+
+                <div class="summary-pill" id="kpi-pill-user-all-used" onclick="window.adminApp.quickFilterParticipants('all_used')" title="全クーポン消込済の参加者のみ絞り込み">
+                  <i class="fa-solid fa-circle-check" style="color: #15803d;"></i>
+                  <span>全枠消込完了:</span> <strong id="user-kpi-all-used">-</strong>
+                </div>
+
+                <div class="summary-pill" id="kpi-pill-user-no-rewards" onclick="window.adminApp.quickFilterParticipants('no_rewards')" title="特典未獲得の参加者のみ絞り込み">
+                  <i class="fa-solid fa-hourglass-start" style="color: #64748b;"></i>
+                  <span>特典未獲得:</span> <strong id="user-kpi-no-rewards">-</strong>
+                </div>
+              </div>
+
+              <!-- 2. 1行コンパクトヘッダー（検索・主要フィルター・リセット・リアルタイム件数） -->
+              <div class="store-compact-header">
+                <div class="compact-search-group">
+                  <div class="search-input-wrapper-sm">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="users-search-input" placeholder="ユーザー名・LINE IDで検索..." oninput="window.adminApp.renderParticipants()">
+                  </div>
+                  <select id="users-tier-filter" class="form-select-sm" onchange="window.adminApp.renderParticipants()">
+                    <option value="all">条件: すべての参加者</option>
+                    <option value="new_friends">✨ 今期新規友だち</option>
+                    <option value="existing_friends">🌟 既存友だち（リピート）</option>
+                    <option value="has_rewards">🎁 特典獲得者のみ</option>
+                    <option value="has_remaining">🎟️ クーポン残枠あり</option>
+                    <option value="all_used">✅ 全クーポン消込済</option>
+                    <option value="goods_unclaimed">📦 記念品未引換あり</option>
+                    <option value="no_rewards">⏳ 特典未獲得</option>
+                  </select>
+                  <select id="users-sort-select" class="form-select-sm" onchange="window.adminApp.renderParticipants()">
+                    <option value="created_desc">🕒 登録が新しい順</option>
+                    <option value="active_desc">⚡ 最終アクセス順</option>
+                    <option value="coupons_desc">🍺 特典・枠数が多い順</option>
+                    <option value="used_desc">✅ 消込数が多い順</option>
+                    <option value="name_asc">🔤 ユーザー名順</option>
+                  </select>
+                  <button type="button" class="btn btn-sm btn-outline text-muted" onclick="window.adminApp.resetParticipantFilters()" title="全条件リセット">
+                    <i class="fa-solid fa-rotate-left"></i> リセット
+                  </button>
+                  <span class="filter-count-badge-sm" id="users-filtered-count">表示中: - 名</span>
+                </div>
               </div>
 
               <div class="table-responsive">
@@ -689,6 +730,28 @@
 
             <!-- サブタブ2: クーポン・特典消込履歴 (確認・ログ閲覧専用) -->
             <div id="subtab-coupons" class="subtab-content">
+              <!-- 1行コンパクトヘッダー（検索・種別状態フィルター・リセット・件数） -->
+              <div class="store-compact-header">
+                <div class="compact-search-group">
+                  <div class="search-input-wrapper-sm">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="coupons-search-input" placeholder="ユーザー名・酒場名・記念品名で検索..." oninput="window.adminApp.renderCouponLogs()">
+                  </div>
+                  <select id="coupons-type-filter" class="form-select-sm" onchange="window.adminApp.renderCouponLogs()">
+                    <option value="all">種別・状態: すべて</option>
+                    <option value="store_used">🍺 酒場クーポン（利用済）</option>
+                    <option value="goods_claimed">🎁 記念品（受取済）</option>
+                    <option value="goods_all">🎁 記念品（全件）</option>
+                    <option value="store_all">🍺 酒場クーポン（全件）</option>
+                    <option value="unused">⏳ 未使用・保有中</option>
+                  </select>
+                  <button type="button" class="btn btn-sm btn-outline text-muted" onclick="window.adminApp.resetCouponFilters()" title="全条件リセット">
+                    <i class="fa-solid fa-rotate-left"></i> リセット
+                  </button>
+                  <span class="filter-count-badge-sm" id="coupons-filtered-count">表示中: - 件</span>
+                </div>
+              </div>
+
               <div class="table-responsive">
                 <table class="data-table">
                   <thead>
@@ -1322,8 +1385,8 @@
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=20261015_09"></script>
-  <script src="js/api.js?v=20261015_09"></script>
-  <script src="js/admin.js?v=20261015_09"></script>
+  <script src="js/config.js?v=20261016_02"></script>
+  <script src="js/api.js?v=20261016_02"></script>
+  <script src="js/admin.js?v=20261016_02"></script>
 </body>
 </html>
