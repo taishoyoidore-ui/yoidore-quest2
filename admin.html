@@ -378,121 +378,102 @@
 
         <!-- 3. 店舗マスター管理タブ -->
         <section id="tab-stores" class="tab-pane">
-          <!-- 店舗統計サマリーカード（クリックでクイック絞り込み可能） -->
-          <div class="store-kpi-grid">
-            <div class="store-kpi-card" id="kpi-card-store-total" onclick="window.adminApp.quickFilterStores('all')" title="クリックで全店舗表示">
-              <div class="store-kpi-icon" style="background: #e0f2fe; color: #0284c7;">
-                <i class="fa-solid fa-store"></i>
-              </div>
-              <div class="store-kpi-info">
-                <span class="store-kpi-label">登録店舗数</span>
-                <span class="store-kpi-value" id="store-kpi-total">-</span>
-                <span class="store-kpi-sub" id="store-kpi-participating-sub">参加 - / 不参加 -</span>
-              </div>
-            </div>
-
-            <div class="store-kpi-card" id="kpi-card-store-organizer" onclick="window.adminApp.quickFilterStores('organizer')" title="クリックで運営店のみ絞り込み">
-              <div class="store-kpi-icon" style="background: #dbeafe; color: #1d4ed8;">
-                <i class="fa-solid fa-crown"></i>
-              </div>
-              <div class="store-kpi-info">
-                <span class="store-kpi-label">運営店 (達成QR/グッズ)</span>
-                <span class="store-kpi-value" id="store-kpi-organizer">-</span>
-                <span class="store-kpi-sub">拠点店舗</span>
-              </div>
-            </div>
-
-            <div class="store-kpi-card" id="kpi-card-store-set" onclick="window.adminApp.quickFilterStores('set')" title="クリックでセット提供店のみ絞り込み">
-              <div class="store-kpi-icon" style="background: #fef3c7; color: #b45309;">
-                <i class="fa-solid fa-wine-glass"></i>
-              </div>
-              <div class="store-kpi-info">
-                <span class="store-kpi-label">酔いどれセット提供</span>
-                <span class="store-kpi-value" id="store-kpi-set">-</span>
-                <span class="store-kpi-sub">セット設定済</span>
-              </div>
-            </div>
-
-            <div class="store-kpi-card" id="kpi-card-store-quest" onclick="window.adminApp.quickFilterStores('quest')" title="クリックでクエスト提供店のみ絞り込み">
-              <div class="store-kpi-icon" style="background: #f3e8ff; color: #7e22ce;">
-                <i class="fa-solid fa-shield-halved"></i>
-              </div>
-              <div class="store-kpi-info">
-                <span class="store-kpi-label">店舗クエスト提供</span>
-                <span class="store-kpi-value" id="store-kpi-quest">-</span>
-                <span class="store-kpi-sub">クエスト設定済</span>
-              </div>
-            </div>
-
-            <div class="store-kpi-card" id="kpi-card-store-coupon" onclick="window.adminApp.quickFilterStores('coupon')" title="クリックでクーポン対象店のみ絞り込み">
-              <div class="store-kpi-icon" style="background: #dcfce7; color: #15803d;">
-                <i class="fa-solid fa-ticket"></i>
-              </div>
-              <div class="store-kpi-info">
-                <span class="store-kpi-label">クーポン取扱店</span>
-                <span class="store-kpi-value" id="store-kpi-coupon">-</span>
-                <span class="store-kpi-sub">ハシゴ達成特典対象</span>
-              </div>
-            </div>
-          </div>
-
           <div class="card">
-            <div class="card-header store-table-header">
-              <div class="store-filter-container">
-                <!-- 上段: 検索入力・件数バッジ・アクションボタン -->
-                <div class="store-filter-top">
-                  <div class="header-filters" style="flex: 1;">
-                    <div class="search-input-wrapper">
-                      <i class="fa-solid fa-magnifying-glass"></i>
-                      <input type="text" id="store-search" placeholder="店舗名・ID・エリア・料理・セット内容・住所で検索..." oninput="window.adminApp.filterStores()">
-                    </div>
-                    <span class="filter-count-badge" id="store-filtered-count">表示中: - 軒</span>
-                  </div>
-                  <div class="header-actions" style="display:flex; gap:8px;">
-                    <button class="btn btn-outline" onclick="window.adminApp.openExcelImportModal()">
-                      <i class="fa-solid fa-file-excel text-green"></i> アンケートExcel取り込み
-                    </button>
-                    <button class="btn btn-primary" onclick="window.adminApp.openStoreModal('new')">
-                      <i class="fa-solid fa-plus"></i> 新規店舗を追加
-                    </button>
-                  </div>
-                </div>
+            <!-- 1. スリムサマリーストリップ（5大KPIピル型バッジ・クリックでクイック絞り込み） -->
+            <div class="store-summary-strip">
+              <div class="summary-pill active" id="kpi-pill-store-total" onclick="window.adminApp.quickFilterStores('all')" title="全店舗を表示">
+                <i class="fa-solid fa-store" style="color: #0284c7;"></i>
+                <span>全登録:</span> <strong id="store-kpi-total">-</strong>
+                <small style="color: #64748b; font-size: 0.72rem;" id="store-kpi-participating-sub">(-)</small>
+              </div>
 
-                <!-- 下段: 属性絞り込みドロップダウン群 ＆ リセット -->
-                <div class="store-filter-bottom">
-                  <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; display: flex; align-items: center; gap: 4px;">
-                    <i class="fa-solid fa-filter"></i> 絞り込み:
-                  </div>
-                  <select id="area-filter" onchange="window.adminApp.filterStores()">
-                    <option value="">エリア: すべて</option>
-                  </select>
-                  <select id="participating-filter" onchange="window.adminApp.filterStores()">
-                    <option value="">参加状態: すべて</option>
-                    <option value="true">参加中のみ</option>
-                    <option value="false">不参加のみ</option>
-                  </select>
-                  <select id="plan-filter" onchange="window.adminApp.filterStores()">
-                    <option value="">参加プラン: すべて</option>
+              <div class="summary-pill" id="kpi-pill-store-organizer" onclick="window.adminApp.quickFilterStores('organizer')" title="運営店のみ絞り込み">
+                <i class="fa-solid fa-crown" style="color: #1d4ed8;"></i>
+                <span>運営店:</span> <strong id="store-kpi-organizer">-</strong>
+              </div>
+
+              <div class="summary-pill" id="kpi-pill-store-set" onclick="window.adminApp.quickFilterStores('set')" title="セット提供店のみ絞り込み">
+                <i class="fa-solid fa-wine-glass" style="color: #b45309;"></i>
+                <span>セット提供:</span> <strong id="store-kpi-set">-</strong>
+              </div>
+
+              <div class="summary-pill" id="kpi-pill-store-quest" onclick="window.adminApp.quickFilterStores('quest')" title="クエスト提供店のみ絞り込み">
+                <i class="fa-solid fa-shield-halved" style="color: #7e22ce;"></i>
+                <span>クエスト提供:</span> <strong id="store-kpi-quest">-</strong>
+              </div>
+
+              <div class="summary-pill" id="kpi-pill-store-coupon" onclick="window.adminApp.quickFilterStores('coupon')" title="クーポン対象店のみ絞り込み">
+                <i class="fa-solid fa-ticket" style="color: #15803d;"></i>
+                <span>クーポン取扱:</span> <strong id="store-kpi-coupon">-</strong>
+              </div>
+            </div>
+
+            <!-- 2. コンパクトヘッダー（検索・主要フィルター・詳細トグル・アクション） -->
+            <div class="store-compact-header">
+              <div class="compact-search-group">
+                <div class="search-input-wrapper-sm">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                  <input type="text" id="store-search" placeholder="店舗名・ID・エリア・セット内容等で検索..." oninput="window.adminApp.filterStores()">
+                </div>
+                <select id="area-filter" class="form-select-sm" onchange="window.adminApp.filterStores()">
+                  <option value="">エリア: すべて</option>
+                </select>
+                <select id="participating-filter" class="form-select-sm" onchange="window.adminApp.filterStores()">
+                  <option value="">参加: すべて</option>
+                  <option value="true">参加中のみ</option>
+                  <option value="false">不参加のみ</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-outline" id="btn-toggle-advanced-filter" onclick="window.adminApp.toggleAdvancedFilters()" title="プラン・クーポン・種別などの詳細条件を展開">
+                  <i class="fa-solid fa-sliders"></i> 詳細条件
+                  <span id="advanced-filter-badge" style="display:none; color:#3b82f6; font-size:0.7rem; margin-left:2px;">●</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline text-muted" onclick="window.adminApp.resetStoreFilters()" title="全条件リセット">
+                  <i class="fa-solid fa-rotate-left"></i> リセット
+                </button>
+                <span class="filter-count-badge-sm" id="store-filtered-count">表示中: - 軒</span>
+              </div>
+
+              <div class="header-actions" style="display:flex; gap:8px;">
+                <button class="btn btn-sm btn-outline" onclick="window.adminApp.openExcelImportModal()">
+                  <i class="fa-solid fa-file-excel text-green"></i> Excel取込
+                </button>
+                <button class="btn btn-sm btn-primary" onclick="window.adminApp.openStoreModal('new')">
+                  <i class="fa-solid fa-plus"></i> 新規店舗
+                </button>
+              </div>
+            </div>
+
+            <!-- 3. 詳細条件アコーディオン（普段は非表示） -->
+            <div id="store-advanced-filters" class="advanced-filter-drawer" style="display: none;">
+              <div class="drawer-inner">
+                <div class="drawer-item">
+                  <label><i class="fa-solid fa-utensils"></i> プラン:</label>
+                  <select id="plan-filter" class="form-select-sm" onchange="window.adminApp.filterStores()">
+                    <option value="">すべて</option>
                     <option value="both">セット＋クエスト両方</option>
                     <option value="set_only">セットのみ</option>
                     <option value="quest_only">クエストのみ</option>
                   </select>
-                  <select id="coupon-target-filter" onchange="window.adminApp.filterStores()">
-                    <option value="">クーポン取扱: すべて</option>
-                    <option value="true">クーポン取扱店のみ</option>
-                    <option value="false">クーポン対象外のみ</option>
+                </div>
+                <div class="drawer-item">
+                  <label><i class="fa-solid fa-ticket"></i> クーポン:</label>
+                  <select id="coupon-target-filter" class="form-select-sm" onchange="window.adminApp.filterStores()">
+                    <option value="">すべて</option>
+                    <option value="true">取扱店のみ</option>
+                    <option value="false">対象外のみ</option>
                   </select>
-                  <select id="organizer-filter" onchange="window.adminApp.filterStores()">
-                    <option value="">店舗種別: すべて</option>
+                </div>
+                <div class="drawer-item">
+                  <label><i class="fa-solid fa-crown"></i> 店舗種別:</label>
+                  <select id="organizer-filter" class="form-select-sm" onchange="window.adminApp.filterStores()">
+                    <option value="">すべて</option>
                     <option value="true">運営店のみ</option>
                     <option value="false">一般参加店のみ</option>
                   </select>
-                  <button type="button" class="btn btn-sm btn-outline" onclick="window.adminApp.resetStoreFilters()" title="すべての絞り込み条件をリセット">
-                    <i class="fa-solid fa-rotate-left"></i> 条件リセット
-                  </button>
                 </div>
               </div>
             </div>
+
             <div class="table-responsive">
               <table class="data-table">
                 <thead>

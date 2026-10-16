@@ -978,33 +978,60 @@ class YoidoreAdminApp {
       return matchSearch && matchArea && matchPart && matchPlan && matchCoupon && matchOrg;
     });
 
+    // 詳細条件バッジ（プラン・クーポン・店舗種別のいずれかが設定されていればバッジ点灯）
+    const badgeElem = document.getElementById('advanced-filter-badge');
+    if (badgeElem) {
+      const hasAdvanced = Boolean(plan || couponTarget || organizer);
+      badgeElem.style.display = hasAdvanced ? 'inline' : 'none';
+    }
+
     this.renderStoresTable(filtered);
   }
 
+  toggleAdvancedFilters() {
+    const drawer = document.getElementById('store-advanced-filters');
+    const btn = document.getElementById('btn-toggle-advanced-filter');
+    if (!drawer) return;
+
+    const isHidden = drawer.style.display === 'none' || !drawer.style.display;
+    drawer.style.display = isHidden ? 'block' : 'none';
+    if (btn) {
+      if (isHidden) {
+        btn.classList.add('btn-primary');
+        btn.classList.remove('btn-outline');
+      } else {
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-outline');
+      }
+    }
+  }
+
   quickFilterStores(type) {
-    // KPIカードのアクティブスタイル更新
-    const cardIds = [
-      'kpi-card-store-total',
-      'kpi-card-store-organizer',
-      'kpi-card-store-set',
-      'kpi-card-store-quest',
-      'kpi-card-store-coupon'
+    // KPIピル/カードのアクティブスタイル更新
+    const pillIds = [
+      'kpi-pill-store-total', 'kpi-card-store-total',
+      'kpi-pill-store-organizer', 'kpi-card-store-organizer',
+      'kpi-pill-store-set', 'kpi-card-store-set',
+      'kpi-pill-store-quest', 'kpi-card-store-quest',
+      'kpi-pill-store-coupon', 'kpi-card-store-coupon'
     ];
-    cardIds.forEach(id => {
-      const card = document.getElementById(id);
-      if (card) card.classList.remove('active');
+    pillIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('active');
     });
 
-    const activeCardMap = {
-      'all': 'kpi-card-store-total',
-      'organizer': 'kpi-card-store-organizer',
-      'set': 'kpi-card-store-set',
-      'quest': 'kpi-card-store-quest',
-      'coupon': 'kpi-card-store-coupon'
+    const activePillMap = {
+      'all': ['kpi-pill-store-total', 'kpi-card-store-total'],
+      'organizer': ['kpi-pill-store-organizer', 'kpi-card-store-organizer'],
+      'set': ['kpi-pill-store-set', 'kpi-card-store-set'],
+      'quest': ['kpi-pill-store-quest', 'kpi-card-store-quest'],
+      'coupon': ['kpi-pill-store-coupon', 'kpi-card-store-coupon']
     };
-    if (activeCardMap[type]) {
-      const activeCard = document.getElementById(activeCardMap[type]);
-      if (activeCard) activeCard.classList.add('active');
+    if (activePillMap[type]) {
+      activePillMap[type].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('active');
+      });
     }
 
     // フィルターの各値をリセット
@@ -1043,17 +1070,19 @@ class YoidoreAdminApp {
   }
 
   resetStoreFilters() {
-    const cardIds = [
-      'kpi-card-store-total',
-      'kpi-card-store-organizer',
-      'kpi-card-store-set',
-      'kpi-card-store-quest',
-      'kpi-card-store-coupon'
+    const pillIds = [
+      'kpi-pill-store-total', 'kpi-card-store-total',
+      'kpi-pill-store-organizer', 'kpi-card-store-organizer',
+      'kpi-pill-store-set', 'kpi-card-store-set',
+      'kpi-pill-store-quest', 'kpi-card-store-quest',
+      'kpi-pill-store-coupon', 'kpi-card-store-coupon'
     ];
-    cardIds.forEach(id => {
-      const card = document.getElementById(id);
-      if (card) card.classList.remove('active');
+    pillIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('active');
     });
+    const totalPill = document.getElementById('kpi-pill-store-total') || document.getElementById('kpi-card-store-total');
+    if (totalPill) totalPill.classList.add('active');
 
     const searchElem = document.getElementById('store-search');
     const areaElem = document.getElementById('area-filter');
@@ -1068,6 +1097,9 @@ class YoidoreAdminApp {
     if (planElem) planElem.value = '';
     if (couponElem) couponElem.value = '';
     if (orgElem) orgElem.value = '';
+
+    const badgeElem = document.getElementById('advanced-filter-badge');
+    if (badgeElem) badgeElem.style.display = 'none';
 
     this.filterStores();
   }
