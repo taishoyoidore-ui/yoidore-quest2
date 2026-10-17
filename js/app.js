@@ -2661,7 +2661,7 @@ class YoidoreQuestApp {
 
     overlay.innerHTML = `
       <canvas id="milestone-confetti-canvas" style="position:fixed; top:0; left:0; width:100vw; height:100vh; pointer-events:none; z-index:20005;"></canvas>
-      <div class="rpg-modal-window gold-border levelup-modal-window" style="max-width:440px; width:95%; text-align:center; padding:16px 16px;">
+      <div class="rpg-modal-window levelup-modal-window" id="levelup-modal-window" style="max-width:440px; width:95%; text-align:center; padding:16px 16px;">
         <div class="levelup-content-relative">
           <!-- ドラクエ風ステータスボックス（アバター＋なまえ＋Lv＋全幅称号プレート） -->
           <div class="dq-status-box">
