@@ -2663,25 +2663,20 @@ class YoidoreQuestApp {
       <canvas id="milestone-confetti-canvas" style="position:fixed; top:0; left:0; width:100vw; height:100vh; pointer-events:none; z-index:20005;"></canvas>
       <div class="rpg-modal-window levelup-modal-window" id="levelup-modal-window" style="max-width:440px; width:95%; text-align:center; padding:16px 16px;">
         <div class="levelup-content-relative">
-          <!-- ドラクエ風ステータスボックス（アバター＋なまえ＋Lv＋全幅称号プレート） -->
+          <!-- ドラクエ風ステータスボックス（アバター＋[上段: なまえ & Lv / 下段: 称号プレート]） -->
           <div class="dq-status-box">
             <div class="dq-status-top-row">
               <div class="dq-status-avatar-wrap">
                 <img src="${avatarUrl}" alt="${displayName}" class="dq-status-avatar" onerror="this.src='assets/banner.png';">
               </div>
               <div class="dq-status-profile">
-                <div class="dq-status-name">${displayName}</div>
-                <div class="dq-status-lv-row">
-                  <span class="dq-status-lv-label">レベル:</span>
-                  <span class="dq-status-lv-val">Lv.${heroData.level}</span>
+                <div class="dq-status-header-row">
+                  <div class="dq-status-name">${displayName}</div>
+                  <div class="dq-status-lv-badge">Lv.${heroData.level}</div>
                 </div>
-              </div>
-            </div>
-
-            <!-- 長い称号でも全幅で絶対に見切れない称号セクション -->
-            <div class="dq-status-title-section">
-              <div class="dq-status-title-badge" style="border-color:${heroData.badge_color || '#fde047'}; color:${heroData.badge_color || '#fde047'};">
-                👑 ${this.escapeHtml(heroData.title || '駆け出しの呑兵衛')}
+                <div class="dq-status-title-badge" style="border-color:${heroData.badge_color || '#fde047'}; color:${heroData.badge_color || '#fde047'};">
+                  👑 ${this.escapeHtml(heroData.title || '駆け出しの呑兵衛')}
+                </div>
               </div>
             </div>
           </div>
