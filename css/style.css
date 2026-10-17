@@ -2712,15 +2712,42 @@ body {
   100% { transform: rotate(360deg); }
 }
 
+@keyframes levelUpFlashingBorder {
+  0%, 100% {
+    border-color: #ffd700 !important;
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.85), 0 0 50px rgba(255, 215, 0, 0.4), inset 0 0 20px rgba(255, 215, 0, 0.3) !important;
+  }
+  17% {
+    border-color: #ff3366 !important;
+    box-shadow: 0 0 25px rgba(255, 51, 102, 0.85), 0 0 50px rgba(255, 51, 102, 0.4), inset 0 0 20px rgba(255, 51, 102, 0.3) !important;
+  }
+  33% {
+    border-color: #a855f7 !important;
+    box-shadow: 0 0 25px rgba(168, 85, 247, 0.85), 0 0 50px rgba(168, 85, 247, 0.4), inset 0 0 20px rgba(168, 85, 247, 0.3) !important;
+  }
+  50% {
+    border-color: #00e5ff !important;
+    box-shadow: 0 0 25px rgba(0, 229, 255, 0.85), 0 0 50px rgba(0, 229, 255, 0.4), inset 0 0 20px rgba(0, 229, 255, 0.3) !important;
+  }
+  67% {
+    border-color: #00ff88 !important;
+    box-shadow: 0 0 25px rgba(0, 255, 136, 0.85), 0 0 50px rgba(0, 255, 136, 0.4), inset 0 0 20px rgba(0, 255, 136, 0.3) !important;
+  }
+  83% {
+    border-color: #ff9900 !important;
+    box-shadow: 0 0 25px rgba(255, 153, 0, 0.85), 0 0 50px rgba(255, 153, 0, 0.4), inset 0 0 20px rgba(255, 153, 0, 0.3) !important;
+  }
+}
+
 .levelup-modal-window {
-  animation: levelUpBounce 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  animation: levelUpBounce 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, levelUpFlashingBorder 1.8s linear infinite !important;
   position: relative;
   overflow: hidden;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
   background: radial-gradient(circle at 50% 20%, #1e1b4b 0%, #090a12 85%) !important;
-  border: 3px solid #facc15 !important;
+  border: 3.5px solid #ffd700 !important;
   box-shadow: 0 0 35px rgba(245, 158, 11, 0.5), inset 0 0 20px rgba(234, 179, 8, 0.2) !important;
 }
 
@@ -3055,6 +3082,7 @@ body {
 }
 
 .treasure-open-title {
+  text-align: center;
   font-size: 19px;
   font-weight: bold;
   color: var(--text-yellow);

@@ -2545,10 +2545,6 @@ class YoidoreQuestApp {
    * 🎁 秘宝の宝箱 タップ開封演出モーダル (AudioContextアンロック＆演出トリガー)
    * ------------------------------------------------------------------------ */
   showTreasureBoxOpenPrompt(res = {}) {
-    const { targetTier } = res;
-    const tierTitle = targetTier?.title || 'ハシゴ酒達成特典';
-    const requiredVisits = targetTier?.required_visits || 5;
-
     // 既存モーダルがあれば削除
     const existing = document.getElementById('treasure-box-prompt-modal');
     if (existing) existing.remove();
@@ -2559,16 +2555,12 @@ class YoidoreQuestApp {
 
     overlay.innerHTML = `
       <div class="rpg-modal-window gold-border treasure-open-window" id="treasure-window-content" style="max-width:360px; width:92%; max-height:88vh; overflow-y:auto; padding:20px 16px; box-sizing:border-box;">
-        <div class="treasure-open-title" style="font-size:20px; font-weight:bold; color:var(--text-yellow); margin-bottom:14px; text-shadow:2px 2px 0 #000;">
+        <div class="treasure-open-title" style="font-size:20px; font-weight:bold; color:var(--text-yellow); margin-bottom:14px; text-shadow:2px 2px 0 #000; text-align:center;">
           宝箱を手に入れた！
         </div>
 
-        <div class="treasure-open-box-visual" id="treasure-box-click-target" style="max-width:130px; margin:0 auto 14px auto; cursor:pointer;">
+        <div class="treasure-open-box-visual" id="treasure-box-click-target" style="max-width:130px; margin:0 auto 20px auto; cursor:pointer;">
           <img src="assets/treasure_box.png" alt="宝箱" class="treasure-box-img" style="width:100%; max-width:130px; max-height:130px; object-fit:contain; display:block; margin:0 auto; filter:drop-shadow(0 4px 15px rgba(245, 158, 11, 0.4));" onerror="this.src='assets/banner.png';">
-        </div>
-
-        <div class="treasure-tap-guide-text" style="font-size:14px; color:#e2e8f0; margin-bottom:18px; line-height:1.6;">
-          【<strong>${requiredVisits}軒ハシゴ達成</strong>】の証が収められている！
         </div>
 
         <button class="start-game-btn treasure-open-action-btn" id="treasure-open-btn" style="width:100%; box-sizing:border-box; margin:0; animation:none; font-size:16px; padding:13px 20px; justify-content:center;">
@@ -2668,7 +2660,7 @@ class YoidoreQuestApp {
     }
 
     overlay.innerHTML = `
-      <canvas id="milestone-confetti-canvas" style="position:fixed; top:0; left:0; width:100vw; height:100vh; pointer-events:none; z-index:9999;"></canvas>
+      <canvas id="milestone-confetti-canvas" style="position:fixed; top:0; left:0; width:100vw; height:100vh; pointer-events:none; z-index:20005;"></canvas>
       <div class="rpg-modal-window gold-border levelup-modal-window" style="max-width:440px; width:95%; text-align:center; padding:16px 16px;">
         <div class="levelup-content-relative">
           <!-- ドラクエ風ステータスボックス（アバター＋なまえ＋Lv＋全幅称号プレート） -->
@@ -2676,21 +2668,18 @@ class YoidoreQuestApp {
             <div class="dq-status-top-row">
               <div class="dq-status-avatar-wrap">
                 <img src="${avatarUrl}" alt="${displayName}" class="dq-status-avatar" onerror="this.src='assets/banner.png';">
-                <span class="dq-status-avatar-badge">Lv.${heroData.level}</span>
               </div>
               <div class="dq-status-profile">
                 <div class="dq-status-name">${displayName}</div>
                 <div class="dq-status-lv-row">
                   <span class="dq-status-lv-label">レベル:</span>
                   <span class="dq-status-lv-val">Lv.${heroData.level}</span>
-                  <span class="dq-status-up-badge">UP!</span>
                 </div>
               </div>
             </div>
 
             <!-- 長い称号でも全幅で絶対に見切れない称号セクション -->
             <div class="dq-status-title-section">
-              <div class="dq-status-title-label">▼ 獲得した勇者称号</div>
               <div class="dq-status-title-badge" style="border-color:${heroData.badge_color || '#fde047'}; color:${heroData.badge_color || '#fde047'};">
                 👑 ${this.escapeHtml(heroData.title || '駆け出しの呑兵衛')}
               </div>
@@ -2765,14 +2754,23 @@ class YoidoreQuestApp {
     // 初回文字送り開始
     typeTimer = setTimeout(typeNextChar, 120);
 
+    // モーダルクローズ共通ヘルパー
+    const closeModal = () => {
+      if (typeTimer) clearTimeout(typeTimer);
+      if (this._milestoneFireworksCleanup) {
+        this._milestoneFireworksCleanup();
+        this._milestoneFireworksCleanup = null;
+      }
+      this.playSelectSE();
+      overlay.remove();
+      this.navigateTo('quest-book');
+    };
+
     // モーダル内タップでスキップ
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) {
         // 背景タップで閉じる（フェイルセーフ）
-        if (typeTimer) clearTimeout(typeTimer);
-        this.playSelectSE();
-        overlay.remove();
-        this.navigateTo('quest-book');
+        closeModal();
         return;
       }
       if (!isFinished && e.target !== closeBtn && !closeBtn.contains(e.target)) {
@@ -2782,17 +2780,269 @@ class YoidoreQuestApp {
 
     // 決定ボタン押下時
     closeBtn.addEventListener('click', () => {
-      if (typeTimer) clearTimeout(typeTimer);
-      this.playSelectSE();
-      overlay.remove();
-      this.navigateTo('quest-book');
+      closeModal();
     });
 
-    // レベルアップファンファーレSE再生（ここで1度だけクリアに再生） & ゴールド紙吹雪パーティクル生成
+    // レベルアップファンファーレSE再生（ここで1度だけクリアに再生） & 打ち上げ花火パーティクル生成
     this.playLevelUpSE();
     setTimeout(() => {
-      this.launchLevelUpConfetti('milestone-confetti-canvas');
+      this._milestoneFireworksCleanup = this.launchLevelUpFireworks('milestone-confetti-canvas');
     }, 100);
+  }
+
+  /* ------------------------------------------------------------------------
+   * 🎆 レベルアップ祝賀 打ち上げ花火＆祝彩スパーク エフェクト (HTML5 Canvas)
+   * ------------------------------------------------------------------------ */
+  launchLevelUpFireworks(canvasId = 'milestone-confetti-canvas') {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    let animId = null;
+    let spawnTimer = null;
+    let isRunning = true;
+
+    // 高解像度ディスプレイ対応（Retina）
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const resize = () => {
+      if (!canvas || !canvas.parentElement) return;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      if (ctx.resetTransform) {
+        ctx.resetTransform();
+      } else {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+      }
+      ctx.scale(dpr, dpr);
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    // 祝宴カラーパレット（金・紅・紫・空・緑・橙・純白）
+    const PALETTES = [
+      ['#ffd700', '#ffeb3b', '#fff59d', '#ffffff'], // ゴールドラッシュ
+      ['#ff3366', '#ff758c', '#ff8da1', '#ffffff'], // ルビークリムゾン
+      ['#00e5ff', '#80d8ff', '#e0f7fa', '#ffffff'], // ダイヤシアン
+      ['#a855f7', '#c084fc', '#e9d5ff', '#ffffff'], // アメジストバイオレット
+      ['#00ff88', '#69f0ae', '#b9f6ca', '#ffffff'], // エメラルドスター
+      ['#ff9100', '#ffab40', '#ffe082', '#ffffff']  // トパーズオレンジ
+    ];
+
+    const rockets = [];
+    const particles = [];
+
+    // ロケット弾クラス
+    class Rocket {
+      constructor(startX, startY, targetX, targetY, colors) {
+        this.x = startX;
+        this.y = startY;
+        this.startX = startX;
+        this.startY = startY;
+        this.targetX = targetX;
+        this.targetY = targetY;
+        this.colors = colors;
+        this.distanceToTarget = Math.hypot(targetX - startX, targetY - startY);
+        this.distanceTraveled = 0;
+        this.angle = Math.atan2(targetY - startY, targetX - startX);
+        this.speed = 10 + Math.random() * 4;
+        this.history = [];
+        this.dead = false;
+      }
+
+      update() {
+        this.history.push({ x: this.x, y: this.y });
+        if (this.history.length > 4) this.history.shift();
+
+        const vx = Math.cos(this.angle) * this.speed;
+        const vy = Math.sin(this.angle) * this.speed;
+        this.x += vx;
+        this.y += vy;
+        this.distanceTraveled = Math.hypot(this.x - this.startX, this.y - this.startY);
+
+        if (this.distanceTraveled >= this.distanceToTarget || this.y <= this.targetY) {
+          this.dead = true;
+          this.explode();
+        }
+      }
+
+      explode() {
+        const count = 55 + Math.floor(Math.random() * 25);
+        for (let i = 0; i < count; i++) {
+          particles.push(new Particle(this.targetX, this.targetY, this.colors));
+        }
+      }
+
+      draw(c) {
+        c.save();
+        c.beginPath();
+        if (this.history.length > 0) {
+          c.moveTo(this.history[0].x, this.history[0].y);
+          for (let i = 1; i < this.history.length; i++) {
+            c.lineTo(this.history[i].x, this.history[i].y);
+          }
+          c.strokeStyle = '#ffd700';
+          c.lineWidth = 2.5;
+          c.stroke();
+        }
+        c.beginPath();
+        c.arc(this.x, this.y, 2.5, 0, Math.PI * 2);
+        c.fillStyle = '#ffffff';
+        c.shadowColor = '#ffd700';
+        c.shadowBlur = 8;
+        c.fill();
+        c.restore();
+      }
+    }
+
+    // 炸裂スパーク・火花クラス
+    class Particle {
+      constructor(x, y, colors) {
+        this.x = x;
+        this.y = y;
+        this.colors = colors;
+        this.color = colors[Math.floor(Math.random() * colors.length)];
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.pow(Math.random(), 0.7) * 7.5 + 1.2;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        this.friction = 0.955;
+        this.gravity = 0.085;
+        this.alpha = 1;
+        this.decay = 0.012 + Math.random() * 0.014;
+        this.size = 1.8 + Math.random() * 2.2;
+        this.history = [];
+        this.flicker = Math.random() > 0.3;
+      }
+
+      update() {
+        this.history.push({ x: this.x, y: this.y });
+        if (this.history.length > 3) this.history.shift();
+
+        this.vx *= this.friction;
+        this.vy *= this.friction;
+        this.vy += this.gravity;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.alpha -= this.decay;
+      }
+
+      draw(c) {
+        if (this.alpha <= 0) return;
+        c.save();
+        c.globalAlpha = this.flicker && Math.random() < 0.2 ? this.alpha * 0.4 : this.alpha;
+
+        if (this.history.length > 1) {
+          c.beginPath();
+          c.moveTo(this.history[0].x, this.history[0].y);
+          for (let i = 1; i < this.history.length; i++) {
+            c.lineTo(this.history[i].x, this.history[i].y);
+          }
+          c.strokeStyle = this.color;
+          c.lineWidth = this.size;
+          c.lineCap = 'round';
+          c.stroke();
+        }
+
+        c.beginPath();
+        c.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        c.fillStyle = this.color;
+        c.shadowColor = this.color;
+        c.shadowBlur = 6;
+        c.fill();
+        c.restore();
+      }
+    }
+
+    // 花火打ち上げトリガー関数
+    const launchRocket = (startX, targetX, targetY, colors) => {
+      const sx = startX ?? (window.innerWidth * (0.2 + Math.random() * 0.6));
+      const sy = window.innerHeight + 10;
+      const tx = targetX ?? (window.innerWidth * (0.15 + Math.random() * 0.7));
+      const ty = targetY ?? (window.innerHeight * (0.12 + Math.random() * 0.32));
+      const pal = colors || PALETTES[Math.floor(Math.random() * PALETTES.length)];
+      rockets.push(new Rocket(sx, sy, tx, ty, pal));
+    };
+
+    // 開幕直後の3連速射花火（左右・中央で祝宴を演出）
+    setTimeout(() => {
+      if (!isRunning) return;
+      launchRocket(window.innerWidth * 0.25, window.innerWidth * 0.25, window.innerHeight * 0.22, PALETTES[0]);
+      launchRocket(window.innerWidth * 0.75, window.innerWidth * 0.75, window.innerHeight * 0.20, PALETTES[1]);
+      setTimeout(() => {
+        if (!isRunning) return;
+        launchRocket(window.innerWidth * 0.5, window.innerWidth * 0.5, window.innerHeight * 0.16, PALETTES[2]);
+      }, 200);
+    }, 60);
+
+    // 継続的な時間差打ち上げループ（モーダル展開中）
+    const scheduleNextRocket = () => {
+      if (!isRunning) return;
+      const delay = 450 + Math.random() * 550;
+      spawnTimer = setTimeout(() => {
+        if (!isRunning) return;
+        launchRocket();
+        if (Math.random() < 0.35) {
+          // たまにダブル打ち上げ
+          setTimeout(() => {
+            if (isRunning) launchRocket();
+          }, 120);
+        }
+        scheduleNextRocket();
+      }, delay);
+    };
+    scheduleNextRocket();
+
+    // 描画メインループ
+    const loop = () => {
+      if (!isRunning) return;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      // 前フレームの残像を残しつつ滑らかにクリア
+      ctx.clearRect(0, 0, w, h);
+
+      // ロケット更新＆描画
+      for (let i = rockets.length - 1; i >= 0; i--) {
+        const r = rockets[i];
+        r.update();
+        r.draw(ctx);
+        if (r.dead) {
+          rockets.splice(i, 1);
+        }
+      }
+
+      // パーティクル更新＆描画
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.update();
+        p.draw(ctx);
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+        }
+      }
+
+      animId = requestAnimationFrame(loop);
+    };
+
+    loop();
+
+    // クリーンアップ関数
+    const cleanup = () => {
+      isRunning = false;
+      if (animId) cancelAnimationFrame(animId);
+      if (spawnTimer) clearTimeout(spawnTimer);
+      window.removeEventListener('resize', resize);
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    };
+
+    return cleanup;
+  }
+
+  // 下位互換エイリアス
+  launchLevelUpConfetti(canvasId) {
+    return this.launchLevelUpFireworks(canvasId);
   }
 
   /* ------------------------------------------------------------------------
