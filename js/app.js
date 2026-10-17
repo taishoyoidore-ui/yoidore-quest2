@@ -2600,20 +2600,22 @@ class YoidoreQuestApp {
         this.audioCtx.resume();
       }
 
-      // レベルアップファンファーレSEを高らかに再生！
-      this.playLevelUpSE();
+      // 宝箱タップ時は効果音（ファンファーレはモーダル側で1回のみ再生して重複防止）
+      this.playSelectSE();
 
-      // 開封フラッシュアニメーション
+      // 開封演出（白飛び点滅ではなくスムーズな拡大フェード）
       const windowContent = document.getElementById('treasure-window-content');
       if (windowContent) {
-        windowContent.classList.add('treasure-opening-flash');
+        windowContent.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+        windowContent.style.transform = 'scale(1.04)';
+        windowContent.style.opacity = '0';
       }
 
-      // 少しの余韻の後に本モーダルを削除し、詳細アンロック演出モーダルを表示
+      // モーダルを削除し、詳細アンロック演出モーダルを表示
       setTimeout(() => {
         overlay.remove();
         this.showMilestoneUnlockModal(res);
-      }, 500);
+      }, 300);
     };
 
     const clickTarget = document.getElementById('treasure-box-click-target');
@@ -2650,9 +2652,9 @@ class YoidoreQuestApp {
 
     // ドラクエ風メッセージテキスト配列の構築（実データのみで構成）
     const lines = [
-      { text: `${displayName} は レベルが ${heroData.level} に あがった！`, cls: 'highlight' },
-      { text: `称号 【${heroData.title || '駆け出しの呑兵衛'}】 を えた！`, cls: 'highlight' },
-      { text: `【${requiredVisits}軒 はしご達成！】`, cls: 'tier' }
+      { text: `▶ ${displayName} は レベルが ${heroData.level} に あがった！`, cls: 'highlight' },
+      { text: `▶ 称号 【${heroData.title || '駆け出しの呑兵衛'}】 を えた！`, cls: 'highlight' },
+      { text: `▶ 【${requiredVisits}軒 はしご達成！】`, cls: 'milestone' }
     ];
 
     if (claimedTiers && claimedTiers.length > 0) {
@@ -2660,7 +2662,7 @@ class YoidoreQuestApp {
         const isGoods = t.reward_type === 'goods';
         const name = isGoods ? `『${t.goods_name || t.title}』` : `酒場クーポン ${t.selectable_count || 5}軒分`;
         lines.push({
-          text: `▼ ${t.required_visits}軒達成: ${name} を てにいれた！`,
+          text: `🎁 ${t.required_visits}軒達成: ${name} を 手に入れた！`,
           cls: 'tier'
         });
       });
@@ -2668,44 +2670,52 @@ class YoidoreQuestApp {
 
     if (totalAddedSlots > 0) {
       lines.push({
-        text: `なんと 酒場クーポンが 合計 +${totalAddedSlots}軒分 ふえた！`,
+        text: `✨ なんと 酒場クーポンが 合計 +${totalAddedSlots}軒分 ふえた！`,
         cls: 'bonus'
       });
     }
 
     overlay.innerHTML = `
       <canvas id="milestone-confetti-canvas" style="position:fixed; top:0; left:0; width:100vw; height:100vh; pointer-events:none; z-index:9999;"></canvas>
-      <div class="rpg-modal-window gold-border levelup-modal-window" style="max-width:390px; width:92%; text-align:center; padding:12px 14px;">
+      <div class="rpg-modal-window gold-border levelup-modal-window" style="max-width:440px; width:95%; text-align:center; padding:14px 16px;">
         <div class="levelup-content-relative">
           <div style="font-size:26px; margin-bottom:2px;">✨🍺🎁</div>
           <div class="levelup-header-banner" style="font-size:22px; letter-spacing:2px; margin-bottom:6px;">LEVEL UP!!</div>
 
-          <!-- ドラクエ風ステータスボックス（アバター＋なまえ＋Lv＋称号） -->
+          <!-- ドラクエ風ステータスボックス（アバター＋なまえ＋Lv＋全幅称号プレート） -->
           <div class="dq-status-box">
-            <div class="dq-status-avatar-wrap">
-              <img src="${avatarUrl}" alt="${displayName}" class="dq-status-avatar" onerror="this.src='assets/banner.png';">
-              <span class="dq-status-avatar-badge">Lv.${heroData.level}</span>
+            <div class="dq-status-top-row">
+              <div class="dq-status-avatar-wrap">
+                <img src="${avatarUrl}" alt="${displayName}" class="dq-status-avatar" onerror="this.src='assets/banner.png';">
+                <span class="dq-status-avatar-badge">Lv.${heroData.level}</span>
+              </div>
+              <div class="dq-status-profile">
+                <div class="dq-status-name">${displayName}</div>
+                <div class="dq-status-lv-row">
+                  <span class="dq-status-lv-label">レベル:</span>
+                  <span class="dq-status-lv-val">Lv.${heroData.level}</span>
+                  <span class="dq-status-up-badge">UP!</span>
+                </div>
+              </div>
             </div>
-            <div class="dq-status-info">
-              <div class="dq-status-row">
-                <span class="dq-status-label">なまえ:</span>
-                <span class="dq-status-val" style="color:#ffffff;">${displayName}</span>
-              </div>
-              <div class="dq-status-row">
-                <span class="dq-status-label">レベル:</span>
-                <span class="dq-status-val">Lv.${heroData.level}</span>
-                <span style="font-size:10px; color:#4ade80; font-weight:bold;">(UP!)</span>
-              </div>
-              <div class="dq-status-row">
-                <span class="dq-status-label">しょうごう:</span>
-                <span class="dq-status-val" style="color:${heroData.badge_color || '#fde047'};">${this.escapeHtml(heroData.title || '駆け出しの呑兵衛')}</span>
+
+            <!-- 長い称号でも全幅で絶対に見切れない称号セクション -->
+            <div class="dq-status-title-section">
+              <div class="dq-status-title-label">▼ 獲得した勇者称号</div>
+              <div class="dq-status-title-badge" style="border-color:${heroData.badge_color || '#fde047'}; color:${heroData.badge_color || '#fde047'};">
+                👑 ${this.escapeHtml(heroData.title || '駆け出しの呑兵衛')}
               </div>
             </div>
           </div>
 
-          <!-- ドラクエ風メッセージログボックス（自動ピコピコ文字送り＆タップスキップ対応） -->
-          <div id="dq-levelup-msg-box" class="dq-message-box"></div>
-          <div class="dq-message-tap-guide">※タップでメッセージを一括表示</div>
+          <!-- ドラクエ風メッセージログボックス（拡大・ゆったり文字送り＆タップ一括表示対応） -->
+          <div class="dq-message-window-wrap">
+            <div class="dq-message-box-header">
+              <span class="dq-message-header-title">📜 ぼうけんの きろく</span>
+              <span class="dq-message-tap-guide">※タップで一括表示</span>
+            </div>
+            <div id="dq-levelup-msg-box" class="dq-message-box"></div>
+          </div>
 
           <!-- ドラクエ風コマンド決定ボタン -->
           <button id="milestone-modal-close-btn" class="dq-command-btn">
@@ -2737,7 +2747,7 @@ class YoidoreQuestApp {
       }
     };
 
-    // 自動文字送りタイピング関数
+    // 自動文字送りタイピング関数（読みやすい適正ペースに調整）
     const typeNextChar = () => {
       if (isFinished || !msgBox) return;
       if (lineIdx >= lines.length) {
@@ -2756,19 +2766,19 @@ class YoidoreQuestApp {
         currentLineEl.textContent += line.text.charAt(charIdx);
         charIdx++;
         if (charIdx % 2 === 0 && this.soundEnabled && this.audioCtx) {
-          this.playTone(420 + Math.random() * 80, 0.015, 'sine');
+          this.playTone(430 + Math.random() * 60, 0.015, 'sine');
         }
         msgBox.scrollTop = msgBox.scrollHeight;
-        typeTimer = setTimeout(typeNextChar, 25);
+        typeTimer = setTimeout(typeNextChar, 30);
       } else {
         lineIdx++;
         charIdx = 0;
-        typeTimer = setTimeout(typeNextChar, 160);
+        typeTimer = setTimeout(typeNextChar, 240);
       }
     };
 
     // 初回文字送り開始
-    typeTimer = setTimeout(typeNextChar, 100);
+    typeTimer = setTimeout(typeNextChar, 120);
 
     // モーダル内タップでスキップ
     overlay.addEventListener('click', (e) => {
@@ -2793,7 +2803,7 @@ class YoidoreQuestApp {
       this.navigateTo('quest-book');
     });
 
-    // レベルアップSE再生 & ゴールド紙吹雪パーティクル生成
+    // レベルアップファンファーレSE再生（ここで1度だけクリアに再生） & ゴールド紙吹雪パーティクル生成
     this.playLevelUpSE();
     setTimeout(() => {
       this.launchLevelUpConfetti('milestone-confetti-canvas');

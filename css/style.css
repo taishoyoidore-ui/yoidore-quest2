@@ -2732,19 +2732,26 @@ body {
 }
 
 /* ==========================================================================
-   ⚔️ ドラクエ風 ステータス＆メッセージウィンドウ演出スタイル
+   ⚔️ ドラクエ風 ステータス＆メッセージウィンドウ演出スタイル (高視認性・見切れ防止)
    ========================================================================== */
 .dq-status-box {
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.9);
   border: 3px double #ffffff;
-  border-radius: 6px;
-  padding: 8px 10px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 6px 0 10px;
+  text-align: left;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* つよさウィンドウ上段: アバター ＆ なまえ・Lv */
+.dq-status-top-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 8px 0 10px;
-  text-align: left;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
 }
 
 .dq-status-avatar-wrap {
@@ -2753,13 +2760,14 @@ body {
 }
 
 .dq-status-avatar {
-  width: 52px;
-  height: 52px;
+  width: 54px;
+  height: 54px;
   border: 2px solid #ffffff;
-  border-radius: 4px;
+  border-radius: 6px;
   object-fit: cover;
   background: #0f172a;
   display: block;
+  box-shadow: 0 0 10px rgba(254, 240, 138, 0.4);
 }
 
 .dq-status-avatar-badge {
@@ -2770,96 +2778,177 @@ body {
   color: #ffffff;
   border: 1px solid #fef08a;
   border-radius: 8px;
-  padding: 1px 5px;
+  padding: 1px 6px;
   font-size: 10px;
   font-weight: 900;
   font-family: var(--font-en-pixel);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-.dq-status-info {
+.dq-status-profile {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   font-family: var(--font-pixel);
-  font-size: 13px;
-  color: #ffffff;
-  line-height: 1.4;
   flex-grow: 1;
   min-width: 0;
 }
 
-.dq-status-row {
+.dq-status-name {
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dq-status-lv-row {
   display: flex;
   align-items: center;
   gap: 6px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 13px;
 }
 
-.dq-status-label {
+.dq-status-lv-label {
   color: #94a3b8;
   font-size: 11px;
-  flex-shrink: 0;
 }
 
-.dq-status-val {
+.dq-status-lv-val {
   color: #fde047;
   font-weight: bold;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 14px;
 }
 
-/* ドラクエ風メッセージログボックス */
+.dq-status-up-badge {
+  background: #15803d;
+  color: #86efac;
+  border: 1px solid #4ade80;
+  border-radius: 4px;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+/* つよさウィンドウ下段: 称号プレート（全幅で表示し長い称号も見切れない） */
+.dq-status-title-section {
+  border-top: 1px dashed rgba(255, 255, 255, 0.25);
+  padding-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+}
+
+.dq-status-title-label {
+  color: #94a3b8;
+  font-size: 11px;
+  font-family: var(--font-pixel);
+}
+
+.dq-status-title-badge {
+  background: rgba(30, 41, 59, 0.85);
+  border: 1.5px solid #fde047;
+  border-radius: 6px;
+  padding: 5px 10px;
+  color: #fde047;
+  font-family: var(--font-pixel);
+  font-size: 13.5px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+  word-break: break-all;
+  white-space: normal;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6);
+}
+
+/* メッセージウィンドウ・コンテナ */
+.dq-message-window-wrap {
+  margin-bottom: 8px;
+}
+
+.dq-message-box-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px 4px;
+  font-family: var(--font-pixel);
+}
+
+.dq-message-header-title {
+  color: #94a3b8;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.dq-message-tap-guide {
+  font-size: 10px;
+  color: #cbd5e1;
+  letter-spacing: 0.5px;
+}
+
+/* ドラクエ風メッセージログボックス（拡大・スクロール対応） */
 .dq-message-box {
   background: #000000;
   border: 3px double #ffffff;
   border-radius: 6px;
   padding: 10px 12px;
-  margin-bottom: 8px;
-  min-height: 120px;
-  max-height: 170px;
+  min-height: 180px;
+  max-height: 230px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   text-align: left;
   font-family: var(--font-pixel);
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.65;
   color: #ffffff;
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.9);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.95);
   cursor: pointer;
   user-select: none;
 }
 
+.dq-message-box::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dq-message-box::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 3px;
+}
+
 .dq-message-line {
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   word-break: break-all;
 }
 
 .dq-message-line.highlight {
   color: #fde047;
   font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.dq-message-line.milestone {
+  color: #fca5a5;
+  font-weight: bold;
 }
 
 .dq-message-line.tier {
   color: #93c5fd;
-  font-size: 12px;
+  font-size: 12.5px;
+  padding-left: 4px;
+  border-left: 2px solid #3b82f6;
+  margin: 3px 0;
 }
 
 .dq-message-line.bonus {
   color: #4ade80;
   font-weight: bold;
   border-top: 1px dashed rgba(255, 255, 255, 0.25);
-  padding-top: 4px;
+  padding-top: 6px;
   margin-top: 6px;
-}
-
-.dq-message-tap-guide {
-  font-size: 10px;
-  color: #94a3b8;
-  text-align: right;
-  margin-bottom: 10px;
-  font-family: var(--font-pixel);
 }
 
 /* ドラクエ風コマンド決定ボタン */
@@ -2960,30 +3049,29 @@ body {
 }
 
 /* ==========================================================================
-   🎁 秘宝の宝箱 タップ開封インタラクション演出 (Autoplay Audio 解除対応)
+   🎁 秘宝の宝箱 タップ開封インタラクション演出 (点滅・チラつき防止・安定表示)
    ========================================================================== */
 .treasure-open-overlay {
   position: fixed;
   inset: 0;
-  background: radial-gradient(circle at center, rgba(15, 23, 42, 0.95) 0%, rgba(5, 8, 20, 0.98) 100%);
-  backdrop-filter: blur(6px);
+  background: rgba(5, 8, 20, 0.94);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100000;
   padding: 16px;
-  animation: fadeInModal 0.3s ease-out;
+  animation: fadeInModal 0.25s ease-out;
 }
 
 .treasure-open-window {
   width: 100%;
-  max-width: 380px;
+  max-width: 400px;
   background: #090c19;
   border: 4px double var(--border-gold);
   border-radius: 12px;
-  padding: 24px 16px;
+  padding: 24px 18px;
   text-align: center;
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.9), 0 0 20px rgba(245, 158, 11, 0.4);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(245, 158, 11, 0.35);
   position: relative;
   overflow: hidden;
 }
@@ -3000,14 +3088,13 @@ body {
   letter-spacing: 1px;
   margin-bottom: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-  animation: pulseGold 2s infinite;
 }
 
 .treasure-open-title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: bold;
   color: var(--text-yellow);
-  text-shadow: 2px 2px 0 #000, 0 0 10px rgba(248, 225, 108, 0.5);
+  text-shadow: 2px 2px 0 #000, 0 0 10px rgba(248, 225, 108, 0.4);
   margin-bottom: 14px;
   line-height: 1.4;
 }
@@ -3015,18 +3102,18 @@ body {
 .treasure-open-box-visual {
   position: relative;
   width: 100%;
-  max-width: 240px;
+  max-width: 220px;
   margin: 0 auto 16px auto;
   cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.15s ease;
 }
 
 .treasure-open-box-visual:hover {
-  transform: scale(1.05);
+  transform: scale(1.03);
 }
 
 .treasure-open-box-visual:active {
-  transform: scale(0.95);
+  transform: scale(0.97);
 }
 
 .treasure-box-img {
@@ -3034,23 +3121,13 @@ body {
   height: auto;
   display: block;
   border-radius: 8px;
-  filter: drop-shadow(0 0 18px rgba(245, 158, 11, 0.6));
-  animation: floatTreasure 3s ease-in-out infinite;
-}
-
-@keyframes floatTreasure {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.35);
 }
 
 .treasure-tap-guide-text {
-  font-size: 13px;
+  font-size: 14px;
   color: #e2e8f0;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
   line-height: 1.5;
 }
 
@@ -3065,47 +3142,20 @@ body {
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 15px rgba(245, 158, 11, 0.5);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  animation: pulseButton 1.5s infinite;
-  transition: all 0.15s ease;
+  transition: transform 0.1s ease, filter 0.1s ease;
 }
 
-@keyframes pulseButton {
-  0%, 100% {
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 12px rgba(245, 158, 11, 0.4);
-    transform: scale(1);
-  }
-  50% {
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8), 0 0 24px rgba(253, 224, 71, 0.8);
-    transform: scale(1.02);
-  }
+.treasure-open-action-btn:hover {
+  filter: brightness(1.08);
 }
 
 .treasure-open-action-btn:active {
-  transform: scale(0.97);
+  transform: scale(0.98);
 }
 
-/* 宝箱開封時のフラッシュエフェクト */
-.treasure-opening-flash {
-  animation: flashWhite 0.6s ease-out forwards;
-}
-
-@keyframes flashWhite {
-  0% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    filter: brightness(3) contrast(1.5);
-    transform: scale(1.12);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.2);
-  }
-}
 
