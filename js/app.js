@@ -2662,7 +2662,7 @@ class YoidoreQuestApp {
         const isGoods = t.reward_type === 'goods';
         const name = isGoods ? `『${t.goods_name || t.title}』` : `酒場クーポン ${t.selectable_count || 5}軒分`;
         lines.push({
-          text: `🎁 ${t.required_visits}軒達成: ${name} を 手に入れた！`,
+          text: `▶ ${t.required_visits}軒達成: ${name} を 手に入れた！`,
           cls: 'tier'
         });
       });
@@ -2670,7 +2670,7 @@ class YoidoreQuestApp {
 
     if (totalAddedSlots > 0) {
       lines.push({
-        text: `✨ なんと 酒場クーポンが 合計 +${totalAddedSlots}軒分 ふえた！`,
+        text: `▶ 酒場クーポンが 合計 +${totalAddedSlots}軒分 ふえた！`,
         cls: 'bonus'
       });
     }
@@ -2708,12 +2708,8 @@ class YoidoreQuestApp {
             </div>
           </div>
 
-          <!-- ドラクエ風メッセージログボックス（拡大・ゆったり文字送り＆タップ一括表示対応） -->
+          <!-- ドラクエ風メッセージログボックス（拡大・白文字・タップ一括表示対応） -->
           <div class="dq-message-window-wrap">
-            <div class="dq-message-box-header">
-              <span class="dq-message-header-title">📜 ぼうけんの きろく</span>
-              <span class="dq-message-tap-guide">※タップで一括表示</span>
-            </div>
             <div id="dq-levelup-msg-box" class="dq-message-box"></div>
           </div>
 
