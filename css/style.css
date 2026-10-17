@@ -2716,92 +2716,188 @@ body {
   animation: levelUpBounce 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
   position: relative;
   overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   background: radial-gradient(circle at 50% 20%, #1e1b4b 0%, #090a12 85%) !important;
   border: 3px solid #facc15 !important;
   box-shadow: 0 0 35px rgba(245, 158, 11, 0.5), inset 0 0 20px rgba(234, 179, 8, 0.2) !important;
 }
 
-.levelup-sunburst {
-  position: absolute;
-  top: -60px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 320px;
-  height: 320px;
-  background: conic-gradient(from 0deg, transparent 0deg, rgba(250, 204, 21, 0.08) 15deg, transparent 30deg, rgba(250, 204, 21, 0.08) 45deg, transparent 60deg, rgba(250, 204, 21, 0.08) 75deg, transparent 90deg, rgba(250, 204, 21, 0.08) 105deg, transparent 120deg, rgba(250, 204, 21, 0.08) 135deg, transparent 150deg, rgba(250, 204, 21, 0.08) 165deg, transparent 180deg, rgba(250, 204, 21, 0.08) 195deg, transparent 210deg, rgba(250, 204, 21, 0.08) 225deg, transparent 240deg, rgba(250, 204, 21, 0.08) 255deg, transparent 270deg, rgba(250, 204, 21, 0.08) 285deg, transparent 300deg, rgba(250, 204, 21, 0.08) 315deg, transparent 330deg, rgba(250, 204, 21, 0.08) 345deg, transparent 360deg);
-  border-radius: 50%;
-  pointer-events: none;
-  animation: levelUpRaySpin 20s linear infinite;
-  z-index: 0;
-}
-
 .levelup-content-relative {
   position: relative;
   z-index: 1;
+  overflow-y: auto;
+  max-height: 100%;
 }
 
-.levelup-header-banner {
-  font-family: var(--font-en-pixel);
-  font-size: clamp(20px, 6.5vw, 28px);
-  font-weight: 900;
-  color: #fef08a;
-  letter-spacing: 1.5px;
-  white-space: nowrap;
-  margin: 4px 0 2px;
-  text-align: center;
-  animation: levelUpGlow 1.8s infinite ease-in-out;
+/* ==========================================================================
+   ⚔️ ドラクエ風 ステータス＆メッセージウィンドウ演出スタイル
+   ========================================================================== */
+.dq-status-box {
+  background: rgba(0, 0, 0, 0.85);
+  border: 3px double #ffffff;
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 10px;
+  text-align: left;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
 }
 
-.levelup-avatar-wrap {
+.dq-status-avatar-wrap {
   position: relative;
-  width: 76px;
-  height: 76px;
-  margin: 8px auto 6px;
+  flex-shrink: 0;
 }
 
-.levelup-avatar {
-  width: 76px;
-  height: 76px;
-  border-radius: 50%;
-  border: 3px solid #facc15;
-  box-shadow: 0 0 18px rgba(250, 204, 21, 0.8), inset 0 0 8px rgba(250, 204, 21, 0.5);
+.dq-status-avatar {
+  width: 52px;
+  height: 52px;
+  border: 2px solid #ffffff;
+  border-radius: 4px;
   object-fit: cover;
   background: #0f172a;
   display: block;
 }
 
-.levelup-level-badge {
+.dq-status-avatar-badge {
   position: absolute;
   bottom: -4px;
-  right: -8px;
+  right: -6px;
   background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
   color: #ffffff;
-  border: 1.5px solid #fef08a;
-  border-radius: 12px;
-  padding: 2px 8px;
-  font-size: 11px;
+  border: 1px solid #fef08a;
+  border-radius: 8px;
+  padding: 1px 5px;
+  font-size: 10px;
   font-weight: 900;
   font-family: var(--font-en-pixel);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
-  letter-spacing: 0.5px;
 }
 
-.levelup-card-box {
-  background: rgba(15, 23, 42, 0.88);
-  border: 1px solid rgba(250, 204, 21, 0.4);
-  border-radius: 8px;
-  padding: 12px 10px;
-  margin: 10px 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+.dq-status-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  color: #ffffff;
+  line-height: 1.4;
+  flex-grow: 1;
+  min-width: 0;
 }
 
-.levelup-tier-unlock-box {
-  background: linear-gradient(135deg, #78350f 0%, #451a03 100%);
-  border: 2px solid #facc15;
+.dq-status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dq-status-label {
+  color: #94a3b8;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.dq-status-val {
+  color: #fde047;
+  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ドラクエ風メッセージログボックス */
+.dq-message-box {
+  background: #000000;
+  border: 3px double #ffffff;
   border-radius: 6px;
-  padding: 10px;
-  margin-bottom: 12px;
-  animation: pulseGold 1.5s infinite;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  min-height: 120px;
+  max-height: 170px;
+  overflow-y: auto;
+  text-align: left;
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  line-height: 1.6;
+  color: #ffffff;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.9);
+  cursor: pointer;
+  user-select: none;
+}
+
+.dq-message-line {
+  margin-bottom: 4px;
+  word-break: break-all;
+}
+
+.dq-message-line.highlight {
+  color: #fde047;
+  font-weight: bold;
+}
+
+.dq-message-line.tier {
+  color: #93c5fd;
+  font-size: 12px;
+}
+
+.dq-message-line.bonus {
+  color: #4ade80;
+  font-weight: bold;
+  border-top: 1px dashed rgba(255, 255, 255, 0.25);
+  padding-top: 4px;
+  margin-top: 6px;
+}
+
+.dq-message-tap-guide {
+  font-size: 10px;
+  color: #94a3b8;
+  text-align: right;
+  margin-bottom: 10px;
+  font-family: var(--font-pixel);
+}
+
+/* ドラクエ風コマンド決定ボタン */
+.dq-command-btn {
+  width: 100%;
+  background: #000000;
+  border: 3px double #ffffff;
+  color: #ffffff;
+  font-family: var(--font-pixel);
+  font-size: 14px;
+  font-weight: bold;
+  padding: 11px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+
+.dq-command-btn:hover, .dq-command-btn:active {
+  background: #1e293b;
+  border-color: #fde047;
+  color: #fde047;
+}
+
+.dq-cursor-blink {
+  display: inline-block;
+  animation: dqCursorBlink 0.8s infinite steps(1);
+  color: #fde047;
+  font-size: 12px;
+}
+
+@keyframes dqCursorBlink {
+  0%, 100% { opacity: 1; transform: translateX(0); }
+  50% { opacity: 0; transform: translateX(-2px); }
 }
 
 /* ==========================================================================

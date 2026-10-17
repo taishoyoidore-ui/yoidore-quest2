@@ -2648,68 +2648,68 @@ class YoidoreQuestApp {
     const unlockedTierCount = unlockedTiers.length;
     const heroData = this.getHeroTitleForTierCount(unlockedTierCount);
 
-    const claimedListHtml = (claimedTiers && claimedTiers.length > 0) ? claimedTiers.map(t => {
-      const isGoods = t.reward_type === 'goods';
-      return `
-        <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-gold); border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; text-align: left;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <strong style="color: #fef08a; font-size: 13px;">🏆 ${this.escapeHtml(t.title)}</strong>
-            <span style="font-size: 11px; background: ${isGoods ? '#d97706' : '#0284c7'}; color: #fff; padding: 2px 6px; border-radius: 3px; font-weight: bold;">
-              ${isGoods ? '🎁 グッズ' : `🎟️ ${t.selectable_count || 5}軒分`}
-            </span>
-          </div>
-          <div style="font-size: 11px; color: #cbd5e1; margin-top: 2px;">
-            ${isGoods ? `記念品（${this.escapeHtml(t.goods_name || t.title)}）引換券を獲得！` : `お好きな参加酒場で使えるクーポン枠を付与しました！`}
-          </div>
-        </div>
-      `;
-    }).join('') : `
-      <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-gold); border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; text-align: left;">
-        <strong style="color: #fef08a; font-size: 13px;">🏆 ${this.escapeHtml(tierTitle)}</strong>
-        <div style="font-size: 11px; color: #cbd5e1; margin-top: 2px;">特典クーポン枠を獲得しました！</div>
-      </div>
-    `;
+    // ドラクエ風メッセージテキスト配列の構築（実データのみで構成）
+    const lines = [
+      { text: `${displayName} は レベルが ${heroData.level} に あがった！`, cls: 'highlight' },
+      { text: `称号 【${heroData.title || '駆け出しの呑兵衛'}】 を えた！`, cls: 'highlight' },
+      { text: `【${requiredVisits}軒 はしご達成！】`, cls: 'tier' }
+    ];
+
+    if (claimedTiers && claimedTiers.length > 0) {
+      claimedTiers.forEach(t => {
+        const isGoods = t.reward_type === 'goods';
+        const name = isGoods ? `『${t.goods_name || t.title}』` : `酒場クーポン ${t.selectable_count || 5}軒分`;
+        lines.push({
+          text: `▼ ${t.required_visits}軒達成: ${name} を てにいれた！`,
+          cls: 'tier'
+        });
+      });
+    }
+
+    if (totalAddedSlots > 0) {
+      lines.push({
+        text: `なんと 酒場クーポンが 合計 +${totalAddedSlots}軒分 ふえた！`,
+        cls: 'bonus'
+      });
+    }
 
     overlay.innerHTML = `
       <canvas id="milestone-confetti-canvas" style="position:fixed; top:0; left:0; width:100vw; height:100vh; pointer-events:none; z-index:9999;"></canvas>
-      <div class="rpg-modal-window gold-border levelup-modal-window" style="max-width:390px; width:92%; text-align:center;">
-        <div class="levelup-sunburst"></div>
+      <div class="rpg-modal-window gold-border levelup-modal-window" style="max-width:390px; width:92%; text-align:center; padding:12px 14px;">
         <div class="levelup-content-relative">
-          <div style="font-size:36px; margin-bottom:2px;">✨🍺🎁</div>
-          <div class="levelup-header-banner" style="font-size:20px; letter-spacing:2px;">LEVEL UP!!</div>
-          <div style="font-size:13px; color:#fde047; font-weight:bold; letter-spacing:1px; margin-bottom:8px;">
-            【${requiredVisits}軒ハシゴ達成】おめでとうございます！
-          </div>
+          <div style="font-size:26px; margin-bottom:2px;">✨🍺🎁</div>
+          <div class="levelup-header-banner" style="font-size:22px; letter-spacing:2px; margin-bottom:6px;">LEVEL UP!!</div>
 
-          <!-- LINEアバター＆新レベル称号 -->
-          <div class="levelup-avatar-wrap">
-            <img src="${avatarUrl}" alt="${displayName}" class="levelup-avatar" onerror="this.src='assets/banner.png';">
-            <span class="levelup-level-badge">Lv.${heroData.level}</span>
-          </div>
-          <div style="font-size:14px; font-weight:bold; color:#ffffff; margin-bottom:4px;">${displayName}</div>
-          <div style="margin-bottom:10px;">
-            <span class="hero-title-badge" style="background:${heroData.badge_color || '#eab308'}; color:#000000; font-size:12px; font-weight:bold; padding:2px 10px; border-radius:12px; display:inline-block; border:1px solid #ffffff;">
-              🎖️ 称号: ${this.escapeHtml(heroData.title || '駆け出しの呑兵衛')}
-            </span>
-          </div>
-
-          <!-- 獲得特典サマリーカード -->
-          <div style="background: linear-gradient(135deg, rgba(217, 119, 6, 0.3) 0%, rgba(180, 83, 9, 0.2) 100%); border: 1px solid #f59e0b; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;">
-            <div style="font-size: 11px; color: #fde68a; font-weight: bold; margin-bottom: 6px;">🎁 今回アンロックされた特典</div>
-            ${claimedListHtml}
-            ${totalAddedSlots > 0 ? `
-              <div style="margin-top: 8px; font-size: 13px; color: #4ade80; font-weight: bold; border-top: 1px dashed rgba(245,158,11,0.5); padding-top: 6px;">
-                🎟️ 合計利用可能クーポン: <strong style="font-size: 16px;">+${totalAddedSlots} 軒分</strong>
+          <!-- ドラクエ風ステータスボックス（アバター＋なまえ＋Lv＋称号） -->
+          <div class="dq-status-box">
+            <div class="dq-status-avatar-wrap">
+              <img src="${avatarUrl}" alt="${displayName}" class="dq-status-avatar" onerror="this.src='assets/banner.png';">
+              <span class="dq-status-avatar-badge">Lv.${heroData.level}</span>
+            </div>
+            <div class="dq-status-info">
+              <div class="dq-status-row">
+                <span class="dq-status-label">なまえ:</span>
+                <span class="dq-status-val" style="color:#ffffff;">${displayName}</span>
               </div>
-            ` : ''}
+              <div class="dq-status-row">
+                <span class="dq-status-label">レベル:</span>
+                <span class="dq-status-val">Lv.${heroData.level}</span>
+                <span style="font-size:10px; color:#4ade80; font-weight:bold;">(UP!)</span>
+              </div>
+              <div class="dq-status-row">
+                <span class="dq-status-label">しょうごう:</span>
+                <span class="dq-status-val" style="color:${heroData.badge_color || '#fde047'};">${this.escapeHtml(heroData.title || '駆け出しの呑兵衛')}</span>
+              </div>
+            </div>
           </div>
 
-          <div style="font-size:12px; color:#cbd5e1; line-height:1.4; margin-bottom:12px;">
-            ※獲得したクーポンは、後夜祭期間にお好きな参加酒場のお会計時にご利用いただけます。
-          </div>
+          <!-- ドラクエ風メッセージログボックス（自動ピコピコ文字送り＆タップスキップ対応） -->
+          <div id="dq-levelup-msg-box" class="dq-message-box"></div>
+          <div class="dq-message-tap-guide">※タップでメッセージを一括表示</div>
 
-          <button id="milestone-modal-close-btn" class="command-button" style="width:100%; padding:11px; font-size:14px; font-weight:bold; background:linear-gradient(180deg, #10b981 0%, #047857 100%); border:1px solid #34d399; color:#ffffff; border-radius:6px; cursor:pointer;">
-            📜 冒険の書で確認する ▶
+          <!-- ドラクエ風コマンド決定ボタン -->
+          <button id="milestone-modal-close-btn" class="dq-command-btn">
+            <span class="dq-cursor-blink">▶</span> ぼうけんのしょを ひらく
           </button>
         </div>
       </div>
@@ -2717,13 +2717,84 @@ class YoidoreQuestApp {
 
     document.body.appendChild(overlay);
 
-    document.getElementById('milestone-modal-close-btn').addEventListener('click', () => {
+    const msgBox = document.getElementById('dq-levelup-msg-box');
+    const closeBtn = document.getElementById('milestone-modal-close-btn');
+
+    let lineIdx = 0;
+    let charIdx = 0;
+    let currentLineEl = null;
+    let typeTimer = null;
+    let isFinished = false;
+
+    // 一括全文表示（スキップ）関数
+    const renderFullText = () => {
+      if (isFinished) return;
+      if (typeTimer) clearTimeout(typeTimer);
+      isFinished = true;
+      if (msgBox) {
+        msgBox.innerHTML = lines.map(l => `<div class="dq-message-line ${l.cls}">${this.escapeHtml(l.text)}</div>`).join('');
+        msgBox.scrollTop = msgBox.scrollHeight;
+      }
+    };
+
+    // 自動文字送りタイピング関数
+    const typeNextChar = () => {
+      if (isFinished || !msgBox) return;
+      if (lineIdx >= lines.length) {
+        isFinished = true;
+        return;
+      }
+
+      const line = lines[lineIdx];
+      if (charIdx === 0) {
+        currentLineEl = document.createElement('div');
+        currentLineEl.className = `dq-message-line ${line.cls}`;
+        msgBox.appendChild(currentLineEl);
+      }
+
+      if (charIdx < line.text.length) {
+        currentLineEl.textContent += line.text.charAt(charIdx);
+        charIdx++;
+        if (charIdx % 2 === 0 && this.soundEnabled && this.audioCtx) {
+          this.playTone(420 + Math.random() * 80, 0.015, 'sine');
+        }
+        msgBox.scrollTop = msgBox.scrollHeight;
+        typeTimer = setTimeout(typeNextChar, 25);
+      } else {
+        lineIdx++;
+        charIdx = 0;
+        typeTimer = setTimeout(typeNextChar, 160);
+      }
+    };
+
+    // 初回文字送り開始
+    typeTimer = setTimeout(typeNextChar, 100);
+
+    // モーダル内タップでスキップ
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        // 背景タップで閉じる（フェイルセーフ）
+        if (typeTimer) clearTimeout(typeTimer);
+        this.playSelectSE();
+        overlay.remove();
+        this.navigateTo('quest-book');
+        return;
+      }
+      if (!isFinished && e.target !== closeBtn && !closeBtn.contains(e.target)) {
+        renderFullText();
+      }
+    });
+
+    // 決定ボタン押下時
+    closeBtn.addEventListener('click', () => {
+      if (typeTimer) clearTimeout(typeTimer);
       this.playSelectSE();
       overlay.remove();
       this.navigateTo('quest-book');
     });
 
-    // ゴールド紙吹雪パーティクル生成
+    // レベルアップSE再生 & ゴールド紙吹雪パーティクル生成
+    this.playLevelUpSE();
     setTimeout(() => {
       this.launchLevelUpConfetti('milestone-confetti-canvas');
     }, 100);
