@@ -2558,7 +2558,7 @@ class YoidoreQuestApp {
     overlay.id = 'treasure-box-prompt-modal';
 
     overlay.innerHTML = `
-      <div class="rpg-modal-window gold-border treasure-open-window" id="treasure-window-content">
+      <div class="rpg-modal-window gold-border treasure-open-window" id="treasure-window-content" style="max-width:360px; width:92%; max-height:88vh; overflow-y:auto; padding:18px 14px; box-sizing:border-box;">
         <div class="treasure-open-badge">
           ✨ SPECIAL REWARD ✨
         </div>
@@ -2567,11 +2567,11 @@ class YoidoreQuestApp {
           🎁 秘宝の宝箱を発見！
         </div>
 
-        <div class="treasure-open-box-visual" id="treasure-box-click-target" title="タップして宝箱を開ける！">
-          <img src="assets/treasure_box.png" alt="秘宝の宝箱" class="treasure-box-img" onerror="this.src='assets/banner.png';">
+        <div class="treasure-open-box-visual" id="treasure-box-click-target" title="タップして宝箱を開ける！" style="max-width:130px; margin:0 auto 12px auto; cursor:pointer;">
+          <img src="assets/treasure_box.png" alt="秘宝の宝箱" class="treasure-box-img" style="width:100%; max-width:130px; max-height:130px; object-fit:contain; display:block; margin:0 auto; filter:drop-shadow(0 4px 15px rgba(245, 158, 11, 0.4));" onerror="this.src='assets/banner.png';">
         </div>
 
-        <div class="treasure-tap-guide-text">
+        <div class="treasure-tap-guide-text" style="font-size:13.5px; color:#e2e8f0; margin-bottom:14px; line-height:1.5;">
           【<strong>${requiredVisits}軒ハシゴ達成</strong>】の証が収められている！<br>
           <span style="color: #fde047; font-size: 14px; font-weight: bold;">タップして宝箱を開封しよう！</span>
         </div>
@@ -2650,11 +2650,11 @@ class YoidoreQuestApp {
     const unlockedTierCount = unlockedTiers.length;
     const heroData = this.getHeroTitleForTierCount(unlockedTierCount);
 
-    // ドラクエ風メッセージテキスト配列の構築（実データのみで構成）
+    // メッセージテキスト配列の構築（行頭の三角マークを廃止し、横幅を有効活用）
     const lines = [
-      { text: `▶ ${displayName} は レベルが ${heroData.level} に あがった！`, cls: 'highlight' },
-      { text: `▶ 称号 【${heroData.title || '駆け出しの呑兵衛'}】 を えた！`, cls: 'highlight' },
-      { text: `▶ 【${requiredVisits}軒 はしご達成！】`, cls: 'milestone' }
+      { text: `${displayName} は レベルが ${heroData.level} に あがった！`, cls: 'highlight' },
+      { text: `称号 【${heroData.title || '駆け出しの呑兵衛'}】 を えた！`, cls: 'highlight' },
+      { text: `【${requiredVisits}軒 はしご達成！】`, cls: 'milestone' }
     ];
 
     if (claimedTiers && claimedTiers.length > 0) {
@@ -2662,7 +2662,7 @@ class YoidoreQuestApp {
         const isGoods = t.reward_type === 'goods';
         const name = isGoods ? `『${t.goods_name || t.title}』` : `酒場クーポン ${t.selectable_count || 5}軒分`;
         lines.push({
-          text: `▶ ${t.required_visits}軒達成: ${name} を 手に入れた！`,
+          text: `${t.required_visits}軒達成: ${name} を 手に入れた！`,
           cls: 'tier'
         });
       });
@@ -2670,18 +2670,15 @@ class YoidoreQuestApp {
 
     if (totalAddedSlots > 0) {
       lines.push({
-        text: `▶ 酒場クーポンが 合計 +${totalAddedSlots}軒分 ふえた！`,
+        text: `酒場クーポンが 合計 +${totalAddedSlots}軒分 ふえた！`,
         cls: 'bonus'
       });
     }
 
     overlay.innerHTML = `
       <canvas id="milestone-confetti-canvas" style="position:fixed; top:0; left:0; width:100vw; height:100vh; pointer-events:none; z-index:9999;"></canvas>
-      <div class="rpg-modal-window gold-border levelup-modal-window" style="max-width:440px; width:95%; text-align:center; padding:14px 16px;">
+      <div class="rpg-modal-window gold-border levelup-modal-window" style="max-width:440px; width:95%; text-align:center; padding:16px 16px;">
         <div class="levelup-content-relative">
-          <div style="font-size:26px; margin-bottom:2px;">✨🍺🎁</div>
-          <div class="levelup-header-banner" style="font-size:22px; letter-spacing:2px; margin-bottom:6px;">LEVEL UP!!</div>
-
           <!-- ドラクエ風ステータスボックス（アバター＋なまえ＋Lv＋全幅称号プレート） -->
           <div class="dq-status-box">
             <div class="dq-status-top-row">
@@ -2713,9 +2710,9 @@ class YoidoreQuestApp {
             <div id="dq-levelup-msg-box" class="dq-message-box"></div>
           </div>
 
-          <!-- ドラクエ風コマンド決定ボタン -->
-          <button id="milestone-modal-close-btn" class="dq-command-btn">
-            <span class="dq-cursor-blink">▶</span> ぼうけんのしょを ひらく
+          <!-- 冒険の書へ進むボタン（他画面と統一されたリッチなRPGゴールドボタン） -->
+          <button id="milestone-modal-close-btn" class="treasure-open-action-btn" style="margin-top:10px; width:100%;">
+            <span>📜 冒険の書をひらく</span>
           </button>
         </div>
       </div>

@@ -2919,42 +2919,32 @@ body {
   margin-bottom: 6px;
 }
 
-/* ドラクエ風コマンド決定ボタン */
+/* 決定ボタン（他の画面と同様のゴールドRPGボタンスタイル） */
 .dq-command-btn {
   width: 100%;
-  background: #000000;
-  border: 3px double #ffffff;
+  background: linear-gradient(180deg, #f59e0b 0%, #b45309 100%);
   color: #ffffff;
+  border: 2px solid #fde047;
   font-family: var(--font-pixel);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: bold;
-  padding: 11px 12px;
-  border-radius: 6px;
+  padding: 13px 16px;
+  border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: all 0.15s;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  transition: transform 0.1s ease, filter 0.1s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 10px rgba(245, 158, 11, 0.3);
 }
 
-.dq-command-btn:hover, .dq-command-btn:active {
-  background: #1e293b;
-  border-color: #fde047;
-  color: #fde047;
+.dq-command-btn:hover {
+  filter: brightness(1.08);
 }
 
-.dq-cursor-blink {
-  display: inline-block;
-  animation: dqCursorBlink 0.8s infinite steps(1);
-  color: #fde047;
-  font-size: 12px;
-}
-
-@keyframes dqCursorBlink {
-  0%, 100% { opacity: 1; transform: translateX(0); }
-  50% { opacity: 0; transform: translateX(-2px); }
+.dq-command-btn:active {
+  transform: scale(0.98);
 }
 
 /* ==========================================================================
@@ -3033,15 +3023,18 @@ body {
 
 .treasure-open-window {
   width: 100%;
-  max-width: 400px;
+  max-width: 360px;
+  max-height: 88vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: #090c19;
   border: 4px double var(--border-gold);
   border-radius: 12px;
-  padding: 24px 18px;
+  padding: 20px 16px;
   text-align: center;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(245, 158, 11, 0.35);
   position: relative;
-  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .treasure-open-badge {
@@ -3059,19 +3052,19 @@ body {
 }
 
 .treasure-open-title {
-  font-size: 20px;
+  font-size: 19px;
   font-weight: bold;
   color: var(--text-yellow);
   text-shadow: 2px 2px 0 #000, 0 0 10px rgba(248, 225, 108, 0.4);
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   line-height: 1.4;
 }
 
 .treasure-open-box-visual {
   position: relative;
   width: 100%;
-  max-width: 220px;
-  margin: 0 auto 16px auto;
+  max-width: 130px;
+  margin: 0 auto 12px auto;
   cursor: pointer;
   transition: transform 0.15s ease;
 }
@@ -3086,8 +3079,11 @@ body {
 
 .treasure-box-img {
   width: 100%;
-  height: auto;
+  max-width: 130px;
+  max-height: 130px;
+  object-fit: contain;
   display: block;
+  margin: 0 auto;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(245, 158, 11, 0.35);
 }
