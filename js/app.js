@@ -2623,9 +2623,7 @@ class YoidoreQuestApp {
    * 🌟 ドラクエ風 マイルストーン達成＆特典アンロック演出モーダル
    * ------------------------------------------------------------------------ */
   showMilestoneUnlockModal(res = {}) {
-    const { targetTier, claimedTiers, totalAddedSlots, grantedGoods } = res;
-    const tierTitle = targetTier?.title || 'マイルストーン達成特典';
-    const requiredVisits = targetTier?.required_visits || 5;
+    const { claimedTiers, totalAddedSlots } = res;
 
     const overlay = document.createElement('div');
     overlay.className = 'rpg-modal-overlay';
@@ -2648,8 +2646,7 @@ class YoidoreQuestApp {
     // メッセージテキスト配列の構築（称号は「手に入れた」、達成特典は「受け取った」に統一）
     const lines = [
       { text: `${displayName} は レベルが ${heroData.level} に あがった！`, cls: 'highlight' },
-      { text: `称号 【${heroData.title || '駆け出しの呑兵衛'}】 を 手に入れた！`, cls: 'highlight' },
-      { text: `【${requiredVisits}軒 はしご達成！】`, cls: 'milestone' }
+      { text: `称号 【${heroData.title || '駆け出しの呑兵衛'}】 を 手に入れた！`, cls: 'highlight' }
     ];
 
     if (claimedTiers && claimedTiers.length > 0) {
