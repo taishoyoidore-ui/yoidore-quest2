@@ -2919,32 +2919,35 @@ body {
   margin-bottom: 6px;
 }
 
-/* 決定ボタン（他の画面と同様のゴールドRPGボタンスタイル） */
+/* 決定ボタン（他の画面と同様のRPGボタンスタイル） */
 .dq-command-btn {
   width: 100%;
-  background: linear-gradient(180deg, #f59e0b 0%, #b45309 100%);
-  color: #ffffff;
-  border: 2px solid #fde047;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #1f4e79 0%, #0d274c 100%);
+  color: var(--text-white);
+  border: 3px double var(--border-gold);
+  padding: 14px 20px;
   font-family: var(--font-pixel);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: bold;
-  padding: 13px 16px;
-  border-radius: 8px;
+  letter-spacing: 1px;
   cursor: pointer;
+  border-radius: 6px;
+  box-shadow: 0 4px 0 #061122, 0 0 12px rgba(247, 208, 112, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: transform 0.1s ease, filter 0.1s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 10px rgba(245, 158, 11, 0.3);
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 .dq-command-btn:hover {
-  filter: brightness(1.08);
+  filter: brightness(1.1);
 }
 
 .dq-command-btn:active {
-  transform: scale(0.98);
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #061122;
 }
 
 /* ==========================================================================
@@ -3097,29 +3100,32 @@ body {
 
 .treasure-open-action-btn {
   width: 100%;
-  background: linear-gradient(180deg, #f59e0b 0%, #b45309 100%);
-  color: #ffffff;
-  border: 2px solid #fde047;
-  padding: 14px 16px;
-  border-radius: 8px;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #1f4e79 0%, #0d274c 100%);
+  color: var(--text-white);
+  border: 3px double var(--border-gold);
+  padding: 14px 20px;
   font-family: var(--font-pixel);
   font-size: 16px;
   font-weight: bold;
+  letter-spacing: 1px;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  box-shadow: 0 4px 0 #061122, 0 0 12px rgba(247, 208, 112, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: transform 0.1s ease, filter 0.1s ease;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 .treasure-open-action-btn:hover {
-  filter: brightness(1.08);
+  filter: brightness(1.1);
 }
 
 .treasure-open-action-btn:active {
-  transform: scale(0.98);
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #061122;
 }
 
 

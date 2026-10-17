@@ -2558,26 +2558,21 @@ class YoidoreQuestApp {
     overlay.id = 'treasure-box-prompt-modal';
 
     overlay.innerHTML = `
-      <div class="rpg-modal-window gold-border treasure-open-window" id="treasure-window-content" style="max-width:360px; width:92%; max-height:88vh; overflow-y:auto; padding:18px 14px; box-sizing:border-box;">
-        <div class="treasure-open-badge">
-          ✨ SPECIAL REWARD ✨
+      <div class="rpg-modal-window gold-border treasure-open-window" id="treasure-window-content" style="max-width:360px; width:92%; max-height:88vh; overflow-y:auto; padding:20px 16px; box-sizing:border-box;">
+        <div class="treasure-open-title" style="font-size:20px; font-weight:bold; color:var(--text-yellow); margin-bottom:14px; text-shadow:2px 2px 0 #000;">
+          宝箱を手に入れた！
         </div>
 
-        <div class="treasure-open-title">
-          🎁 秘宝の宝箱を発見！
+        <div class="treasure-open-box-visual" id="treasure-box-click-target" style="max-width:130px; margin:0 auto 14px auto; cursor:pointer;">
+          <img src="assets/treasure_box.png" alt="宝箱" class="treasure-box-img" style="width:100%; max-width:130px; max-height:130px; object-fit:contain; display:block; margin:0 auto; filter:drop-shadow(0 4px 15px rgba(245, 158, 11, 0.4));" onerror="this.src='assets/banner.png';">
         </div>
 
-        <div class="treasure-open-box-visual" id="treasure-box-click-target" title="タップして宝箱を開ける！" style="max-width:130px; margin:0 auto 12px auto; cursor:pointer;">
-          <img src="assets/treasure_box.png" alt="秘宝の宝箱" class="treasure-box-img" style="width:100%; max-width:130px; max-height:130px; object-fit:contain; display:block; margin:0 auto; filter:drop-shadow(0 4px 15px rgba(245, 158, 11, 0.4));" onerror="this.src='assets/banner.png';">
+        <div class="treasure-tap-guide-text" style="font-size:14px; color:#e2e8f0; margin-bottom:18px; line-height:1.6;">
+          【<strong>${requiredVisits}軒ハシゴ達成</strong>】の証が収められている！
         </div>
 
-        <div class="treasure-tap-guide-text" style="font-size:13.5px; color:#e2e8f0; margin-bottom:14px; line-height:1.5;">
-          【<strong>${requiredVisits}軒ハシゴ達成</strong>】の証が収められている！<br>
-          <span style="color: #fde047; font-size: 14px; font-weight: bold;">タップして宝箱を開封しよう！</span>
-        </div>
-
-        <button class="treasure-open-action-btn" id="treasure-open-btn">
-          <span>✨ 宝箱を開ける！(TAP)</span>
+        <button class="start-game-btn treasure-open-action-btn" id="treasure-open-btn" style="width:100%; box-sizing:border-box; margin:0; animation:none; font-size:16px; padding:13px 20px; justify-content:center;">
+          宝箱をあける
         </button>
       </div>
     `;
@@ -2650,10 +2645,10 @@ class YoidoreQuestApp {
     const unlockedTierCount = unlockedTiers.length;
     const heroData = this.getHeroTitleForTierCount(unlockedTierCount);
 
-    // メッセージテキスト配列の構築（行頭の三角マークを廃止し、横幅を有効活用）
+    // メッセージテキスト配列の構築（称号は「手に入れた」、達成特典は「受け取った」に統一）
     const lines = [
       { text: `${displayName} は レベルが ${heroData.level} に あがった！`, cls: 'highlight' },
-      { text: `称号 【${heroData.title || '駆け出しの呑兵衛'}】 を えた！`, cls: 'highlight' },
+      { text: `称号 【${heroData.title || '駆け出しの呑兵衛'}】 を 手に入れた！`, cls: 'highlight' },
       { text: `【${requiredVisits}軒 はしご達成！】`, cls: 'milestone' }
     ];
 
@@ -2662,7 +2657,7 @@ class YoidoreQuestApp {
         const isGoods = t.reward_type === 'goods';
         const name = isGoods ? `『${t.goods_name || t.title}』` : `酒場クーポン ${t.selectable_count || 5}軒分`;
         lines.push({
-          text: `${t.required_visits}軒達成: ${name} を 手に入れた！`,
+          text: `${t.required_visits}軒達成: ${name} を 受け取った！`,
           cls: 'tier'
         });
       });
@@ -2710,9 +2705,9 @@ class YoidoreQuestApp {
             <div id="dq-levelup-msg-box" class="dq-message-box"></div>
           </div>
 
-          <!-- 冒険の書へ進むボタン（他画面と統一されたリッチなRPGゴールドボタン） -->
-          <button id="milestone-modal-close-btn" class="treasure-open-action-btn" style="margin-top:10px; width:100%;">
-            <span>📜 冒険の書をひらく</span>
+          <!-- 冒険の書へ進むボタン（他画面と同様のRPGボタンスタイル） -->
+          <button id="milestone-modal-close-btn" class="start-game-btn treasure-open-action-btn" style="margin-top:12px; width:100%; box-sizing:border-box; animation:none; font-size:16px; padding:13px 20px; justify-content:center;">
+            冒険の書をひらく
           </button>
         </div>
       </div>
