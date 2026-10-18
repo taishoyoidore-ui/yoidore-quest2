@@ -1670,33 +1670,39 @@ class YoidoreQuestApp {
 
     container.innerHTML = `
       <div class="quest-book-container">
-        <!-- 1. 勇者ステータス（ドラクエ風クラシックステータス枠） -->
+        <!-- 1. 勇者ステータス（ドラクエ風ロイヤルステータス枠） -->
         <div class="rpg-window gold-border hero-status-window" style="margin-bottom:14px;">
           <div class="rpg-window-header header-gold">
             <span>▶ 冒険者のステータス</span>
             <span class="header-badge" style="background:#b45309; border:1px solid #fde047; color:#fff; padding:1px 6px; border-radius:4px; font-size:11px;">Lv.${heroLv}</span>
           </div>
-          <div class="hero-status-body" style="display:flex; gap:12px; align-items:center;">
-            <div class="hero-avatar-wrap" style="flex-shrink:0; text-align:center;">
-              <img src="${user.pictureUrl || 'assets/banner.png'}" alt="Avatar" class="hero-avatar" onerror="this.src='assets/banner.png';" style="width:54px; height:54px; border:2px solid var(--border-gold); border-radius:8px; object-fit:cover; display:block;">
+          <div class="hero-status-body" style="padding:10px 12px; display:flex; flex-direction:column; gap:9px;">
+            <!-- 上段: アバター ＆ なまえ・クーポン情報 -->
+            <div style="display:flex; gap:12px; align-items:center;">
+              <div class="hero-avatar-wrap" style="flex-shrink:0;">
+                <img src="${user.pictureUrl || 'assets/banner.png'}" alt="Avatar" class="hero-avatar" onerror="this.src='assets/banner.png';" style="width:52px; height:52px; border:2px solid var(--border-gold); border-radius:8px; object-fit:cover; display:block; box-shadow:0 0 8px rgba(250, 204, 21, 0.4);">
+              </div>
+              <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:4px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                  <span style="color:#ffffff; font-weight:bold; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${this.escapeHtml ? this.escapeHtml(user.displayName) : user.displayName}</span>
+                  <span class="dq-status-lv-badge">Lv.${heroLv}</span>
+                </div>
+                <div style="font-size:12px; color:#cbd5e1; display:flex; align-items:center; gap:6px;">
+                  <span style="color:#94a3b8; font-size:11px;">酒場クーポン:</span>
+                  <span style="color:#fde047; font-weight:bold;">
+                    ${remainingAvailableCoupons > 0 ? `🎫 残り ${remainingAvailableCoupons} 軒分` : (unlockedTierCount > 0 ? '全利用済み' : '未解放')}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div class="hero-status-grid" style="flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; font-size:12.5px;">
-              <div style="display:grid; grid-template-columns:82px 1fr; align-items:center; border-bottom:1px dashed rgba(248,225,108,0.25); padding-bottom:3px;">
-                <span style="color:#94a3b8; font-size:11px; flex-shrink:0;">なまえ</span>
-                <span style="color:#ffffff; font-weight:bold; font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left;">${this.escapeHtml ? this.escapeHtml(user.displayName) : user.displayName}</span>
+
+            <!-- 下段: 黄金に輝く主役 称号エンブレムプレート -->
+            <div class="hero-royal-title-card" style="--badge-accent:${heroColor};">
+              <div class="hero-royal-title-header">
+                <span class="royal-badge-tag"><i class="fa-solid fa-award"></i> 勇者称号</span>
+                <span class="hero-royal-title-text"><i class="fa-solid fa-crown royal-crown-icon"></i> ${this.escapeHtml(heroTitle)}</span>
               </div>
-              <div style="display:grid; grid-template-columns:82px 1fr; align-items:center; border-bottom:1px dashed rgba(248,225,108,0.25); padding-bottom:3px;">
-                <span style="color:#94a3b8; font-size:11px; flex-shrink:0;">しょうごう</span>
-                <span style="color:${heroColor}; font-weight:bold; display:inline-flex; align-items:center; gap:4px; text-shadow:0 0 6px ${heroColor}55; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                  <i class="fa-solid fa-medal" style="font-size:11px; flex-shrink:0;"></i> <span>${heroTitle}</span>
-                </span>
-              </div>
-              <div style="display:grid; grid-template-columns:82px 1fr; align-items:center;">
-                <span style="color:#94a3b8; font-size:11px; flex-shrink:0;">酒場クーポン</span>
-                <span style="color:#fde047; font-weight:bold; text-align:left;">
-                  ${remainingAvailableCoupons > 0 ? `🎫 残り ${remainingAvailableCoupons} 軒分` : (unlockedTierCount > 0 ? '全利用済み' : '未解放')}
-                </span>
-              </div>
+              ${heroDesc ? `<div class="hero-royal-title-desc">📜 ${this.escapeHtml(heroDesc)}</div>` : ''}
             </div>
           </div>
         </div>
@@ -2674,8 +2680,9 @@ class YoidoreQuestApp {
                   <div class="dq-status-name">${displayName}</div>
                   <div class="dq-status-lv-badge">Lv.${heroData.level}</div>
                 </div>
-                <div class="dq-status-title-badge" style="border-color:${heroData.badge_color || '#fde047'}; color:${heroData.badge_color || '#fde047'};">
-                  👑 ${this.escapeHtml(heroData.title || '駆け出しの呑兵衛')}
+                <div class="dq-status-title-badge" style="--badge-accent:${heroData.badge_color || '#fde047'};">
+                  <i class="fa-solid fa-crown royal-crown-icon"></i>
+                  <span class="royal-title-text">${this.escapeHtml(heroData.title || '駆け出しの呑兵衛')}</span>
                 </div>
               </div>
             </div>
