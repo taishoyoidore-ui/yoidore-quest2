@@ -526,7 +526,49 @@ class YoidoreAdminApp {
     const uElem = document.getElementById('analytics-total-users');
     if (uElem) uElem.textContent = `${totalUsers.toLocaleString()} 名`;
 
-    // 2. エリアフィルター初期化
+    // 2. 酒場実績サマリーKPIピル集計
+    const storeStats = this.getAnalyticsStoreStats();
+    const storeTotalElem = document.getElementById('analytics-kpi-store-total');
+    if (storeTotalElem) storeTotalElem.textContent = `${storeStats.length} 軒`;
+    const storeUsedElem = document.getElementById('analytics-kpi-store-used');
+    if (storeUsedElem) {
+      const usedCount = storeStats.filter(s => s.usedCount > 0).length;
+      storeUsedElem.textContent = `${usedCount} 軒`;
+    }
+    const storeUnusedElem = document.getElementById('analytics-kpi-store-unused');
+    if (storeUnusedElem) {
+      const unusedCount = storeStats.filter(s => s.usedCount === 0).length;
+      storeUnusedElem.textContent = `${unusedCount} 軒`;
+    }
+    const storeCouponElem = document.getElementById('analytics-kpi-store-coupon');
+    if (storeCouponElem) {
+      const couponCount = storeStats.filter(s => s.isCouponTarget).length;
+      storeCouponElem.textContent = `${couponCount} 軒`;
+    }
+
+    // 3. 特典サマリーKPIピル集計
+    const tiers = this.tiers || [];
+    const tierTotalElem = document.getElementById('analytics-kpi-tier-total');
+    if (tierTotalElem) tierTotalElem.textContent = `${tiers.length} 件`;
+    const tierCouponElem = document.getElementById('analytics-kpi-tier-coupon');
+    if (tierCouponElem) {
+      const couponTiers = tiers.filter(t => t.reward_type !== 'goods').length;
+      tierCouponElem.textContent = `${couponTiers} 件`;
+    }
+    const tierGoodsElem = document.getElementById('analytics-kpi-tier-goods');
+    if (tierGoodsElem) {
+      const goodsTiers = tiers.filter(t => t.reward_type === 'goods').length;
+      tierGoodsElem.textContent = `${goodsTiers} 件`;
+    }
+    const tierReachedElem = document.getElementById('analytics-kpi-tier-reached');
+    if (tierReachedElem) {
+      const reachedTiers = tiers.filter(t => {
+        return this.coupons.some(c => Number(c.reward_tier_id) === Number(t.id));
+      }).length;
+      tierReachedElem.textContent = `${reachedTiers} 件`;
+    }
+
+    // 4. エリアフィルター初期化
     const areaFilter = document.getElementById('analytics-area-filter');
     if (areaFilter && areaFilter.children.length <= 1) {
       const areas = Array.from(new Set(this.stores.map(s => s.area))).filter(Boolean);
@@ -538,22 +580,14 @@ class YoidoreAdminApp {
       });
     }
 
-    // 3. テーブル＆カード描画
+    // 5. テーブル＆カード描画
     this.renderAnalyticsStoreTable();
     this.renderAnalyticsTierCards();
   }
 
-  renderAnalyticsStoreTable() {
-    const tbody = document.getElementById('analytics-stores-tbody');
-    const countElem = document.getElementById('analytics-store-count');
-    if (!tbody) return;
-
-    const search = (document.getElementById('analytics-store-search')?.value || '').trim().toLowerCase();
-    const areaFilter = document.getElementById('analytics-area-filter')?.value || '';
-    const sortBy = document.getElementById('analytics-sort-select')?.value || 'used_desc';
-
-    // 全店舗ごとの実績計算
-    const storeStats = this.stores.map(store => {
+  /* 酒場集計データ算出共通ヘルパー */
+  getAnalyticsStoreStats() {
+    return this.stores.map(store => {
       const raw = store.raw_data || {};
       const usedCount = this.coupons.filter(c => c.store_id === store.id && c.status === 'used' && c.reward_type !== 'goods').length;
 
@@ -574,22 +608,115 @@ class YoidoreAdminApp {
         usedCount
       };
     });
+  }
+
+  /* 酒場実績 サマリーピル クイック絞り込み */
+  quickFilterAnalyticsStores(type) {
+    const pillIds = [
+      'kpi-pill-analytics-store-total',
+      'kpi-pill-analytics-store-used',
+      'kpi-pill-analytics-store-unused',
+      'kpi-pill-analytics-store-coupon'
+    ];
+    pillIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('active');
+    });
+
+    const activeMap = {
+      'all': 'kpi-pill-analytics-store-total',
+      'has_used': 'kpi-pill-analytics-store-used',
+      'no_used': 'kpi-pill-analytics-store-unused',
+      'coupon_target': 'kpi-pill-analytics-store-coupon'
+    };
+    if (activeMap[type]) {
+      const el = document.getElementById(activeMap[type]);
+      if (el) el.classList.add('active');
+    }
+
+    const statusFilter = document.getElementById('analytics-store-status-filter');
+    if (statusFilter) statusFilter.value = type;
+
+    const segmentGroup = document.getElementById('analytics-store-segmented');
+    if (segmentGroup) {
+      segmentGroup.querySelectorAll('.segment-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === type);
+      });
+    }
+
+    this.renderAnalyticsStoreTable();
+  }
+
+  /* 酒場実績 セグメントボタン切り替え */
+  setAnalyticsStoreSegment(val) {
+    this.quickFilterAnalyticsStores(val);
+  }
+
+  /* 酒場実績 フィルター全リセット */
+  resetAnalyticsStoreFilters() {
+    const searchInput = document.getElementById('analytics-store-search');
+    if (searchInput) searchInput.value = '';
+    const areaFilter = document.getElementById('analytics-area-filter');
+    if (areaFilter) areaFilter.value = '';
+    const planFilter = document.getElementById('analytics-plan-filter');
+    if (planFilter) planFilter.value = '';
+    const sortSelect = document.getElementById('analytics-sort-select');
+    if (sortSelect) sortSelect.value = 'used_desc';
+
+    this.quickFilterAnalyticsStores('all');
+  }
+
+  renderAnalyticsStoreTable() {
+    const tbody = document.getElementById('analytics-stores-tbody');
+    const countElem = document.getElementById('analytics-store-count');
+    const filteredBadge = document.getElementById('analytics-store-filtered-count');
+    if (!tbody) return;
+
+    const search = (document.getElementById('analytics-store-search')?.value || '').trim().toLowerCase();
+    const statusFilter = document.getElementById('analytics-store-status-filter')?.value || 'all';
+    const areaFilter = document.getElementById('analytics-area-filter')?.value || '';
+    const planFilter = document.getElementById('analytics-plan-filter')?.value || '';
+    const sortBy = document.getElementById('analytics-sort-select')?.value || 'used_desc';
+
+    // 全店舗ごとの実績計算
+    const storeStats = this.getAnalyticsStoreStats();
+    if (countElem) countElem.textContent = storeStats.length;
 
     // 絞り込み
     let filtered = storeStats.filter(st => {
       const matchSearch = !search || st.id.toLowerCase().includes(search) || st.name.toLowerCase().includes(search) || st.area.toLowerCase().includes(search);
       const matchArea = !areaFilter || st.area === areaFilter;
-      return matchSearch && matchArea;
+
+      let matchStatus = true;
+      if (statusFilter === 'has_used') {
+        matchStatus = st.usedCount > 0;
+      } else if (statusFilter === 'no_used') {
+        matchStatus = st.usedCount === 0;
+      } else if (statusFilter === 'coupon_target') {
+        matchStatus = st.isCouponTarget;
+      }
+
+      let matchPlan = true;
+      if (planFilter === 'both') {
+        matchPlan = st.planType.includes('両方');
+      } else if (planFilter === 'set') {
+        matchPlan = st.planType.includes('セット');
+      } else if (planFilter === 'quest') {
+        matchPlan = st.planType.includes('クエスト');
+      }
+
+      return matchSearch && matchArea && matchStatus && matchPlan;
     });
 
     // ソート
     filtered.sort((a, b) => {
       if (sortBy === 'used_desc') return b.usedCount - a.usedCount || a.id.localeCompare(b.id, undefined, { numeric: true });
+      if (sortBy === 'used_asc') return a.usedCount - b.usedCount || a.id.localeCompare(b.id, undefined, { numeric: true });
       if (sortBy === 'name_asc') return a.name.localeCompare(b.name, 'ja');
       return a.id.localeCompare(b.id, undefined, { numeric: true });
     });
 
-    if (countElem) countElem.textContent = filtered.length;
+    if (filteredBadge) filteredBadge.textContent = `表示中: ${filtered.length} 軒`;
 
     if (filtered.length === 0) {
       tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">該当する酒場実績がありません</td></tr>';
@@ -632,100 +759,214 @@ class YoidoreAdminApp {
     this.renderAnalyticsTierTable();
   }
 
-  renderAnalyticsTierTable() {
-    const tbody = document.getElementById('analytics-tiers-tbody');
-    const grid = document.getElementById('analytics-tiers-grid');
-    const container = tbody || grid;
-    if (!container) return;
+  /* 特典・グッズ サマリーピル クイック絞り込み */
+  quickFilterAnalyticsTiers(type) {
+    const pillIds = [
+      'kpi-pill-analytics-tier-total',
+      'kpi-pill-analytics-tier-coupon',
+      'kpi-pill-analytics-tier-goods',
+      'kpi-pill-analytics-tier-reached'
+    ];
+    pillIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('active');
+    });
 
-    const typeFilter = document.getElementById('analytics-tier-type-filter')?.value || 'all';
-
-    let tiers = this.tiers || [];
-    if (typeFilter !== 'all') {
-      tiers = tiers.filter(t => t.reward_type === typeFilter);
+    const activeMap = {
+      'all': 'kpi-pill-analytics-tier-total',
+      'store_coupon': 'kpi-pill-analytics-tier-coupon',
+      'goods': 'kpi-pill-analytics-tier-goods',
+      'has_reached': 'kpi-pill-analytics-tier-reached'
+    };
+    if (activeMap[type]) {
+      const el = document.getElementById(activeMap[type]);
+      if (el) el.classList.add('active');
     }
 
-    if (tiers.length === 0) {
-      if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">該当する特典データがありません</td></tr>';
-      } else if (grid) {
-        grid.innerHTML = '<div class="empty-state text-muted py-3" style="grid-column: 1/-1;">該当する特典データがありません</div>';
+    const typeFilter = document.getElementById('analytics-tier-type-filter');
+    const statusFilter = document.getElementById('analytics-tier-status-filter');
+
+    if (type === 'store_coupon' || type === 'goods') {
+      if (typeFilter) typeFilter.value = type;
+      if (statusFilter) statusFilter.value = 'all';
+    } else if (type === 'has_reached') {
+      if (typeFilter) typeFilter.value = 'all';
+      if (statusFilter) statusFilter.value = 'has_reached';
+    } else {
+      if (typeFilter) typeFilter.value = 'all';
+      if (statusFilter) statusFilter.value = 'all';
+    }
+
+    const segmentGroup = document.getElementById('analytics-tier-segmented');
+    if (segmentGroup) {
+      const segVal = (type === 'store_coupon' || type === 'goods') ? type : 'all';
+      segmentGroup.querySelectorAll('.segment-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === segVal);
+      });
+    }
+
+    this.renderAnalyticsTierTable();
+  }
+
+  /* 特典・グッズ セグメントボタン切り替え */
+  setAnalyticsTierSegment(val) {
+    this.quickFilterAnalyticsTiers(val);
+  }
+
+  /* 特典・グッズ フィルター全リセット */
+  resetAnalyticsTierFilters() {
+    const searchInput = document.getElementById('analytics-tier-search');
+    if (searchInput) searchInput.value = '';
+    const statusFilter = document.getElementById('analytics-tier-status-filter');
+    if (statusFilter) statusFilter.value = 'all';
+    const sortSelect = document.getElementById('analytics-tier-sort-select');
+    if (sortSelect) sortSelect.value = 'visits_asc';
+
+    this.quickFilterAnalyticsTiers('all');
+  }
+
+  renderAnalyticsTierTable() {
+    const tbody = document.getElementById('analytics-tiers-tbody');
+    const countElem = document.getElementById('analytics-tier-count');
+    const filteredBadge = document.getElementById('analytics-tier-filtered-count');
+    if (!tbody) return;
+
+    const search = (document.getElementById('analytics-tier-search')?.value || '').trim().toLowerCase();
+    const typeFilter = document.getElementById('analytics-tier-type-filter')?.value || 'all';
+    const statusFilter = document.getElementById('analytics-tier-status-filter')?.value || 'all';
+    const sortBy = document.getElementById('analytics-tier-sort-select')?.value || 'visits_asc';
+
+    let tiers = this.tiers || [];
+    if (countElem) countElem.textContent = tiers.length;
+
+    // 各特典の統計データを付与
+    const tierStats = tiers.map(tier => {
+      const isGoods = tier.reward_type === 'goods';
+      const tierCoupons = this.coupons.filter(c => Number(c.reward_tier_id) === Number(tier.id));
+      const reachedUsersSet = new Set(tierCoupons.map(c => c.user_id));
+      const reachedUsersCount = reachedUsersSet.size;
+
+      let usedCount = 0;
+      let remainingCount = 0;
+      let progressPercent = 0;
+
+      if (isGoods) {
+        usedCount = tierCoupons.filter(c => c.status === 'used').length;
+        remainingCount = Math.max(0, tierCoupons.length - usedCount);
+        progressPercent = tierCoupons.length > 0 ? Math.round((usedCount / tierCoupons.length) * 100) : 0;
+      } else {
+        usedCount = tierCoupons.filter(c => c.status === 'used').length;
+        remainingCount = Math.max(0, tierCoupons.length - usedCount);
+        progressPercent = tierCoupons.length > 0 ? Math.round((usedCount / tierCoupons.length) * 100) : 0;
       }
+
+      const requiredCount = Number(tier.required_visits || tier.required_count) || 0;
+
+      return {
+        tier,
+        isGoods,
+        tierCoupons,
+        reachedUsersCount,
+        usedCount,
+        remainingCount,
+        progressPercent,
+        requiredCount
+      };
+    });
+
+    // 絞り込み
+    let filtered = tierStats.filter(st => {
+      const t = st.tier;
+      const matchSearch = !search || 
+        (t.title || '').toLowerCase().includes(search) || 
+        (t.goods_name || '').toLowerCase().includes(search) || 
+        (t.reward_desc || '').toLowerCase().includes(search) || 
+        (t.title_reward || '').toLowerCase().includes(search);
+
+      const matchType = typeFilter === 'all' || t.reward_type === typeFilter;
+
+      let matchStatus = true;
+      if (statusFilter === 'has_reached') {
+        matchStatus = st.reachedUsersCount > 0;
+      } else if (statusFilter === 'has_remaining') {
+        matchStatus = st.remainingCount > 0;
+      } else if (statusFilter === 'completed') {
+        matchStatus = st.reachedUsersCount > 0 && st.remainingCount === 0;
+      } else if (statusFilter === 'no_reached') {
+        matchStatus = st.reachedUsersCount === 0;
+      }
+
+      return matchSearch && matchType && matchStatus;
+    });
+
+    // ソート
+    filtered.sort((a, b) => {
+      if (sortBy === 'visits_desc') return b.requiredCount - a.requiredCount;
+      if (sortBy === 'reached_desc') return b.reachedUsersCount - a.reachedUsersCount || a.requiredCount - b.requiredCount;
+      if (sortBy === 'used_desc') return b.usedCount - a.usedCount || a.requiredCount - b.requiredCount;
+      if (sortBy === 'remaining_desc') return b.remainingCount - a.remainingCount || a.requiredCount - b.requiredCount;
+      return a.requiredCount - b.requiredCount;
+    });
+
+    if (filteredBadge) filteredBadge.textContent = `表示中: ${filtered.length} 件`;
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">該当する特典データがありません</td></tr>';
       return;
     }
 
-    const sortedTiers = [...tiers].sort((a, b) => (Number(a.required_visits || a.required_count) || 0) - (Number(b.required_visits || b.required_count) || 0));
+    tbody.innerHTML = filtered.map(st => {
+      const tier = st.tier;
+      const isGoods = st.isGoods;
+      const badge = isGoods 
+        ? '<span class="badge" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a;"><i class="fa-solid fa-gift"></i> グッズ引換型</span>' 
+        : '<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd;"><i class="fa-solid fa-wine-glass"></i> 酒場クーポン型</span>';
 
-    if (tbody) {
-      tbody.innerHTML = sortedTiers.map(tier => {
-        const isGoods = tier.reward_type === 'goods';
-        const badge = isGoods 
-          ? '<span class="badge" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a;"><i class="fa-solid fa-gift"></i> グッズ引換型</span>' 
-          : '<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd;"><i class="fa-solid fa-wine-glass"></i> 酒場クーポン型</span>';
+      let detailName = '';
+      let targetCountHtml = '';
+      let usedCountHtml = '';
+      let remainCountHtml = '';
+      let progressBarColor = '';
 
-        // 達成者数計算（実際に運営店QRを読み取って特典を獲得したユニークユーザー数）
-        const tierCoupons = this.coupons.filter(c => Number(c.reward_tier_id) === Number(tier.id));
-        const reachedUsersSet = new Set(tierCoupons.map(c => c.user_id));
-        const reachedUsersCount = reachedUsersSet.size;
+      if (isGoods) {
+        detailName = `<strong style="color:#0f172a;">🎁 ${this.escapeHtml(tier.goods_name || tier.title)}</strong>`;
+        progressBarColor = 'linear-gradient(90deg, #10b981, #059669)';
+        targetCountHtml = `<strong>${st.reachedUsersCount}</strong> 名<br><small class="text-muted">(獲得計 ${st.tierCoupons.length}点)</small>`;
+        usedCountHtml = `<strong style="color:#059669; font-size:1.05rem;">${st.usedCount}</strong> <small>点</small>`;
+        remainCountHtml = `<strong style="color:#d97706; font-size:1.05rem;">${st.remainingCount}</strong> <small>点</small>`;
+      } else {
+        const selectableCount = Number(tier.selectable_count || tier.coupon_count) || 5;
+        detailName = `お好きな酒場 <strong style="color:#0284c7;">${selectableCount}</strong> 枠分`;
+        progressBarColor = 'linear-gradient(90deg, #38bdf8, #0284c7)';
+        targetCountHtml = `<strong>${st.reachedUsersCount}</strong> 名<br><small class="text-muted">(付与計 ${st.tierCoupons.length}枠)</small>`;
+        usedCountHtml = `<strong style="color:#059669; font-size:1.05rem;">${st.usedCount}</strong> <small>件</small>`;
+        remainCountHtml = `<strong style="color:#d97706; font-size:1.05rem;">${st.remainingCount}</strong> <small>枠</small>`;
+      }
 
-        let detailName = '';
-        let targetCountHtml = '';
-        let usedCountHtml = '';
-        let remainCountHtml = '';
-        let progressPercent = 0;
-        let progressBarColor = '';
-
-        if (isGoods) {
-          detailName = `<strong style="color:#0f172a;">🎁 ${this.escapeHtml(tier.goods_name || tier.title)}</strong>`;
-          const claimedCount = tierCoupons.filter(c => c.status === 'used').length;
-          const unclaimedCount = Math.max(0, tierCoupons.length - claimedCount);
-          progressPercent = tierCoupons.length > 0 ? Math.round((claimedCount / tierCoupons.length) * 100) : 0;
-          progressBarColor = 'linear-gradient(90deg, #10b981, #059669)';
-
-          targetCountHtml = `<strong>${reachedUsersCount}</strong> 名<br><small class="text-muted">(獲得計 ${tierCoupons.length}点)</small>`;
-          usedCountHtml = `<strong style="color:#059669; font-size:1.05rem;">${claimedCount}</strong> <small>点</small>`;
-          remainCountHtml = `<strong style="color:#d97706; font-size:1.05rem;">${unclaimedCount}</strong> <small>点</small>`;
-        } else {
-          const selectableCount = Number(tier.selectable_count || tier.coupon_count) || 5;
-          const totalSlots = tierCoupons.length;
-          const usedCount = tierCoupons.filter(c => c.status === 'used').length;
-          const remainingSlots = Math.max(0, totalSlots - usedCount);
-          progressPercent = totalSlots > 0 ? Math.round((usedCount / totalSlots) * 100) : 0;
-          progressBarColor = 'linear-gradient(90deg, #38bdf8, #0284c7)';
-
-          detailName = `お好きな酒場 <strong style="color:#0284c7;">${selectableCount}</strong> 枠分`;
-          targetCountHtml = `<strong>${reachedUsersCount}</strong> 名<br><small class="text-muted">(付与計 ${totalSlots}枠)</small>`;
-          usedCountHtml = `<strong style="color:#059669; font-size:1.05rem;">${usedCount}</strong> <small>件</small>`;
-          remainCountHtml = `<strong style="color:#d97706; font-size:1.05rem;">${remainingSlots}</strong> <small>枠</small>`;
-        }
-
-        const requiredCount = tier.required_visits || tier.required_count || 5;
-
-        return `
-          <tr>
-            <td>
-              <span class="badge" style="background:#f1f5f9; color:#334155; font-weight:bold;">
-                ${requiredCount} 軒達成
-              </span>
-            </td>
-            <td>${badge}</td>
-            <td><strong style="color:#0f172a;">${this.escapeHtml(tier.title)}</strong></td>
-            <td>${detailName}</td>
-            <td style="text-align: right;">${targetCountHtml}</td>
-            <td style="text-align: right;">${usedCountHtml}</td>
-            <td style="text-align: right;">${remainCountHtml}</td>
-            <td>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <div style="flex:1; background:#f1f5f9; border-radius:4px; height:8px; overflow:hidden;">
-                  <div style="background:${progressBarColor}; height:100%; width:${progressPercent}%; transition:width 0.3s;"></div>
-                </div>
-                <span style="font-size:12px; font-weight:bold; color:#334155; min-width:38px; text-align:right;">${progressPercent}%</span>
+      return `
+        <tr>
+          <td>
+            <span class="badge" style="background:#f1f5f9; color:#334155; font-weight:bold;">
+              ${st.requiredCount} 軒達成
+            </span>
+          </td>
+          <td>${badge}</td>
+          <td><strong style="color:#0f172a;">${this.escapeHtml(tier.title)}</strong></td>
+          <td>${detailName}</td>
+          <td style="text-align: right;">${targetCountHtml}</td>
+          <td style="text-align: right;">${usedCountHtml}</td>
+          <td style="text-align: right;">${remainCountHtml}</td>
+          <td>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="flex:1; background:#f1f5f9; border-radius:4px; height:8px; overflow:hidden;">
+                <div style="background:${progressBarColor}; height:100%; width:${st.progressPercent}%; transition:width 0.3s;"></div>
               </div>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
+              <span style="font-size:12px; font-weight:bold; color:#334155; min-width:38px; text-align:right;">${st.progressPercent}%</span>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
   }
 
   exportAnalyticsStoresToCSV() {

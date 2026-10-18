@@ -12,7 +12,7 @@
 
   <link rel="icon" href="assets/banner.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/admin.css?v=20261018_03">
+  <link rel="stylesheet" href="css/admin.css?v=20261019_01">
   <!-- SheetJS for Excel Import -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- QRCode.js for POP Generation -->
@@ -75,7 +75,7 @@
         </button>
       </form>
       <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 14px;">
-        システムバージョン: <strong class="app-version-text">v2026.10.18.03</strong>
+        システムバージョン: <strong class="app-version-text">v2026.10.19.01</strong>
       </div>
     </div>
   </div>
@@ -132,7 +132,7 @@
           <span>Supabase DB 連動中</span>
         </div>
         <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-bottom: 6px;">
-          システムバージョン: <strong class="app-version-text">v2026.10.18.03</strong>
+          システムバージョン: <strong class="app-version-text">v2026.10.19.01</strong>
         </div>
         <button class="btn btn-outline-danger btn-sm btn-block" onclick="window.adminApp.handleLogout()">
           <i class="fa-solid fa-arrow-right-from-bracket"></i> ログアウト
@@ -160,7 +160,7 @@
         </div>
         <div class="header-right">
           <span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:3px 8px; font-weight:bold;">
-            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.10.18.03</span>
+            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.10.19.01</span>
           </span>
           <span id="last-sync-time" class="text-muted"><i class="fa-solid fa-arrows-rotate fa-spin"></i> 同期中...</span>
           <button class="btn btn-secondary btn-sm" onclick="window.adminApp.refreshData()">
@@ -292,45 +292,88 @@
                 <h3 style="margin:0;"><i class="fa-solid fa-store text-primary"></i> 全酒場 実績集計一覧 (<span id="analytics-store-count">0</span>店)</h3>
                 <p style="margin:4px 0 0 0; font-size:12px; color:#64748b;">各酒場での特典クーポン消し込み（利用）実績</p>
               </div>
-              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <div class="header-actions" style="display:flex; gap:8px;">
                 <button class="btn btn-outline btn-sm" onclick="window.adminApp.exportAnalyticsStoresToCSV()">
                   <i class="fa-solid fa-file-csv"></i> 酒場別集計をCSV出力
                 </button>
               </div>
             </div>
-            <div class="card-body" style="padding: 12px 16px;">
-              <div class="header-filters" style="margin-bottom: 12px; display:flex; gap:8px; flex-wrap:wrap;">
-                <div class="search-input-wrapper" style="flex:1; min-width:200px;">
+
+            <!-- 1. スリムサマリーストリップ（KPIピル型バッジ・クリックでクイック絞り込み） -->
+            <div class="store-summary-strip" id="analytics-stores-summary-strip" style="border-top: none;">
+              <div class="summary-pill active" id="kpi-pill-analytics-store-total" onclick="window.adminApp.quickFilterAnalyticsStores('all')" title="全酒場を表示">
+                <i class="fa-solid fa-store" style="color: #0284c7;"></i>
+                <span>全登録:</span> <strong id="analytics-kpi-store-total">-</strong>
+              </div>
+
+              <div class="summary-pill" id="kpi-pill-analytics-store-used" onclick="window.adminApp.quickFilterAnalyticsStores('has_used')" title="クーポン利用実績ありの酒場のみ絞り込み">
+                <i class="fa-solid fa-beer-mug-empty" style="color: #059669;"></i>
+                <span>利用実績あり:</span> <strong id="analytics-kpi-store-used">-</strong>
+              </div>
+
+              <div class="summary-pill" id="kpi-pill-analytics-store-unused" onclick="window.adminApp.quickFilterAnalyticsStores('no_used')" title="クーポン利用実績がまだない酒場のみ絞り込み">
+                <i class="fa-solid fa-hourglass-start" style="color: #d97706;"></i>
+                <span>利用なし (0件):</span> <strong id="analytics-kpi-store-unused">-</strong>
+              </div>
+
+              <div class="summary-pill" id="kpi-pill-analytics-store-coupon" onclick="window.adminApp.quickFilterAnalyticsStores('coupon_target')" title="ハシゴ達成特典のクーポン対象店のみ絞り込み">
+                <i class="fa-solid fa-ticket" style="color: #7e22ce;"></i>
+                <span>クーポン対象店:</span> <strong id="analytics-kpi-store-coupon">-</strong>
+              </div>
+            </div>
+
+            <!-- 2. コンパクトヘッダー（検索・主要フィルター・リセット・リアルタイム件数） -->
+            <div class="store-compact-header">
+              <div class="compact-search-group">
+                <div class="search-input-wrapper-sm">
                   <i class="fa-solid fa-magnifying-glass"></i>
-                  <input type="text" id="analytics-store-search" placeholder="酒場名・ID・エリアで絞り込み..." oninput="window.adminApp.renderAnalyticsStoreTable()">
+                  <input type="text" id="analytics-store-search" placeholder="酒場名・ID・エリアで検索..." oninput="window.adminApp.renderAnalyticsStoreTable()">
                 </div>
-                <select id="analytics-area-filter" onchange="window.adminApp.renderAnalyticsStoreTable()" style="padding:6px 12px; border-radius:4px; border:1px solid #cbd5e1; font-size:13px;">
-                  <option value="">すべてのエリア</option>
+                <div class="btn-group-segmented" id="analytics-store-segmented" title="利用実績で絞り込み">
+                  <button type="button" class="segment-btn active" data-val="all" onclick="window.adminApp.setAnalyticsStoreSegment('all')">全酒場</button>
+                  <button type="button" class="segment-btn" data-val="has_used" onclick="window.adminApp.setAnalyticsStoreSegment('has_used')">🍺 利用あり</button>
+                  <button type="button" class="segment-btn" data-val="no_used" onclick="window.adminApp.setAnalyticsStoreSegment('no_used')">⏳ 利用0件</button>
+                  <button type="button" class="segment-btn" data-val="coupon_target" onclick="window.adminApp.setAnalyticsStoreSegment('coupon_target')">🎟️ クーポン店</button>
+                </div>
+                <input type="hidden" id="analytics-store-status-filter" value="all">
+                <select id="analytics-area-filter" class="form-select-sm" onchange="window.adminApp.renderAnalyticsStoreTable()">
+                  <option value="">エリア: すべて</option>
                 </select>
-                <select id="analytics-sort-select" onchange="window.adminApp.renderAnalyticsStoreTable()" style="padding:6px 12px; border-radius:4px; border:1px solid #cbd5e1; font-size:13px;">
-                  <option value="used_desc">🍺 クーポン利用数が多い順</option>
+                <select id="analytics-plan-filter" class="form-select-sm" onchange="window.adminApp.renderAnalyticsStoreTable()">
+                  <option value="">企画: すべて</option>
+                  <option value="both">両方参加</option>
+                  <option value="set">セットのみ</option>
+                  <option value="quest">クエストのみ</option>
+                </select>
+                <select id="analytics-sort-select" class="form-select-sm" onchange="window.adminApp.renderAnalyticsStoreTable()">
+                  <option value="used_desc">🍺 利用数が多い順</option>
+                  <option value="used_asc">🍺 利用数が少ない順</option>
                   <option value="id_asc">🔢 酒場ID順</option>
                   <option value="name_asc">🔤 酒場名順</option>
                 </select>
+                <button type="button" class="btn btn-sm btn-outline text-muted" onclick="window.adminApp.resetAnalyticsStoreFilters()" title="全条件リセット">
+                  <i class="fa-solid fa-rotate-left"></i> リセット
+                </button>
+                <span class="filter-count-badge-sm" id="analytics-store-filtered-count">表示中: - 軒</span>
               </div>
+            </div>
 
-              <div class="table-responsive">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th style="width: 80px;">酒場ID</th>
-                      <th>酒場名</th>
-                      <th style="width: 100px;">エリア</th>
-                      <th style="width: 130px;">参加企画</th>
-                      <th style="text-align: right; width: 140px;">🍺 クーポン利用 (消込)</th>
-                      <th style="text-align: center; width: 100px;">🎟️ クーポン対象</th>
-                    </tr>
-                  </thead>
-                  <tbody id="analytics-stores-tbody">
-                    <tr><td colspan="6" class="text-center py-4">データ集計中...</td></tr>
-                  </tbody>
-                </table>
-              </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 80px;">酒場ID</th>
+                    <th>酒場名</th>
+                    <th style="width: 100px;">エリア</th>
+                    <th style="width: 130px;">参加企画</th>
+                    <th style="text-align: right; width: 140px;">🍺 クーポン利用 (消込)</th>
+                    <th style="text-align: center; width: 100px;">🎟️ クーポン対象</th>
+                  </tr>
+                </thead>
+                <tbody id="analytics-stores-tbody">
+                  <tr><td colspan="6" class="text-center py-4">データ集計中...</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -338,40 +381,91 @@
           <div class="card mb-4">
             <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
               <div>
-                <h3 style="margin:0;"><i class="fa-solid fa-gift text-gold"></i> 特典・グッズ別 達成＆消し込み集計</h3>
+                <h3 style="margin:0;"><i class="fa-solid fa-gift text-gold"></i> 特典・グッズ別 達成＆消し込み集計 (<span id="analytics-tier-count">0</span>件)</h3>
                 <p style="margin:4px 0 0 0; font-size:12px; color:#64748b;">各特典ランク（クーポン選択型／グッズ引換型）ごとの獲得数・引換消込状況</p>
               </div>
-              <div style="display:flex; gap:8px; align-items:center;">
-                <select id="analytics-tier-type-filter" onchange="window.adminApp.renderAnalyticsTierTable()" style="padding:6px 12px; border-radius:4px; border:1px solid #cbd5e1; font-size:13px;">
-                  <option value="all">特典種別: すべて</option>
-                  <option value="store_coupon">店舗クーポン型のみ</option>
-                  <option value="goods">グッズ引換型のみ</option>
-                </select>
+              <div class="header-actions" style="display:flex; gap:8px;">
                 <button class="btn btn-outline btn-sm" onclick="window.adminApp.exportAnalyticsTiersToCSV()">
                   <i class="fa-solid fa-file-csv"></i> 特典別集計をCSV出力
                 </button>
               </div>
             </div>
-            <div class="card-body" style="padding: 0;">
-              <div class="table-responsive">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th style="width: 100px;">必要軒数</th>
-                      <th style="width: 130px;">種別</th>
-                      <th style="width: 200px;">特典名</th>
-                      <th style="width: 180px;">特典内容 / 引換品・枠数</th>
-                      <th style="width: 140px; text-align: right;">達成者数 (資格者)</th>
-                      <th style="width: 130px; text-align: right;">消込・受取済</th>
-                      <th style="width: 130px; text-align: right;">未利用・未受取残</th>
-                      <th style="min-width: 180px;">消化・受取進捗率</th>
-                    </tr>
-                  </thead>
-                  <tbody id="analytics-tiers-tbody">
-                    <tr><td colspan="8" class="text-center text-muted py-3">特典データを集計中...</td></tr>
-                  </tbody>
-                </table>
+
+            <!-- 1. スリムサマリーストリップ（KPIピル型バッジ・クリックでクイック絞り込み） -->
+            <div class="store-summary-strip" id="analytics-tiers-summary-strip" style="border-top: none;">
+              <div class="summary-pill active" id="kpi-pill-analytics-tier-total" onclick="window.adminApp.quickFilterAnalyticsTiers('all')" title="全特典を表示">
+                <i class="fa-solid fa-award" style="color: #0284c7;"></i>
+                <span>全マイルストーン:</span> <strong id="analytics-kpi-tier-total">-</strong>
               </div>
+
+              <div class="summary-pill" id="kpi-pill-analytics-tier-coupon" onclick="window.adminApp.quickFilterAnalyticsTiers('store_coupon')" title="店舗クーポン型特典のみ絞り込み">
+                <i class="fa-solid fa-wine-glass" style="color: #b45309;"></i>
+                <span>店舗クーポン型:</span> <strong id="analytics-kpi-tier-coupon">-</strong>
+              </div>
+
+              <div class="summary-pill" id="kpi-pill-analytics-tier-goods" onclick="window.adminApp.quickFilterAnalyticsTiers('goods')" title="グッズ引換型特典のみ絞り込み">
+                <i class="fa-solid fa-gift" style="color: #7e22ce;"></i>
+                <span>グッズ引換型:</span> <strong id="analytics-kpi-tier-goods">-</strong>
+              </div>
+
+              <div class="summary-pill" id="kpi-pill-analytics-tier-reached" onclick="window.adminApp.quickFilterAnalyticsTiers('has_reached')" title="達成者が1名以上いる特典のみ絞り込み">
+                <i class="fa-solid fa-users" style="color: #059669;"></i>
+                <span>達成者あり:</span> <strong id="analytics-kpi-tier-reached">-</strong>
+              </div>
+            </div>
+
+            <!-- 2. コンパクトヘッダー（検索・主要フィルター・リセット・リアルタイム件数） -->
+            <div class="store-compact-header">
+              <div class="compact-search-group">
+                <div class="search-input-wrapper-sm">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                  <input type="text" id="analytics-tier-search" placeholder="特典名・内容で検索..." oninput="window.adminApp.renderAnalyticsTierTable()">
+                </div>
+                <div class="btn-group-segmented" id="analytics-tier-segmented" title="特典種別で絞り込み">
+                  <button type="button" class="segment-btn active" data-val="all" onclick="window.adminApp.setAnalyticsTierSegment('all')">全種別</button>
+                  <button type="button" class="segment-btn" data-val="store_coupon" onclick="window.adminApp.setAnalyticsTierSegment('store_coupon')">🍺 クーポン型</button>
+                  <button type="button" class="segment-btn" data-val="goods" onclick="window.adminApp.setAnalyticsTierSegment('goods')">🎁 グッズ型</button>
+                </div>
+                <input type="hidden" id="analytics-tier-type-filter" value="all">
+                <select id="analytics-tier-status-filter" class="form-select-sm" onchange="window.adminApp.renderAnalyticsTierTable()">
+                  <option value="all">状態: すべて</option>
+                  <option value="has_reached">👥 達成者あり</option>
+                  <option value="has_remaining">⏳ 未利用・未受取残あり</option>
+                  <option value="completed">✅ 全て消化・引換済</option>
+                  <option value="no_reached">0️⃣ 達成者ゼロ</option>
+                </select>
+                <select id="analytics-tier-sort-select" class="form-select-sm" onchange="window.adminApp.renderAnalyticsTierTable()">
+                  <option value="visits_asc">🔢 必要軒数順 (少&rarr;多)</option>
+                  <option value="visits_desc">🔢 必要軒数順 (多&rarr;少)</option>
+                  <option value="reached_desc">👥 達成者数が多い順</option>
+                  <option value="used_desc">✅ 消込・受取数が多い順</option>
+                  <option value="remaining_desc">⏳ 残数が多い順</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-outline text-muted" onclick="window.adminApp.resetAnalyticsTierFilters()" title="全条件リセット">
+                  <i class="fa-solid fa-rotate-left"></i> リセット
+                </button>
+                <span class="filter-count-badge-sm" id="analytics-tier-filtered-count">表示中: - 件</span>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 100px;">必要軒数</th>
+                    <th style="width: 130px;">種別</th>
+                    <th style="width: 200px;">特典名</th>
+                    <th style="width: 180px;">特典内容 / 引換品・枠数</th>
+                    <th style="width: 140px; text-align: right;">達成者数 (資格者)</th>
+                    <th style="width: 130px; text-align: right;">消込・受取済</th>
+                    <th style="width: 130px; text-align: right;">未利用・未受取残</th>
+                    <th style="min-width: 180px;">消化・受取進捗率</th>
+                  </tr>
+                </thead>
+                <tbody id="analytics-tiers-tbody">
+                  <tr><td colspan="8" class="text-center text-muted py-3">特典データを集計中...</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
@@ -1394,8 +1488,8 @@
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=20261018_03"></script>
-  <script src="js/api.js?v=20261018_03"></script>
-  <script src="js/admin.js?v=20261018_03"></script>
+  <script src="js/config.js?v=20261019_01"></script>
+  <script src="js/api.js?v=20261019_01"></script>
+  <script src="js/admin.js?v=20261019_01"></script>
 </body>
 </html>

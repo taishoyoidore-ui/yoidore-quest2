@@ -1737,7 +1737,7 @@ class YoidoreQuestApp {
             </div>
             <div style="margin-bottom:6px; display:flex; align-items:flex-start; gap:6px;">
               <span style="color:#fde047; font-weight:bold; flex-shrink:0;">②</span>
-              <span><strong>運営店（6店舗）</strong>へ行き「<strong>達成QRコード</strong>（5軒・10軒・15軒達成等）」をスマホで読み取ります。</span>
+              <span><strong>運営店</strong>へ行き「<strong>達成QRコード</strong>（5軒・10軒・15軒達成等）」をスマホで読み取ります。</span>
             </div>
             <div style="display:flex; align-items:flex-start; gap:6px;">
               <span style="color:#fde047; font-weight:bold; flex-shrink:0;">③</span>
@@ -2371,7 +2371,7 @@ class YoidoreQuestApp {
         </div>
 
         <div style="font-size:13px; color:var(--text-yellow); margin-bottom:8px; font-weight:bold; line-height:1.4;">
-          🏆 運営店舗（6店舗）に掲示された<br>「達成QRコード」を読み取ってください
+          🏆 運営店に掲示された<br>「達成QRコード」を読み取ってください
         </div>
 
         <div class="qr-scanner-box" id="qr-scanner-view-box">
@@ -2473,7 +2473,7 @@ class YoidoreQuestApp {
           if (claimTierId) {
             await this.handleClaimMilestoneTier(claimTierId);
           } else {
-            alert(`読み取ったQRコードの内容:\n${decodedText}\n\n⚠️ 有効な達成QRコードではありません。\n運営店舗（6店舗）に設置されたマイルストーン達成QRコードを読み取ってください。`);
+            alert(`読み取ったQRコードの内容:\n${decodedText}\n\n⚠️ 有効な達成QRコードではありません。\n運営店に設置されたハシゴ達成QRコードを読み取ってください。`);
           }
         };
 
@@ -3424,7 +3424,7 @@ class YoidoreQuestApp {
           </div>
 
           <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:8px; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.15);">
-            ${store.isOrganizer ? `<span class="tag" style="background:#1e3a8a; color:#93c5fd; border-color:#3b82f6;">運営店（QR設置）</span>` : ''}
+            ${store.isOrganizer ? `<span class="tag" style="background:#1e3a8a; color:#93c5fd; border-color:#3b82f6;">運営店</span>` : ''}
             ${isCoupon ? `<span class="tag" style="background:#4d3800; color:#ffeeba; border-color:#ffc107;">🎁 特典対象</span>` : ''}
             ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
             ${store.category ? `<span class="tag">${store.category}</span>` : ''}
@@ -3625,7 +3625,7 @@ class YoidoreQuestApp {
           </div>
 
           <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:10px;">
-            ${store.isOrganizer ? `<span class="tag" style="background:#1e3a8a; color:#93c5fd; border-color:#3b82f6;">運営店（達成QR設置・グッズ交換）</span>` : ''}
+            ${store.isOrganizer ? `<span class="tag" style="background:#1e3a8a; color:#93c5fd; border-color:#3b82f6;">運営店</span>` : ''}
             ${isCouponTarget ? `<span class="tag" style="background:#4d3800; color:#ffeeba; border-color:#ffc107;">🎁 特典対象</span>` : ''}
             ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
             ${store.category ? `<span class="tag">${store.category}</span>` : ''}
