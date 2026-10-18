@@ -1696,13 +1696,11 @@ class YoidoreQuestApp {
               </div>
             </div>
 
-            <!-- 下段: 黄金に輝く主役 称号エンブレムプレート -->
-            <div class="hero-royal-title-card" style="--badge-accent:${heroColor};">
-              <div class="hero-royal-title-header">
-                <span class="royal-badge-tag"><i class="fa-solid fa-award"></i> 勇者称号</span>
-                <span class="hero-royal-title-text"><i class="fa-solid fa-crown royal-crown-icon"></i> ${this.escapeHtml(heroTitle)}</span>
+            <!-- 下段: 称号プレート（主役として大きく鮮明に表示） -->
+            <div class="hero-royal-title-card" style="border-color:${heroColor};">
+              <div class="hero-royal-title-text" style="color:${heroColor};">
+                <i class="fa-solid fa-crown royal-crown-icon"></i> ${this.escapeHtml(heroTitle)}
               </div>
-              ${heroDesc ? `<div class="hero-royal-title-desc">📜 ${this.escapeHtml(heroDesc)}</div>` : ''}
             </div>
           </div>
         </div>
@@ -2680,9 +2678,10 @@ class YoidoreQuestApp {
                   <div class="dq-status-name">${displayName}</div>
                   <div class="dq-status-lv-badge">Lv.${heroData.level}</div>
                 </div>
-                <div class="dq-status-title-badge" style="--badge-accent:${heroData.badge_color || '#fde047'};">
-                  <i class="fa-solid fa-crown royal-crown-icon"></i>
-                  <span class="royal-title-text">${this.escapeHtml(heroData.title || '駆け出しの呑兵衛')}</span>
+                <div class="dq-status-title-badge" style="border-color:${heroData.badge_color || '#ffd700'};">
+                  <span class="royal-title-text" style="color:${heroData.badge_color || '#ffd700'};">
+                    <i class="fa-solid fa-crown royal-crown-icon"></i> ${this.escapeHtml(heroData.title || '駆け出しの呑兵衛')}
+                  </span>
                 </div>
               </div>
             </div>
