@@ -202,6 +202,7 @@ class YoidoreQuestApp {
       type: 'ALL',
       takeout: 'ALL',
       openToday: false,
+      quest: false,
       organizer: false,
       searchQuery: ''
     };
@@ -977,7 +978,8 @@ class YoidoreQuestApp {
       if (this.filters.style !== 'ALL') activeTags.push(`<span class="sticky-tag-item">🪑 ${this.filters.style}</span>`);
       if (this.filters.type !== 'ALL') activeTags.push(`<span class="sticky-tag-item">🍺 ${this.filters.type}</span>`);
       if (this.filters.takeout === 'YES') activeTags.push(`<span class="sticky-tag-item">テイクアウト可</span>`);
-      if (this.filters.openToday) activeTags.push(`<span class="sticky-tag-item text-green">✓ どれクエ対応中</span>`);
+      if (this.filters.openToday) activeTags.push(`<span class="sticky-tag-item text-green">どれクエ対応中</span>`);
+      if (this.filters.quest) activeTags.push(`<span class="sticky-tag-item" style="color:#f472b6;">クエストあり</span>`);
       if (this.filters.organizer) activeTags.push(`<span class="sticky-tag-item" style="color:#93c5fd;">運営店のみ</span>`);
       if (this.filters.searchQuery) activeTags.push(`<span class="sticky-tag-item">🔎 ${this.filters.searchQuery}</span>`);
 
@@ -990,6 +992,7 @@ class YoidoreQuestApp {
         if (this.filters.type !== 'ALL' && store.type !== this.filters.type) return false;
         if (this.filters.takeout === 'YES' && !store.isTakeout) return false;
         if (this.filters.openToday && !store.isOpenToday) return false;
+        if (this.filters.quest && !store.isQuestActive) return false;
         if (this.filters.searchQuery) {
           const q = this.filters.searchQuery.toLowerCase().trim();
           return store.name.toLowerCase().includes(q) || store.catchphrase.toLowerCase().includes(q);
@@ -1058,6 +1061,7 @@ class YoidoreQuestApp {
       type: 'ALL',
       takeout: 'ALL',
       openToday: false,
+      quest: false,
       organizer: false,
       searchQuery: ''
     };
@@ -1252,6 +1256,7 @@ class YoidoreQuestApp {
     const organizerCount = allStores.filter(s => s.isOrganizer).length;
     const takeoutCount = allStores.filter(s => s.isTakeout).length;
     const openCount = allStores.filter(s => s.isOpenToday).length;
+    const questCount = allStores.filter(s => s.isQuestActive).length;
     const totalCount = allStores.length;
     const areaCount = this.getAreas().length;
     const catCount = this.getCategories().length;
@@ -1326,6 +1331,13 @@ class YoidoreQuestApp {
             </div>
             <span class="command-badge text-green">対応中 ${openCount}軒</span>
           </li>
+          <li class="command-item" data-action="quest">
+            <div class="command-item-left">
+              <span class="command-cursor">▶</span>
+              <span class="command-label">店舗クエストに挑む</span>
+            </div>
+            <span class="command-badge" style="background:#3b1e54; color:#d8b4fe; border:1px solid #a855f7;">クエスト ${questCount}軒</span>
+          </li>
           <li class="command-item" data-action="takeout">
             <div class="command-item-left">
               <span class="command-cursor">▶</span>
@@ -1388,6 +1400,11 @@ class YoidoreQuestApp {
         else if (action === 'today') {
           this.resetFilters();
           this.filters.openToday = true;
+          this.navigateTo('stores');
+        }
+        else if (action === 'quest') {
+          this.resetFilters();
+          this.filters.quest = true;
           this.navigateTo('stores');
         }
         else if (action === 'organizer') {
@@ -2365,6 +2382,43 @@ class YoidoreQuestApp {
     const existingModal = document.getElementById('qr-scanner-modal');
     if (existingModal) existingModal.remove();
 
+    // テストモード判定 (config.js の設定または URLパラメータ ?test=true / ?debug=true)
+    const isTestMode = Boolean(window.APP_CONFIG?.testMode || /[?&](?:test|debug)=true/i.test(window.location.search));
+
+    let testControlsHtml = '';
+    if (isTestMode) {
+      const tiers = (window.questApi?.rewardTiers && window.questApi.rewardTiers.length > 0)
+        ? [...window.questApi.rewardTiers].sort((a, b) => Number(a.required_visits || 0) - Number(b.required_visits || 0))
+        : [
+            { id: 1, required_visits: 5, title: '5軒達成特典' },
+            { id: 2, required_visits: 10, title: '10軒達成特典' },
+            { id: 3, required_visits: 15, title: '15軒達成特典' },
+            { id: 4, required_visits: 20, title: '20軒達成特典' },
+            { id: 5, required_visits: 30, title: '30軒達成特典' },
+            { id: 6, required_visits: 42, title: '全店制覇特典' }
+          ];
+
+      const tierButtonsHtml = tiers.map((tier) => {
+        const visits = Number(tier.required_visits || 0);
+        const label = visits >= 40 ? `👑 全店制覇 (${visits}軒)` : `🏆 ${visits}軒達成`;
+        return `<button type="button" class="treasure-claim-btn qr-modal-test-tier-btn" data-tier-id="${tier.id}" style="background:#4a2c00; border-color:#d4af37; padding:6px 4px; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+          ${label}
+        </button>`;
+      }).join('');
+
+      testControlsHtml = `
+        <div style="background:rgba(0,0,0,0.5); border:1px dashed #d4af37; border-radius:6px; padding:8px; margin-top:8px;">
+          <div style="font-size:11px; color:#ffdd57; font-weight:bold; margin-bottom:6px;">🛠️ テスト用シミュレーション</div>
+          <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:5px; margin-bottom:8px;">
+            ${tierButtonsHtml}
+          </div>
+          <button type="button" id="qr-modal-reset-user-btn" class="treasure-claim-btn" style="background:#6b1d1d; border-color:#e53e3e; padding:6px 8px; font-size:12px; width:100%;">
+            🔄 自身の実績（来店・特典消込）を初期化
+          </button>
+        </div>
+      `;
+    }
+
     const overlay = document.createElement('div');
     overlay.className = 'rpg-modal-overlay';
     overlay.id = 'qr-scanner-modal';
@@ -2390,18 +2444,8 @@ class YoidoreQuestApp {
         </div>
 
         <div style="display:flex; flex-direction:column; gap:6px;">
-          <div style="display:flex; gap:6px;">
-            <button id="qr-modal-test-tier1" class="command-button" style="flex:1; background: rgba(217, 119, 6, 0.25); border: 1px dashed #f59e0b; color: #fbbf24; font-size: 11px; padding: 6px 2px; border-radius: 4px; cursor: pointer; font-weight: bold;">
-              🏆 5軒達成
-            </button>
-            <button id="qr-modal-test-tier2" class="command-button" style="flex:1; background: rgba(217, 119, 6, 0.25); border: 1px dashed #f59e0b; color: #fbbf24; font-size: 11px; padding: 6px 2px; border-radius: 4px; cursor: pointer; font-weight: bold;">
-              🏆 10軒達成
-            </button>
-            <button id="qr-modal-test-tier3" class="command-button" style="flex:1; background: rgba(217, 119, 6, 0.25); border: 1px dashed #f59e0b; color: #fbbf24; font-size: 11px; padding: 6px 2px; border-radius: 4px; cursor: pointer; font-weight: bold;">
-              🏆 15軒達成
-            </button>
-          </div>
-          <button id="qr-modal-cancel-btn" class="treasure-claim-btn" style="background:#333; border-color:#888; padding:8px; font-size:13px;">
+          ${testControlsHtml}
+          <button id="qr-modal-cancel-btn" class="treasure-claim-btn" style="background:#333; border-color:#888; padding:8px; font-size:13px; margin-top:4px;">
             ✕ キャンセル
           </button>
         </div>
@@ -2436,19 +2480,48 @@ class YoidoreQuestApp {
     document.getElementById('qr-modal-close-btn').addEventListener('click', closeModal);
     document.getElementById('qr-modal-cancel-btn').addEventListener('click', closeModal);
 
-    const handleQrTierTest = async (tierIdx) => {
-      const tiers = window.questApi?.rewardTiers || [];
-      const targetTier = tiers[tierIdx] || tiers.find(t => (tierIdx === 0 && Number(t.required_visits) <= 5) || (tierIdx === 1 && Number(t.required_visits) <= 10) || (tierIdx === 2 && Number(t.required_visits) <= 15)) || { id: tierIdx + 1, title: `${(tierIdx + 1) * 5}軒達成特典` };
-      await closeModal();
-      await this.handleClaimMilestoneTier(targetTier.id);
-    };
+    // テストモード用イベントハンドラ
+    if (isTestMode) {
+      overlay.querySelectorAll('.qr-modal-test-tier-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const tierId = btn.getAttribute('data-tier-id');
+          await closeModal();
+          if (tierId) {
+            await this.handleClaimMilestoneTier(tierId);
+          }
+        });
+      });
 
-    const qT1 = document.getElementById('qr-modal-test-tier1');
-    if (qT1) qT1.addEventListener('click', () => handleQrTierTest(0));
-    const qT2 = document.getElementById('qr-modal-test-tier2');
-    if (qT2) qT2.addEventListener('click', () => handleQrTierTest(1));
-    const qT3 = document.getElementById('qr-modal-test-tier3');
-    if (qT3) qT3.addEventListener('click', () => handleQrTierTest(2));
+      const btnReset = overlay.querySelector('#qr-modal-reset-user-btn');
+      if (btnReset) {
+        btnReset.addEventListener('click', async () => {
+          if (!confirm('⚠️ 【テスト機能】\nあなた自身の来店履歴と獲得特典・消込履歴を初期化（リセット）します。\n※LINEアカウント（ユーザー情報）は保持されます。\n\n本当にリセットしますか？')) {
+            return;
+          }
+          btnReset.disabled = true;
+          btnReset.textContent = 'リセット中...';
+          try {
+            const res = await (window.questApi?.resetVisitsAndCoupons ? window.questApi.resetVisitsAndCoupons() : window.questApi?.resetUserVisitsAndCouponsForTest?.());
+            if (res && res.success === false) {
+              alert('初期化に失敗しました: ' + (res.message || '通信エラー'));
+            } else {
+              this.playBackSE();
+              await closeModal();
+              alert('✅ 実績データ（来店履歴・獲得特典・消込）を初期化しました。');
+              await this.render();
+            }
+          } catch (err) {
+            console.error('Reset error:', err);
+            alert('初期化中にエラーが発生しました: ' + (err.message || '不明なエラー'));
+          } finally {
+            if (btnReset) {
+              btnReset.disabled = false;
+              btnReset.textContent = '🔄 自身の実績（来店・特典消込）を初期化';
+            }
+          }
+        });
+      }
+    }
 
     // スキャナーの初期化
     const initScanner = async () => {
@@ -3278,6 +3351,7 @@ class YoidoreQuestApp {
                        this.filters.type !== 'ALL' || 
                        this.filters.takeout !== 'ALL' || 
                        this.filters.openToday || 
+                       this.filters.quest || 
                        this.filters.organizer || 
                        this.filters.searchQuery !== '';
 
@@ -3325,13 +3399,16 @@ class YoidoreQuestApp {
           </div>
           <div class="filter-chip-group">
             <div class="filter-chip ${this.filters.openToday ? 'active' : ''}" id="chip-open-today">
-              ${this.filters.openToday ? '✓ どれクエ対応中のみ' : 'どれクエ対象時間内のみ'}
+              どれクエ対応中のみ
+            </div>
+            <div class="filter-chip ${this.filters.quest ? 'active' : ''}" id="chip-quest">
+              クエストあり
             </div>
             <div class="filter-chip ${this.filters.takeout === 'YES' ? 'active' : ''}" id="chip-takeout">
-              ${this.filters.takeout === 'YES' ? '✓ テイクアウト可のみ' : 'テイクアウト可のみ'}
+              テイクアウト可のみ
             </div>
             <div class="filter-chip ${this.filters.organizer ? 'active' : ''}" id="chip-organizer">
-              ${this.filters.organizer ? '✓ 運営店のみ' : '運営店のみ'}
+              運営店のみ
             </div>
           </div>
         </div>
@@ -3352,6 +3429,7 @@ class YoidoreQuestApp {
         if (this.filters.type !== 'ALL' && store.type !== this.filters.type) return false;
         if (this.filters.takeout === 'YES' && !store.isTakeout) return false;
         if (this.filters.openToday && !store.isOpenToday) return false;
+        if (this.filters.quest && !store.isQuestActive) return false;
         if (this.filters.searchQuery) {
           const q = this.filters.searchQuery.toLowerCase().trim();
           return store.name.toLowerCase().includes(q) || 
@@ -3362,12 +3440,18 @@ class YoidoreQuestApp {
 
       filtered.sort((a, b) => a.id.localeCompare(b.id, 'ja', { numeric: true }));
 
-      const hasFilter = this.filters.area !== 'ALL' || this.filters.category !== 'ALL' || this.filters.style !== 'ALL' || this.filters.type !== 'ALL' || this.filters.takeout === 'YES' || this.filters.openToday || this.filters.organizer || Boolean(this.filters.searchQuery);
+      const hasFilter = this.filters.area !== 'ALL' || this.filters.category !== 'ALL' || this.filters.style !== 'ALL' || this.filters.type !== 'ALL' || this.filters.takeout === 'YES' || this.filters.openToday || this.filters.quest || this.filters.organizer || Boolean(this.filters.searchQuery);
       if (this.filters.organizer) {
         if (filtered.length === 0) {
           this.typeMessage('条件に一致する運営店が見つかりませんでした。条件を変えて探してみよう！');
         } else {
           this.typeMessage(`達成QR設置・グッズ交換ができる運営店が ${filtered.length}軒あります！気になる酒場へ出発しよう！`);
+        }
+      } else if (this.filters.quest) {
+        if (filtered.length === 0) {
+          this.typeMessage('店舗クエストに挑戦できる酒場が見つかりませんでした。条件を変えて探してみよう！');
+        } else {
+          this.typeMessage(`店舗クエストに挑戦できる酒場が ${filtered.length}軒あります！気になるクエストに挑もう！`);
         }
       } else if (hasFilter) {
         if (filtered.length === 0) {
@@ -3470,6 +3554,7 @@ class YoidoreQuestApp {
                               this.filters.type !== 'ALL' || 
                               this.filters.takeout !== 'ALL' || 
                               this.filters.openToday || 
+                              this.filters.quest || 
                               this.filters.organizer || 
                               Boolean(this.filters.searchQuery && this.filters.searchQuery.trim());
       const resetBtnElem = document.getElementById('btn-reset-filters');
@@ -3538,43 +3623,52 @@ class YoidoreQuestApp {
     });
 
     // 今日営業のみチップ
-    document.getElementById('chip-open-today').addEventListener('click', () => {
-      this.playSelectSE();
-      this.filters.openToday = !this.filters.openToday;
-      const chip = document.getElementById('chip-open-today');
-      if (chip) {
-        chip.classList.toggle('active', this.filters.openToday);
-        chip.textContent = this.filters.openToday ? '✓ どれクエ対応中のみ' : 'どれクエ対象時間内のみ';
-      }
-      this.lastStoresScrollY = 0;
-      updateStoreList();
-    });
+    const chipOpenToday = document.getElementById('chip-open-today');
+    if (chipOpenToday) {
+      chipOpenToday.addEventListener('click', () => {
+        this.playSelectSE();
+        this.filters.openToday = !this.filters.openToday;
+        chipOpenToday.classList.toggle('active', this.filters.openToday);
+        this.lastStoresScrollY = 0;
+        updateStoreList();
+      });
+    }
+
+    // クエストありチップ
+    const chipQuest = document.getElementById('chip-quest');
+    if (chipQuest) {
+      chipQuest.addEventListener('click', () => {
+        this.playSelectSE();
+        this.filters.quest = !this.filters.quest;
+        chipQuest.classList.toggle('active', this.filters.quest);
+        this.lastStoresScrollY = 0;
+        updateStoreList();
+      });
+    }
 
     // テイクアウト可のみチップ
-    document.getElementById('chip-takeout').addEventListener('click', () => {
-      this.playSelectSE();
-      this.filters.takeout = (this.filters.takeout === 'YES') ? 'ALL' : 'YES';
-      const chip = document.getElementById('chip-takeout');
-      if (chip) {
-        chip.classList.toggle('active', this.filters.takeout === 'YES');
-        chip.textContent = (this.filters.takeout === 'YES') ? '✓ テイクアウト可のみ' : 'テイクアウト可のみ';
-      }
-      this.lastStoresScrollY = 0;
-      updateStoreList();
-    });
+    const chipTakeout = document.getElementById('chip-takeout');
+    if (chipTakeout) {
+      chipTakeout.addEventListener('click', () => {
+        this.playSelectSE();
+        this.filters.takeout = (this.filters.takeout === 'YES') ? 'ALL' : 'YES';
+        chipTakeout.classList.toggle('active', this.filters.takeout === 'YES');
+        this.lastStoresScrollY = 0;
+        updateStoreList();
+      });
+    }
 
     // 運営店のみチップ
-    document.getElementById('chip-organizer').addEventListener('click', () => {
-      this.playSelectSE();
-      this.filters.organizer = !this.filters.organizer;
-      const chip = document.getElementById('chip-organizer');
-      if (chip) {
-        chip.classList.toggle('active', this.filters.organizer);
-        chip.textContent = this.filters.organizer ? '✓ 運営店のみ' : '運営店のみ';
-      }
-      this.lastStoresScrollY = 0;
-      updateStoreList();
-    });
+    const chipOrganizer = document.getElementById('chip-organizer');
+    if (chipOrganizer) {
+      chipOrganizer.addEventListener('click', () => {
+        this.playSelectSE();
+        this.filters.organizer = !this.filters.organizer;
+        chipOrganizer.classList.toggle('active', this.filters.organizer);
+        this.lastStoresScrollY = 0;
+        updateStoreList();
+      });
+    }
   }
 
   /* ------------------------------------------------------------------------
