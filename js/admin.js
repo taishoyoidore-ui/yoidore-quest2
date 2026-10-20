@@ -2196,25 +2196,14 @@ class YoidoreAdminApp {
           storeId = `store-${String(storeNum).padStart(2, '0')}`;
         }
 
-        // 店舗名は既存があれば正式名称（例: バーガー酒場ハンバーガー・ママ）を優先
-        const finalStoreName = existing ? existing.name : (masterInfo?.name || storeName);
+        // 店舗名はExcel記載の店名を最優先
+        const finalStoreName = storeName || (existing ? existing.name : (masterInfo?.name || ''));
 
-        // 1. エリア（Excel記載を最優先尊重し、未知のエリアでも勝手に固定値へフォールバックしない）
-        let area = String(row[3] || rowObj['エリア'] || rowObj['  エリア  '] || (existing?.area || '')).trim();
-        if (area) {
-          if (area.includes('三軒家西')) area = '三軒家西';
-          else if (area.includes('三軒家東')) area = '三軒家東';
-          else if (area.includes('駅前')) area = '駅前';
-          else if (area.includes('泉尾')) area = '泉尾';
-          else if (area.includes('千島')) area = '千島';
-          else if (area.includes('平尾')) area = '平尾';
-          // 南恩加島など上記以外のエリア名もExcelの入力値をそのまま保持
-        } else if (existing?.area) {
-          area = existing.area;
-        }
+        // 1. エリア（Excel記載の生文字列をそのまま尊重）
+        const area = String(row[3] !== undefined && row[3] !== '' ? row[3] : (rowObj['エリア'] || rowObj['  エリア  '] || '')).trim();
 
-        // 2. カテゴリ（未入力なら空文字）
-        let category = String(row[4] || rowObj['カテゴリ'] || existing?.category || existing?.raw_data?.category || '').trim();
+        // 2. カテゴリ（Excel記載の生文字列をそのまま尊重）
+        const category = String(row[4] !== undefined && row[4] !== '' ? row[4] : (rowObj['カテゴリ'] || '')).trim();
 
         // 時刻フォーマット変換（Excelの小数シリアル値 0.5 -> 12:00 等を変換。空なら空文字）
         const formatExcelTime = (val) => {
@@ -2234,48 +2223,36 @@ class YoidoreAdminApp {
           return str;
         };
 
-        // 3. スタイル (表記ゆれ補正 & 詳細保持。未入力なら空文字)
-        let style = String(row[5] || rowObj['スタイル'] || existing?.style || existing?.raw_data?.style || '').trim();
-        if (style.includes('テールブ') && !style.includes('カウンター')) style = 'テーブルあり';
-        else if (style === 'テールブあり') style = 'テーブルあり';
+        // 3. スタイル (Excel記載の生文字列をそのまま尊重。明らかな誤字のみ最小限補正)
+        let style = String(row[5] !== undefined && row[5] !== '' ? row[5] : (rowObj['スタイル'] || '')).trim();
+        if (style === 'テールブあり' || style === 'テールブ') style = 'テーブルあり';
 
-        // 4. タイプ (表記ゆれ補正。未入力なら空文字)
-        let yoidore_type = String(row[6] || rowObj['タイプ'] || existing?.type || existing?.yoidore_type || existing?.raw_data?.type || '').trim();
-        if (yoidore_type.includes('サク')) yoidore_type = 'サク飲み';
-        else if (yoidore_type.includes('腹')) yoidore_type = '腹ごしらえ';
-        else if (yoidore_type.includes('休')) yoidore_type = 'ひと休み';
-        else if (yoidore_type.includes('昼')) yoidore_type = '昼飲み';
-        else if (yoidore_type.includes('遊')) yoidore_type = '夜遊び';
+        // 4. タイプ (Excel記載の生文字列をそのまま尊重)
+        let yoidore_type = String(row[6] !== undefined && row[6] !== '' ? row[6] : (rowObj['タイプ'] || '')).trim();
 
-        // 5. テイクアウト（未入力なら空文字）
-        let takeoutRaw = String(row[7] || rowObj['テイクアウト'] || (existing?.takeout || existing?.raw_data?.takeout || '')).trim();
-        let takeout = '';
-        if (takeoutRaw) {
-          if (takeoutRaw.includes('専門')) takeout = 'テイクアウト専門';
-          else if (takeoutRaw.includes('OK') || takeoutRaw.includes('可') || takeoutRaw.includes('可能')) takeout = 'テイクアウトOK';
-          else takeout = 'テイクアウト不可';
-        }
+        // 5. テイクアウト（Excel記載の生文字列をそのまま尊重）
+        let takeout = String(row[7] !== undefined && row[7] !== '' ? row[7] : (rowObj['テイクアウト'] || '')).trim();
 
-        // 6. 提供曜日 (未入力なら空文字。勝手に全日営業にしない)
-        let daysRaw = String(row[8] || rowObj['提供曜日'] || rowObj['どれクエ対応曜日'] || (existing?.days || existing?.raw_data?.days || '')).trim();
+        // 6. 提供曜日 (Excel記載の生文字列を尊重。曜日抽出ができる場合はカンマ区切りに正規化)
+        const rawDays = String(row[8] !== undefined && row[8] !== '' ? row[8] : (rowObj['提供曜日'] || rowObj['どれクエ対応曜日'] || '')).trim();
         let days = '';
-        if (daysRaw) {
-          if (daysRaw.includes('全て') || daysRaw.includes('全日') || daysRaw.includes('毎日')) {
+        if (rawDays) {
+          if (rawDays.includes('全て') || rawDays.includes('全日') || rawDays.includes('毎日')) {
             days = '月,火,水,木,金,土,日';
           } else {
             const daysList = [];
             ['月', '火', '水', '木', '金', '土', '日', '祝'].forEach(d => {
               if (d === '日') {
-                if (/日曜日|日曜|(?:^|[,、\s])日(?:[,、\s]|$)/.test(daysRaw)) daysList.push('日');
+                if (/日曜日|日曜|(?:^|[,、\s])日(?:[,、\s]|$)/.test(rawDays)) daysList.push('日');
               } else {
-                if (daysRaw.includes(d)) daysList.push(d);
+                if (rawDays.includes(d)) daysList.push(d);
               }
             });
-            days = daysList.length > 0 ? daysList.join(',') : daysRaw;
+            days = daysList.length > 0 ? daysList.join(',') : rawDays;
           }
         }
 
-        // 7. 提供時間 & 提供時間に対する補足（未入力なら空文字。勝手に17:00〜23:00にしない）
+        // 7. 提供時間 & 提供時間に対する補足（Excelの入力通りに構築）
         const rawHStart = row[9] !== undefined && row[9] !== '' ? row[9] : (rowObj['提供時間：開始'] || rowObj['どれクエ対応時間：開始']);
         const rawHEnd = row[10] !== undefined && row[10] !== '' ? row[10] : (rowObj['提供時間：終了'] || rowObj['どれクエ対応時間：終了']);
         const hStart = formatExcelTime(rawHStart);
@@ -2287,30 +2264,29 @@ class YoidoreAdminApp {
           hours = `${hStart}〜`;
         } else if (hEnd) {
           hours = `〜${hEnd}`;
-        } else if (existing?.hours) {
-          hours = existing.hours;
         }
 
-        const timeNote = String(row[11] || rowObj['提供時間に対する補足'] || '').trim();
-        const cleanTimeNote = (timeNote && timeNote !== 'None') ? timeNote : '';
+        const rawTimeNote = String(row[11] !== undefined && row[11] !== '' ? row[11] : (rowObj['提供時間に対する補足'] || '')).trim();
+        const cleanTimeNote = (rawTimeNote && rawTimeNote !== 'None') ? rawTimeNote : '';
 
-        // 8. 決済方法（未入力なら空文字。勝手に現金にしない）
-        let payment = String(row[12] || rowObj['決済方法'] || (existing?.payment || existing?.raw_data?.payment || '')).trim();
+        // 8. 決済方法（Excel記載の生文字列をそのまま尊重）
+        const payment = String(row[12] !== undefined && row[12] !== '' ? row[12] : (rowObj['決済方法'] || '')).trim();
 
         // 9. クーポン取扱
-        const couponAns = String(row[13] || rowObj['店舗クーポンを希望されますか？'] || '');
-        const isCouponTarget = couponAns.includes('希望します') || couponAns.includes('はい') || couponAns === 'true' || Boolean(existing?.is_coupon_target);
+        const couponAns = String(row[13] !== undefined && row[13] !== '' ? row[13] : (rowObj['店舗クーポンを希望されますか？'] || '')).trim();
+        const isCouponTarget = couponAns.includes('希望します') || couponAns.includes('はい') || couponAns === 'true';
 
-        // 10. 参加企画とセット・クエストの抽出（勝手に両方にフォールバックしない）
-        const planTypeRaw = String(row[14] || rowObj['「どれクエ」にはどの企画で参加されますか？'] || rowObj['「どれクエⅡ」にはどの企画で参加されますか？'] || rowObj['  「どれクエ」にはどの企画で参加されますか？  '] || rowObj['  「どれクエⅡ」にはどの企画で参加されますか？  '] || (existing?.plan_type || existing?.raw_data?.plan_type || '')).trim();
+        // 10. 参加企画とセット・クエストの抽出（Excelの回答企画に基づき完全分離）
+        const planTypeRaw = String(row[14] !== undefined && row[14] !== '' ? row[14] : (rowObj['「どれクエ」にはどの企画で参加されますか？'] || rowObj['「どれクエⅡ」にはどの企画で参加されますか？'] || rowObj['  「どれクエ」にはどの企画で参加されますか？  '] || rowObj['  「どれクエⅡ」にはどの企画で参加されますか？  '] || '')).trim();
         
-        // セルの文字列をそのまま取得するヘルパー
+        // セルの文字列をそのまま（改変・数字丸め等を行わずに）取得するヘルパー
         const cleanCellText = (val) => {
           if (val === null || val === undefined) return '';
           if (typeof val === 'number') {
             return Number.isInteger(val) ? String(val) : String(val);
           }
-          return String(val).trim();
+          const s = String(val).trim();
+          return s === 'None' ? '' : s;
         };
 
         let planType = planTypeRaw;
@@ -2321,36 +2297,37 @@ class YoidoreAdminApp {
         const isQuestOnly = planType.includes('クエスト」のみ');
 
         if (isSetOnly) {
-          setName = cleanCellText(row[15] !== undefined && row[15] !== '' ? row[15] : (rowObj['  酔いどれセット名  '] || rowObj['酔いどれセット名'] || existing?.set_name || existing?.raw_data?.酔いどれセット名));
-          setContent = cleanCellText(row[16] !== undefined && row[16] !== '' ? row[16] : (rowObj['  酔いどれセット内容  '] || rowObj['酔いどれセット内容'] || existing?.set_content || existing?.raw_data?.セット内容));
-          setNotes = cleanCellText(row[17] !== undefined && row[17] !== '' ? row[17] : (rowObj['セット内容備考'] || existing?.set_notes || existing?.raw_data?.セット備考));
-          setPrice = cleanCellText(row[18] !== undefined && row[18] !== '' ? row[18] : (rowObj['  価格(税込)  '] || rowObj['価格(税込)'] || existing?.set_price || existing?.raw_data?.['価格(円)']));
-          setCharge = cleanCellText(row[19] !== undefined && row[19] !== '' ? row[19] : (rowObj['チャージ料(税込)'] || existing?.set_charge || existing?.raw_data?.チャージ));
-          setLimit = cleanCellText(row[20] !== undefined && row[20] !== '' ? row[20] : (rowObj['限定数量'] || existing?.set_limit || existing?.raw_data?.限定数));
-          // セットのみのためクエスト情報は厳格に空文字
+          // 「セットのみ」の場合はExcelのセット情報列（Col 15〜20）からそのまま抽出
+          setName = cleanCellText(row[15] !== undefined && row[15] !== '' ? row[15] : (rowObj['  酔いどれセット名  '] || rowObj['酔いどれセット名']));
+          setContent = cleanCellText(row[16] !== undefined && row[16] !== '' ? row[16] : (rowObj['  酔いどれセット内容  '] || rowObj['酔いどれセット内容']));
+          setNotes = cleanCellText(row[17] !== undefined && row[17] !== '' ? row[17] : rowObj['セット内容備考']);
+          setPrice = cleanCellText(row[18] !== undefined && row[18] !== '' ? row[18] : (rowObj['  価格(税込)  '] || rowObj['価格(税込)']));
+          setCharge = cleanCellText(row[19] !== undefined && row[19] !== '' ? row[19] : rowObj['チャージ料(税込)']);
+          setLimit = cleanCellText(row[20] !== undefined && row[20] !== '' ? row[20] : rowObj['限定数量']);
+          // クエスト情報は完全に空
           questName = ''; questContent = ''; questNotes = ''; questPrice = ''; questCharge = '';
         } else if (isQuestOnly) {
-          // クエストのみのためセット情報は厳格に空文字（固定値「酔いどれセット」「1000」等は一切入れない）
+          // 「クエストのみ」の場合はセット情報を完全クリアし、クエスト情報列（Col 21〜25）からそのまま抽出
           setName = ''; setContent = ''; setNotes = ''; setPrice = ''; setCharge = ''; setLimit = '';
-          questName = cleanCellText(row[21] !== undefined && row[21] !== '' ? row[21] : (rowObj['クエスト名'] || existing?.quest_name || existing?.raw_data?.クエスト名));
-          questContent = cleanCellText(row[22] !== undefined && row[22] !== '' ? row[22] : (rowObj['クエスト内容/報酬'] || existing?.quest_content || existing?.raw_data?.クエスト内容));
-          questPrice = cleanCellText(row[23] !== undefined && row[23] !== '' ? row[23] : (rowObj['クエスト料金(税込)'] || existing?.quest_price || existing?.raw_data?.['クエスト価格(円)']));
-          questCharge = cleanCellText(row[24] !== undefined && row[24] !== '' ? row[24] : (rowObj['クエストチャージ料 (税込)'] || existing?.quest_charge || existing?.raw_data?.クエストチャージ));
-          questNotes = cleanCellText(row[25] !== undefined && row[25] !== '' ? row[25] : (rowObj['クエスト備考'] || existing?.quest_notes || existing?.raw_data?.クエスト備考));
+          questName = cleanCellText(row[21] !== undefined && row[21] !== '' ? row[21] : rowObj['クエスト名']);
+          questContent = cleanCellText(row[22] !== undefined && row[22] !== '' ? row[22] : rowObj['クエスト内容/報酬']);
+          questPrice = cleanCellText(row[23] !== undefined && row[23] !== '' ? row[23] : rowObj['クエスト料金(税込)']);
+          questCharge = cleanCellText(row[24] !== undefined && row[24] !== '' ? row[24] : rowObj['クエストチャージ料 (税込)']);
+          questNotes = cleanCellText(row[25] !== undefined && row[25] !== '' ? row[25] : rowObj['クエスト備考']);
         } else {
-          // 両方 または 企画名直接指定
-          setName = cleanCellText(row[26] !== undefined && row[26] !== '' ? row[26] : (rowObj['酔いどれセット名'] || row[15] || existing?.set_name || existing?.raw_data?.酔いどれセット名));
-          setContent = cleanCellText(row[27] !== undefined && row[27] !== '' ? row[27] : (rowObj['  酔いどれセット内容   2'] || row[16] || existing?.set_content || existing?.raw_data?.セット内容));
-          setNotes = cleanCellText(row[28] !== undefined && row[28] !== '' ? row[28] : (rowObj['セット内容備考 2'] || row[17] || existing?.set_notes || existing?.raw_data?.セット備考));
-          setPrice = cleanCellText(row[29] !== undefined && row[29] !== '' ? row[29] : (rowObj['価格(税込)'] || row[18] || existing?.set_price || existing?.raw_data?.['価格(円)']));
-          setCharge = cleanCellText(row[30] !== undefined && row[30] !== '' ? row[30] : (rowObj['チャージ料(税込) 2'] || row[19] || existing?.set_charge || existing?.raw_data?.チャージ));
-          setLimit = cleanCellText(row[31] !== undefined && row[31] !== '' ? row[31] : (rowObj['限定数量 2'] || row[20] || existing?.set_limit || existing?.raw_data?.限定数));
+          // 「両方」または個別回答の場合はExcelの両方対応列（Col 26〜36）または単独列からそのまま抽出
+          setName = cleanCellText(row[26] !== undefined && row[26] !== '' ? row[26] : (rowObj['酔いどれセット名'] || row[15]));
+          setContent = cleanCellText(row[27] !== undefined && row[27] !== '' ? row[27] : (rowObj['  酔いどれセット内容   2'] || row[16]));
+          setNotes = cleanCellText(row[28] !== undefined && row[28] !== '' ? row[28] : (rowObj['セット内容備考 2'] || row[17]));
+          setPrice = cleanCellText(row[29] !== undefined && row[29] !== '' ? row[29] : (rowObj['価格(税込)'] || row[18]));
+          setCharge = cleanCellText(row[30] !== undefined && row[30] !== '' ? row[30] : (rowObj['チャージ料(税込) 2'] || row[19]));
+          setLimit = cleanCellText(row[31] !== undefined && row[31] !== '' ? row[31] : (rowObj['限定数量 2'] || row[20]));
 
-          questName = cleanCellText(row[32] !== undefined && row[32] !== '' ? row[32] : (rowObj['クエスト名 2'] || row[21] || existing?.quest_name || existing?.raw_data?.クエスト名));
-          questContent = cleanCellText(row[33] !== undefined && row[33] !== '' ? row[33] : (rowObj['クエスト内容/報酬 2'] || row[22] || existing?.quest_content || existing?.raw_data?.クエスト内容));
-          questPrice = cleanCellText(row[34] !== undefined && row[34] !== '' ? row[34] : (rowObj['クエスト料金(税込) 2'] || row[23] || existing?.quest_price || existing?.raw_data?.['クエスト価格(円)']));
-          questCharge = cleanCellText(row[35] !== undefined && row[35] !== '' ? row[35] : (rowObj['クエストチャージ料 (税込) 2'] || row[24] || existing?.quest_charge || existing?.raw_data?.クエストチャージ));
-          questNotes = cleanCellText(row[36] !== undefined && row[36] !== '' ? row[36] : (rowObj['クエスト備考 2'] || row[25] || existing?.quest_notes || existing?.raw_data?.クエスト備考));
+          questName = cleanCellText(row[32] !== undefined && row[32] !== '' ? row[32] : (rowObj['クエスト名 2'] || row[21]));
+          questContent = cleanCellText(row[33] !== undefined && row[33] !== '' ? row[33] : (rowObj['クエスト内容/報酬 2'] || row[22]));
+          questPrice = cleanCellText(row[34] !== undefined && row[34] !== '' ? row[34] : (rowObj['クエスト料金(税込) 2'] || row[23]));
+          questCharge = cleanCellText(row[35] !== undefined && row[35] !== '' ? row[35] : (rowObj['クエストチャージ料 (税込) 2'] || row[24]));
+          questNotes = cleanCellText(row[36] !== undefined && row[36] !== '' ? row[36] : (rowObj['クエスト備考 2'] || row[25]));
 
           if (!planType) {
             if (setName && questName) planType = '「酔いどれセット」・「店舗クエスト」両方で参加';
@@ -2359,20 +2336,14 @@ class YoidoreAdminApp {
           }
         }
 
-        if (setCharge === 'None' || setCharge === '0.0') setCharge = 'なし';
-        if (questCharge === 'None' || questCharge === '0.0') questCharge = 'なし';
-        if (setNotes === 'None') setNotes = '';
-        if (questNotes === 'None') questNotes = '';
-        if (setLimit === 'None' || setLimit === '0.0') setLimit = '';
-
         // 11. 参加証(缶バッチ)販売希望数
-        const badgeSalesRaw = String(row[37] || rowObj['お客様向け参加証(缶バッチ)\u3000販売希望数は？'] || rowObj['お客様向け参加証(缶バッチ) 販売希望数は？'] || '').trim();
+        const badgeSalesRaw = cleanCellText(row[37] !== undefined && row[37] !== '' ? row[37] : (rowObj['お客様向け参加証(缶バッチ)\u3000販売希望数は？'] || rowObj['お客様向け参加証(缶バッチ) 販売希望数は？']));
 
-        // 12. 追加マスタ情報（キャッチコピー, Instagram, 住所, GoogleマップURL, 写真）
-        const catchphrase = String(row[39] !== undefined && row[39] !== '' ? row[39] : (rowObj['キャッチコピー'] || masterInfo?.catchphrase || existing?.catchphrase || existing?.raw_data?.キャッチコピー || existing?.raw_data?.catchphrase || '')).trim();
-        const insta_url = String(row[40] !== undefined && row[40] !== '' ? row[40] : (rowObj['Instagram'] || masterInfo?.insta_url || existing?.insta_url || existing?.raw_data?.insta_url || existing?.raw_data?.instagramUrl || existing?.raw_data?.['Instagram URL'] || '')).trim();
-        const address = String(row[41] !== undefined && row[41] !== '' ? row[41] : (rowObj['住所'] || rowObj['店舗住所'] || masterInfo?.address || existing?.address || existing?.raw_data?.address || existing?.raw_data?.住所 || '')).trim();
-        let map_url = String(row[42] !== undefined && row[42] !== '' ? row[42] : (rowObj['googlemap'] || masterInfo?.map_url || existing?.map_url || existing?.raw_data?.map_url || existing?.raw_data?.googleMapUrl || existing?.raw_data?.['Google Map URL'] || '')).trim();
+        // 12. 追加マスタ情報（キャッチコピー, Instagram, 住所, GoogleマップURL）
+        const catchphrase = cleanCellText(row[39] !== undefined && row[39] !== '' ? row[39] : (rowObj['キャッチコピー'] || masterInfo?.catchphrase || existing?.catchphrase || existing?.raw_data?.catchphrase || ''));
+        const insta_url = cleanCellText(row[40] !== undefined && row[40] !== '' ? row[40] : (rowObj['Instagram'] || masterInfo?.insta_url || existing?.insta_url || existing?.raw_data?.insta_url || ''));
+        const address = cleanCellText(row[41] !== undefined && row[41] !== '' ? row[41] : (rowObj['住所'] || rowObj['店舗住所'] || masterInfo?.address || existing?.address || existing?.raw_data?.address || ''));
+        let map_url = cleanCellText(row[42] !== undefined && row[42] !== '' ? row[42] : (rowObj['googlemap'] || masterInfo?.map_url || existing?.map_url || existing?.raw_data?.map_url || ''));
         if (map_url.includes('google.com/maps/search')) {
           map_url = '';
         }
