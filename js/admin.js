@@ -71,10 +71,29 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.15.01';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.20.06';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
+  }
+
+  /* ------------------------------------------------------------------------
+   * 価格・料金表示フォーマッター (文字列・範囲・数値を安全に整形)
+   * ------------------------------------------------------------------------ */
+  formatPrice(price, isQuest = false) {
+    if (price === null || price === undefined || price === '') {
+      return isQuest ? '無料' : '-';
+    }
+    const str = String(price).trim();
+    if (str === '0' || str === '0円' || str === '無料' || str === 'なし' || str === '不要') {
+      return isQuest ? '無料' : '-';
+    }
+    const cleanNumStr = str.replace(/[,，]/g, '');
+    if (/^\d+(\.\d+)?$/.test(cleanNumStr)) {
+      const num = Math.round(parseFloat(cleanNumStr));
+      return `¥${num.toLocaleString()}`;
+    }
+    return str;
   }
 
   /* ------------------------------------------------------------------------
@@ -1103,9 +1122,9 @@ class YoidoreAdminApp {
       const timeNotes = store.time_notes || store.conditions?.timeNotes || '';
       const daysText = store.days || '-';
       const setNameText = store.set_name || '-';
-      const setPriceText = store.set_price ? `¥${Number(store.set_price).toLocaleString()}` : '-';
+      const setPriceText = this.formatPrice(store.set_price);
       const questNameText = store.quest_name || '-';
-      const questPriceText = store.quest_price ? `¥${Number(store.quest_price).toLocaleString()}` : '-';
+      const questPriceText = this.formatPrice(store.quest_price, true);
 
       return `
         <tr style="${!isParticipating ? 'opacity: 0.65; background: #f8fafc;' : ''}">
@@ -1663,14 +1682,14 @@ class YoidoreAdminApp {
     document.getElementById('edit-store-payment-other').value = otherPayments.join(', ');
 
     document.getElementById('edit-store-set-name').value = store.set_name || '';
-    document.getElementById('edit-store-set-price').value = store.set_price !== undefined && store.set_price !== null && store.set_price !== 0 ? store.set_price : '';
+    document.getElementById('edit-store-set-price').value = (store.set_price !== undefined && store.set_price !== null && store.set_price !== '') ? store.set_price : '';
     document.getElementById('edit-store-set-content').value = store.set_content || '';
     document.getElementById('edit-store-set-charge').value = store.set_charge || '';
     document.getElementById('edit-store-set-limit').value = store.set_limit || '';
     document.getElementById('edit-store-set-notes').value = store.set_notes || '';
 
     document.getElementById('edit-store-quest-name').value = store.quest_name || '';
-    document.getElementById('edit-store-quest-price').value = store.quest_price !== undefined && store.quest_price !== null && store.quest_price !== 0 ? store.quest_price : '';
+    document.getElementById('edit-store-quest-price').value = (store.quest_price !== undefined && store.quest_price !== null && store.quest_price !== '') ? store.quest_price : '';
     document.getElementById('edit-store-quest-content').value = store.quest_content || '';
     document.getElementById('edit-store-quest-charge').value = store.quest_charge || '';
     document.getElementById('edit-store-quest-notes').value = store.quest_notes || '';
@@ -1825,13 +1844,13 @@ class YoidoreAdminApp {
     const catchphrase = document.getElementById('edit-store-catchphrase').value.trim();
     const timeNotes = document.getElementById('edit-store-time-notes').value.trim();
     const setName = document.getElementById('edit-store-set-name').value.trim();
-    const setPrice = parseInt(document.getElementById('edit-store-set-price').value, 10) || 0;
+    const setPrice = document.getElementById('edit-store-set-price').value.trim();
     const setContent = document.getElementById('edit-store-set-content').value.trim();
     const setCharge = document.getElementById('edit-store-set-charge').value.trim();
     const setLimit = document.getElementById('edit-store-set-limit').value.trim();
     const setNotes = document.getElementById('edit-store-set-notes').value.trim();
     const questName = document.getElementById('edit-store-quest-name').value.trim();
-    const questPrice = parseInt(document.getElementById('edit-store-quest-price').value, 10) || 0;
+    const questPrice = document.getElementById('edit-store-quest-price').value.trim();
     const questContent = document.getElementById('edit-store-quest-content').value.trim();
     const questCharge = document.getElementById('edit-store-quest-charge').value.trim();
     const questNotes = document.getElementById('edit-store-quest-notes').value.trim();
@@ -2252,36 +2271,45 @@ class YoidoreAdminApp {
         // 10. 参加企画とセット・クエストの抽出
         const planType = String(row[14] || rowObj['「どれクエ」にはどの企画で参加されますか？'] || rowObj['「どれクエⅡ」にはどの企画で参加されますか？'] || rowObj['  「どれクエ」にはどの企画で参加されますか？  '] || rowObj['  「どれクエⅡ」にはどの企画で参加されますか？  '] || '両方');
         
-        let setName = '', setContent = '', setNotes = '', setPrice = 0, setCharge = '', setLimit = '';
-        let questName = '', questContent = '', questNotes = '', questPrice = 0, questCharge = '';
+        // セルの文字列をそのまま（余計な数字変換・欠落を行わずに）取得するヘルパー
+        const cleanCellText = (val) => {
+          if (val === null || val === undefined) return '';
+          if (typeof val === 'number') {
+            return Number.isInteger(val) ? String(val) : String(val);
+          }
+          return String(val).trim();
+        };
+
+        let setName = '', setContent = '', setNotes = '', setPrice = '', setCharge = '', setLimit = '';
+        let questName = '', questContent = '', questNotes = '', questPrice = '', questCharge = '';
 
         if (planType.includes('セット」のみ')) {
-          setName = String(row[15] || rowObj['  酔いどれセット名  '] || rowObj['酔いどれセット名'] || '').trim();
-          setContent = String(row[16] || rowObj['  酔いどれセット内容  '] || rowObj['酔いどれセット内容'] || '').trim();
-          setNotes = String(row[17] || rowObj['セット内容備考'] || '').trim();
-          setPrice = parseInt(String(row[18] || rowObj['  価格(税込)  '] || rowObj['価格(税込)']).replace(/\D/g, ''), 10) || 1000;
-          setCharge = String(row[19] || rowObj['チャージ料(税込)'] || '').trim();
-          setLimit = String(row[20] || rowObj['限定数量'] || '').trim();
+          setName = cleanCellText(row[15] !== undefined && row[15] !== '' ? row[15] : (rowObj['  酔いどれセット名  '] || rowObj['酔いどれセット名']));
+          setContent = cleanCellText(row[16] !== undefined && row[16] !== '' ? row[16] : (rowObj['  酔いどれセット内容  '] || rowObj['酔いどれセット内容']));
+          setNotes = cleanCellText(row[17] !== undefined && row[17] !== '' ? row[17] : rowObj['セット内容備考']);
+          setPrice = cleanCellText(row[18] !== undefined && row[18] !== '' ? row[18] : (rowObj['  価格(税込)  '] || rowObj['価格(税込)'])) || '1000';
+          setCharge = cleanCellText(row[19] !== undefined && row[19] !== '' ? row[19] : rowObj['チャージ料(税込)']);
+          setLimit = cleanCellText(row[20] !== undefined && row[20] !== '' ? row[20] : rowObj['限定数量']);
         } else if (planType.includes('クエスト」のみ')) {
-          questName = String(row[21] || rowObj['クエスト名'] || '').trim();
-          questContent = String(row[22] || rowObj['クエスト内容/報酬'] || '').trim();
-          questPrice = parseInt(String(row[23] || rowObj['クエスト料金(税込)']).replace(/\D/g, ''), 10) || 0;
-          questCharge = String(row[24] || rowObj['クエストチャージ料 (税込)'] || '').trim();
-          questNotes = String(row[25] || rowObj['クエスト備考'] || '').trim();
+          questName = cleanCellText(row[21] !== undefined && row[21] !== '' ? row[21] : rowObj['クエスト名']);
+          questContent = cleanCellText(row[22] !== undefined && row[22] !== '' ? row[22] : rowObj['クエスト内容/報酬']);
+          questPrice = cleanCellText(row[23] !== undefined && row[23] !== '' ? row[23] : rowObj['クエスト料金(税込)']);
+          questCharge = cleanCellText(row[24] !== undefined && row[24] !== '' ? row[24] : rowObj['クエストチャージ料 (税込)']);
+          questNotes = cleanCellText(row[25] !== undefined && row[25] !== '' ? row[25] : rowObj['クエスト備考']);
         } else {
           // 両方
-          setName = String(row[26] || rowObj['酔いどれセット名'] || row[15] || '').trim();
-          setContent = String(row[27] || rowObj['  酔いどれセット内容   2'] || row[16] || '').trim();
-          setNotes = String(row[28] || rowObj['セット内容備考 2'] || row[17] || '').trim();
-          setPrice = parseInt(String(row[29] || rowObj['価格(税込)'] || row[18]).replace(/\D/g, ''), 10) || 1000;
-          setCharge = String(row[30] || rowObj['チャージ料(税込) 2'] || row[19] || '').trim();
-          setLimit = String(row[31] || rowObj['限定数量 2'] || row[20] || '').trim();
+          setName = cleanCellText(row[26] !== undefined && row[26] !== '' ? row[26] : (rowObj['酔いどれセット名'] || row[15]));
+          setContent = cleanCellText(row[27] !== undefined && row[27] !== '' ? row[27] : (rowObj['  酔いどれセット内容   2'] || row[16]));
+          setNotes = cleanCellText(row[28] !== undefined && row[28] !== '' ? row[28] : (rowObj['セット内容備考 2'] || row[17]));
+          setPrice = cleanCellText(row[29] !== undefined && row[29] !== '' ? row[29] : (rowObj['価格(税込)'] || row[18])) || '1000';
+          setCharge = cleanCellText(row[30] !== undefined && row[30] !== '' ? row[30] : (rowObj['チャージ料(税込) 2'] || row[19]));
+          setLimit = cleanCellText(row[31] !== undefined && row[31] !== '' ? row[31] : (rowObj['限定数量 2'] || row[20]));
 
-          questName = String(row[32] || rowObj['クエスト名 2'] || row[21] || '').trim();
-          questContent = String(row[33] || rowObj['クエスト内容/報酬 2'] || row[22] || '').trim();
-          questPrice = parseInt(String(row[34] || rowObj['クエスト料金(税込) 2'] || row[23]).replace(/\D/g, ''), 10) || 0;
-          questCharge = String(row[35] || rowObj['クエストチャージ料 (税込) 2'] || row[24] || '').trim();
-          questNotes = String(row[36] || rowObj['クエスト備考 2'] || row[25] || '').trim();
+          questName = cleanCellText(row[32] !== undefined && row[32] !== '' ? row[32] : (rowObj['クエスト名 2'] || row[21]));
+          questContent = cleanCellText(row[33] !== undefined && row[33] !== '' ? row[33] : (rowObj['クエスト内容/報酬 2'] || row[22]));
+          questPrice = cleanCellText(row[34] !== undefined && row[34] !== '' ? row[34] : (rowObj['クエスト料金(税込) 2'] || row[23]));
+          questCharge = cleanCellText(row[35] !== undefined && row[35] !== '' ? row[35] : (rowObj['クエストチャージ料 (税込) 2'] || row[24]));
+          questNotes = cleanCellText(row[36] !== undefined && row[36] !== '' ? row[36] : (rowObj['クエスト備考 2'] || row[25]));
         }
 
         // 11. 参加証(缶バッチ)販売希望数
@@ -2319,13 +2347,13 @@ class YoidoreAdminApp {
           planType,
           set_name: setName || existing?.set_name || existing?.raw_data?.酔いどれセット名 || '酔いどれセット',
           set_content: setContent || existing?.set_content || existing?.raw_data?.セット内容 || '',
-          set_price: setPrice || existing?.set_price || existing?.raw_data?.['価格(円)'] || 1000,
+          set_price: (setPrice !== '' && setPrice !== null && setPrice !== undefined) ? setPrice : (existing?.set_price ?? existing?.raw_data?.['価格(円)'] ?? '1000'),
           set_charge: (setCharge === 'None' || setCharge === '0.0') ? 'なし' : (setCharge || existing?.set_charge || existing?.raw_data?.チャージ || '不要'),
           set_limit: (setLimit === 'None' || setLimit === '0.0') ? '' : (setLimit || existing?.set_limit || existing?.raw_data?.限定数 || ''),
           set_notes: setNotes === 'None' ? '' : (setNotes || existing?.set_notes || existing?.raw_data?.セット備考 || ''),
           quest_name: questName || existing?.quest_name || existing?.raw_data?.クエスト名 || '',
           quest_content: questContent || existing?.quest_content || existing?.raw_data?.クエスト内容 || '',
-          quest_price: questPrice || existing?.quest_price || existing?.raw_data?.['クエスト価格(円)'] || 0,
+          quest_price: (questPrice !== '' && questPrice !== null && questPrice !== undefined) ? questPrice : (existing?.quest_price ?? existing?.raw_data?.['クエスト価格(円)'] ?? '0'),
           quest_charge: (questCharge === 'None' || questCharge === '0.0') ? 'なし' : (questCharge || existing?.quest_charge || existing?.raw_data?.クエストチャージ || '不要'),
           quest_notes: questNotes === 'None' ? '' : (questNotes || existing?.quest_notes || existing?.raw_data?.クエスト備考 || ''),
           badge_sales_count: badgeSalesRaw,
@@ -2383,7 +2411,7 @@ class YoidoreAdminApp {
           <td><span class="badge badge-area">${item.area}</span> <span class="badge">${item.category}</span></td>
           <td><small>${timeDisplay}</small></td>
           <td><small style="color:#64748b;">${item.planType.includes('両方') ? '両方' : (item.planType.includes('セット') ? 'セットのみ' : 'クエストのみ')}</small></td>
-          <td>${item.set_name ? `${item.set_name} (¥${item.set_price.toLocaleString()})` : '-'}</td>
+          <td>${item.set_name ? `${item.set_name} (${this.formatPrice(item.set_price)})` : '-'}</td>
           <td>${item.quest_name || '-'}</td>
           <td style="text-align: center;">${item.is_coupon_target ? '🎁 対象' : '-'}</td>
         </tr>
@@ -2426,13 +2454,13 @@ class YoidoreAdminApp {
           plan_type: item.planType || '両方',
           set_name: item.set_name || '酔いどれセット',
           set_content: item.set_content || '',
-          set_price: item.set_price || 1000,
+          set_price: item.set_price || '1000',
           set_charge: item.set_charge || '不要',
           set_limit: item.set_limit || '',
           set_notes: item.set_notes || '',
           quest_name: item.quest_name || '',
           quest_content: item.quest_content || '',
-          quest_price: item.quest_price || 0,
+          quest_price: (item.quest_price !== undefined && item.quest_price !== null && item.quest_price !== '') ? item.quest_price : '0',
           quest_charge: item.quest_charge || '不要',
           quest_notes: item.quest_notes || '',
           badge_sales_count: item.badge_sales_count || '',
@@ -2468,13 +2496,13 @@ class YoidoreAdminApp {
             plan_type: item.planType || '両方',
             set_name: item.set_name || '酔いどれセット',
             set_content: item.set_content || '',
-            set_price: item.set_price || 1000,
+            set_price: item.set_price || '1000',
             set_charge: item.set_charge || '不要',
             set_limit: item.set_limit || '',
             set_notes: item.set_notes || '',
             quest_name: item.quest_name || '',
             quest_content: item.quest_content || '',
-            quest_price: item.quest_price || 0,
+            quest_price: (item.quest_price !== undefined && item.quest_price !== null && item.quest_price !== '') ? item.quest_price : '0',
             quest_charge: item.quest_charge || '不要',
             quest_notes: item.quest_notes || '',
             badge_sales_count: item.badge_sales_count || ''

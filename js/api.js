@@ -199,14 +199,16 @@ class QuestApiManager {
 
           // シーズン企画データの抽出（seasonDataが無い場合は空値）
           const questTitle = seasonData ? (seasonData.quest_name || seasonData.quest?.title || seasonData['クエスト名'] || (seasonData === raw ? s.quest_name : '') || '') : '';
-          const questPrice = seasonData ? (seasonData.quest_price !== undefined ? Number(seasonData.quest_price) : Number(seasonData.quest?.price || seasonData['クエスト価格'] || (seasonData === raw ? s.quest_price : 0) || 0)) : 0;
+          const rawQuestPrice = seasonData ? (seasonData.quest_price !== undefined ? seasonData.quest_price : (seasonData.quest?.price || seasonData['クエスト価格'] || (seasonData === raw ? s.quest_price : ''))) : '';
+          const questPrice = (rawQuestPrice !== null && rawQuestPrice !== undefined) ? String(rawQuestPrice).trim() : '';
           const questCharge = seasonData ? (seasonData.quest_charge || seasonData.quest?.charge || seasonData['クエストチャージ'] || (seasonData === raw ? s.quest_charge : '') || '') : '';
           const questContent = seasonData ? (seasonData.quest_content || seasonData.quest?.content || seasonData['クエスト内容'] || (seasonData === raw ? s.quest_content : '') || '') : '';
           const questNotes = seasonData ? (seasonData.quest_notes || seasonData.quest?.notes || seasonData['クエスト備考'] || (seasonData === raw ? s.quest_notes : '') || '') : '';
 
           const setTitle = seasonData ? (seasonData.set_name || seasonData.yoidoreSet?.title || seasonData['酔いどれセット名'] || seasonData['セット名'] || (seasonData === raw ? s.set_name : '') || '') : '';
           const setContent = seasonData ? (seasonData.set_content || seasonData.yoidoreSet?.content || seasonData['セット内容'] || (seasonData === raw ? s.set_content : '') || '') : '';
-          const setPrice = seasonData ? (seasonData.set_price !== undefined ? Number(seasonData.set_price) : Number(seasonData.yoidoreSet?.price || seasonData['価格'] || (seasonData === raw ? s.set_price : 0) || 0)) : 0;
+          const rawSetPrice = seasonData ? (seasonData.set_price !== undefined ? seasonData.set_price : (seasonData.yoidoreSet?.price || seasonData['価格'] || (seasonData === raw ? s.set_price : ''))) : '';
+          const setPrice = (rawSetPrice !== null && rawSetPrice !== undefined) ? String(rawSetPrice).trim() : '';
           const setCharge = seasonData ? (seasonData.set_charge || seasonData.yoidoreSet?.charge || seasonData['チャージ'] || (seasonData === raw ? s.set_charge : '') || '') : '';
           const setIncludeCharge = Boolean(setCharge === '込' || seasonData?.yoidoreSet?.includeCharge || seasonData?.['チャージ込']);
           const setNotes = seasonData ? (seasonData.set_notes || seasonData.yoidoreSet?.notes || seasonData['セット備考'] || (seasonData === raw ? s.set_notes : '') || '') : '';

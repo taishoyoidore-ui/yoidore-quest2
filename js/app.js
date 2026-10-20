@@ -180,6 +180,44 @@ function extractClaimTierParam(input = window.location.href) {
 
 window.extractClaimTierParam = extractClaimTierParam;
 
+/**
+ * 金額・料金の表示整形関数 (数値・文字列・範囲表記に安全に対応)
+ * @param {string|number} price 
+ * @param {boolean} isQuest 
+ * @returns {{ text: string, hasTax: boolean, isFree: boolean } | null}
+ */
+function formatPriceDisplay(price, isQuest = false) {
+  if (price === null || price === undefined || price === '') {
+    return isQuest ? { text: '🟢 無料', hasTax: false, isFree: true } : null;
+  }
+  const str = String(price).trim();
+  if (str === '0' || str === '0円' || str === '無料' || str === 'なし' || str === '不要') {
+    return isQuest ? { text: '🟢 無料', hasTax: false, isFree: true } : null;
+  }
+
+  const hasTax = str.includes('税込');
+  const cleanNumStr = str.replace(/[,，]/g, '');
+
+  // 純粋な数値（カンマ付き含む）の場合は「¥1,000」とする
+  if (/^\d+(\.\d+)?$/.test(cleanNumStr)) {
+    const num = Math.round(parseFloat(cleanNumStr));
+    return {
+      text: `¥${num.toLocaleString()}`,
+      hasTax: false,
+      isFree: false
+    };
+  }
+
+  // 文字列（すでに「円」や「〜」や「男性2000円」等）は余計な記号をつけずそのまま出力
+  return {
+    text: str,
+    hasTax: hasTax,
+    isFree: false
+  };
+}
+
+window.formatPriceDisplay = formatPriceDisplay;
+
 class YoidoreQuestApp {
   constructor() {
     if (window.debugLog) window.debugLog('🚀 YoidoreQuestApp 起動開始');
@@ -3493,40 +3531,48 @@ class YoidoreQuestApp {
           </div>
 
           <div class="store-previews" style="margin-top:6px;">
-            ${store.yoidoreSet && store.yoidoreSet.title ? `
-              <div class="store-set-preview">
-                <div class="preview-header">
-                  <span class="preview-label">🍺 酔いどれセット:</span>
-                  ${store.yoidoreSet.price > 0 ? `
-                    <span class="store-price">
-                      ¥${store.yoidoreSet.price.toLocaleString()}
-                      <span style="font-size:11px; color:var(--text-dim); font-weight:normal; margin-left:3px;">(税込${store.yoidoreSet.charge === '込' ? '・チャージ料込' : ''})</span>
-                    </span>
-                  ` : ''}
+            ${(() => {
+              if (!store.yoidoreSet || !store.yoidoreSet.title) return '';
+              const setPriceObj = formatPriceDisplay(store.yoidoreSet.price, false);
+              return `
+                <div class="store-set-preview">
+                  <div class="preview-header">
+                    <span class="preview-label">🍺 酔いどれセット:</span>
+                    ${setPriceObj ? `
+                      <span class="store-price">
+                        ${setPriceObj.text}
+                        ${!setPriceObj.hasTax ? `<span style="font-size:11px; color:var(--text-dim); font-weight:normal; margin-left:3px;">(税込${store.yoidoreSet.charge === '込' ? '・チャージ料込' : ''})</span>` : ''}
+                      </span>
+                    ` : ''}
+                  </div>
+                  <div class="preview-title">${store.yoidoreSet.title}</div>
                 </div>
-                <div class="preview-title">${store.yoidoreSet.title}</div>
-              </div>
-            ` : ''}
+              `;
+            })()}
 
-            ${store.isQuestActive ? `
-              <div class="store-quest-preview">
-                <div class="preview-header">
-                  <span class="preview-label">⚔️ クエスト:</span>
-                  ${store.quest.price > 0 ? `
-                    <span class="store-price">
-                      ¥${store.quest.price.toLocaleString()}
-                      <span style="font-size:11px; color:var(--text-dim); font-weight:normal; margin-left:3px;">(税込${store.quest.charge === '込' ? '・チャージ料込' : ''})</span>
-                    </span>
-                  ` : `
-                    <span style="font-size:14px; color:#00ffaa; font-weight:bold;">
-                      🟢 無料
-                      ${store.quest.charge === '込' ? `<span style="font-size:11px; color:var(--text-dim); font-weight:normal; margin-left:3px;">(チャージ料込)</span>` : ''}
-                    </span>
-                  `}
+            ${(() => {
+              if (!store.isQuestActive) return '';
+              const questPriceObj = formatPriceDisplay(store.quest.price, true);
+              return `
+                <div class="store-quest-preview">
+                  <div class="preview-header">
+                    <span class="preview-label">⚔️ クエスト:</span>
+                    ${(questPriceObj && !questPriceObj.isFree) ? `
+                      <span class="store-price">
+                        ${questPriceObj.text}
+                        ${!questPriceObj.hasTax ? `<span style="font-size:11px; color:var(--text-dim); font-weight:normal; margin-left:3px;">(税込${store.quest.charge === '込' ? '・チャージ料込' : ''})</span>` : ''}
+                      </span>
+                    ` : `
+                      <span style="font-size:14px; color:#00ffaa; font-weight:bold;">
+                        🟢 無料
+                        ${store.quest.charge === '込' ? `<span style="font-size:11px; color:var(--text-dim); font-weight:normal; margin-left:3px;">(チャージ料込)</span>` : ''}
+                      </span>
+                    `}
+                  </div>
+                  <div class="preview-title">${store.quest.title || store.quest.content}</div>
                 </div>
-                <div class="preview-title">${store.quest.title || store.quest.content}</div>
-              </div>
-            ` : ''}
+              `;
+            })()}
           </div>
 
           <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:8px; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.15);">
@@ -3883,22 +3929,26 @@ class YoidoreQuestApp {
                   <td style="line-height:1.6; color:#ffffff; font-size:14px;">${store.yoidoreSet.content}</td>
                 </tr>
               ` : ''}
-              ${store.yoidoreSet.price > 0 ? `
-                <tr>
-                  <th>金額</th>
-                  <td>
-                    <div style="display:flex; align-items:baseline; gap:6px; flex-wrap:wrap;">
-                      <strong class="text-green" style="font-size:19px;">¥${store.yoidoreSet.price.toLocaleString()}</strong>
-                      <span style="font-size:12px; color:#cbd5e1;">(税込)</span>
-                      ${store.yoidoreSet.charge ? `
-                        <span style="font-size:12px; color:#ffffff; background:rgba(255,255,255,0.15); padding:2px 8px; border-radius:4px;">
-                          チャージ: ${store.yoidoreSet.charge === '込' ? '込' : (store.yoidoreSet.charge === '不要' || store.yoidoreSet.charge === '0' || store.yoidoreSet.charge === '無し' ? 'なし' : store.yoidoreSet.charge)}
-                        </span>
-                      ` : ''}
-                    </div>
-                  </td>
-                </tr>
-              ` : ''}
+              ${(() => {
+                const setPriceObj = formatPriceDisplay(store.yoidoreSet.price, false);
+                if (!setPriceObj) return '';
+                return `
+                  <tr>
+                    <th>金額</th>
+                    <td>
+                      <div style="display:flex; align-items:baseline; gap:6px; flex-wrap:wrap;">
+                        <strong class="text-green" style="font-size:19px;">${setPriceObj.text}</strong>
+                        ${!setPriceObj.hasTax ? `<span style="font-size:12px; color:#cbd5e1;">(税込)</span>` : ''}
+                        ${store.yoidoreSet.charge ? `
+                          <span style="font-size:12px; color:#ffffff; background:rgba(255,255,255,0.15); padding:2px 8px; border-radius:4px;">
+                            チャージ: ${store.yoidoreSet.charge === '込' ? '込' : (store.yoidoreSet.charge === '不要' || store.yoidoreSet.charge === '0' || store.yoidoreSet.charge === '無し' ? 'なし' : store.yoidoreSet.charge)}
+                          </span>
+                        ` : ''}
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              })()}
               ${store.yoidoreSet.notes ? `
                 <tr>
                   <th>備考</th>
@@ -3930,12 +3980,16 @@ class YoidoreQuestApp {
                 <th>料金</th>
                 <td>
                   <div style="display:flex; align-items:baseline; gap:6px; flex-wrap:wrap;">
-                    ${store.quest.price > 0 ? `
-                      <strong class="text-green" style="font-size:19px;">¥${store.quest.price.toLocaleString()}</strong>
-                      <span style="font-size:12px; color:#cbd5e1;">(税込)</span>
-                    ` : `
-                      <span class="quest-fee-badge" style="font-size:12px;">🟢 参加無料</span>
-                    `}
+                    ${(() => {
+                      const questPriceObj = formatPriceDisplay(store.quest.price, true);
+                      if (questPriceObj && !questPriceObj.isFree) {
+                        return `
+                          <strong class="text-green" style="font-size:19px;">${questPriceObj.text}</strong>
+                          ${!questPriceObj.hasTax ? `<span style="font-size:12px; color:#cbd5e1;">(税込)</span>` : ''}
+                        `;
+                      }
+                      return `<span class="quest-fee-badge" style="font-size:12px;">🟢 参加無料</span>`;
+                    })()}
                     ${store.quest.charge && store.quest.charge !== '不要' && store.quest.charge !== '0' && store.quest.charge !== '無し' ? `
                       <span style="font-size:12px; color:#ffffff; background:rgba(255,255,255,0.15); padding:2px 8px; border-radius:4px;">
                         チャージ: ${store.quest.charge}
