@@ -3573,7 +3573,7 @@ class YoidoreQuestApp {
 
           <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:8px; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.15);">
             ${store.isOrganizer ? `<span class="tag" style="background:#1e3a8a; color:#93c5fd; border-color:#3b82f6;">運営店</span>` : ''}
-            ${isCoupon ? `<span class="tag" style="background:#4d3800; color:#ffeeba; border-color:#ffc107;">🎁 特典対象</span>` : ''}
+            ${isCoupon ? `<span class="tag" style="background:#4d3800; color:#ffeeba; border-color:#ffc107;">特典対象</span>` : ''}
             ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
             ${store.category ? `<span class="tag">${store.category}</span>` : ''}
             ${store.style ? `<span class="tag tag-style">${store.style}</span>` : ''}
@@ -3784,7 +3784,7 @@ class YoidoreQuestApp {
 
           <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:10px;">
             ${store.isOrganizer ? `<span class="tag" style="background:#1e3a8a; color:#93c5fd; border-color:#3b82f6;">運営店</span>` : ''}
-            ${isCouponTarget ? `<span class="tag" style="background:#4d3800; color:#ffeeba; border-color:#ffc107;">🎁 特典対象</span>` : ''}
+            ${isCouponTarget ? `<span class="tag" style="background:#4d3800; color:#ffeeba; border-color:#ffc107;">特典対象</span>` : ''}
             ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
             ${store.category ? `<span class="tag">${store.category}</span>` : ''}
             ${store.style ? `<span class="tag tag-style">${store.style}</span>` : ''}
@@ -3862,7 +3862,7 @@ class YoidoreQuestApp {
 
           return `
             <div class="rpg-window" style="background: rgba(15, 23, 42, 0.6); border: 1px dashed var(--border-gold);">
-              <div style="font-size:13px; color:var(--text-yellow); font-weight:bold;">🎁 酒場特典対象店</div>
+              <div style="font-size:13px; color:var(--text-yellow); font-weight:bold;">酒場特典対象店</div>
               <div style="font-size:12px; color:#94a3b8; margin-top:2px;">運営店で達成QRコードを読み取って特典を獲得すると、この酒場のクーポンを利用できます。</div>
             </div>
           `;
