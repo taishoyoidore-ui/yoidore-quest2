@@ -2318,6 +2318,7 @@ class YoidoreAdminApp {
         // 12. 追加マスタ情報（キャッチコピー, Instagram, 住所, GoogleマップURL, 写真）
         const catchphrase = String(row[39] !== undefined && row[39] !== '' ? row[39] : (rowObj['キャッチコピー'] || masterInfo?.catchphrase || existing?.catchphrase || existing?.raw_data?.キャッチコピー || existing?.raw_data?.catchphrase || '')).trim();
         const insta_url = String(row[40] !== undefined && row[40] !== '' ? row[40] : (rowObj['Instagram'] || masterInfo?.insta_url || existing?.insta_url || existing?.raw_data?.insta_url || existing?.raw_data?.instagramUrl || existing?.raw_data?.['Instagram URL'] || '')).trim();
+        const address = String(row[41] !== undefined && row[41] !== '' ? row[41] : (rowObj['住所'] || rowObj['店舗住所'] || masterInfo?.address || existing?.address || existing?.raw_data?.address || existing?.raw_data?.住所 || '')).trim();
         let map_url = String(row[42] !== undefined && row[42] !== '' ? row[42] : (rowObj['googlemap'] || masterInfo?.map_url || existing?.map_url || existing?.raw_data?.map_url || existing?.raw_data?.googleMapUrl || existing?.raw_data?.['Google Map URL'] || '')).trim();
         if (map_url.includes('google.com/maps/search')) {
           map_url = '';
