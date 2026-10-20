@@ -1697,7 +1697,6 @@ class YoidoreQuestApp {
         <div class="rpg-window gold-border hero-status-window" style="margin-bottom:14px;">
           <div class="rpg-window-header header-gold">
             <span>▶ 勇者ステータス</span>
-            <span class="header-badge" style="background:#b45309; border:1px solid #fde047; color:#fff; padding:1px 6px; border-radius:4px; font-size:11px;">Lv.${heroLv}</span>
           </div>
           <div class="hero-status-body" style="padding:10px 12px; display:flex; flex-direction:column; gap:9px;">
             <!-- 上段: アバター ＆ なまえ・クーポン情報 -->
