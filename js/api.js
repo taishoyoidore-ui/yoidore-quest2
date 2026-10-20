@@ -220,8 +220,8 @@ class QuestApiManager {
 
           const paymentMethods = s.payment ? String(s.payment).split(/[,、]/).map(p => p.trim()) : 
             (Array.isArray(raw['paymentMethods']) ? raw['paymentMethods'] : 
-              (raw['payment'] || raw['決済方法'] ? String(raw['payment'] || raw['決済方法']).split(/[,、]/).map(p => p.trim()) : ['現金']));
-          const paymentStr = Array.isArray(paymentMethods) ? paymentMethods.join(', ') : String(s.payment || '現金');
+              (raw['payment'] || raw['決済方法'] ? String(raw['payment'] || raw['決済方法']).split(/[,、]/).map(p => p.trim()) : []));
+          const paymentStr = Array.isArray(paymentMethods) && paymentMethods.length > 0 ? paymentMethods.join(', ') : String(s.payment || raw['payment'] || raw['決済方法'] || '');
 
           // 固定基本情報
           const address = s.address || raw['address'] || raw['住所'] || raw['店舗住所'] || '';
@@ -235,11 +235,16 @@ class QuestApiManager {
           const instaUrl = s.insta_url || raw['insta_url'] || raw['instagramUrl'] || raw['Instagram URL'] || '';
           const catchphrase = s.catchphrase || raw['catchphrase'] || raw['キャッチコピー'] || '';
           const area = s.area || raw['area'] || raw['エリア'] || '';
-          const category = s.category || raw['category'] || raw['カテゴリ'] || '居酒屋';
-          const style = s.style || raw['style'] || raw['スタイル'] || 'テーブルあり';
-          const type = s.yoidore_type || raw['type'] || raw['yoidore_type'] || raw['タイプ'] || 'サク飲み';
+          const category = s.category || raw['category'] || raw['カテゴリ'] || '';
+          const style = s.style || raw['style'] || raw['スタイル'] || '';
+          const type = s.yoidore_type || raw['type'] || raw['yoidore_type'] || raw['タイプ'] || '';
           
-          const planType = seasonData ? (seasonData.plan_type || (questTitle ? '両方で参加' : (setTitle ? '「酔いどれセット」のみで参加' : ''))) : '';
+          let planType = seasonData?.plan_type || '';
+          if (!planType) {
+            if (questTitle && setTitle) planType = '「酔いどれセット」・「店舗クエスト」両方で参加';
+            else if (questTitle) planType = '「店舗クエスト」のみで参加';
+            else if (setTitle) planType = '「酔いどれセット」のみで参加';
+          }
           const badgeSalesCount = seasonData?.badge_sales_count || '';
           const hasQuest = Boolean(questTitle && questTitle.trim() !== '' && questTitle !== '？？？？？' && !planType.includes('「酔いどれセット」のみ'));
           const isCouponTarget = seasonData ? (seasonData.is_coupon_target !== undefined ? Boolean(seasonData.is_coupon_target) : (targetSeasonId === 2 ? (s.is_coupon_target !== false) : false)) : false;
@@ -291,7 +296,7 @@ class QuestApiManager {
             effective_map_url: effectiveMapUrl,
             insta_url: instaUrl,
             quest: {
-              title: questTitle || 'クエスト',
+              title: questTitle || '',
               price: questPrice,
               charge: questCharge,
               content: questContent,

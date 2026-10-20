@@ -1601,7 +1601,7 @@ class YoidoreAdminApp {
     }
 
     // 3.5 参加企画設定
-    const currentPlan = store.plan_type || (store.quest_name ? '「酔いどれセット」・「店舗クエスト」両方で参加' : '「酔いどれセット」のみで参加');
+    const currentPlan = store.plan_type || (store.quest_name && store.set_name ? '「酔いどれセット」・「店舗クエスト」両方で参加' : (store.quest_name ? '「店舗クエスト」のみで参加' : '「酔いどれセット」のみで参加'));
     const planSelect = document.getElementById('edit-store-plan-type');
     if (planSelect) {
       if (currentPlan.includes('両方') || currentPlan === '両方') {
@@ -1614,10 +1614,10 @@ class YoidoreAdminApp {
     }
 
     // 4. 酔いどれタイプ設定
-    const currentType = store.yoidore_type || store.type || 'サク飲み';
+    const currentType = store.yoidore_type || store.type || '';
     const normalizedType = currentType === 'サク呑み' ? 'サク飲み' : currentType;
     document.getElementById('edit-store-type').value = 
-      ['サク飲み', '腹ごしらえ', 'ひと休み', '昼飲み', '夜遊び'].includes(normalizedType) ? normalizedType : 'サク飲み';
+      ['サク飲み', '腹ごしらえ', 'ひと休み', '昼飲み', '夜遊び'].includes(normalizedType) ? normalizedType : (normalizedType || 'サク飲み');
 
     // 5. テイクアウト設定
     let takeoutVal = 'テイクアウト不可';
@@ -1648,8 +1648,8 @@ class YoidoreAdminApp {
       const cleaned = currentHours.replace(timeMatch[0], '').replace(/翌/, '').replace(/^[()（）\s]+|[()（）\s]+$/g, '').trim();
       document.getElementById('edit-store-hours-custom').value = cleaned;
     } else {
-      document.getElementById('edit-store-hours-start').value = currentHours ? '17:00' : '';
-      document.getElementById('edit-store-hours-end').value = currentHours ? '23:00' : '';
+      document.getElementById('edit-store-hours-start').value = '';
+      document.getElementById('edit-store-hours-end').value = '';
       document.getElementById('edit-store-hours-nextday').checked = false;
       document.getElementById('edit-store-hours-custom').value = currentHours;
     }
@@ -1657,9 +1657,9 @@ class YoidoreAdminApp {
     // 提供時間に対する補足
     document.getElementById('edit-store-time-notes').value = store.time_notes || '';
 
-    // 8. 決済方法チェックボックス設定
+    // 8. 決済方法チェックボックス設定（未設定なら勝手に現金チェックを入れない）
     const currentPayments = Array.isArray(store.paymentMethods) ? store.paymentMethods : 
-      String(store.payment || '現金').split(/[,、]/).map(p => p.trim());
+      (store.payment ? String(store.payment).split(/[,、]/).map(p => p.trim()) : []);
     const payCbs = document.querySelectorAll('input[name="store-payment-check"]');
     const otherPayments = [];
     payCbs.forEach(cb => {
@@ -1790,15 +1790,15 @@ class YoidoreAdminApp {
 
     // 1. エリア取得
     const areaSelect = document.getElementById('edit-store-area-select').value;
-    const area = areaSelect === 'custom' ? (document.getElementById('edit-store-area-custom').value.trim() || '大正') : areaSelect;
+    const area = areaSelect === 'custom' ? document.getElementById('edit-store-area-custom').value.trim() : areaSelect;
 
     // 2. ジャンル/カテゴリ取得
     const catSelect = document.getElementById('edit-store-category-select').value;
-    const category = catSelect === 'custom' ? (document.getElementById('edit-store-category-custom').value.trim() || '居酒屋') : catSelect;
+    const category = catSelect === 'custom' ? document.getElementById('edit-store-category-custom').value.trim() : catSelect;
 
     // 3. 席スタイル取得
     const styleSelect = document.getElementById('edit-store-style').value;
-    const style = styleSelect === 'custom' ? (document.getElementById('edit-store-style-custom').value.trim() || 'テーブルあり') : styleSelect;
+    const style = styleSelect === 'custom' ? document.getElementById('edit-store-style-custom').value.trim() : styleSelect;
 
     // 3.5 参加企画取得
     const planType = document.getElementById('edit-store-plan-type').value;
@@ -1809,24 +1809,31 @@ class YoidoreAdminApp {
     // 5. テイクアウト取得
     const takeout = document.getElementById('edit-store-takeout').value;
 
-    // 6. 営業日取得
+    // 6. 営業日取得（未選択なら空文字。勝手に全日営業にしない）
     const selectedDays = [];
     document.querySelectorAll('input[name="store-days-check"]:checked').forEach(cb => {
       selectedDays.push(cb.value);
     });
-    const days = selectedDays.length > 0 ? selectedDays.join(',') : '月,火,水,金,土,日';
+    const days = selectedDays.join(',');
 
-    // 7. 営業時間取得
+    // 7. 営業時間取得（未入力なら空文字。勝手に17:00〜23:00にしない）
     const hStart = document.getElementById('edit-store-hours-start').value;
     const hEnd = document.getElementById('edit-store-hours-end').value;
     const isNextDay = document.getElementById('edit-store-hours-nextday').checked;
     const hCustom = document.getElementById('edit-store-hours-custom').value.trim();
-    let hours = `${hStart || '17:00'}〜${isNextDay ? '翌' : ''}${hEnd || '23:00'}`;
+    let hours = '';
+    if (hStart && hEnd) {
+      hours = `${hStart}〜${isNextDay ? '翌' : ''}${hEnd}`;
+    } else if (hStart) {
+      hours = `${hStart}〜`;
+    } else if (hEnd) {
+      hours = `〜${isNextDay ? '翌' : ''}${hEnd}`;
+    }
     if (hCustom) {
-      hours = `${hours} (${hCustom})`;
+      hours = hours ? `${hours} (${hCustom})` : hCustom;
     }
 
-    // 8. 決済方法取得
+    // 8. 決済方法取得（未選択なら空文字。勝手に現金にしない）
     const selectedPayments = [];
     document.querySelectorAll('input[name="store-payment-check"]:checked').forEach(cb => {
       selectedPayments.push(cb.value);
@@ -1835,7 +1842,7 @@ class YoidoreAdminApp {
     if (pOther) {
       selectedPayments.push(pOther);
     }
-    const payment = selectedPayments.length > 0 ? selectedPayments.join(', ') : '現金';
+    const payment = selectedPayments.join(', ');
 
     const name = document.getElementById('edit-store-name').value.trim();
     if (!name) return alert('店舗名を入力してください');
@@ -1843,17 +1850,24 @@ class YoidoreAdminApp {
     const address = document.getElementById('edit-store-address').value.trim();
     const catchphrase = document.getElementById('edit-store-catchphrase').value.trim();
     const timeNotes = document.getElementById('edit-store-time-notes').value.trim();
-    const setName = document.getElementById('edit-store-set-name').value.trim();
-    const setPrice = document.getElementById('edit-store-set-price').value.trim();
-    const setContent = document.getElementById('edit-store-set-content').value.trim();
-    const setCharge = document.getElementById('edit-store-set-charge').value.trim();
-    const setLimit = document.getElementById('edit-store-set-limit').value.trim();
-    const setNotes = document.getElementById('edit-store-set-notes').value.trim();
-    const questName = document.getElementById('edit-store-quest-name').value.trim();
-    const questPrice = document.getElementById('edit-store-quest-price').value.trim();
-    const questContent = document.getElementById('edit-store-quest-content').value.trim();
-    const questCharge = document.getElementById('edit-store-quest-charge').value.trim();
-    const questNotes = document.getElementById('edit-store-quest-notes').value.trim();
+    let setName = document.getElementById('edit-store-set-name').value.trim();
+    let setPrice = document.getElementById('edit-store-set-price').value.trim();
+    let setContent = document.getElementById('edit-store-set-content').value.trim();
+    let setCharge = document.getElementById('edit-store-set-charge').value.trim();
+    let setLimit = document.getElementById('edit-store-set-limit').value.trim();
+    let setNotes = document.getElementById('edit-store-set-notes').value.trim();
+    let questName = document.getElementById('edit-store-quest-name').value.trim();
+    let questPrice = document.getElementById('edit-store-quest-price').value.trim();
+    let questContent = document.getElementById('edit-store-quest-content').value.trim();
+    let questCharge = document.getElementById('edit-store-quest-charge').value.trim();
+    let questNotes = document.getElementById('edit-store-quest-notes').value.trim();
+
+    // 選択された参加企画に合わせて不要な側のデータをクリーンアップ（データの不整合を防止）
+    if (planType.includes('クエスト」のみ')) {
+      setName = ''; setPrice = ''; setContent = ''; setCharge = ''; setLimit = ''; setNotes = '';
+    } else if (planType.includes('セット」のみ')) {
+      questName = ''; questPrice = ''; questContent = ''; questCharge = ''; questNotes = '';
+    }
     const badgeSalesCount = document.getElementById('edit-store-badge-sales').value.trim();
     let mapUrl = document.getElementById('edit-store-map-url').value.trim();
     if (mapUrl.includes('google.com/maps/search')) {
@@ -2185,24 +2199,26 @@ class YoidoreAdminApp {
         // 店舗名は既存があれば正式名称（例: バーガー酒場ハンバーガー・ママ）を優先
         const finalStoreName = existing ? existing.name : (masterInfo?.name || storeName);
 
-        // 1. エリア（千島対応）
-        let area = String(row[3] || rowObj['エリア'] || rowObj['  エリア  '] || (existing?.area || '三軒家西')).trim();
-        if (!['三軒家西', '三軒家東', '駅前', '泉尾', '千島', '平尾'].includes(area)) {
+        // 1. エリア（Excel記載を最優先尊重し、未知のエリアでも勝手に固定値へフォールバックしない）
+        let area = String(row[3] || rowObj['エリア'] || rowObj['  エリア  '] || (existing?.area || '')).trim();
+        if (area) {
           if (area.includes('三軒家西')) area = '三軒家西';
           else if (area.includes('三軒家東')) area = '三軒家東';
           else if (area.includes('駅前')) area = '駅前';
           else if (area.includes('泉尾')) area = '泉尾';
           else if (area.includes('千島')) area = '千島';
           else if (area.includes('平尾')) area = '平尾';
-          else area = existing?.area || '三軒家西';
+          // 南恩加島など上記以外のエリア名もExcelの入力値をそのまま保持
+        } else if (existing?.area) {
+          area = existing.area;
         }
 
-        // 2. カテゴリ
-        let category = String(row[4] || rowObj['カテゴリ'] || existing?.category || '居酒屋').trim();
+        // 2. カテゴリ（未入力なら空文字）
+        let category = String(row[4] || rowObj['カテゴリ'] || existing?.category || existing?.raw_data?.category || '').trim();
 
-        // 時刻フォーマット変換（Excelの小数シリアル値 0.5 -> 12:00, 0.625 -> 15:00, 0.708 -> 17:00, 0.937 -> 22:30 等を正確に変換）
-        const formatExcelTime = (val, defaultTime = '17:00') => {
-          if (val === null || val === undefined || val === '') return defaultTime;
+        // 時刻フォーマット変換（Excelの小数シリアル値 0.5 -> 12:00 等を変換。空なら空文字）
+        const formatExcelTime = (val) => {
+          if (val === null || val === undefined || val === '') return '';
           const num = typeof val === 'number' ? val : (typeof val === 'string' && !val.includes(':') ? parseFloat(val) : NaN);
           if (!isNaN(num) && num >= 0 && num <= 1) {
             const totalMinutes = Math.round(num * 24 * 60);
@@ -2215,63 +2231,80 @@ class YoidoreAdminApp {
             const parts = str.split(':');
             return `${parts[0].padStart(2, '0')}:${(parts[1] || '00').padStart(2, '0')}`;
           }
-          return str || defaultTime;
+          return str;
         };
 
-        // 3. スタイル (表記ゆれ補正 & 詳細保持)
-        let style = String(row[5] || rowObj['スタイル'] || existing?.style || 'テーブルあり').trim();
+        // 3. スタイル (表記ゆれ補正 & 詳細保持。未入力なら空文字)
+        let style = String(row[5] || rowObj['スタイル'] || existing?.style || existing?.raw_data?.style || '').trim();
         if (style.includes('テールブ') && !style.includes('カウンター')) style = 'テーブルあり';
         else if (style === 'テールブあり') style = 'テーブルあり';
 
-        // 4. タイプ (表記ゆれ補正: 昼飲み追加)
-        let yoidore_type = String(row[6] || rowObj['タイプ'] || existing?.type || 'サク飲み').trim();
+        // 4. タイプ (表記ゆれ補正。未入力なら空文字)
+        let yoidore_type = String(row[6] || rowObj['タイプ'] || existing?.type || existing?.yoidore_type || existing?.raw_data?.type || '').trim();
         if (yoidore_type.includes('サク')) yoidore_type = 'サク飲み';
         else if (yoidore_type.includes('腹')) yoidore_type = '腹ごしらえ';
         else if (yoidore_type.includes('休')) yoidore_type = 'ひと休み';
         else if (yoidore_type.includes('昼')) yoidore_type = '昼飲み';
         else if (yoidore_type.includes('遊')) yoidore_type = '夜遊び';
 
-        // 5. テイクアウト
-        let takeout = String(row[7] || rowObj['テイクアウト'] || (existing?.takeout || 'テイクアウト不可')).trim();
-        if (takeout.includes('専門')) takeout = 'テイクアウト専門';
-        else if (takeout.includes('OK') || takeout.includes('可') || takeout.includes('可能')) takeout = 'テイクアウトOK';
-        else takeout = 'テイクアウト不可';
-
-        // 6. 提供曜日 (「曜日」の「日」に誤爆しないよう厳密に判定)
-        let daysRaw = String(row[8] || rowObj['提供曜日'] || '月,火,水,金,土,日').trim();
-        let days = '月,火,水,金,土,日';
-        if (daysRaw.includes('全て') || daysRaw.includes('全日') || daysRaw.includes('毎日')) {
-          days = '月,火,水,木,金,土,日';
-        } else {
-          const daysList = [];
-          ['月', '火', '水', '木', '金', '土', '日', '祝'].forEach(d => {
-            if (d === '日') {
-              if (/日曜日|日曜|(?:^|[,、\s])日(?:[,、\s]|$)/.test(daysRaw)) daysList.push('日');
-            } else {
-              if (daysRaw.includes(d)) daysList.push(d);
-            }
-          });
-          days = daysList.length > 0 ? daysList.join(',') : '月,火,水,金,土,日';
+        // 5. テイクアウト（未入力なら空文字）
+        let takeoutRaw = String(row[7] || rowObj['テイクアウト'] || (existing?.takeout || existing?.raw_data?.takeout || '')).trim();
+        let takeout = '';
+        if (takeoutRaw) {
+          if (takeoutRaw.includes('専門')) takeout = 'テイクアウト専門';
+          else if (takeoutRaw.includes('OK') || takeoutRaw.includes('可') || takeoutRaw.includes('可能')) takeout = 'テイクアウトOK';
+          else takeout = 'テイクアウト不可';
         }
 
-        // 7. 提供時間 & 提供時間に対する補足
-        const hStart = formatExcelTime(row[9] !== undefined ? row[9] : rowObj['提供時間：開始'], '17:00');
-        const hEnd = formatExcelTime(row[10] !== undefined ? row[10] : rowObj['提供時間：終了'], '23:00');
+        // 6. 提供曜日 (未入力なら空文字。勝手に全日営業にしない)
+        let daysRaw = String(row[8] || rowObj['提供曜日'] || rowObj['どれクエ対応曜日'] || (existing?.days || existing?.raw_data?.days || '')).trim();
+        let days = '';
+        if (daysRaw) {
+          if (daysRaw.includes('全て') || daysRaw.includes('全日') || daysRaw.includes('毎日')) {
+            days = '月,火,水,木,金,土,日';
+          } else {
+            const daysList = [];
+            ['月', '火', '水', '木', '金', '土', '日', '祝'].forEach(d => {
+              if (d === '日') {
+                if (/日曜日|日曜|(?:^|[,、\s])日(?:[,、\s]|$)/.test(daysRaw)) daysList.push('日');
+              } else {
+                if (daysRaw.includes(d)) daysList.push(d);
+              }
+            });
+            days = daysList.length > 0 ? daysList.join(',') : daysRaw;
+          }
+        }
+
+        // 7. 提供時間 & 提供時間に対する補足（未入力なら空文字。勝手に17:00〜23:00にしない）
+        const rawHStart = row[9] !== undefined && row[9] !== '' ? row[9] : (rowObj['提供時間：開始'] || rowObj['どれクエ対応時間：開始']);
+        const rawHEnd = row[10] !== undefined && row[10] !== '' ? row[10] : (rowObj['提供時間：終了'] || rowObj['どれクエ対応時間：終了']);
+        const hStart = formatExcelTime(rawHStart);
+        const hEnd = formatExcelTime(rawHEnd);
+        let hours = '';
+        if (hStart && hEnd) {
+          hours = `${hStart}〜${hEnd}`;
+        } else if (hStart) {
+          hours = `${hStart}〜`;
+        } else if (hEnd) {
+          hours = `〜${hEnd}`;
+        } else if (existing?.hours) {
+          hours = existing.hours;
+        }
+
         const timeNote = String(row[11] || rowObj['提供時間に対する補足'] || '').trim();
         const cleanTimeNote = (timeNote && timeNote !== 'None') ? timeNote : '';
-        const hours = `${hStart}〜${hEnd}`;
 
-        // 8. 決済方法
-        let payment = String(row[12] || rowObj['決済方法'] || (existing?.payment || '現金')).trim();
+        // 8. 決済方法（未入力なら空文字。勝手に現金にしない）
+        let payment = String(row[12] || rowObj['決済方法'] || (existing?.payment || existing?.raw_data?.payment || '')).trim();
 
         // 9. クーポン取扱
         const couponAns = String(row[13] || rowObj['店舗クーポンを希望されますか？'] || '');
         const isCouponTarget = couponAns.includes('希望します') || couponAns.includes('はい') || couponAns === 'true' || Boolean(existing?.is_coupon_target);
 
-        // 10. 参加企画とセット・クエストの抽出
-        const planType = String(row[14] || rowObj['「どれクエ」にはどの企画で参加されますか？'] || rowObj['「どれクエⅡ」にはどの企画で参加されますか？'] || rowObj['  「どれクエ」にはどの企画で参加されますか？  '] || rowObj['  「どれクエⅡ」にはどの企画で参加されますか？  '] || '両方');
+        // 10. 参加企画とセット・クエストの抽出（勝手に両方にフォールバックしない）
+        const planTypeRaw = String(row[14] || rowObj['「どれクエ」にはどの企画で参加されますか？'] || rowObj['「どれクエⅡ」にはどの企画で参加されますか？'] || rowObj['  「どれクエ」にはどの企画で参加されますか？  '] || rowObj['  「どれクエⅡ」にはどの企画で参加されますか？  '] || (existing?.plan_type || existing?.raw_data?.plan_type || '')).trim();
         
-        // セルの文字列をそのまま（余計な数字変換・欠落を行わずに）取得するヘルパー
+        // セルの文字列をそのまま取得するヘルパー
         const cleanCellText = (val) => {
           if (val === null || val === undefined) return '';
           if (typeof val === 'number') {
@@ -2280,37 +2313,57 @@ class YoidoreAdminApp {
           return String(val).trim();
         };
 
+        let planType = planTypeRaw;
         let setName = '', setContent = '', setNotes = '', setPrice = '', setCharge = '', setLimit = '';
         let questName = '', questContent = '', questNotes = '', questPrice = '', questCharge = '';
 
-        if (planType.includes('セット」のみ')) {
-          setName = cleanCellText(row[15] !== undefined && row[15] !== '' ? row[15] : (rowObj['  酔いどれセット名  '] || rowObj['酔いどれセット名']));
-          setContent = cleanCellText(row[16] !== undefined && row[16] !== '' ? row[16] : (rowObj['  酔いどれセット内容  '] || rowObj['酔いどれセット内容']));
-          setNotes = cleanCellText(row[17] !== undefined && row[17] !== '' ? row[17] : rowObj['セット内容備考']);
-          setPrice = cleanCellText(row[18] !== undefined && row[18] !== '' ? row[18] : (rowObj['  価格(税込)  '] || rowObj['価格(税込)'])) || '1000';
-          setCharge = cleanCellText(row[19] !== undefined && row[19] !== '' ? row[19] : rowObj['チャージ料(税込)']);
-          setLimit = cleanCellText(row[20] !== undefined && row[20] !== '' ? row[20] : rowObj['限定数量']);
-        } else if (planType.includes('クエスト」のみ')) {
-          questName = cleanCellText(row[21] !== undefined && row[21] !== '' ? row[21] : rowObj['クエスト名']);
-          questContent = cleanCellText(row[22] !== undefined && row[22] !== '' ? row[22] : rowObj['クエスト内容/報酬']);
-          questPrice = cleanCellText(row[23] !== undefined && row[23] !== '' ? row[23] : rowObj['クエスト料金(税込)']);
-          questCharge = cleanCellText(row[24] !== undefined && row[24] !== '' ? row[24] : rowObj['クエストチャージ料 (税込)']);
-          questNotes = cleanCellText(row[25] !== undefined && row[25] !== '' ? row[25] : rowObj['クエスト備考']);
-        } else {
-          // 両方
-          setName = cleanCellText(row[26] !== undefined && row[26] !== '' ? row[26] : (rowObj['酔いどれセット名'] || row[15]));
-          setContent = cleanCellText(row[27] !== undefined && row[27] !== '' ? row[27] : (rowObj['  酔いどれセット内容   2'] || row[16]));
-          setNotes = cleanCellText(row[28] !== undefined && row[28] !== '' ? row[28] : (rowObj['セット内容備考 2'] || row[17]));
-          setPrice = cleanCellText(row[29] !== undefined && row[29] !== '' ? row[29] : (rowObj['価格(税込)'] || row[18])) || '1000';
-          setCharge = cleanCellText(row[30] !== undefined && row[30] !== '' ? row[30] : (rowObj['チャージ料(税込) 2'] || row[19]));
-          setLimit = cleanCellText(row[31] !== undefined && row[31] !== '' ? row[31] : (rowObj['限定数量 2'] || row[20]));
+        const isSetOnly = planType.includes('セット」のみ');
+        const isQuestOnly = planType.includes('クエスト」のみ');
 
-          questName = cleanCellText(row[32] !== undefined && row[32] !== '' ? row[32] : (rowObj['クエスト名 2'] || row[21]));
-          questContent = cleanCellText(row[33] !== undefined && row[33] !== '' ? row[33] : (rowObj['クエスト内容/報酬 2'] || row[22]));
-          questPrice = cleanCellText(row[34] !== undefined && row[34] !== '' ? row[34] : (rowObj['クエスト料金(税込) 2'] || row[23]));
-          questCharge = cleanCellText(row[35] !== undefined && row[35] !== '' ? row[35] : (rowObj['クエストチャージ料 (税込) 2'] || row[24]));
-          questNotes = cleanCellText(row[36] !== undefined && row[36] !== '' ? row[36] : (rowObj['クエスト備考 2'] || row[25]));
+        if (isSetOnly) {
+          setName = cleanCellText(row[15] !== undefined && row[15] !== '' ? row[15] : (rowObj['  酔いどれセット名  '] || rowObj['酔いどれセット名'] || existing?.set_name || existing?.raw_data?.酔いどれセット名));
+          setContent = cleanCellText(row[16] !== undefined && row[16] !== '' ? row[16] : (rowObj['  酔いどれセット内容  '] || rowObj['酔いどれセット内容'] || existing?.set_content || existing?.raw_data?.セット内容));
+          setNotes = cleanCellText(row[17] !== undefined && row[17] !== '' ? row[17] : (rowObj['セット内容備考'] || existing?.set_notes || existing?.raw_data?.セット備考));
+          setPrice = cleanCellText(row[18] !== undefined && row[18] !== '' ? row[18] : (rowObj['  価格(税込)  '] || rowObj['価格(税込)'] || existing?.set_price || existing?.raw_data?.['価格(円)']));
+          setCharge = cleanCellText(row[19] !== undefined && row[19] !== '' ? row[19] : (rowObj['チャージ料(税込)'] || existing?.set_charge || existing?.raw_data?.チャージ));
+          setLimit = cleanCellText(row[20] !== undefined && row[20] !== '' ? row[20] : (rowObj['限定数量'] || existing?.set_limit || existing?.raw_data?.限定数));
+          // セットのみのためクエスト情報は厳格に空文字
+          questName = ''; questContent = ''; questNotes = ''; questPrice = ''; questCharge = '';
+        } else if (isQuestOnly) {
+          // クエストのみのためセット情報は厳格に空文字（固定値「酔いどれセット」「1000」等は一切入れない）
+          setName = ''; setContent = ''; setNotes = ''; setPrice = ''; setCharge = ''; setLimit = '';
+          questName = cleanCellText(row[21] !== undefined && row[21] !== '' ? row[21] : (rowObj['クエスト名'] || existing?.quest_name || existing?.raw_data?.クエスト名));
+          questContent = cleanCellText(row[22] !== undefined && row[22] !== '' ? row[22] : (rowObj['クエスト内容/報酬'] || existing?.quest_content || existing?.raw_data?.クエスト内容));
+          questPrice = cleanCellText(row[23] !== undefined && row[23] !== '' ? row[23] : (rowObj['クエスト料金(税込)'] || existing?.quest_price || existing?.raw_data?.['クエスト価格(円)']));
+          questCharge = cleanCellText(row[24] !== undefined && row[24] !== '' ? row[24] : (rowObj['クエストチャージ料 (税込)'] || existing?.quest_charge || existing?.raw_data?.クエストチャージ));
+          questNotes = cleanCellText(row[25] !== undefined && row[25] !== '' ? row[25] : (rowObj['クエスト備考'] || existing?.quest_notes || existing?.raw_data?.クエスト備考));
+        } else {
+          // 両方 または 企画名直接指定
+          setName = cleanCellText(row[26] !== undefined && row[26] !== '' ? row[26] : (rowObj['酔いどれセット名'] || row[15] || existing?.set_name || existing?.raw_data?.酔いどれセット名));
+          setContent = cleanCellText(row[27] !== undefined && row[27] !== '' ? row[27] : (rowObj['  酔いどれセット内容   2'] || row[16] || existing?.set_content || existing?.raw_data?.セット内容));
+          setNotes = cleanCellText(row[28] !== undefined && row[28] !== '' ? row[28] : (rowObj['セット内容備考 2'] || row[17] || existing?.set_notes || existing?.raw_data?.セット備考));
+          setPrice = cleanCellText(row[29] !== undefined && row[29] !== '' ? row[29] : (rowObj['価格(税込)'] || row[18] || existing?.set_price || existing?.raw_data?.['価格(円)']));
+          setCharge = cleanCellText(row[30] !== undefined && row[30] !== '' ? row[30] : (rowObj['チャージ料(税込) 2'] || row[19] || existing?.set_charge || existing?.raw_data?.チャージ));
+          setLimit = cleanCellText(row[31] !== undefined && row[31] !== '' ? row[31] : (rowObj['限定数量 2'] || row[20] || existing?.set_limit || existing?.raw_data?.限定数));
+
+          questName = cleanCellText(row[32] !== undefined && row[32] !== '' ? row[32] : (rowObj['クエスト名 2'] || row[21] || existing?.quest_name || existing?.raw_data?.クエスト名));
+          questContent = cleanCellText(row[33] !== undefined && row[33] !== '' ? row[33] : (rowObj['クエスト内容/報酬 2'] || row[22] || existing?.quest_content || existing?.raw_data?.クエスト内容));
+          questPrice = cleanCellText(row[34] !== undefined && row[34] !== '' ? row[34] : (rowObj['クエスト料金(税込) 2'] || row[23] || existing?.quest_price || existing?.raw_data?.['クエスト価格(円)']));
+          questCharge = cleanCellText(row[35] !== undefined && row[35] !== '' ? row[35] : (rowObj['クエストチャージ料 (税込) 2'] || row[24] || existing?.quest_charge || existing?.raw_data?.クエストチャージ));
+          questNotes = cleanCellText(row[36] !== undefined && row[36] !== '' ? row[36] : (rowObj['クエスト備考 2'] || row[25] || existing?.quest_notes || existing?.raw_data?.クエスト備考));
+
+          if (!planType) {
+            if (setName && questName) planType = '「酔いどれセット」・「店舗クエスト」両方で参加';
+            else if (setName) planType = '「酔いどれセット」のみで参加';
+            else if (questName) planType = '「店舗クエスト」のみで参加';
+          }
         }
+
+        if (setCharge === 'None' || setCharge === '0.0') setCharge = 'なし';
+        if (questCharge === 'None' || questCharge === '0.0') questCharge = 'なし';
+        if (setNotes === 'None') setNotes = '';
+        if (questNotes === 'None') questNotes = '';
+        if (setLimit === 'None' || setLimit === '0.0') setLimit = '';
 
         // 11. 参加証(缶バッチ)販売希望数
         const badgeSalesRaw = String(row[37] || rowObj['お客様向け参加証(缶バッチ)\u3000販売希望数は？'] || rowObj['お客様向け参加証(缶バッチ) 販売希望数は？'] || '').trim();
@@ -2346,17 +2399,17 @@ class YoidoreAdminApp {
           payment,
           is_coupon_target: isCouponTarget,
           planType,
-          set_name: setName || existing?.set_name || existing?.raw_data?.酔いどれセット名 || '酔いどれセット',
-          set_content: setContent || existing?.set_content || existing?.raw_data?.セット内容 || '',
-          set_price: (setPrice !== '' && setPrice !== null && setPrice !== undefined) ? setPrice : (existing?.set_price ?? existing?.raw_data?.['価格(円)'] ?? '1000'),
-          set_charge: (setCharge === 'None' || setCharge === '0.0') ? 'なし' : (setCharge || existing?.set_charge || existing?.raw_data?.チャージ || '不要'),
-          set_limit: (setLimit === 'None' || setLimit === '0.0') ? '' : (setLimit || existing?.set_limit || existing?.raw_data?.限定数 || ''),
-          set_notes: setNotes === 'None' ? '' : (setNotes || existing?.set_notes || existing?.raw_data?.セット備考 || ''),
-          quest_name: questName || existing?.quest_name || existing?.raw_data?.クエスト名 || '',
-          quest_content: questContent || existing?.quest_content || existing?.raw_data?.クエスト内容 || '',
-          quest_price: (questPrice !== '' && questPrice !== null && questPrice !== undefined) ? questPrice : (existing?.quest_price ?? existing?.raw_data?.['クエスト価格(円)'] ?? '0'),
-          quest_charge: (questCharge === 'None' || questCharge === '0.0') ? 'なし' : (questCharge || existing?.quest_charge || existing?.raw_data?.クエストチャージ || '不要'),
-          quest_notes: questNotes === 'None' ? '' : (questNotes || existing?.quest_notes || existing?.raw_data?.クエスト備考 || ''),
+          set_name: setName,
+          set_content: setContent,
+          set_price: setPrice,
+          set_charge: setCharge,
+          set_limit: setLimit,
+          set_notes: setNotes,
+          quest_name: questName,
+          quest_content: questContent,
+          quest_price: questPrice,
+          quest_charge: questCharge,
+          quest_notes: questNotes,
           badge_sales_count: badgeSalesRaw,
           map_url,
           insta_url,
@@ -2448,41 +2501,41 @@ class YoidoreAdminApp {
         const existingRaw = existingStore?.raw_data || {};
         const existingSeasons = { ...(existingRaw.seasons || {}) };
 
-        // 該当シーズンの企画データを作成
+        // 該当シーズンの企画データを作成（勝手な固定値フォールバックを撤廃し、itemの値をそのまま正確に保存）
         existingSeasons[targetSeasonId] = {
           is_participating: true,
           is_coupon_target: Boolean(item.is_coupon_target),
-          plan_type: item.planType || '両方',
-          set_name: item.set_name || '酔いどれセット',
+          plan_type: item.planType || '',
+          set_name: item.set_name || '',
           set_content: item.set_content || '',
-          set_price: item.set_price || '1000',
-          set_charge: item.set_charge || '不要',
+          set_price: item.set_price || '',
+          set_charge: item.set_charge || '',
           set_limit: item.set_limit || '',
           set_notes: item.set_notes || '',
           quest_name: item.quest_name || '',
           quest_content: item.quest_content || '',
-          quest_price: (item.quest_price !== undefined && item.quest_price !== null && item.quest_price !== '') ? item.quest_price : '0',
-          quest_charge: item.quest_charge || '不要',
+          quest_price: (item.quest_price !== undefined && item.quest_price !== null && item.quest_price !== '') ? item.quest_price : '',
+          quest_charge: item.quest_charge || '',
           quest_notes: item.quest_notes || '',
           badge_sales_count: item.badge_sales_count || '',
-          days: item.days,
-          hours: item.hours,
+          days: item.days || '',
+          hours: item.hours || '',
           time_notes: item.time_notes || '',
-          takeout: item.takeout
+          takeout: item.takeout || ''
         };
 
         const rawData = {
           ...existingRaw,
           id: item.id,
           name: item.name,
-          area: item.area,
+          area: item.area || '',
           address: item.address || '',
-          category: item.category,
-          style: item.style,
-          type: item.yoidore_type,
-          takeout: item.takeout,
+          category: item.category || '',
+          style: item.style || '',
+          type: item.yoidore_type || '',
+          takeout: item.takeout || '',
           catchphrase: item.catchphrase || '',
-          payment: item.payment,
+          payment: item.payment || '',
           map_url: item.map_url || '',
           insta_url: item.insta_url || '',
           photo_url: item.photo_url || '',
@@ -2490,21 +2543,21 @@ class YoidoreAdminApp {
           seasons: existingSeasons,
           // 互換用（第2回時はトップレベルにも反映）
           ...(targetSeasonId === 2 ? {
-            days: item.days,
-            hours: item.hours,
+            days: item.days || '',
+            hours: item.hours || '',
             time_notes: item.time_notes || '',
             is_coupon_target: Boolean(item.is_coupon_target),
-            plan_type: item.planType || '両方',
-            set_name: item.set_name || '酔いどれセット',
+            plan_type: item.planType || '',
+            set_name: item.set_name || '',
             set_content: item.set_content || '',
-            set_price: item.set_price || '1000',
-            set_charge: item.set_charge || '不要',
+            set_price: item.set_price || '',
+            set_charge: item.set_charge || '',
             set_limit: item.set_limit || '',
             set_notes: item.set_notes || '',
             quest_name: item.quest_name || '',
             quest_content: item.quest_content || '',
-            quest_price: (item.quest_price !== undefined && item.quest_price !== null && item.quest_price !== '') ? item.quest_price : '0',
-            quest_charge: item.quest_charge || '不要',
+            quest_price: (item.quest_price !== undefined && item.quest_price !== null && item.quest_price !== '') ? item.quest_price : '',
+            quest_charge: item.quest_charge || '',
             quest_notes: item.quest_notes || '',
             badge_sales_count: item.badge_sales_count || ''
           } : {})
