@@ -1296,6 +1296,13 @@ class YoidoreQuestApp {
           <span>▶ コマンド選択</span>
         </div>
         <ul class="command-list">
+          <li class="command-item" data-action="quest">
+            <div class="command-item-left">
+              <span class="command-cursor">▶</span>
+              <span class="command-label">店舗クエストに挑む</span>
+            </div>
+            <span class="command-badge">${questCount}軒</span>
+          </li>
           <li class="command-item" data-action="area">
             <div class="command-item-left">
               <span class="command-cursor">▶</span>
@@ -1329,14 +1336,7 @@ class YoidoreQuestApp {
               <span class="command-cursor">▶</span>
               <span class="command-label">どれクエ対応中の酒場</span>
             </div>
-            <span class="command-badge text-green">対応中 ${openCount}軒</span>
-          </li>
-          <li class="command-item" data-action="quest">
-            <div class="command-item-left">
-              <span class="command-cursor">▶</span>
-              <span class="command-label">店舗クエストに挑む</span>
-            </div>
-            <span class="command-badge" style="background:#3b1e54; color:#d8b4fe; border:1px solid #a855f7;">クエスト ${questCount}軒</span>
+            <span class="command-badge">${openCount}軒</span>
           </li>
           <li class="command-item" data-action="takeout">
             <div class="command-item-left">
@@ -1350,7 +1350,7 @@ class YoidoreQuestApp {
               <span class="command-cursor">▶</span>
               <span class="command-label">運営店一覧</span>
             </div>
-            <span class="command-badge" style="background:#1e3a8a; color:#93c5fd; border:1px solid #3b82f6;">QR設置 ${organizerCount}軒</span>
+            <span class="command-badge">${organizerCount}軒</span>
           </li>
         </ul>
       </div>
@@ -2485,10 +2485,17 @@ class YoidoreQuestApp {
       overlay.querySelectorAll('.qr-modal-test-tier-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           const tierId = btn.getAttribute('data-tier-id');
-          await closeModal();
-          if (tierId) {
-            await this.handleClaimMilestoneTier(tierId);
-          }
+          if (!tierId) return;
+          this.playSelectSE();
+          overlay.querySelectorAll('.qr-modal-test-tier-btn').forEach(b => { b.disabled = true; });
+          const origText = btn.textContent;
+          btn.textContent = '読込中...';
+
+          // 冒険の書の一瞬表示を防止し、ダイレクトに宝箱モーダルを表示
+          await this.handleClaimMilestoneTier(tierId, async () => {
+            await stopCamera();
+            overlay.remove();
+          });
         });
       });
 
@@ -2546,12 +2553,14 @@ class YoidoreQuestApp {
           this.playSelectSE();
           const claimTierId = extractClaimTierParam(decodedText);
 
-          await stopCamera();
-          overlay.remove();
-
           if (claimTierId) {
-            await this.handleClaimMilestoneTier(claimTierId);
+            await this.handleClaimMilestoneTier(claimTierId, async () => {
+              await stopCamera();
+              overlay.remove();
+            });
           } else {
+            await stopCamera();
+            overlay.remove();
             alert(`読み取ったQRコードの内容:\n${decodedText}\n\n⚠️ 有効な達成QRコードではありません。\n運営店に設置されたハシゴ達成QRコードを読み取ってください。`);
           }
         };
@@ -2580,23 +2589,24 @@ class YoidoreQuestApp {
   /* ------------------------------------------------------------------------
    * 🏆 マイルストーン達成特典カスケード付与処理 (運営店QRコードスキャン時)
    * ------------------------------------------------------------------------ */
-  async handleClaimMilestoneTier(tierId) {
+  async handleClaimMilestoneTier(tierId, onBeforeShowModal) {
     if (!tierId) return;
 
-    // スタート画面オーバーレイを確実に非表示にして冒険の書ビューにする
+    // スタート画面オーバーレイを確実に非表示
     const overlay = document.getElementById('start-overlay');
     if (overlay) {
       overlay.style.display = 'none';
     }
     this.isStarted = true;
-    this.currentView = 'quest-book';
 
     try {
       const activeSeasonId = window.questApi?.currentSeason?.id || 2;
       const res = await window.questApi.claimRewardTierCascade(tierId, activeSeasonId);
 
-      // 冒険の書画面を最新状態で描画
-      await this.render();
+      // QRモーダルの終了処理等があれば、宝箱モーダル表示直前に実行
+      if (typeof onBeforeShowModal === 'function') {
+        await onBeforeShowModal();
+      }
 
       // 同期ローダーをスムーズに非表示
       const syncLoader = document.getElementById('qr-claim-sync-loader');
@@ -2612,13 +2622,16 @@ class YoidoreQuestApp {
           this.playCursorSE();
           this.showAlreadyClaimedMilestoneModal(res);
         } else {
-          // 🎉 秘宝の宝箱発見モーダルを表示（タップで効果音アンロック＆ドラクエ風レベルアップ演出へ移行）
+          // 🎉 秘宝の宝箱発見モーダルをダイレクトに表示（タップで効果音アンロック＆ドラクエ風レベルアップ演出へ移行）
           this.showTreasureBoxOpenPrompt(res);
         }
       } else {
         alert(res.message || '特典の獲得処理に失敗しました。');
       }
     } catch (err) {
+      if (typeof onBeforeShowModal === 'function') {
+        try { await onBeforeShowModal(); } catch (e) {}
+      }
       console.error('Milestone claim error:', err);
       alert('エラーが発生しました: ' + err.message);
     }
