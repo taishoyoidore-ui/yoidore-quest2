@@ -288,16 +288,15 @@ class YoidoreQuestApp {
   getHeroTitleForTierCount(unlockedTierCount = 0) {
     const activeSeasonId = window.questApi?.currentSeason?.id || 2;
     const rewardTiers = (window.questApi && window.questApi.rewardTiers && window.questApi.rewardTiers.length > 0)
-      ? window.questApi.rewardTiers.filter(t => Number(t.season_id) === Number(activeSeasonId))
+      ? window.questApi.rewardTiers.filter(t => !t.season_id || Number(t.season_id) === Number(activeSeasonId))
       : (window.APP_CONFIG?.fallbackRewardTiers || []);
     
     // 必要軒数順（昇順）にソート
     const sortedTiers = [...rewardTiers].sort((a, b) => (Number(a.required_visits) || 0) - (Number(b.required_visits) || 0));
 
-    // レベル計算: 未達成ならLv.1、第1マイルストーン達成ならLv.2、第2ならLv.3...
+    // レベル計算:
+    // 未達成ならLv.1、マイルストーン達成時は直近達成した特典の「必要来店店舗数」がそのままLv値（5軒達成でLv.5、20軒達成でLv.20等）となる
     const count = Math.max(0, Number(unlockedTierCount) || 0);
-    const currentLv = 1 + count;
-
     const defaultTitle = window.APP_CONFIG?.fallbackDefaultTitle || { title: '駆け出しの呑兵衛', badge_color: '#94a3b8' };
 
     if (count === 0) {
@@ -309,12 +308,19 @@ class YoidoreQuestApp {
       };
     }
 
-    // 達成済み特典（1〜count番目まで）の中から、最も上位でhero_titleが設定されているものを探索
-    // 未設定の場合は直前の有効称号（なければ初期称号）を引き継ぐ
+    // 達成済み特典（1〜count番目まで）
     const unlockedTiers = sortedTiers.slice(0, count);
+    const highestUnlockedTier = unlockedTiers[unlockedTiers.length - 1];
+    // 件数とレベル数字の完全連動（例: 5軒ならLv.5、20軒ならLv.20）
+    const currentLv = (highestUnlockedTier && highestUnlockedTier.required_visits) 
+      ? Number(highestUnlockedTier.required_visits) 
+      : (1 + count);
+
+    // 達成済み特典の中から、最も上位でhero_titleが設定されているものを探索
+    // 未設定の場合は直前の有効称号（なければ初期称号）を引き継ぐ
     let activeTitle = defaultTitle.title;
     let activeBadgeColor = defaultTitle.badge_color;
-    let activeDesc = `${currentLv}段階達成の勇者`;
+    let activeDesc = `${currentLv}軒制覇の勇者`;
 
     for (let i = 0; i < unlockedTiers.length; i++) {
       const tier = unlockedTiers[i];
@@ -1433,7 +1439,7 @@ class YoidoreQuestApp {
     // 称号・レベル計算 (特典マイルストーン達成段階連動)
     const matchedHero = this.getHeroTitleForTierCount(unlockedTierCount);
     const heroTitle = matchedHero.title || '駆け出しの呑兵衛';
-    const heroLv = matchedHero.level || (1 + unlockedTierCount);
+    const heroLv = matchedHero.level || 1;
     const heroColor = matchedHero.badge_color || '#facc15';
     const heroDesc = matchedHero.description || '';
 

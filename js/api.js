@@ -601,8 +601,8 @@ class QuestApiManager {
           lastValidColor = t.badge_color || '#facc15';
         }
         titles.push({
-          level: idx + 2,
-          min_visits: idx + 1,
+          level: Number(t.required_visits) || (idx + 2),
+          min_visits: Number(t.required_visits) || (idx + 1),
           title: lastValidTitle,
           badge_color: lastValidColor,
           description: t.description || `${t.title}を達成した勇者`
