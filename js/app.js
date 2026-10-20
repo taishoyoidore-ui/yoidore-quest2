@@ -428,9 +428,13 @@ class YoidoreQuestApp {
 
         if (curSeason && curSeason.start_date && curSeason.end_date) {
           const periodBadge = document.getElementById('start-period-badge');
+          const periodText = `📅 ${this.formatDateWithDay(curSeason.start_date)} 〜 ${this.formatDateWithDay(curSeason.end_date)} 開催`;
           if (periodBadge) {
-            periodBadge.textContent = `📅 ${this.formatDateWithDay(curSeason.start_date)} 〜 ${this.formatDateWithDay(curSeason.end_date)} 開催`;
+            periodBadge.textContent = periodText;
           }
+          try {
+            localStorage.setItem('yoidore_cached_season_period', periodText);
+          } catch (e) {}
         }
 
         if (stores && stores.length > 0) {
@@ -1682,8 +1686,8 @@ class YoidoreQuestApp {
       `;
     }).join('') : '<div style="padding:15px; text-align:center; color:#e2e8f0; font-size:14px;">記念品グッズはありません</div>';
 
-    const seasonStartDate = activeSeason?.start_date || (seasonId === 2 ? window.APP_CONFIG?.eventPeriod?.startDate : '');
-    const seasonEndDate = activeSeason?.end_date || (seasonId === 2 ? window.APP_CONFIG?.eventPeriod?.endDate : '');
+    const seasonStartDate = activeSeason?.start_date || '';
+    const seasonEndDate = activeSeason?.end_date || '';
     const seasonCouponUntil = activeSeason?.coupon_valid_until;
     const seasonPeriodStr = (seasonStartDate && seasonEndDate)
       ? `${this.formatDateWithDay(seasonStartDate)} 〜 ${this.formatDateWithDay(seasonEndDate)}`

@@ -267,13 +267,13 @@ class YoidoreAdminApp {
   getSeasonPhaseInfo(season) {
     if (!season) return { phaseKey: 'unknown', phaseLabel: '不明', badgeClass: 'tag-area', timerText: '-', isEventActive: false, isCouponUsable: false };
     const now = new Date();
-    const startDate = new Date(season.start_date || '2026-08-01');
-    const endDate = new Date(season.end_date || '2026-08-31');
-    endDate.setHours(23, 59, 59, 999);
-    const validUntil = new Date(season.coupon_valid_until || '2026-09-30');
-    validUntil.setHours(23, 59, 59, 999);
+    const startDate = season.start_date ? new Date(season.start_date) : null;
+    const endDate = season.end_date ? new Date(season.end_date) : null;
+    if (endDate) endDate.setHours(23, 59, 59, 999);
+    const validUntil = season.coupon_valid_until ? new Date(season.coupon_valid_until) : null;
+    if (validUntil) validUntil.setHours(23, 59, 59, 999);
 
-    if (now < startDate) {
+    if (startDate && now < startDate) {
       const days = Math.max(1, Math.ceil((startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
       return {
         phaseKey: 'upcoming',
@@ -2560,9 +2560,9 @@ class YoidoreAdminApp {
     const fallback = window.APP_CONFIG?.fallbackSeasonGuidance || {};
     if (current) {
       document.getElementById('edit-season-name').value = current.name || '';
-      document.getElementById('edit-season-start').value = current.start_date || '2026-08-01';
-      document.getElementById('edit-season-end').value = current.end_date || '2026-08-31';
-      document.getElementById('edit-season-valid').value = current.coupon_valid_until || '2026-09-30';
+      document.getElementById('edit-season-start').value = current.start_date || '';
+      document.getElementById('edit-season-end').value = current.end_date || '';
+      document.getElementById('edit-season-valid').value = current.coupon_valid_until || '';
 
       // ガイダンス設定
       const overviewEl = document.getElementById('edit-season-overview');

@@ -19,9 +19,9 @@ class QuestApiManager {
     this.currentSeason = {
       id: 2,
       name: '大正酔いどれクエスト',
-      start_date: '2026-08-01',
-      end_date: '2026-08-31',
-      coupon_valid_until: '2026-09-30',
+      start_date: '',
+      end_date: '',
+      coupon_valid_until: '',
       is_active: true,
       overview: fallbackGuidance.overview || '',
       guide_steps: fallbackGuidance.guide_steps || [],
@@ -421,28 +421,35 @@ class QuestApiManager {
     }
 
     const now = new Date();
-    const startDate = new Date(this.currentSeason.start_date || '2026-08-01');
-    const endDate = new Date(this.currentSeason.end_date || '2026-08-31');
-    endDate.setHours(23, 59, 59, 999);
+    const startDate = this.currentSeason.start_date ? new Date(this.currentSeason.start_date) : null;
+    const endDate = this.currentSeason.end_date ? new Date(this.currentSeason.end_date) : null;
+    if (endDate) {
+      endDate.setHours(23, 59, 59, 999);
+    }
 
     // クーポン利用開始日（本開催終了翌日 00:00:00）
-    const couponStartDate = new Date(this.currentSeason.end_date || '2026-08-31');
-    couponStartDate.setDate(couponStartDate.getDate() + 1);
-    couponStartDate.setHours(0, 0, 0, 0);
+    let couponStartDate = null;
+    let couponStartDateStr = '';
+    if (endDate) {
+      couponStartDate = new Date(endDate);
+      couponStartDate.setDate(couponStartDate.getDate() + 1);
+      couponStartDate.setHours(0, 0, 0, 0);
+      const pad = n => String(n).padStart(2, '0');
+      couponStartDateStr = `${couponStartDate.getFullYear()}-${pad(couponStartDate.getMonth() + 1)}-${pad(couponStartDate.getDate())}`;
+    }
 
-    const pad = n => String(n).padStart(2, '0');
-    const couponStartDateStr = `${couponStartDate.getFullYear()}-${pad(couponStartDate.getMonth() + 1)}-${pad(couponStartDate.getDate())}`;
+    const couponValidUntil = this.currentSeason.coupon_valid_until ? new Date(this.currentSeason.coupon_valid_until) : null;
+    if (couponValidUntil) {
+      couponValidUntil.setHours(23, 59, 59, 999);
+    }
 
-    const couponValidUntil = new Date(this.currentSeason.coupon_valid_until || '2026-09-30');
-    couponValidUntil.setHours(23, 59, 59, 999);
+    const isBeforeEvent = startDate ? (now < startDate) : false;
+    const isEventActive = (startDate && endDate) ? (now >= startDate && now <= endDate) : true; // 本開催中（サイン受取・宝箱解放）
+    const isCouponUsable = (couponStartDate && couponValidUntil) ? (now >= couponStartDate && now <= couponValidUntil) : false; // クーポン利用可能期間（本開催終了翌日〜有効期限）
+    const isCouponActive = couponValidUntil ? (now <= couponValidUntil) : true; // クーポン期限内（獲得・所持可能期間）
+    const isExpired = couponValidUntil ? (now > couponValidUntil) : false; // 全期間終了
 
-    const isBeforeEvent = now < startDate;
-    const isEventActive = now >= startDate && now <= endDate; // 本開催中（サイン受取・宝箱解放）
-    const isCouponUsable = now >= couponStartDate && now <= couponValidUntil; // クーポン利用可能期間（本開催終了翌日〜有効期限）
-    const isCouponActive = now <= couponValidUntil; // クーポン期限内（獲得・所持可能期間）
-    const isExpired = now > couponValidUntil; // 全期間終了
-
-    const diffTime = couponValidUntil.getTime() - now.getTime();
+    const diffTime = couponValidUntil ? (couponValidUntil.getTime() - now.getTime()) : 0;
     const daysLeft = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
 
     this.currentSeason.statusInfo = {

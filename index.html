@@ -12,9 +12,9 @@
   <meta http-equiv="Expires" content="0">
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/style.css?v=20261020_04">
+  <link rel="stylesheet" href="css/style.css?v=20261020_05">
 
-  <!-- 特典達成QR・店舗QRアクセス時の画面チラつき防止（即時初期判定） -->
+  <!-- 特典達成QR・店舗QRアクセス時の画面チラつき防止（即時初期判定）＆ 開催日程キャッシュ即時復元 -->
   <script>
     (function() {
       try {
@@ -22,6 +22,19 @@
         var isQr = /[?&#](?:claim_tier|tier_id|tier|store_id|storeId|store)=/i.test(href) || /liff\.state=[^&#]*(?:claim_tier|tier|store)/i.test(href);
         if (isQr) {
           document.documentElement.classList.add('qr-claim-direct-access');
+        }
+      } catch(e) {}
+
+      // 前回のバックオフィス設定日程があれば即時復元（固定値チラつきを完全防止）
+      try {
+        var cachedPeriod = localStorage.getItem('yoidore_cached_season_period');
+        if (cachedPeriod) {
+          document.addEventListener('DOMContentLoaded', function() {
+            var el = document.getElementById('start-period-badge');
+            if (el && !el.textContent.trim()) {
+              el.textContent = cachedPeriod;
+            }
+          });
         }
       } catch(e) {}
     })();
@@ -157,9 +170,7 @@
           <img src="assets/banner.png" alt="大正酔いどれクエスト" class="start-hero-full-img">
         </div>
 
-        <div class="start-period-badge" id="start-period-badge" style="font-size:13px; color:#ffd700; font-weight:bold; text-shadow:0 0 6px rgba(0,0,0,0.8); margin:4px 0 10px 0;">
-          📅 2026.8.1(土) 〜 8.31(月) 開催
-        </div>
+        <div class="start-period-badge" id="start-period-badge" style="font-size:13px; color:#ffd700; font-weight:bold; text-shadow:0 0 6px rgba(0,0,0,0.8); margin:4px 0 10px 0; min-height:18px;"></div>
         
         <div class="start-btn-box">
           <button id="start-game-btn" class="start-game-btn" type="button"> PUSH START </button>
@@ -203,7 +214,7 @@
       <div class="sticky-filter-inner">
         <div class="sticky-filter-left" id="sticky-filter-tags">
           <span class="sticky-icon">🔍</span>
-          <span class="sticky-summary-text">全酒場 (33軒)</span>
+          <span class="sticky-summary-text">全酒場</span>
         </div>
         <button id="sticky-filter-change-btn" class="sticky-filter-btn" type="button">
           条件変更 ▾
@@ -264,8 +275,8 @@
   <!-- JS Scripts -->
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script src="js/config.js?v=20261020_04"></script>
-  <script src="js/api.js?v=20261020_04"></script>
-  <script src="js/app.js?v=20261020_04"></script>
+  <script src="js/config.js?v=20261020_05"></script>
+  <script src="js/api.js?v=20261020_05"></script>
+  <script src="js/app.js?v=20261020_05"></script>
 </body>
 </html>
