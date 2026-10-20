@@ -1548,10 +1548,14 @@ class YoidoreAdminApp {
 
     // 1. エリア設定
     const knownAreas = ['三軒家西', '三軒家東', '駅前', '泉尾', '千島', '平尾'];
-    const currentArea = store.area || raw['area'] || raw['エリア'] || '三軒家西';
+    const currentArea = store.area || raw['area'] || raw['エリア'] || '';
     const areaSelect = document.getElementById('edit-store-area-select');
     const areaCustom = document.getElementById('edit-store-area-custom');
-    if (knownAreas.includes(currentArea)) {
+    if (!currentArea) {
+      areaSelect.value = '';
+      areaCustom.style.display = 'none';
+      areaCustom.value = '';
+    } else if (knownAreas.includes(currentArea)) {
       areaSelect.value = currentArea;
       areaCustom.style.display = 'none';
       areaCustom.value = '';
@@ -1567,10 +1571,16 @@ class YoidoreAdminApp {
       '焼肉・ホルモン', '鶏料理', '沖縄料理', '串焼き・鉄板焼き',
       'イタリアン・ワイン', 'スナック', 'ハンバーガー', 'ジビエ肉'
     ];
-    const currentCat = store.category || raw['category'] || raw['カテゴリ'] || '居酒屋';
+    const currentCat = store.category || raw['category'] || raw['カテゴリ'] || '';
     const catSelect = document.getElementById('edit-store-category-select');
     const catCustom = document.getElementById('edit-store-category-custom');
-    if (knownCategories.includes(currentCat)) {
+    if (!currentCat) {
+      catSelect.value = '';
+      if (catCustom) {
+        catCustom.style.display = 'none';
+        catCustom.value = '';
+      }
+    } else if (knownCategories.includes(currentCat)) {
       catSelect.value = currentCat;
       catCustom.style.display = 'none';
       catCustom.value = '';
@@ -1582,11 +1592,17 @@ class YoidoreAdminApp {
 
     // 3. 席スタイル設定
     const knownStyles = ['テーブルあり', 'カウンター', '立ち飲み', 'テイクアウト専門'];
-    const currentStyle = store.style || raw['style'] || raw['スタイル'] || 'テーブルあり';
+    const currentStyle = store.style || raw['style'] || raw['スタイル'] || '';
     const normalizedStyle = currentStyle === '立ち呑み' ? '立ち飲み' : currentStyle;
     const styleSelect = document.getElementById('edit-store-style');
     const styleCustom = document.getElementById('edit-store-style-custom');
-    if (knownStyles.includes(normalizedStyle)) {
+    if (!normalizedStyle) {
+      styleSelect.value = '';
+      if (styleCustom) {
+        styleCustom.style.display = 'none';
+        styleCustom.value = '';
+      }
+    } else if (knownStyles.includes(normalizedStyle)) {
       styleSelect.value = normalizedStyle;
       if (styleCustom) {
         styleCustom.style.display = 'none';
@@ -1617,7 +1633,7 @@ class YoidoreAdminApp {
     const currentType = store.yoidore_type || store.type || '';
     const normalizedType = currentType === 'サク呑み' ? 'サク飲み' : currentType;
     document.getElementById('edit-store-type').value = 
-      ['サク飲み', '腹ごしらえ', 'ひと休み', '昼飲み', '夜遊び'].includes(normalizedType) ? normalizedType : (normalizedType || 'サク飲み');
+      ['サク飲み', '腹ごしらえ', 'ひと休み', '昼飲み', '夜遊び'].includes(normalizedType) ? normalizedType : '';
 
     // 5. テイクアウト設定
     let takeoutVal = 'テイクアウト不可';
@@ -2610,7 +2626,6 @@ class YoidoreAdminApp {
 
     // 編集フォーム値
     const current = this.seasons.find(s => s.id === this.selectedSeasonId) || this.api.currentSeason;
-    const fallback = window.APP_CONFIG?.fallbackSeasonGuidance || {};
     if (current) {
       document.getElementById('edit-season-name').value = current.name || '';
       document.getElementById('edit-season-start').value = current.start_date || '';
@@ -2619,9 +2634,9 @@ class YoidoreAdminApp {
 
       // ガイダンス設定
       const overviewEl = document.getElementById('edit-season-overview');
-      if (overviewEl) overviewEl.value = current.overview || fallback.overview || '';
+      if (overviewEl) overviewEl.value = current.overview || '';
 
-      const steps = (current.guide_steps && current.guide_steps.length >= 3) ? current.guide_steps : (fallback.guide_steps || []);
+      const steps = (current.guide_steps && Array.isArray(current.guide_steps)) ? current.guide_steps : [];
       const s1Title = document.getElementById('edit-season-step1-title');
       const s1Desc = document.getElementById('edit-season-step1-desc');
       const s2Title = document.getElementById('edit-season-step2-title');
@@ -2629,15 +2644,15 @@ class YoidoreAdminApp {
       const s3Title = document.getElementById('edit-season-step3-title');
       const s3Desc = document.getElementById('edit-season-step3-desc');
 
-      if (s1Title) s1Title.value = steps[0]?.title || '酒場へ突入せよ';
-      if (s1Desc) s1Desc.value = steps[0]?.desc || '気になる酒場へ赴き「どれクエ参加」を伝え、限定メニューを注文！';
-      if (s2Title) s2Title.value = steps[1]?.title || '冒険の書に刻印せよ';
-      if (s2Desc) s2Desc.value = steps[1]?.desc || '店内に設置された秘伝のQRコードをカメラで読み取り、制覇スタンプをGET！';
-      if (s3Title) s3Title.value = steps[2]?.title || '秘宝の宝箱を開放せよ';
-      if (s3Desc) s3Desc.value = steps[2]?.desc || 'ハシゴ軒数を重ねて宝箱を解放！酒場クーポンや限定オリジナルグッズを獲得！';
+      if (s1Title) s1Title.value = steps[0]?.title || '';
+      if (s1Desc) s1Desc.value = steps[0]?.desc || '';
+      if (s2Title) s2Title.value = steps[1]?.title || '';
+      if (s2Desc) s2Desc.value = steps[1]?.desc || '';
+      if (s3Title) s3Title.value = steps[2]?.title || '';
+      if (s3Desc) s3Desc.value = steps[2]?.desc || '';
 
       const rulesEl = document.getElementById('edit-season-rules');
-      if (rulesEl) rulesEl.value = current.rules_notes || fallback.rules_notes || '';
+      if (rulesEl) rulesEl.value = current.rules_notes || '';
     }
 
     // 特典一覧のレンダリング
@@ -2859,23 +2874,23 @@ class YoidoreAdminApp {
     const coupon_valid_until = document.getElementById('edit-season-valid').value;
 
     const overview = document.getElementById('edit-season-overview')?.value.trim() || '';
-    const s1Title = document.getElementById('edit-season-step1-title')?.value.trim() || '酒場へ突入せよ';
+    const s1Title = document.getElementById('edit-season-step1-title')?.value.trim() || '';
     const s1Desc = document.getElementById('edit-season-step1-desc')?.value.trim() || '';
-    const s2Title = document.getElementById('edit-season-step2-title')?.value.trim() || '冒険の書に刻印せよ';
+    const s2Title = document.getElementById('edit-season-step2-title')?.value.trim() || '';
     const s2Desc = document.getElementById('edit-season-step2-desc')?.value.trim() || '';
-    const s3Title = document.getElementById('edit-season-step3-title')?.value.trim() || '秘宝の宝箱を開放せよ';
+    const s3Title = document.getElementById('edit-season-step3-title')?.value.trim() || '';
     const s3Desc = document.getElementById('edit-season-step3-desc')?.value.trim() || '';
     const rules_notes = document.getElementById('edit-season-rules')?.value.trim() || '';
 
-    const guide_steps = [
+    const guide_steps = (s1Title || s1Desc || s2Title || s2Desc || s3Title || s3Desc) ? [
       { step: '其の一', title: s1Title, desc: s1Desc },
       { step: '其の二', title: s2Title, desc: s2Desc },
       { step: '其の三', title: s3Title, desc: s3Desc }
-    ];
+    ] : [];
 
     const seasonData = {
       id: current.id || 2,
-      name: name || current.name || '大正酔いどれクエスト',
+      name: name || current.name || '',
       start_date,
       end_date,
       coupon_valid_until,

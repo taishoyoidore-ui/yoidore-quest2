@@ -328,7 +328,7 @@ class YoidoreQuestApp {
     const activeSeasonId = window.questApi?.currentSeason?.id || 2;
     const rewardTiers = (window.questApi && window.questApi.rewardTiers && window.questApi.rewardTiers.length > 0)
       ? window.questApi.rewardTiers.filter(t => !t.season_id || Number(t.season_id) === Number(activeSeasonId))
-      : (window.APP_CONFIG?.fallbackRewardTiers || []);
+      : [];
     
     // 必要軒数順（昇順）にソート
     const sortedTiers = [...rewardTiers].sort((a, b) => (Number(a.required_visits) || 0) - (Number(b.required_visits) || 0));
@@ -336,13 +336,12 @@ class YoidoreQuestApp {
     // レベル計算:
     // 未達成ならLv.1、マイルストーン達成時は直近達成した特典の「必要来店店舗数」がそのままLv値（5軒達成でLv.5、20軒達成でLv.20等）となる
     const count = Math.max(0, Number(unlockedTierCount) || 0);
-    const defaultTitle = window.APP_CONFIG?.fallbackDefaultTitle || { title: '駆け出しの呑兵衛', badge_color: '#94a3b8' };
 
     if (count === 0) {
       return {
         level: 1,
-        title: defaultTitle.title,
-        badge_color: defaultTitle.badge_color,
+        title: '',
+        badge_color: '#94a3b8',
         description: '初期冒険者'
       };
     }
@@ -356,9 +355,9 @@ class YoidoreQuestApp {
       : (1 + count);
 
     // 達成済み特典の中から、最も上位でhero_titleが設定されているものを探索
-    // 未設定の場合は直前の有効称号（なければ初期称号）を引き継ぐ
-    let activeTitle = defaultTitle.title;
-    let activeBadgeColor = defaultTitle.badge_color;
+    // 未設定の場合は直前の有効称号（なければ空）を引き継ぐ
+    let activeTitle = '';
+    let activeBadgeColor = '#94a3b8';
     let activeDesc = `${currentLv}軒制覇の勇者`;
 
     for (let i = 0; i < unlockedTiers.length; i++) {
@@ -387,10 +386,6 @@ class YoidoreQuestApp {
     let list = [];
     if (window.questApi && window.questApi.stores && window.questApi.stores.length > 0) {
       list = window.questApi.stores;
-    } else if (window.TAISHO_STORES && window.TAISHO_STORES.length > 0) {
-      list = window.TAISHO_STORES;
-    } else if (window.STORES_DATA && window.STORES_DATA.length > 0) {
-      list = window.STORES_DATA;
     }
     if (seasonId) {
       return list.filter(s => Number(s.season_id) === Number(seasonId) && s.is_participating !== false);
@@ -404,7 +399,7 @@ class YoidoreQuestApp {
       const areas = Array.from(new Set(stores.map(s => s.area))).filter(Boolean);
       if (areas.length > 0) return areas;
     }
-    return ['三軒家西', '三軒家東', '駅前', '泉尾', '平尾'];
+    return [];
   }
 
   getCategories() {
@@ -413,7 +408,7 @@ class YoidoreQuestApp {
       const categories = Array.from(new Set(stores.map(s => s.category))).filter(Boolean);
       if (categories.length > 0) return categories;
     }
-    return ['おばんざい', '居酒屋', '立ち呑み', '中華', 'カフェ', 'バー', 'BAR', '焼肉', 'バル', '食堂'];
+    return [];
   }
 
   getStyles() {
@@ -422,7 +417,7 @@ class YoidoreQuestApp {
       const styles = Array.from(new Set(stores.map(s => s.style))).filter(Boolean);
       if (styles.length > 0) return styles;
     }
-    return ['テーブルあり', '立ち呑み', 'カウンター'];
+    return [];
   }
 
   getTypes() {
@@ -431,7 +426,7 @@ class YoidoreQuestApp {
       const types = Array.from(new Set(stores.map(s => s.type))).filter(Boolean);
       if (types.length > 0) return types;
     }
-    return ['サク飲み', '腹ごしらえ', 'ひと休み', '昼飲み', '夜遊び', 'テイクアウト'];
+    return [];
   }
 
   /* ------------------------------------------------------------------------
@@ -477,7 +472,6 @@ class YoidoreQuestApp {
 
         if (stores && stores.length > 0) {
           window.STORES_DATA = stores;
-          window.TAISHO_STORES = stores;
         }
 
         // 特典設定・称号・来店履歴・クーポン履歴を並列取得
@@ -627,13 +621,13 @@ class YoidoreQuestApp {
     const textEl = document.getElementById('prologue-demo-text');
     if (!overlay || !textEl) return;
 
+    // 表示するプロローグ文を取得（DB設定優先・未設定時はデモスキップ）
+    const currentSeason = (window.questApi && window.questApi.currentSeason) || {};
+    const rawText = currentSeason.overview || '';
+    if (!rawText.trim()) return;
+
     this.isPrologueDemoActive = true;
     overlay.classList.add('demo-mode');
-
-    // 表示するプロローグ文を取得（DB設定優先 ➔ フォールバック）
-    const currentSeason = (window.questApi && window.questApi.currentSeason) || {};
-    const fallback = window.APP_CONFIG?.fallbackSeasonGuidance || {};
-    const rawText = currentSeason.overview || fallback.overview || '大正区全域に広がる33の個性豊かな酒場をめぐるハシゴ酒RPG！\n各店自慢の限定「酔いどれセット」や「酒場クエスト」に挑み、ハシゴ酒の証を刻んで宝箱（酒場クーポン＆特製グッズ）を解放せよ！';
 
     textEl.innerHTML = '<span class="prologue-cursor"></span>';
     let index = 0;
@@ -1019,10 +1013,10 @@ class YoidoreQuestApp {
       if (this.filters.category !== 'ALL') activeTags.push(`<span class="sticky-tag-item">${this.filters.category}</span>`);
       if (this.filters.style !== 'ALL') activeTags.push(`<span class="sticky-tag-item">🪑 ${this.filters.style}</span>`);
       if (this.filters.type !== 'ALL') activeTags.push(`<span class="sticky-tag-item">🍺 ${this.filters.type}</span>`);
-      if (this.filters.takeout === 'YES') activeTags.push(`<span class="sticky-tag-item">テイクアウト可</span>`);
-      if (this.filters.openToday) activeTags.push(`<span class="sticky-tag-item text-green">どれクエ対応中</span>`);
-      if (this.filters.quest) activeTags.push(`<span class="sticky-tag-item" style="color:#f472b6;">クエストあり</span>`);
-      if (this.filters.organizer) activeTags.push(`<span class="sticky-tag-item" style="color:#93c5fd;">運営店のみ</span>`);
+      if (this.filters.takeout === 'YES') activeTags.push(`<span class="sticky-tag-item">テイクアウト</span>`);
+      if (this.filters.openToday) activeTags.push(`<span class="sticky-tag-item text-green">対応中</span>`);
+      if (this.filters.quest) activeTags.push(`<span class="sticky-tag-item" style="color:#f472b6;">クエスト</span>`);
+      if (this.filters.organizer) activeTags.push(`<span class="sticky-tag-item" style="color:#93c5fd;">運営店</span>`);
       if (this.filters.searchQuery) activeTags.push(`<span class="sticky-tag-item">🔎 ${this.filters.searchQuery}</span>`);
 
       let count = 0;
@@ -1306,9 +1300,8 @@ class YoidoreQuestApp {
     const typeCount = this.getTypes().length;
 
     const currentSeason = (window.questApi && window.questApi.currentSeason) || {};
-    const fallback = window.APP_CONFIG?.fallbackSeasonGuidance || {};
-    const guideSteps = (currentSeason.guide_steps && currentSeason.guide_steps.length > 0) ? currentSeason.guide_steps : (fallback.guide_steps || []);
-    const rulesNotes = currentSeason.rules_notes || fallback.rules_notes || '';
+    const guideSteps = (currentSeason.guide_steps && Array.isArray(currentSeason.guide_steps) && currentSeason.guide_steps.length > 0) ? currentSeason.guide_steps : [];
+    const rulesNotes = currentSeason.rules_notes || '';
 
     // 開催ステータスに応じた動的メッセージ設定
     const statusInfo = currentSeason.statusInfo;
@@ -1316,14 +1309,14 @@ class YoidoreQuestApp {
 
     if (statusInfo) {
       if (statusInfo.isEventActive) {
-        const seasonName = currentSeason.name || '大正酔いどれクエスト';
+        const seasonTitle = currentSeason.name ? `【${currentSeason.name} 開催中！】` : '【イベント開催中！】';
         const daysLeftText = (statusInfo.daysLeft !== undefined) ? `（残り${statusInfo.daysLeft}日）` : '';
-        topMessage = `【${seasonName} 開催中！】${daysLeftText}コマンドを選んで酒場を探そう！`;
+        topMessage = `${seasonTitle}${daysLeftText}コマンドを選んで酒場を探そう！`;
       } else if (statusInfo.isCouponActive) {
         const couponEndStr = currentSeason.coupon_valid_until ? `利用期限は${this.formatShortDateWithDay(currentSeason.coupon_valid_until)}まで！` : '';
         topMessage = `【後夜祭・クーポン利用期間中】${couponEndStr}コマンドを選んで酒場を探そう！`;
       } else if (statusInfo.isExpired) {
-        topMessage = '大正酔いどれクエストは終了しました。ご参加ありがとうございました！';
+        topMessage = currentSeason.name ? `${currentSeason.name}は終了しました。ご参加ありがとうございました！` : 'イベントは終了しました。ご参加ありがとうございました！';
       }
     }
 
@@ -1403,7 +1396,7 @@ class YoidoreQuestApp {
           <span>📜 冒険の心得</span>
         </div>
         <div style="padding:10px 6px 8px; display:flex; flex-direction:column; gap:12px;">
-          ${guideSteps.map((st, idx) => `
+          ${guideSteps.length > 0 ? guideSteps.map((st, idx) => `
             <div class="guide-step-card">
               <div class="guide-step-header">
                 <span>${idx === 0 ? '⚔️' : (idx === 1 ? '📱' : '🎁')}</span>
@@ -1411,7 +1404,7 @@ class YoidoreQuestApp {
               </div>
               <div class="guide-step-desc">${this.escapeHtml(st.desc || '')}</div>
             </div>
-          `).join('')}
+          `).join('') : '<div style="padding:12px; text-align:center; color:#94a3b8; font-size:13px;">冒険の心得はまだ登録されていません</div>'}
 
           ${rulesNotes ? `
             <div class="guide-rules-box">
@@ -1472,21 +1465,21 @@ class YoidoreQuestApp {
       pictureUrl: 'assets/banner.png'
     };
 
-    const activeSeason = window.questApi?.currentSeason || { id: 2, name: '大正酔いどれクエスト' };
+    const activeSeason = window.questApi?.currentSeason || { id: 2, name: '' };
     const seasonId = activeSeason.id || 2;
-    const seasonName = activeSeason.name || '大正酔いどれクエスト';
+    const seasonName = activeSeason.name || '';
 
     // メモリ上のキャッシュデータから即時同期レンダリング (0ms)
     const seasonStores = this.getStores(seasonId);
     const seasonVisits = window.questApi?.visits || [];
     const seasonRewardTiers = (window.questApi?.rewardTiers && window.questApi.rewardTiers.length > 0)
       ? window.questApi.rewardTiers 
-      : (window.APP_CONFIG?.fallbackRewardTiers || []);
+      : [];
     const seasonCoupons = window.questApi?.userCoupons || [];
 
     // 参加店舗のみを対象とする
     const stores = (seasonStores || []).filter(s => s.is_participating !== false);
-    const totalStores = stores.length || 33;
+    const totalStores = stores.length;
     const visits = seasonVisits || [];
     const userCoupons = seasonCoupons || [];
     const rewardTiers = seasonRewardTiers;
@@ -1497,7 +1490,7 @@ class YoidoreQuestApp {
 
     // 称号・レベル計算 (特典マイルストーン達成段階連動)
     const matchedHero = this.getHeroTitleForTierCount(unlockedTierCount);
-    const heroTitle = matchedHero.title || '駆け出しの呑兵衛';
+    const heroTitle = matchedHero.title || '';
     const heroLv = matchedHero.level || 1;
     const heroColor = matchedHero.badge_color || '#facc15';
     const heroDesc = matchedHero.description || '';
@@ -1763,7 +1756,7 @@ class YoidoreQuestApp {
             <!-- 下段: 称号プレート（主役として大きく鮮明に表示） -->
             <div class="hero-royal-title-card" style="border-color:${heroColor};">
               <div class="hero-royal-title-text" style="color:${heroColor};">
-                <i class="fa-solid fa-crown royal-crown-icon"></i> ${this.escapeHtml(heroTitle)}
+                <i class="fa-solid fa-crown royal-crown-icon"></i> ${heroTitle ? this.escapeHtml(heroTitle) : '<span style="color:#94a3b8; font-weight:normal;">（称号未獲得）</span>'}
               </div>
             </div>
           </div>
@@ -2767,16 +2760,19 @@ class YoidoreQuestApp {
     const userCoupons = (window.questApi && window.questApi.userCoupons) ? window.questApi.userCoupons : [];
     const rewardTiers = (window.questApi && window.questApi.rewardTiers && window.questApi.rewardTiers.length > 0)
       ? window.questApi.rewardTiers.filter(t => Number(t.season_id) === Number(activeSeasonId))
-      : (window.APP_CONFIG?.fallbackRewardTiers || []);
+      : [];
     const unlockedTiers = rewardTiers.filter(t => userCoupons.some(c => Number(c.reward_tier_id) === Number(t.id) || (t.reward_type === 'goods' && (c.goods_name === t.goods_name || c.goods_name === t.title))));
     const unlockedTierCount = unlockedTiers.length;
     const heroData = this.getHeroTitleForTierCount(unlockedTierCount);
 
     // メッセージテキスト配列の構築（称号は「手に入れた」、達成特典は「受け取った」に統一）
     const lines = [
-      { text: `${displayName} は レベルが ${heroData.level} に あがった！`, cls: 'highlight' },
-      { text: `称号 【${heroData.title || '駆け出しの呑兵衛'}】 を 手に入れた！`, cls: 'highlight' }
+      { text: `${displayName} は レベルが ${heroData.level} に あがった！`, cls: 'highlight' }
     ];
+
+    if (heroData.title) {
+      lines.push({ text: `称号 【${heroData.title}】 を 手に入れた！`, cls: 'highlight' });
+    }
 
     if (claimedTiers && claimedTiers.length > 0) {
       claimedTiers.forEach(t => {
@@ -2813,7 +2809,7 @@ class YoidoreQuestApp {
                 </div>
                 <div class="dq-status-title-badge" style="border-color:${heroData.badge_color || '#ffd700'};">
                   <span class="royal-title-text" style="color:${heroData.badge_color || '#ffd700'};">
-                    <i class="fa-solid fa-crown royal-crown-icon"></i> ${this.escapeHtml(heroData.title || '駆け出しの呑兵衛')}
+                    <i class="fa-solid fa-crown royal-crown-icon"></i> ${heroData.title ? this.escapeHtml(heroData.title) : '（称号なし）'}
                   </span>
                 </div>
               </div>
@@ -3453,16 +3449,16 @@ class YoidoreQuestApp {
           </div>
           <div class="filter-chip-group">
             <div class="filter-chip ${this.filters.openToday ? 'active' : ''}" id="chip-open-today">
-              どれクエ対応中のみ
+              対応中
             </div>
             <div class="filter-chip ${this.filters.quest ? 'active' : ''}" id="chip-quest">
-              クエストあり
+              クエスト
             </div>
             <div class="filter-chip ${this.filters.takeout === 'YES' ? 'active' : ''}" id="chip-takeout">
-              テイクアウト可のみ
+              テイクアウト
             </div>
             <div class="filter-chip ${this.filters.organizer ? 'active' : ''}" id="chip-organizer">
-              運営店のみ
+              運営店
             </div>
           </div>
         </div>

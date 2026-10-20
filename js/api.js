@@ -15,17 +15,16 @@ class QuestApiManager {
     this.isFriend = true; // LINE公式アカウント友だち状態 (デフォルトtrue)
     
     // シーズン管理
-    const fallbackGuidance = window.APP_CONFIG?.fallbackSeasonGuidance || {};
     this.currentSeason = {
       id: 2,
-      name: '大正酔いどれクエスト',
+      name: '',
       start_date: '',
       end_date: '',
       coupon_valid_until: '',
       is_active: true,
-      overview: fallbackGuidance.overview || '',
-      guide_steps: fallbackGuidance.guide_steps || [],
-      rules_notes: fallbackGuidance.rules_notes || ''
+      overview: '',
+      guide_steps: [],
+      rules_notes: ''
     };
     this.seasons = [];
     
@@ -338,24 +337,11 @@ class QuestApiManager {
         return mappedStores;
       }
     } catch (e) {
-      console.warn('Supabaseからの店舗取得に失敗したためローカルデータを使用します:', e);
-      if (window.debugLog) window.debugLog('⚠️ Supabase店舗取得失敗（ローカルデータ利用）: ' + e.message);
+      console.error('Supabaseからの店舗取得に失敗しました:', e);
+      if (window.debugLog) window.debugLog('⚠️ Supabase店舗取得失敗: ' + e.message);
     }
 
-    // フォールバック: 既存の window.TAISHO_STORES
-    if (window.TAISHO_STORES && window.TAISHO_STORES.length > 0) {
-      const fallbackStores = window.TAISHO_STORES.map(s => ({
-        ...s,
-        season_id: targetSeasonId,
-        is_participating: true,
-        isParticipating: true
-      }));
-      const activeSeasonId = Number(this.currentSeason?.id || 2);
-      if (targetSeasonId === activeSeasonId || !this.stores || this.stores.length === 0) {
-        this.stores = fallbackStores;
-      }
-      return fallbackStores;
-    }
+    // 取得失敗・未設定時は空配列を返却（フォールバック偽装の禁止）
     return [];
   }
 
@@ -416,16 +402,6 @@ class QuestApiManager {
       }
     }
 
-    const fallbackGuidance = window.APP_CONFIG?.fallbackSeasonGuidance || {};
-    if (!this.currentSeason.overview && fallbackGuidance.overview) {
-      this.currentSeason.overview = fallbackGuidance.overview;
-    }
-    if ((!this.currentSeason.guide_steps || this.currentSeason.guide_steps.length === 0) && fallbackGuidance.guide_steps) {
-      this.currentSeason.guide_steps = fallbackGuidance.guide_steps;
-    }
-    if (!this.currentSeason.rules_notes && fallbackGuidance.rules_notes) {
-      this.currentSeason.rules_notes = fallbackGuidance.rules_notes;
-    }
 
     const now = new Date();
     const startDate = this.currentSeason.start_date ? new Date(this.currentSeason.start_date) : null;
@@ -575,21 +551,7 @@ class QuestApiManager {
       }
     }
 
-    // 2. DB未設定時の初期フォールバック（第2回の場合のみデフォルトフォールバックを初期設定）
-    if (targetSeasonId === 2) {
-      this.rewardTiers = (this.config.fallbackRewardTiers || []).map(t => ({
-        ...t,
-        season_id: 2
-      }));
-      tiersBySeason[2] = this.rewardTiers;
-      await this.saveSystemConfig({
-        reward_tiers_by_season: tiersBySeason,
-        reward_tiers: this.rewardTiers
-      });
-      return this.rewardTiers;
-    }
-
-    // その他のシーズンで未設定の場合は空配列
+    // 2. DB未設定時は空配列を返却（フォールバック禁止規約の遵守）
     this.rewardTiers = [];
     return this.rewardTiers;
   }
@@ -600,14 +562,13 @@ class QuestApiManager {
   async getHeroTitles() {
     // 特典一覧からレベル・称号リストを生成
     const tiers = await this.getRewardTiers();
-    const defaultTitle = this.config.fallbackDefaultTitle || { level: 1, title: '駆け出しの呑兵衛', badge_color: '#94a3b8' };
     const titles = [
-      { level: 1, min_visits: 0, title: defaultTitle.title, badge_color: defaultTitle.badge_color, description: '初期冒険者' }
+      { level: 1, min_visits: 0, title: '', badge_color: '#94a3b8', description: '初期冒険者' }
     ];
 
     if (Array.isArray(tiers) && tiers.length > 0) {
-      let lastValidTitle = defaultTitle.title;
-      let lastValidColor = defaultTitle.badge_color;
+      let lastValidTitle = '';
+      let lastValidColor = '#94a3b8';
 
       tiers.forEach((t, idx) => {
         if (t.hero_title && typeof t.hero_title === 'string' && t.hero_title.trim() !== '') {
