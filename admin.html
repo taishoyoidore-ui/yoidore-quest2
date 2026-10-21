@@ -12,7 +12,7 @@
 
   <link rel="icon" href="assets/banner.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/admin.css?v=20261021_02">
+  <link rel="stylesheet" href="css/admin.css?v=20261021_03">
   <!-- SheetJS for Excel Import -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- QRCode.js for POP Generation -->
@@ -166,7 +166,7 @@
           <button class="btn btn-secondary btn-sm" onclick="window.adminApp.refreshData()">
             <i class="fa-solid fa-rotate"></i> 最新データ更新
           </button>
-          <a href="index.html?v=20261021_02" target="_blank" class="btn btn-outline btn-sm">
+          <a href="index.html?v=20261021_03" target="_blank" class="btn btn-outline btn-sm">
             <i class="fa-solid fa-up-right-from-square"></i> アプリ実機表示
           </a>
         </div>
@@ -639,6 +639,22 @@
                   <small class="text-muted">この日付を過ぎると、アプリ上のクーポンは自動的に「期限切れ」となり使用できなくなります。</small>
                 </div>
 
+                <div class="grid-2col" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-top: 14px;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label><i class="fa-solid fa-crown" style="color: #f59e0b;"></i> 参加開始時の初期称号 (Lv.1)</label>
+                    <input type="text" id="edit-season-initial-hero-title" class="form-control" placeholder="例: 見習い呑兵衛（未設定時は未獲得表示）">
+                    <small class="text-muted">参加者がまだ1店舗も巡っていない初期状態（Lv.1）で表示される称号です。</small>
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label>初期バッジカラー</label>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                      <input type="color" id="edit-season-initial-badge-color-picker" value="#94a3b8" style="width:40px; height:38px; padding:0; border:none; cursor:pointer;" onchange="document.getElementById('edit-season-initial-badge-color').value=this.value">
+                      <input type="text" id="edit-season-initial-badge-color" class="form-control" value="#94a3b8" onchange="document.getElementById('edit-season-initial-badge-color-picker').value=this.value">
+                    </div>
+                    <small class="text-muted">初期称号プレートの枠色・文字色（HEX）です。</small>
+                  </div>
+                </div>
+
                 <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
 
                 <h4 style="margin-bottom: 12px; font-size: 15px; color: #1e293b;"><i class="fa-solid fa-scroll"></i> アプリ案内所・ガイダンス設定</h4>
@@ -932,6 +948,10 @@
           <div class="form-group">
             <label>クーポン最終有効期限 <span class="required">*</span></label>
             <input type="date" id="new-season-valid" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label><i class="fa-solid fa-crown" style="color: #f59e0b;"></i> 参加開始時の初期称号 (Lv.1)</label>
+            <input type="text" id="new-season-initial-hero-title" class="form-control" placeholder="例: 見習い呑兵衛（任意・未入力時は未獲得表示）">
           </div>
           <div class="form-group custom-toggle-box">
             <label class="toggle-switch-label">
@@ -1492,8 +1512,8 @@
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=20261021_02"></script>
-  <script src="js/api.js?v=20261021_02"></script>
-  <script src="js/admin.js?v=20261021_02"></script>
+  <script src="js/config.js?v=20261021_03"></script>
+  <script src="js/api.js?v=20261021_03"></script>
+  <script src="js/admin.js?v=20261021_03"></script>
 </body>
 </html>

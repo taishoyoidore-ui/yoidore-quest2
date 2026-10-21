@@ -562,24 +562,25 @@ class QuestApiManager {
   async getHeroTitles() {
     // 特典一覧からレベル・称号リストを生成
     const tiers = await this.getRewardTiers();
+    const activeSeason = this.currentSeason || {};
+    const initTitle = (activeSeason.initial_hero_title && typeof activeSeason.initial_hero_title === 'string')
+      ? activeSeason.initial_hero_title.trim()
+      : '';
+    const initColor = activeSeason.initial_badge_color || '#94a3b8';
+
     const titles = [
-      { level: 1, min_visits: 0, title: '', badge_color: '#94a3b8', description: '初期冒険者' }
+      { level: 1, min_visits: 0, title: initTitle, badge_color: initColor, description: '初期冒険者' }
     ];
 
     if (Array.isArray(tiers) && tiers.length > 0) {
-      let lastValidTitle = '';
-      let lastValidColor = '#94a3b8';
-
       tiers.forEach((t, idx) => {
-        if (t.hero_title && typeof t.hero_title === 'string' && t.hero_title.trim() !== '') {
-          lastValidTitle = t.hero_title.trim();
-          lastValidColor = t.badge_color || '#facc15';
-        }
+        const tierTitle = (t.hero_title && typeof t.hero_title === 'string') ? t.hero_title.trim() : '';
+        const tierColor = t.badge_color || '#facc15';
         titles.push({
           level: Number(t.required_visits) || (idx + 2),
           min_visits: Number(t.required_visits) || (idx + 1),
-          title: lastValidTitle,
-          badge_color: lastValidColor,
+          title: tierTitle,
+          badge_color: tierColor,
           description: t.description || `${t.title}を達成した勇者`
         });
       });

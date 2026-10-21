@@ -2653,6 +2653,15 @@ class YoidoreAdminApp {
 
       const rulesEl = document.getElementById('edit-season-rules');
       if (rulesEl) rulesEl.value = current.rules_notes || '';
+
+      // 初期称号設定
+      const initTitleEl = document.getElementById('edit-season-initial-hero-title');
+      if (initTitleEl) initTitleEl.value = current.initial_hero_title || '';
+      const initColor = current.initial_badge_color || '#94a3b8';
+      const initColorEl = document.getElementById('edit-season-initial-badge-color');
+      const initColorPickerEl = document.getElementById('edit-season-initial-badge-color-picker');
+      if (initColorEl) initColorEl.value = initColor;
+      if (initColorPickerEl) initColorPickerEl.value = initColor;
     }
 
     // 特典一覧のレンダリング
@@ -2881,6 +2890,8 @@ class YoidoreAdminApp {
     const s3Title = document.getElementById('edit-season-step3-title')?.value.trim() || '';
     const s3Desc = document.getElementById('edit-season-step3-desc')?.value.trim() || '';
     const rules_notes = document.getElementById('edit-season-rules')?.value.trim() || '';
+    const initial_hero_title = document.getElementById('edit-season-initial-hero-title')?.value.trim() || '';
+    const initial_badge_color = document.getElementById('edit-season-initial-badge-color')?.value.trim() || '#94a3b8';
 
     const guide_steps = (s1Title || s1Desc || s2Title || s2Desc || s3Title || s3Desc) ? [
       { step: '其の一', title: s1Title, desc: s1Desc },
@@ -2897,6 +2908,8 @@ class YoidoreAdminApp {
       overview,
       guide_steps,
       rules_notes,
+      initial_hero_title,
+      initial_badge_color,
       is_active: current.is_active !== undefined ? current.is_active : true
     };
 
@@ -2919,6 +2932,8 @@ class YoidoreAdminApp {
     document.getElementById('new-season-start').value = new Date().toISOString().slice(0, 10);
     document.getElementById('new-season-end').value = new Date().toISOString().slice(0, 10);
     document.getElementById('new-season-valid').value = new Date().toISOString().slice(0, 10);
+    const newTitleEl = document.getElementById('new-season-initial-hero-title');
+    if (newTitleEl) newTitleEl.value = '';
     document.getElementById('new-season-active').checked = false;
     document.body.style.overflow = 'hidden';
     document.getElementById('season-modal').style.display = 'flex';
@@ -2935,9 +2950,10 @@ class YoidoreAdminApp {
     const start_date = document.getElementById('new-season-start').value;
     const end_date = document.getElementById('new-season-end').value;
     const coupon_valid_until = document.getElementById('new-season-valid').value;
+    const initial_hero_title = document.getElementById('new-season-initial-hero-title')?.value.trim() || '';
     const is_active = document.getElementById('new-season-active').checked;
 
-    const seasonData = { id, name, start_date, end_date, coupon_valid_until, is_active };
+    const seasonData = { id, name, start_date, end_date, coupon_valid_until, initial_hero_title, initial_badge_color: '#94a3b8', is_active };
 
     try {
       this.showToast('新規シーズンを作成中...');

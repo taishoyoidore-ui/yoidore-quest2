@@ -325,7 +325,8 @@ class YoidoreQuestApp {
 
   // 獲得特典マイルストーン段階数（unlockedTierCount）から勇者称号・レベルデータを取得 (reward_tiers 連動)
   getHeroTitleForTierCount(unlockedTierCount = 0) {
-    const activeSeasonId = window.questApi?.currentSeason?.id || 2;
+    const activeSeason = window.questApi?.currentSeason || {};
+    const activeSeasonId = activeSeason.id || 2;
     const rewardTiers = (window.questApi && window.questApi.rewardTiers && window.questApi.rewardTiers.length > 0)
       ? window.questApi.rewardTiers.filter(t => !t.season_id || Number(t.season_id) === Number(activeSeasonId))
       : [];
@@ -338,10 +339,14 @@ class YoidoreQuestApp {
     const count = Math.max(0, Number(unlockedTierCount) || 0);
 
     if (count === 0) {
+      const initTitle = (activeSeason.initial_hero_title && typeof activeSeason.initial_hero_title === 'string')
+        ? activeSeason.initial_hero_title.trim()
+        : '';
+      const initColor = activeSeason.initial_badge_color || '#94a3b8';
       return {
         level: 1,
-        title: '',
-        badge_color: '#94a3b8',
+        title: initTitle,
+        badge_color: initColor,
         description: '初期冒険者'
       };
     }
@@ -354,20 +359,12 @@ class YoidoreQuestApp {
       ? Number(highestUnlockedTier.required_visits) 
       : (1 + count);
 
-    // 達成済み特典の中から、最も上位でhero_titleが設定されているものを探索
-    // 未設定の場合は直前の有効称号（なければ空）を引き継ぐ
-    let activeTitle = '';
-    let activeBadgeColor = '#94a3b8';
-    let activeDesc = `${currentLv}軒制覇の勇者`;
-
-    for (let i = 0; i < unlockedTiers.length; i++) {
-      const tier = unlockedTiers[i];
-      if (tier && tier.hero_title && typeof tier.hero_title === 'string' && tier.hero_title.trim() !== '') {
-        activeTitle = tier.hero_title.trim();
-        if (tier.badge_color) activeBadgeColor = tier.badge_color;
-        if (tier.description) activeDesc = tier.description;
-      }
-    }
+    // 達成した最高位特典のDB登録称号をそのまま反映（未設定時は空文字。プログラムによる過剰な推測補完は行わない）
+    const activeTitle = (highestUnlockedTier?.hero_title && typeof highestUnlockedTier.hero_title === 'string')
+      ? highestUnlockedTier.hero_title.trim()
+      : '';
+    const activeBadgeColor = highestUnlockedTier?.badge_color || '#facc15';
+    const activeDesc = highestUnlockedTier?.description || `${currentLv}軒制覇の勇者`;
 
     return {
       level: currentLv,
@@ -1754,8 +1751,8 @@ class YoidoreQuestApp {
             </div>
 
             <!-- 下段: 称号プレート（主役として大きく鮮明に表示） -->
-            <div class="hero-royal-title-card" style="border-color:${heroColor};">
-              <div class="hero-royal-title-text" style="color:${heroColor};">
+            <div class="hero-royal-title-card" style="border-color:${heroTitle ? heroColor : '#94a3b8'};">
+              <div class="hero-royal-title-text" style="color:${heroTitle ? heroColor : '#94a3b8'};">
                 <i class="fa-solid fa-crown royal-crown-icon"></i> ${heroTitle ? this.escapeHtml(heroTitle) : '<span style="color:#94a3b8; font-weight:normal;">（称号未獲得）</span>'}
               </div>
             </div>
@@ -2770,8 +2767,11 @@ class YoidoreQuestApp {
       { text: `${displayName} は レベルが ${heroData.level} に あがった！`, cls: 'highlight' }
     ];
 
-    if (heroData.title) {
-      lines.push({ text: `称号 【${heroData.title}】 を 手に入れた！`, cls: 'highlight' });
+    // 今回達成した特典（claimedTiers）の中に称号が登録されている場合のみ「称号を手に入れた」を表示
+    // （複数同時達成時は最上位の称号を取得し、初期称号の誤獲得表示やDB未設定時の不適切なメッセージを防止）
+    const newlyClaimedTitleTier = [...(claimedTiers || [])].reverse().find(t => t.hero_title && typeof t.hero_title === 'string' && t.hero_title.trim() !== '');
+    if (newlyClaimedTitleTier) {
+      lines.push({ text: `称号 【${newlyClaimedTitleTier.hero_title.trim()}】 を 手に入れた！`, cls: 'highlight' });
     }
 
     if (claimedTiers && claimedTiers.length > 0) {
@@ -2807,8 +2807,8 @@ class YoidoreQuestApp {
                   <div class="dq-status-name">${displayName}</div>
                   <div class="dq-status-lv-badge">Lv.${heroData.level}</div>
                 </div>
-                <div class="dq-status-title-badge" style="border-color:${heroData.badge_color || '#ffd700'};">
-                  <span class="royal-title-text" style="color:${heroData.badge_color || '#ffd700'};">
+                <div class="dq-status-title-badge" style="border-color:${heroData.title ? (heroData.badge_color || '#ffd700') : '#94a3b8'};">
+                  <span class="royal-title-text" style="color:${heroData.title ? (heroData.badge_color || '#ffd700') : '#94a3b8'};">
                     <i class="fa-solid fa-crown royal-crown-icon"></i> ${heroData.title ? this.escapeHtml(heroData.title) : '（称号なし）'}
                   </span>
                 </div>
