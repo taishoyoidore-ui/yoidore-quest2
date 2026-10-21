@@ -1311,7 +1311,7 @@ class YoidoreQuestApp {
         topMessage = `${seasonTitle}${daysLeftText}コマンドを選んで酒場を探そう！`;
       } else if (statusInfo.isCouponActive) {
         const couponEndStr = currentSeason.coupon_valid_until ? `利用期限は${this.formatShortDateWithDay(currentSeason.coupon_valid_until)}まで！` : '';
-        topMessage = `【後夜祭・クーポン利用期間中】${couponEndStr}コマンドを選んで酒場を探そう！`;
+        topMessage = `【酒場クーポン利用期間中】${couponEndStr}コマンドを選んで酒場を探そう！`;
       } else if (statusInfo.isExpired) {
         topMessage = currentSeason.name ? `${currentSeason.name}は終了しました。ご参加ありがとうございました！` : 'イベントは終了しました。ご参加ありがとうございました！';
       }
@@ -1496,6 +1496,13 @@ class YoidoreQuestApp {
     const isExpired = info ? info.isExpired : false;
     const isCouponUsable = info ? info.isCouponUsable : true;
     const couponStartDateStr = info?.couponStartDateStr || '';
+    const couponEndDateStr = activeSeason?.coupon_valid_until || '';
+    const couponStartFormatted = couponStartDateStr ? this.formatShortDateWithDay(couponStartDateStr) : '';
+    const couponEndFormatted = couponEndDateStr ? this.formatShortDateWithDay(couponEndDateStr) : '';
+    const hasCouponPeriod = Boolean(couponStartFormatted && couponEndFormatted);
+    const couponPeriodText = hasCouponPeriod
+      ? `${couponStartFormatted} 〜 ${couponEndFormatted}`
+      : (couponStartFormatted ? `${couponStartFormatted} 〜` : '');
 
     // 冒険の書ナビゲーションメッセージの動的設定
     const availableCoupons = userCoupons.filter(c => c.reward_type !== 'goods' && c.status !== 'used');
@@ -1582,7 +1589,13 @@ class YoidoreQuestApp {
       if (isAllUsed) {
         statusBadge = '';
       } else if (isReached) {
-        statusBadge = `<span class="treasure-tier-status status-unlocked" style="background:#0284c7; border-color:#38bdf8;">✨ 利用可能 (${remainCount}/${maxCount}回)</span>`;
+        if (isExpired) {
+          statusBadge = `<span class="treasure-tier-status" style="background:#475569; border-color:#64748b; color:#cbd5e1;">利用期限終了</span>`;
+        } else if (!isCouponUsable) {
+          statusBadge = `<span class="treasure-tier-status status-unlocked" style="background:#78350f; border-color:#f59e0b; color:#fde68a;">⏳ 開始前 (${remainCount}/${maxCount}回)</span>`;
+        } else {
+          statusBadge = `<span class="treasure-tier-status status-unlocked" style="background:#0284c7; border-color:#38bdf8;">✨ 利用可能 (${remainCount}/${maxCount}回)</span>`;
+        }
       } else {
         statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成 (${tier.required_visits}軒)</span>`;
       }
@@ -1623,6 +1636,17 @@ class YoidoreQuestApp {
           actionHtml = `
             ${historyHtml}
             <div style="width:100%; box-sizing:border-box; padding:10px; text-align:center; color:#ef4444; font-weight:bold; font-size:13px; background:rgba(239,68,68,0.1); border-radius:6px;">🔒 クーポン利用期間は終了しました</div>
+          `;
+        } else if (!isCouponUsable) {
+          actionHtml = `
+            ${historyHtml}
+            <div style="width:100%; box-sizing:border-box; padding:8px 10px; text-align:center; background:rgba(245,158,11,0.12); border:1px solid #f59e0b; border-radius:6px; font-size:12px; color:#fde68a;">
+              <span style="font-weight:bold; color:var(--text-yellow);">🔒 イベント終了後に利用可能</span>
+              <div style="font-size:11px; color:#cbd5e1; margin-top:2px;">達成済み！利用可能枠: <strong>${remainCount}軒分</strong>（${couponStartFormatted}〜）</div>
+            </div>
+            <button class="treasure-claim-btn btn-direct-open-store-coupon" data-tier-id="${tier.id}" style="width:100%; box-sizing:border-box; display:block; margin-top:6px; background:#1e293b; border-color:#475569; color:#94a3b8; font-weight:bold; font-size:12px; padding:7px 8px;">
+              対象酒場一覧を確認する ▶
+            </button>
           `;
         } else {
           const btnText = usedCount === 0 
@@ -1761,8 +1785,26 @@ class YoidoreQuestApp {
 
         <!-- 2. ハシゴ達成・酒場クーポン一覧 -->
         <div class="rpg-window window-gold gold-border" style="margin-bottom:14px;">
-          <div class="rpg-window-header header-gold">
+          <div class="rpg-window-header header-gold" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
             <span>🍺 ハシゴ達成・酒場クーポン</span>
+            ${isExpired
+              ? `<span class="tag" style="background:#475569; color:#cbd5e1; border-color:#64748b; font-size:11px; font-weight:bold;">利用期間終了</span>`
+              : (!isCouponUsable
+                ? `<span class="tag" style="background:#b45309; color:#fef3c7; border-color:#f59e0b; font-size:11px; font-weight:bold;">イベント終了後に利用可能</span>`
+                : `<span class="tag" style="background:#047857; color:#d1fae5; border-color:#34d399; font-size:11px; font-weight:bold;">現在利用可能</span>`
+              )}
+          </div>
+          <div class="coupon-period-guide-box" style="margin-top:8px; padding:8px 10px; background:rgba(0,0,0,0.3); border:1px dashed #eab308; border-radius:6px; font-size:12px; line-height:1.5;">
+            <div style="color:#fde047; font-weight:bold; display:flex; align-items:center; gap:6px;">
+              <span>📅 利用可能期間: ${couponPeriodText || 'シーズン開催設定を参照'}</span>
+            </div>
+            <div style="color:#cbd5e1; font-size:11px; margin-top:3px;">
+              ${isExpired 
+                ? '※酒場クーポンの有効期限は終了いたしました。'
+                : (!isCouponUsable 
+                  ? '※本開催（食べ歩き）期間中はご利用いただけません。イベント終了後の上記期間中に各酒場でご利用いただけます。'
+                  : '※お会計時に『酒場を選んでクーポンを使う』から店舗を選んで画面をご提示ください。')}
+            </div>
           </div>
           <div style="margin-top:10px;">
             ${couponsHtml}
@@ -2182,9 +2224,9 @@ class YoidoreQuestApp {
             </div>
           ` : (!isCouponUsable ? `
             <div style="padding: 14px 10px; border: 1px solid #f59e0b; border-radius: 8px; background: rgba(245,158,11,0.15); color: #fde68a; font-size: 13px; text-align: center; line-height: 1.5;">
-              🔒 <strong>後夜祭期間にご利用いただけます</strong><br>
-              <strong style="color: var(--text-yellow); font-size: 15px; display: block; margin: 6px 0;">📅 ${couponStartDateStr} 〜 ${window.questApi?.currentSeason?.coupon_valid_until || ''}</strong>
-              <span style="font-size:11px; color:#cbd5e1;">※本開催期間中はご利用いただけません。</span>
+              🔒 <strong>イベント終了後にご利用いただけます</strong><br>
+              <strong style="color: var(--text-yellow); font-size: 15px; display: block; margin: 6px 0;">📅 ${this.formatShortDateWithDay(couponStartDateStr)} 〜 ${this.formatShortDateWithDay(window.questApi?.currentSeason?.coupon_valid_until)}</strong>
+              <span style="font-size:11px; color:#cbd5e1;">※イベント（食べ歩き）期間中はご利用いただけません。</span>
             </div>
           ` : `
             <div class="staff-warning-banner" style="font-size: 12px; line-height: 1.4; padding: 8px 10px; margin-bottom: 12px;">
@@ -3514,7 +3556,6 @@ class YoidoreQuestApp {
       }
 
       const cardsHtml = filtered.length > 0 ? filtered.map(store => {
-        const isCoupon = Boolean(store.isCouponTarget);
         return `
         <div class="store-card" data-id="${store.id}">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
@@ -3573,7 +3614,6 @@ class YoidoreQuestApp {
 
           <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:8px; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.15);">
             ${store.isOrganizer ? `<span class="tag" style="background:#1e3a8a; color:#93c5fd; border-color:#3b82f6;">運営店</span>` : ''}
-            ${isCoupon ? `<span class="tag" style="background:#4d3800; color:#ffeeba; border-color:#ffc107;">特典対象</span>` : ''}
             ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
             ${store.category ? `<span class="tag">${store.category}</span>` : ''}
             ${store.style ? `<span class="tag tag-style">${store.style}</span>` : ''}
@@ -3744,16 +3784,11 @@ class YoidoreQuestApp {
 
     const activeSeason = window.questApi?.currentSeason;
     const info = activeSeason?.statusInfo;
-    const isCouponTarget = Boolean(store.isCouponTarget);
 
     if (store.isOrganizer) {
       this.typeMessage(`「${store.name}」は大正酔いどれクエストの運営店です！達成QRコードの読み取りやグッズ交換ができます。`);
-    } else if (info && info.isExpired) {
-      this.typeMessage(`「${store.name}」の店舗情報です。営業時間やメニューをご確認いただけます。`);
-    } else if (info && info.isCouponActive && isCouponTarget) {
-      this.typeMessage(`「${store.name}」の情報です。このお店では特典の酒場クーポンが使えます！`);
     } else {
-      this.typeMessage(`「${store.name}」の情報です。「酔いどれセット」や「店舗クエスト」を楽しもう！`);
+      this.typeMessage(`「${store.name}」の情報です。営業時間やメニューをご確認いただけます。`);
     }
 
     const conditions = store.conditions || {
@@ -3784,7 +3819,6 @@ class YoidoreQuestApp {
 
           <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:10px;">
             ${store.isOrganizer ? `<span class="tag" style="background:#1e3a8a; color:#93c5fd; border-color:#3b82f6;">運営店</span>` : ''}
-            ${isCouponTarget ? `<span class="tag" style="background:#4d3800; color:#ffeeba; border-color:#ffc107;">特典対象</span>` : ''}
             ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
             ${store.category ? `<span class="tag">${store.category}</span>` : ''}
             ${store.style ? `<span class="tag tag-style">${store.style}</span>` : ''}
@@ -3816,57 +3850,6 @@ class YoidoreQuestApp {
             </div>
           </div>
         ` : ''}
-
-        <!-- 特典クーポン利用アクション (クーポン対象店舗の場合) -->
-        ${isCouponTarget ? (() => {
-          const activeSeasonId = window.questApi?.currentSeason?.id || 2;
-          const userCoupons = (window.questApi && window.questApi.userCoupons) || [];
-          const seasonCoupons = userCoupons.filter(c => (c.season_id === activeSeasonId || (!c.season_id && activeSeasonId === 2)) && c.reward_type !== 'goods');
-          const isUsedHere = seasonCoupons.some(c => c.store_id === store.id && c.status === 'used');
-          
-          const rewardTiers = (window.questApi && window.questApi.rewardTiers) || [];
-          const reachedCouponTiers = rewardTiers.filter(t => t.reward_type !== 'goods' && seasonCoupons.some(c => Number(c.reward_tier_id) === Number(t.id)));
-          const totalEarnedSlots = reachedCouponTiers.reduce((sum, t) => sum + (Number(t.selectable_count) || 5), 0);
-          const usedCount = seasonCoupons.filter(c => c.status === 'used').length;
-          const availableCount = Math.max(0, totalEarnedSlots - usedCount);
-
-          if (isUsedHere) {
-            return `
-              <div class="rpg-window" style="background: rgba(30, 41, 59, 0.7); border: 1px solid #475569;">
-                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-                  <div>
-                    <div style="font-size:14px; font-weight:bold; color:#cbd5e1;">特典クーポン利用済み</div>
-                    <div style="font-size:12px; color:#94a3b8;">この酒場でのハシゴ達成クーポンはご利用済みです。</div>
-                  </div>
-                  <div class="stamp-hanko-badge" style="font-size:12px; padding:3px 9px;">USED</div>
-                </div>
-              </div>
-            `;
-          }
-
-          if (availableCount > 0) {
-            return `
-              <div class="rpg-window gold-border" style="background: linear-gradient(135deg, rgba(120, 53, 15, 0.4) 0%, rgba(69, 26, 3, 0.4) 100%);">
-                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-                  <div>
-                    <div style="font-size:14px; font-weight:bold; color:var(--text-yellow); white-space:nowrap;">🎟️ 酒場特典クーポン利用可能</div>
-                    <div style="font-size:12px; color:#fed7aa;">保有残枠: <strong>${availableCount} 軒分</strong> (お会計時に提示)</div>
-                  </div>
-                  <button id="btn-detail-use-coupon" class="treasure-claim-btn" style="padding:8px 12px; font-size:13px; margin:0; background:linear-gradient(180deg, #10b981 0%, #047857 100%); border-color:#34d399; white-space:nowrap; flex-shrink:0;">
-                    🍺 クーポンを使う ▶
-                  </button>
-                </div>
-              </div>
-            `;
-          }
-
-          return `
-            <div class="rpg-window" style="background: rgba(15, 23, 42, 0.6); border: 1px dashed var(--border-gold);">
-              <div style="font-size:13px; color:var(--text-yellow); font-weight:bold;">酒場特典対象店</div>
-              <div style="font-size:12px; color:#94a3b8; margin-top:2px;">運営店で達成QRコードを読み取って特典を獲得すると、この酒場のクーポンを利用できます。</div>
-            </div>
-          `;
-        })() : ''}
 
         <!-- 2. どれクエ対象時間枠 -->
         <div class="rpg-window">
@@ -4050,21 +4033,6 @@ class YoidoreQuestApp {
         this.playSelectSE();
       });
     });
-
-    const detailCouponBtn = container.querySelector('#btn-detail-use-coupon');
-    if (detailCouponBtn) {
-      detailCouponBtn.addEventListener('click', () => {
-        this.playSelectSE();
-        const activeSeasonId = window.questApi?.currentSeason?.id || 2;
-        const userCoupons = (window.questApi && window.questApi.userCoupons) || [];
-        const seasonCoupons = userCoupons.filter(c => (c.season_id === activeSeasonId || (!c.season_id && activeSeasonId === 2)) && c.reward_type !== 'goods');
-        const rewardTiers = window.questApi?.rewardTiers || [];
-        const reachedCouponTiers = rewardTiers.filter(t => t.reward_type !== 'goods' && seasonCoupons.some(c => Number(c.reward_tier_id) === Number(t.id)));
-        const tier = reachedCouponTiers[0] || rewardTiers.find(t => t.reward_type !== 'goods') || rewardTiers[0] || { id: 1, title: 'ハシゴ酒達成特典' };
-        
-        this.openStoreCouponRedeemModal(tier, store, activeSeasonId);
-      });
-    }
   }
 }
 
