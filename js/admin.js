@@ -4,8 +4,9 @@
 
 class YoidoreAdminApp {
   constructor() {
-    this.adminPin = 'yoidore2026'; // 初期管理者パスワード
     this.api = window.questApi;
+    this.supabaseClient = null;
+    this.adminSession = null;
     this.stores = [];
     this.users = [];
     this.visits = [];
@@ -17,46 +18,164 @@ class YoidoreAdminApp {
     this.activeTab = 'dashboard';
     this.activeLogSubTab = 'users';
 
+    this.initSupabaseClient();
     this.init();
   }
 
+  initSupabaseClient() {
+    if (window.supabase && window.APP_CONFIG?.supabase?.url && window.APP_CONFIG?.supabase?.anonKey) {
+      try {
+        this.supabaseClient = window.supabase.createClient(
+          window.APP_CONFIG.supabase.url,
+          window.APP_CONFIG.supabase.anonKey,
+          {
+            auth: {
+              persistSession: true,
+              autoRefreshToken: true,
+              detectSessionInUrl: true
+            }
+          }
+        );
+      } catch (e) {
+        console.error('Failed to initialize Supabase client:', e);
+      }
+    }
+  }
+
   async init() {
-    this.checkAuthSession();
+    await this.checkAuthSession();
     this.setupEventListeners();
   }
 
   /* ------------------------------------------------------------------------
-   * 認証制御
+   * 認証制御 (Supabase Auth 連携 & ログイン維持)
    * ------------------------------------------------------------------------ */
-  checkAuthSession() {
-    const isAuth = sessionStorage.getItem('yoidore_admin_auth');
-    if (isAuth === 'true') {
-      this.showAdminApp();
-    } else {
-      document.getElementById('auth-lock-modal').style.display = 'flex';
-      document.getElementById('admin-app').style.display = 'none';
+  async checkAuthSession() {
+    if (this.supabaseClient) {
+      try {
+        const { data: { session }, error } = await this.supabaseClient.auth.getSession();
+        if (session && session.user) {
+          // 前回「ログイン保持しない」と選択していた場合、ブラウザ再起動で破棄
+          if (sessionStorage.getItem('yoidore_admin_session_only') === 'expired') {
+            await this.supabaseClient.auth.signOut();
+          } else {
+            this.adminSession = session;
+            if (this.api) {
+              this.api.setAdminAccessToken(session.access_token);
+            }
+            this.showAdminApp();
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Session restoration failed:', err);
+      }
+    }
+
+    // 未認証の場合はログイン画面を表示
+    const lockModal = document.getElementById('auth-lock-modal');
+    if (lockModal) lockModal.style.display = 'flex';
+    const adminAppEl = document.getElementById('admin-app');
+    if (adminAppEl) adminAppEl.style.display = 'none';
+  }
+
+  async handleLogin() {
+    const emailEl = document.getElementById('admin-email');
+    const passwordEl = document.getElementById('admin-password');
+    const rememberEl = document.getElementById('admin-remember');
+    const errEl = document.getElementById('auth-error');
+    const btnEl = document.getElementById('admin-login-btn');
+
+    const email = (emailEl?.value || '').trim();
+    const password = passwordEl?.value || '';
+
+    if (!email || !password) {
+      if (errEl) {
+        errEl.textContent = 'メールアドレスとパスワードを入力してください';
+        errEl.style.display = 'block';
+      }
+      return;
+    }
+
+    if (btnEl) {
+      btnEl.disabled = true;
+      btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ログイン中...';
+    }
+    if (errEl) errEl.style.display = 'none';
+
+    try {
+      if (!this.supabaseClient) {
+        this.initSupabaseClient();
+      }
+      if (!this.supabaseClient) {
+        throw new Error('Supabase認証サービスが利用できません。ページを再読み込みしてください。');
+      }
+
+      const { data, error } = await this.supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && data.session) {
+        this.adminSession = data.session;
+        if (this.api) {
+          this.api.setAdminAccessToken(data.session.access_token);
+        }
+
+        // ログイン維持フラグ
+        if (rememberEl && !rememberEl.checked) {
+          window.addEventListener('beforeunload', () => {
+            sessionStorage.setItem('yoidore_admin_session_only', 'expired');
+          }, { once: true });
+        } else {
+          sessionStorage.removeItem('yoidore_admin_session_only');
+        }
+
+        this.showAdminApp();
+      } else {
+        throw new Error('セッションの取得に失敗しました');
+      }
+    } catch (err) {
+      console.error('管理者ログインエラー:', err);
+      if (errEl) {
+        let msg = 'ログインに失敗しました。メールアドレスまたはパスワードをご確認ください。';
+        const errMsg = err.message || '';
+        if (errMsg.includes('Invalid login credentials')) {
+          msg = 'メールアドレスまたはパスワードが正しくありません。';
+        } else if (errMsg.includes('Email not confirmed')) {
+          msg = 'メールアドレスが認証されていません。Supabase管理画面のUsersにて「Auto Confirm」を有効にして再登録してください。';
+        } else if (errMsg) {
+          msg = `エラー: ${errMsg}`;
+        }
+        errEl.textContent = msg;
+        errEl.style.display = 'block';
+      }
+    } finally {
+      if (btnEl) {
+        btnEl.disabled = false;
+        btnEl.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> 管理画面にログイン';
+      }
     }
   }
 
-  handleLogin() {
-    let inputPin = (document.getElementById('admin-pin')?.value || '').trim();
-    // 全角英数字を半角に自動変換
-    inputPin = inputPin.replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
-
-    if (inputPin === this.adminPin) {
-      sessionStorage.setItem('yoidore_admin_auth', 'true');
-      const errEl = document.getElementById('auth-error');
-      if (errEl) errEl.style.display = 'none';
-      this.showAdminApp();
-    } else {
-      const errEl = document.getElementById('auth-error');
-      if (errEl) errEl.style.display = 'block';
-    }
-  }
-
-  handleLogout() {
+  async handleLogout() {
     if (confirm('管理画面からログアウトしますか？')) {
-      sessionStorage.removeItem('yoidore_admin_auth');
+      try {
+        if (this.supabaseClient) {
+          await this.supabaseClient.auth.signOut();
+        }
+      } catch (e) {
+        console.warn('SignOut error:', e);
+      }
+      this.adminSession = null;
+      if (this.api) {
+        this.api.setAdminAccessToken(null);
+      }
+      sessionStorage.removeItem('yoidore_admin_session_only');
       window.location.reload();
     }
   }
@@ -66,6 +185,14 @@ class YoidoreAdminApp {
     if (lockModal) lockModal.style.display = 'none';
     const adminAppEl = document.getElementById('admin-app');
     if (adminAppEl) adminAppEl.style.display = 'flex';
+
+    // ログイン中の管理者メールアドレスを表示
+    const userEmailEl = document.getElementById('admin-user-email');
+    if (userEmailEl && this.adminSession?.user?.email) {
+      userEmailEl.textContent = this.adminSession.user.email;
+      userEmailEl.title = this.adminSession.user.email;
+    }
+
     this.applyVersionBadges();
     this.loadAllData();
   }

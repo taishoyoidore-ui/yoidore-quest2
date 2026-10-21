@@ -12,7 +12,9 @@
 
   <link rel="icon" href="assets/banner.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/admin.css?v=20261021_05">
+  <link rel="stylesheet" href="css/admin.css?v=20261022_01">
+  <!-- Supabase JS Client for Auth -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- SheetJS for Excel Import -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- QRCode.js for POP Generation -->
@@ -24,7 +26,7 @@
       console.error('[Admin Global Error]', e.message, e.filename, e.lineno);
     });
 
-    // 安全なログイン実行関数
+    // ログイン実行関数 (Supabase Auth 連携)
     window.executeAdminLogin = function() {
       try {
         if (!window.adminApp && typeof YoidoreAdminApp !== 'undefined') {
@@ -32,21 +34,6 @@
         }
         if (window.adminApp && typeof window.adminApp.handleLogin === 'function') {
           window.adminApp.handleLogin();
-        } else {
-          // フォールバック直接認証
-          let inputPin = (document.getElementById('admin-pin')?.value || '').trim();
-          inputPin = inputPin.replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
-          if (inputPin === 'yoidore2026') {
-            sessionStorage.setItem('yoidore_admin_auth', 'true');
-            if (window.adminApp) {
-              window.adminApp.showAdminApp();
-            } else {
-              window.location.reload();
-            }
-          } else {
-            const errEl = document.getElementById('auth-error');
-            if (errEl) errEl.style.display = 'block';
-          }
         }
       } catch (err) {
         console.error('Login execution error:', err);
@@ -56,7 +43,7 @@
   </script>
 </head>
 <body>
-  <!-- 認証ロックモーダル (管理者パスワード: yoidore2026) -->
+  <!-- 認証ロックモーダル (Supabase Auth ログイン) -->
   <div id="auth-lock-modal" class="auth-overlay">
     <div class="auth-card">
       <div class="auth-header">
@@ -65,17 +52,31 @@
         <p class="auth-subtitle">バックオフィス運営管理システム</p>
       </div>
       <form id="auth-form" onsubmit="event.preventDefault(); window.executeAdminLogin();">
-        <div class="form-group">
-          <label for="admin-pin"><i class="fa-solid fa-lock"></i> 管理者パスワード</label>
-          <input type="password" id="admin-pin" placeholder="パスワードを入力 (例: yoidore2026)" required autofocus>
-          <div id="auth-error" class="auth-error-msg" style="display: none;">パスワードが正しくありません</div>
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label for="admin-email" style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px;">
+            <i class="fa-solid fa-envelope" style="color: #0284c7;"></i> 管理者メールアドレス
+          </label>
+          <input type="email" id="admin-email" class="form-control" placeholder="例: admin@example.com" required autofocus autocomplete="username" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
         </div>
-        <button type="submit" class="btn btn-primary btn-block">
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label for="admin-password" style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px;">
+            <i class="fa-solid fa-lock" style="color: #0284c7;"></i> 管理者パスワード
+          </label>
+          <input type="password" id="admin-password" class="form-control" placeholder="パスワードを入力" required autocomplete="current-password" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+          <div id="auth-error" class="auth-error-msg" style="display: none; color: #dc2626; font-size: 12px; margin-top: 6px; line-height: 1.4;"></div>
+        </div>
+        <div class="form-group" style="margin-bottom: 18px; display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="admin-remember" checked style="width: 16px; height: 16px; cursor: pointer;">
+          <label for="admin-remember" style="margin: 0; font-size: 12px; color: #475569; cursor: pointer; user-select: none;">
+            ログイン状態を保持する（次回から自動ログイン）
+          </label>
+        </div>
+        <button type="submit" id="admin-login-btn" class="btn btn-primary btn-block" style="width: 100%; padding: 12px; font-size: 14px; font-weight: bold;">
           <i class="fa-solid fa-right-to-bracket"></i> 管理画面にログイン
         </button>
       </form>
       <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 14px;">
-        システムバージョン: <strong class="app-version-text">v2026.10.20.09</strong>
+        システムバージョン: <strong class="app-version-text">v2026.10.22.01</strong>
       </div>
     </div>
   </div>
@@ -131,8 +132,12 @@
           <span class="status-dot online"></span>
           <span>Supabase DB 連動中</span>
         </div>
+        <div id="admin-user-info" style="font-size: 11px; color: #cbd5e1; background: rgba(255,255,255,0.06); padding: 6px 8px; border-radius: 6px; margin-bottom: 8px; word-break: break-all; text-align: center;">
+          <i class="fa-solid fa-user-shield" style="color: #38bdf8; margin-right: 4px;"></i>
+          <span id="admin-user-email">管理者</span>
+        </div>
         <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-bottom: 6px;">
-          システムバージョン: <strong class="app-version-text">v2026.10.20.09</strong>
+          システムバージョン: <strong class="app-version-text">v2026.10.22.01</strong>
         </div>
         <button class="btn btn-outline-danger btn-sm btn-block" onclick="window.adminApp.handleLogout()">
           <i class="fa-solid fa-arrow-right-from-bracket"></i> ログアウト
@@ -160,13 +165,13 @@
         </div>
         <div class="header-right">
           <span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:3px 8px; font-weight:bold;">
-            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.10.20.09</span>
+            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.10.22.01</span>
           </span>
           <span id="last-sync-time" class="text-muted"><i class="fa-solid fa-arrows-rotate fa-spin"></i> 同期中...</span>
           <button class="btn btn-secondary btn-sm" onclick="window.adminApp.refreshData()">
             <i class="fa-solid fa-rotate"></i> 最新データ更新
           </button>
-          <a href="index.html?v=20261021_05" target="_blank" class="btn btn-outline btn-sm">
+          <a href="index.html?v=20261022_01" target="_blank" class="btn btn-outline btn-sm">
             <i class="fa-solid fa-up-right-from-square"></i> アプリ実機表示
           </a>
         </div>
@@ -1514,8 +1519,8 @@
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=20261021_05"></script>
-  <script src="js/api.js?v=20261021_05"></script>
-  <script src="js/admin.js?v=20261021_05"></script>
+  <script src="js/config.js?v=20261022_01"></script>
+  <script src="js/api.js?v=20261022_01"></script>
+  <script src="js/admin.js?v=20261022_01"></script>
 </body>
 </html>

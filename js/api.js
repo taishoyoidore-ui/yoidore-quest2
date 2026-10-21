@@ -33,6 +33,13 @@ class QuestApiManager {
     this.visits = [];
     this.rewardTiers = [];
     this.userCoupons = [];
+    
+    // バックオフィス管理者トークン (Supabase Auth 連携用)
+    this.adminAccessToken = null;
+  }
+
+  setAdminAccessToken(token) {
+    this.adminAccessToken = token;
   }
 
   /* ------------------------------------------------------------------------
@@ -43,9 +50,10 @@ class QuestApiManager {
       throw new Error('Supabase configuration missing');
     }
 
+    const authBearer = this.adminAccessToken ? this.adminAccessToken : this.supabaseKey;
     const headers = {
       'apikey': this.supabaseKey,
-      'Authorization': `Bearer ${this.supabaseKey}`,
+      'Authorization': `Bearer ${authBearer}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=representation',
       ...(options.headers || {})
