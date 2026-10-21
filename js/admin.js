@@ -1517,17 +1517,17 @@ class YoidoreAdminApp {
         id: nextId,
         name: '',
         is_participating: true,
-        area: '三軒家西',
-        category: '居酒屋',
-        style: 'テーブルあり',
-        yoidore_type: 'サク飲み',
-        takeout: 'テイクアウト不可',
+        area: '',
+        category: '',
+        style: '',
+        yoidore_type: '',
+        takeout: '',
         catchphrase: '',
-        days: '月,火,水,金,土,日',
-        hours: '17:00〜23:00',
-        payment: '現金, PayPay, クレジットカード',
+        days: '',
+        hours: '',
+        payment: '',
         is_coupon_target: true,
-        plan_type: '「酔いどれセット」のみで参加',
+        plan_type: '',
         badge_sales_count: ''
       };
     }
@@ -1617,15 +1617,17 @@ class YoidoreAdminApp {
     }
 
     // 3.5 参加企画設定
-    const currentPlan = store.plan_type || (store.quest_name && store.set_name ? '「酔いどれセット」・「店舗クエスト」両方で参加' : (store.quest_name ? '「店舗クエスト」のみで参加' : '「酔いどれセット」のみで参加'));
+    const currentPlan = store.plan_type || (store.quest_name && store.set_name ? '「酔いどれセット」・「店舗クエスト」両方で参加' : (store.quest_name ? '「店舗クエスト」のみで参加' : (store.set_name ? '「酔いどれセット」のみで参加' : '')));
     const planSelect = document.getElementById('edit-store-plan-type');
     if (planSelect) {
       if (currentPlan.includes('両方') || currentPlan === '両方') {
         planSelect.value = '「酔いどれセット」・「店舗クエスト」両方で参加';
       } else if (currentPlan.includes('クエスト')) {
         planSelect.value = '「店舗クエスト」のみで参加';
-      } else {
+      } else if (currentPlan.includes('セット')) {
         planSelect.value = '「酔いどれセット」のみで参加';
+      } else {
+        planSelect.value = '';
       }
     }
 
@@ -1636,12 +1638,14 @@ class YoidoreAdminApp {
       ['サク飲み', '腹ごしらえ', 'ひと休み', '昼飲み', '夜遊び'].includes(normalizedType) ? normalizedType : '';
 
     // 5. テイクアウト設定
-    let takeoutVal = 'テイクアウト不可';
+    let takeoutVal = '';
     const rawTakeout = store.takeout;
     if (rawTakeout === 'テイクアウト専門' || rawTakeout === '専門') {
       takeoutVal = 'テイクアウト専門';
     } else if (rawTakeout === true || rawTakeout === 'テイクアウトOK' || rawTakeout === '可能' || rawTakeout === '可' || rawTakeout === 'OK') {
       takeoutVal = 'テイクアウトOK';
+    } else if (rawTakeout === false || rawTakeout === 'テイクアウト不可' || rawTakeout === '不可' || rawTakeout === 'なし') {
+      takeoutVal = 'テイクアウト不可';
     }
     document.getElementById('edit-store-takeout').value = takeoutVal;
 
@@ -2762,20 +2766,18 @@ class YoidoreAdminApp {
     if (!isNew) {
       tier = this.tiers.find(t => t.id === Number(targetId)) || {};
     } else {
-      const maxVisits = this.tiers.reduce((max, t) => Math.max(max, t.required_visits || 0), 0);
-      const nextVisits = maxVisits ? maxVisits + 5 : 5;
       tier = {
         id: '',
         reward_type: 'store_coupon',
-        title: `${nextVisits}軒ハシゴ達成特典`,
+        title: '',
         hero_title: '',
         badge_color: '#facc15',
-        required_visits: nextVisits,
-        selectable_count: 5,
+        required_visits: '',
+        selectable_count: '',
         goods_name: '',
         exchange_location: '',
         exchange_notice: '',
-        description: 'クーポン取扱店の中からお好きな店舗を選んで特典チケットを獲得！'
+        description: ''
       };
     }
 
@@ -2788,11 +2790,11 @@ class YoidoreAdminApp {
 
     document.getElementById('edit-tier-id').value = tier.id || '';
     document.getElementById('edit-tier-title').value = tier.title || '';
-    document.getElementById('edit-tier-required').value = tier.required_visits || 5;
+    document.getElementById('edit-tier-required').value = tier.required_visits ?? '';
     document.getElementById('edit-tier-hero-title').value = tier.hero_title || '';
     document.getElementById('edit-tier-badge-color').value = tier.badge_color || '#facc15';
     document.getElementById('edit-tier-badge-color-picker').value = tier.badge_color || '#facc15';
-    document.getElementById('edit-tier-selectable').value = tier.selectable_count || 5;
+    document.getElementById('edit-tier-selectable').value = tier.selectable_count ?? '';
     document.getElementById('edit-tier-goods-name').value = tier.goods_name || '';
     document.getElementById('edit-tier-exchange-loc').value = tier.exchange_location || '';
     document.getElementById('edit-tier-exchange-notice').value = tier.exchange_notice || '';
@@ -2815,7 +2817,8 @@ class YoidoreAdminApp {
     const required_visits = parseInt(document.getElementById('edit-tier-required').value, 10);
     const hero_title = document.getElementById('edit-tier-hero-title')?.value.trim() || null;
     const badge_color = document.getElementById('edit-tier-badge-color')?.value.trim() || '#facc15';
-    const selectable_count = parseInt(document.getElementById('edit-tier-selectable').value, 10) || 1;
+    const selectable_count_raw = document.getElementById('edit-tier-selectable').value.trim();
+    const selectable_count = parseInt(selectable_count_raw, 10);
     const goods_name = document.getElementById('edit-tier-goods-name').value.trim();
     const exchange_location = document.getElementById('edit-tier-exchange-loc').value.trim();
     const exchange_notice = document.getElementById('edit-tier-exchange-notice').value.trim();
@@ -2828,6 +2831,10 @@ class YoidoreAdminApp {
     }
     if (isGoods && !goods_name) {
       alert('グッズ引換型の場合、グッズ名称は必須です。');
+      return;
+    }
+    if (!isGoods && (isNaN(selectable_count) || selectable_count < 1)) {
+      alert('店舗クーポン型の場合、獲得可能クーポン数（1以上）を入力してください。');
       return;
     }
 
@@ -2928,10 +2935,10 @@ class YoidoreAdminApp {
   openSeasonModal() {
     const nextId = (this.seasons.reduce((max, s) => Math.max(max, s.id), 0) || 2) + 1;
     document.getElementById('new-season-id').value = nextId;
-    document.getElementById('new-season-name').value = `大正酔いどれクエスト (新規)`;
-    document.getElementById('new-season-start').value = new Date().toISOString().slice(0, 10);
-    document.getElementById('new-season-end').value = new Date().toISOString().slice(0, 10);
-    document.getElementById('new-season-valid').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('new-season-name').value = '';
+    document.getElementById('new-season-start').value = '';
+    document.getElementById('new-season-end').value = '';
+    document.getElementById('new-season-valid').value = '';
     const newTitleEl = document.getElementById('new-season-initial-hero-title');
     if (newTitleEl) newTitleEl.value = '';
     document.getElementById('new-season-active').checked = false;
