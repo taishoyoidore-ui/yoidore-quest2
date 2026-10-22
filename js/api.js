@@ -205,12 +205,12 @@ class QuestApiManager {
           }
 
           // シーズン企画データの抽出（seasonDataが無い場合は空値）
-          const questTitle = seasonData ? (seasonData.quest_name || seasonData.quest?.title || seasonData['クエスト名'] || (seasonData === raw ? s.quest_name : '') || '') : '';
-          const rawQuestPrice = seasonData ? (seasonData.quest_price !== undefined ? seasonData.quest_price : (seasonData.quest?.price || seasonData['クエスト価格'] || (seasonData === raw ? s.quest_price : ''))) : '';
+          const questTitle = seasonData ? (seasonData.quest_name || seasonData.quest?.title || seasonData['お遊びゲーム名'] || seasonData['クエスト名'] || (seasonData === raw ? s.quest_name : '') || '') : '';
+          const rawQuestPrice = seasonData ? (seasonData.quest_price !== undefined ? seasonData.quest_price : (seasonData.quest?.price || seasonData['お遊びゲーム料金'] || seasonData['お遊びゲーム価格'] || seasonData['クエスト価格'] || seasonData['クエスト料金'] || (seasonData === raw ? s.quest_price : ''))) : '';
           const questPrice = (rawQuestPrice !== null && rawQuestPrice !== undefined) ? String(rawQuestPrice).trim() : '';
-          const questCharge = seasonData ? (seasonData.quest_charge || seasonData.quest?.charge || seasonData['クエストチャージ'] || (seasonData === raw ? s.quest_charge : '') || '') : '';
-          const questContent = seasonData ? (seasonData.quest_content || seasonData.quest?.content || seasonData['クエスト内容'] || (seasonData === raw ? s.quest_content : '') || '') : '';
-          const questNotes = seasonData ? (seasonData.quest_notes || seasonData.quest?.notes || seasonData['クエスト備考'] || (seasonData === raw ? s.quest_notes : '') || '') : '';
+          const questCharge = seasonData ? (seasonData.quest_charge || seasonData.quest?.charge || seasonData['お遊びゲームチャージ'] || seasonData['クエストチャージ'] || (seasonData === raw ? s.quest_charge : '') || '') : '';
+          const questContent = seasonData ? (seasonData.quest_content || seasonData.quest?.content || seasonData['お遊びゲーム内容'] || seasonData['クエスト内容'] || (seasonData === raw ? s.quest_content : '') || '') : '';
+          const questNotes = seasonData ? (seasonData.quest_notes || seasonData.quest?.notes || seasonData['お遊びゲーム備考'] || seasonData['クエスト備考'] || (seasonData === raw ? s.quest_notes : '') || '') : '';
 
           const setTitle = seasonData ? (seasonData.set_name || seasonData.yoidoreSet?.title || seasonData['酔いどれセット名'] || seasonData['セット名'] || (seasonData === raw ? s.set_name : '') || '') : '';
           const setContent = seasonData ? (seasonData.set_content || seasonData.yoidoreSet?.content || seasonData['セット内容'] || (seasonData === raw ? s.set_content : '') || '') : '';
@@ -248,8 +248,8 @@ class QuestApiManager {
           
           let planType = seasonData?.plan_type || '';
           if (!planType) {
-            if (questTitle && setTitle) planType = '「酔いどれセット」・「店舗クエスト」両方で参加';
-            else if (questTitle) planType = '「店舗クエスト」のみで参加';
+            if (questTitle && setTitle) planType = '「酔いどれセット」・「お遊びゲーム」両方で参加';
+            else if (questTitle) planType = '「お遊びゲーム」のみで参加';
             else if (setTitle) planType = '「酔いどれセット」のみで参加';
           }
           const badgeSalesCount = seasonData?.badge_sales_count || '';

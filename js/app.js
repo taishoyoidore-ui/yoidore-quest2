@@ -1012,7 +1012,7 @@ class YoidoreQuestApp {
       if (this.filters.type !== 'ALL') activeTags.push(`<span class="sticky-tag-item">🍺 ${this.filters.type}</span>`);
       if (this.filters.takeout === 'YES') activeTags.push(`<span class="sticky-tag-item">テイクアウト</span>`);
       if (this.filters.openToday) activeTags.push(`<span class="sticky-tag-item text-green">対応中</span>`);
-      if (this.filters.quest) activeTags.push(`<span class="sticky-tag-item" style="color:#f472b6;">クエスト</span>`);
+      if (this.filters.quest) activeTags.push(`<span class="sticky-tag-item" style="color:#f472b6;">お遊びゲーム</span>`);
       if (this.filters.organizer) activeTags.push(`<span class="sticky-tag-item" style="color:#93c5fd;">運営店</span>`);
       if (this.filters.searchQuery) activeTags.push(`<span class="sticky-tag-item">🔎 ${this.filters.searchQuery}</span>`);
 
@@ -1331,7 +1331,7 @@ class YoidoreQuestApp {
           <li class="command-item" data-action="quest">
             <div class="command-item-left">
               <span class="command-cursor">▶</span>
-              <span class="command-label">店舗クエストに挑む</span>
+              <span class="command-label">お遊びゲームに挑む</span>
             </div>
             <span class="command-badge">${questCount}軒</span>
           </li>
@@ -1829,7 +1829,7 @@ class YoidoreQuestApp {
           <div style="padding:10px 4px 6px; font-size:12px; color:#e2e8f0; line-height:1.6;">
             <div style="margin-bottom:6px; display:flex; align-items:flex-start; gap:6px;">
               <span style="color:#fde047; font-weight:bold; flex-shrink:0;">①</span>
-              <span><strong>紙の冒険の書</strong>に、各酒場で酔いどれセット、または店舗クエストを攻略し、店主のサインを集めます。</span>
+              <span><strong>紙の冒険の書</strong>に、各酒場で酔いどれセット、またはお遊びゲームを攻略し、店主のサインを集めます。</span>
             </div>
             <div style="margin-bottom:6px; display:flex; align-items:flex-start; gap:6px;">
               <span style="color:#fde047; font-weight:bold; flex-shrink:0;">②</span>
@@ -3494,7 +3494,7 @@ class YoidoreQuestApp {
               対応中
             </div>
             <div class="filter-chip ${this.filters.quest ? 'active' : ''}" id="chip-quest">
-              クエスト
+              お遊びゲーム
             </div>
             <div class="filter-chip ${this.filters.takeout === 'YES' ? 'active' : ''}" id="chip-takeout">
               テイクアウト
@@ -3541,9 +3541,9 @@ class YoidoreQuestApp {
         }
       } else if (this.filters.quest) {
         if (filtered.length === 0) {
-          this.typeMessage('店舗クエストに挑戦できる酒場が見つかりませんでした。条件を変えて探してみよう！');
+          this.typeMessage('お遊びゲームに挑戦できる酒場が見つかりませんでした。条件を変えて探してみよう！');
         } else {
-          this.typeMessage(`店舗クエストに挑戦できる酒場が ${filtered.length}軒あります！気になるクエストに挑もう！`);
+          this.typeMessage(`お遊びゲームに挑戦できる酒場が ${filtered.length}軒あります！気になるゲームに挑もう！`);
         }
       } else if (hasFilter) {
         if (filtered.length === 0) {
@@ -3552,7 +3552,7 @@ class YoidoreQuestApp {
           this.typeMessage(`条件に一致する酒場が ${filtered.length}軒見つかりました！気になる酒場を決めて出発しよう！`);
         }
       } else {
-        this.typeMessage(`大正区の酒場が ${filtered.length}軒集結！気になる酒場をタップしてメニューやクエストを確かめよう！`);
+        this.typeMessage(`大正区の酒場が ${filtered.length}軒集結！気になる酒場をタップしてメニューやお遊びゲームを確かめよう！`);
       }
 
       const cardsHtml = filtered.length > 0 ? filtered.map(store => {
@@ -3593,7 +3593,7 @@ class YoidoreQuestApp {
               return `
                 <div class="store-quest-preview">
                   <div class="preview-header">
-                    <span class="preview-label">⚔️ クエスト:</span>
+                    <span class="preview-label">🎲 お遊びゲーム:</span>
                     ${(questPriceObj && !questPriceObj.isFree) ? `
                       <span class="store-price">
                         ${questPriceObj.text}
@@ -3942,11 +3942,11 @@ class YoidoreQuestApp {
         ${(store.isQuestActive && store.quest && store.quest.title && store.quest.title !== '？？？？？') ? `
           <div class="rpg-window">
             <div class="rpg-window-header">
-              <span>⚔️ 酒場クエスト情報</span>
+              <span>🎲 お遊びゲーム情報</span>
             </div>
             <table class="info-table">
               <tr>
-                <th>クエスト名</th>
+                <th>お遊びゲーム名</th>
                 <td><span class="text-yellow" style="font-size:16px; font-weight:bold;">${store.quest.title}</span></td>
               </tr>
               ${store.quest.content ? `

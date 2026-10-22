@@ -741,7 +741,7 @@ class YoidoreAdminApp {
       if (!planType) {
         if (raw.set_name && raw.quest_name) planType = '両方で参加';
         else if (raw.set_name) planType = '「酔いどれセット」のみ';
-        else if (raw.quest_name) planType = '「店舗クエスト」のみ';
+        else if (raw.quest_name) planType = '「お遊びゲーム」のみ';
         else planType = '-';
       }
 
@@ -848,7 +848,7 @@ class YoidoreAdminApp {
       } else if (planFilter === 'set') {
         matchPlan = st.planType.includes('セット');
       } else if (planFilter === 'quest') {
-        matchPlan = st.planType.includes('クエスト');
+        matchPlan = st.planType.includes('クエスト') || st.planType.includes('ゲーム');
       }
 
       return matchSearch && matchArea && matchStatus && matchPlan;
@@ -874,8 +874,8 @@ class YoidoreAdminApp {
         ? '<span class="badge" style="background:#e0f2fe; color:#0369a1; font-size:11px;">両方参加</span>'
         : (st.planType.includes('セット')
           ? '<span class="badge" style="background:#fef3c7; color:#b45309; font-size:11px;">セットのみ</span>'
-          : (st.planType.includes('クエスト')
-            ? '<span class="badge" style="background:#f3e8ff; color:#7e22ce; font-size:11px;">クエストのみ</span>'
+          : (st.planType.includes('クエスト') || st.planType.includes('ゲーム')
+            ? '<span class="badge" style="background:#f3e8ff; color:#7e22ce; font-size:11px;">お遊びゲームのみ</span>'
             : `<span class="badge" style="background:#f1f5f9; color:#64748b; font-size:11px;">${this.escapeHtml(st.planType)}</span>`));
 
       const couponTargetIcon = st.isCouponTarget 
@@ -1126,7 +1126,7 @@ class YoidoreAdminApp {
       if (!planType) {
         if (raw.set_name && raw.quest_name) planType = '両方で参加';
         else if (raw.set_name) planType = '「酔いどれセット」のみ';
-        else if (raw.quest_name) planType = '「店舗クエスト」のみ';
+        else if (raw.quest_name) planType = '「お遊びゲーム」のみ';
         else planType = '-';
       }
 
@@ -1191,7 +1191,7 @@ class YoidoreAdminApp {
     const nonParticipating = total - participating;
     const organizer = this.stores.filter(s => Boolean(s.is_organizer || s.isOrganizer)).length;
     const setStores = this.stores.filter(s => Boolean(s.set_name || s.set_price || (s.plan_type && s.plan_type.includes('セット')))).length;
-    const questStores = this.stores.filter(s => Boolean(s.quest_name || s.quest_price || (s.plan_type && s.plan_type.includes('クエスト')))).length;
+    const questStores = this.stores.filter(s => Boolean(s.quest_name || s.quest_price || (s.plan_type && (s.plan_type.includes('クエスト') || s.plan_type.includes('ゲーム'))))).length;
     const couponStores = this.stores.filter(s => Boolean(s.is_coupon_target)).length;
 
     const elemTotal = document.getElementById('store-kpi-total');
@@ -1353,7 +1353,7 @@ class YoidoreAdminApp {
 
       // 4. 参加プラン
       const hasSet = Boolean(s.set_name || s.set_price || (s.plan_type && s.plan_type.includes('セット')));
-      const hasQuest = Boolean(s.quest_name || s.quest_price || (s.plan_type && s.plan_type.includes('クエスト')));
+      const hasQuest = Boolean(s.quest_name || s.quest_price || (s.plan_type && (s.plan_type.includes('クエスト') || s.plan_type.includes('ゲーム'))));
       let matchPlan = true;
       if (plan === 'both') {
         matchPlan = (hasSet && hasQuest) || (s.plan_type && s.plan_type.includes('両方'));
@@ -1465,8 +1465,8 @@ class YoidoreAdminApp {
       this.renderStoresTable(filtered);
       return;
     } else if (type === 'quest') {
-      // クエスト提供店（両方 または クエストのみ）
-      const filtered = this.stores.filter(s => Boolean(s.quest_name || s.quest_price || (s.plan_type && s.plan_type.includes('クエスト'))));
+      // お遊びゲーム提供店（両方 または お遊びゲームのみ）
+      const filtered = this.stores.filter(s => Boolean(s.quest_name || s.quest_price || (s.plan_type && (s.plan_type.includes('クエスト') || s.plan_type.includes('ゲーム')))));
       this.renderStoresTable(filtered);
       return;
     }
@@ -1744,13 +1744,13 @@ class YoidoreAdminApp {
     }
 
     // 3.5 参加企画設定
-    const currentPlan = store.plan_type || (store.quest_name && store.set_name ? '「酔いどれセット」・「店舗クエスト」両方で参加' : (store.quest_name ? '「店舗クエスト」のみで参加' : (store.set_name ? '「酔いどれセット」のみで参加' : '')));
+    const currentPlan = store.plan_type || (store.quest_name && store.set_name ? '「酔いどれセット」・「お遊びゲーム」両方で参加' : (store.quest_name ? '「お遊びゲーム」のみで参加' : (store.set_name ? '「酔いどれセット」のみで参加' : '')));
     const planSelect = document.getElementById('edit-store-plan-type');
     if (planSelect) {
       if (currentPlan.includes('両方') || currentPlan === '両方') {
-        planSelect.value = '「酔いどれセット」・「店舗クエスト」両方で参加';
-      } else if (currentPlan.includes('クエスト')) {
-        planSelect.value = '「店舗クエスト」のみで参加';
+        planSelect.value = '「酔いどれセット」・「お遊びゲーム」両方で参加';
+      } else if (currentPlan.includes('クエスト') || currentPlan.includes('ゲーム')) {
+        planSelect.value = '「お遊びゲーム」のみで参加';
       } else if (currentPlan.includes('セット')) {
         planSelect.value = '「酔いどれセット」のみで参加';
       } else {
@@ -2010,7 +2010,7 @@ class YoidoreAdminApp {
     let questNotes = document.getElementById('edit-store-quest-notes').value.trim();
 
     // 選択された参加企画に合わせて不要な側のデータをクリーンアップ（データの不整合を防止）
-    if (planType.includes('クエスト」のみ')) {
+    if (planType.includes('クエスト」のみ') || planType.includes('ゲーム」のみ') || planType.includes('お遊びゲーム')) {
       setName = ''; setPrice = ''; setContent = ''; setCharge = ''; setLimit = ''; setNotes = '';
     } else if (planType.includes('セット」のみ')) {
       questName = ''; questPrice = ''; questContent = ''; questCharge = ''; questNotes = '';
@@ -2441,7 +2441,7 @@ class YoidoreAdminApp {
         let questName = '', questContent = '', questNotes = '', questPrice = '', questCharge = '';
 
         const isSetOnly = planType.includes('セット」のみ');
-        const isQuestOnly = planType.includes('クエスト」のみ');
+        const isQuestOnly = planType.includes('クエスト」のみ') || planType.includes('ゲーム」のみ') || planType.includes('お遊びゲーム');
 
         if (isSetOnly) {
           // 「セットのみ」の場合はExcelのセット情報列（Col 15〜20）からそのまま抽出
@@ -2451,16 +2451,16 @@ class YoidoreAdminApp {
           setPrice = cleanCellText(row[18] !== undefined && row[18] !== '' ? row[18] : (rowObj['  価格(税込)  '] || rowObj['価格(税込)']));
           setCharge = cleanCellText(row[19] !== undefined && row[19] !== '' ? row[19] : rowObj['チャージ料(税込)']);
           setLimit = cleanCellText(row[20] !== undefined && row[20] !== '' ? row[20] : rowObj['限定数量']);
-          // クエスト情報は完全に空
+          // クエスト（お遊びゲーム）情報は完全に空
           questName = ''; questContent = ''; questNotes = ''; questPrice = ''; questCharge = '';
         } else if (isQuestOnly) {
-          // 「クエストのみ」の場合はセット情報を完全クリアし、クエスト情報列（Col 21〜25）からそのまま抽出
+          // 「クエストのみ / お遊びゲームのみ」の場合はセット情報を完全クリアし、クエスト情報列（Col 21〜25）からそのまま抽出（クエスト名/お遊びゲーム名両対応）
           setName = ''; setContent = ''; setNotes = ''; setPrice = ''; setCharge = ''; setLimit = '';
-          questName = cleanCellText(row[21] !== undefined && row[21] !== '' ? row[21] : rowObj['クエスト名']);
-          questContent = cleanCellText(row[22] !== undefined && row[22] !== '' ? row[22] : rowObj['クエスト内容/報酬']);
-          questPrice = cleanCellText(row[23] !== undefined && row[23] !== '' ? row[23] : rowObj['クエスト料金(税込)']);
-          questCharge = cleanCellText(row[24] !== undefined && row[24] !== '' ? row[24] : rowObj['クエストチャージ料 (税込)']);
-          questNotes = cleanCellText(row[25] !== undefined && row[25] !== '' ? row[25] : rowObj['クエスト備考']);
+          questName = cleanCellText(row[21] !== undefined && row[21] !== '' ? row[21] : (rowObj['お遊びゲーム名'] || rowObj['クエスト名']));
+          questContent = cleanCellText(row[22] !== undefined && row[22] !== '' ? row[22] : (rowObj['お遊びゲーム内容/報酬'] || rowObj['クエスト内容/報酬'] || rowObj['お遊びゲーム内容'] || rowObj['クエスト内容']));
+          questPrice = cleanCellText(row[23] !== undefined && row[23] !== '' ? row[23] : (rowObj['お遊びゲーム料金(税込)'] || rowObj['クエスト料金(税込)'] || rowObj['お遊びゲーム料金'] || rowObj['クエスト料金']));
+          questCharge = cleanCellText(row[24] !== undefined && row[24] !== '' ? row[24] : (rowObj['お遊びゲームチャージ料 (税込)'] || rowObj['クエストチャージ料 (税込)'] || rowObj['お遊びゲームチャージ料'] || rowObj['クエストチャージ料']));
+          questNotes = cleanCellText(row[25] !== undefined && row[25] !== '' ? row[25] : (rowObj['お遊びゲーム備考'] || rowObj['クエスト備考'] || rowObj['お遊びゲーム注意事項・備考']));
         } else {
           // 「両方」または個別回答の場合はExcelの両方対応列（Col 26〜36）または単独列からそのまま抽出
           setName = cleanCellText(row[26] !== undefined && row[26] !== '' ? row[26] : (rowObj['酔いどれセット名'] || row[15]));
@@ -2470,16 +2470,16 @@ class YoidoreAdminApp {
           setCharge = cleanCellText(row[30] !== undefined && row[30] !== '' ? row[30] : (rowObj['チャージ料(税込) 2'] || row[19]));
           setLimit = cleanCellText(row[31] !== undefined && row[31] !== '' ? row[31] : (rowObj['限定数量 2'] || row[20]));
 
-          questName = cleanCellText(row[32] !== undefined && row[32] !== '' ? row[32] : (rowObj['クエスト名 2'] || row[21]));
-          questContent = cleanCellText(row[33] !== undefined && row[33] !== '' ? row[33] : (rowObj['クエスト内容/報酬 2'] || row[22]));
-          questPrice = cleanCellText(row[34] !== undefined && row[34] !== '' ? row[34] : (rowObj['クエスト料金(税込) 2'] || row[23]));
-          questCharge = cleanCellText(row[35] !== undefined && row[35] !== '' ? row[35] : (rowObj['クエストチャージ料 (税込) 2'] || row[24]));
-          questNotes = cleanCellText(row[36] !== undefined && row[36] !== '' ? row[36] : (rowObj['クエスト備考 2'] || row[25]));
+          questName = cleanCellText(row[32] !== undefined && row[32] !== '' ? row[32] : (rowObj['お遊びゲーム名 2'] || rowObj['クエスト名 2'] || rowObj['お遊びゲーム名'] || row[21]));
+          questContent = cleanCellText(row[33] !== undefined && row[33] !== '' ? row[33] : (rowObj['お遊びゲーム内容/報酬 2'] || rowObj['クエスト内容/報酬 2'] || rowObj['お遊びゲーム内容/報酬'] || row[22]));
+          questPrice = cleanCellText(row[34] !== undefined && row[34] !== '' ? row[34] : (rowObj['お遊びゲーム料金(税込) 2'] || rowObj['クエスト料金(税込) 2'] || rowObj['お遊びゲーム料金(税込)'] || row[23]));
+          questCharge = cleanCellText(row[35] !== undefined && row[35] !== '' ? row[35] : (rowObj['お遊びゲームチャージ料 (税込) 2'] || rowObj['クエストチャージ料 (税込) 2'] || rowObj['お遊びゲームチャージ料 (税込)'] || row[24]));
+          questNotes = cleanCellText(row[36] !== undefined && row[36] !== '' ? row[36] : (rowObj['お遊びゲーム備考 2'] || rowObj['クエスト備考 2'] || rowObj['お遊びゲーム備考'] || row[25]));
 
           if (!planType) {
-            if (setName && questName) planType = '「酔いどれセット」・「店舗クエスト」両方で参加';
+            if (setName && questName) planType = '「酔いどれセット」・「お遊びゲーム」両方で参加';
             else if (setName) planType = '「酔いどれセット」のみで参加';
-            else if (questName) planType = '「店舗クエスト」のみで参加';
+            else if (questName) planType = '「お遊びゲーム」のみで参加';
           }
         }
 
@@ -2582,7 +2582,7 @@ class YoidoreAdminApp {
           <td><strong>${item.name}</strong></td>
           <td><span class="badge badge-area">${item.area}</span> <span class="badge">${item.category}</span></td>
           <td><small>${timeDisplay}</small></td>
-          <td><small style="color:#64748b;">${item.planType.includes('両方') ? '両方' : (item.planType.includes('セット') ? 'セットのみ' : 'クエストのみ')}</small></td>
+          <td><small style="color:#64748b;">${item.planType.includes('両方') ? '両方' : (item.planType.includes('セット') ? 'セットのみ' : 'お遊びゲームのみ')}</small></td>
           <td>${item.set_name ? `${item.set_name} (${this.formatPrice(item.set_price)})` : '-'}</td>
           <td>${item.quest_name || '-'}</td>
           <td style="text-align: center;">${item.is_coupon_target ? '🎁 対象' : '-'}</td>

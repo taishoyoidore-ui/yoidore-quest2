@@ -12,7 +12,7 @@
 
   <link rel="icon" href="assets/banner.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/admin.css?v=20261022_01">
+  <link rel="stylesheet" href="css/admin.css?v=20261022_02">
   <!-- Supabase JS Client for Auth -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- SheetJS for Excel Import -->
@@ -76,7 +76,7 @@
         </button>
       </form>
       <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 14px;">
-        システムバージョン: <strong class="app-version-text">v2026.10.22.01</strong>
+        システムバージョン: <strong class="app-version-text">v2026.10.22.02</strong>
       </div>
     </div>
   </div>
@@ -137,7 +137,7 @@
           <span id="admin-user-email">管理者</span>
         </div>
         <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-bottom: 6px;">
-          システムバージョン: <strong class="app-version-text">v2026.10.22.01</strong>
+          システムバージョン: <strong class="app-version-text">v2026.10.22.02</strong>
         </div>
         <button class="btn btn-outline-danger btn-sm btn-block" onclick="window.adminApp.handleLogout()">
           <i class="fa-solid fa-arrow-right-from-bracket"></i> ログアウト
@@ -165,13 +165,13 @@
         </div>
         <div class="header-right">
           <span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:3px 8px; font-weight:bold;">
-            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.10.22.01</span>
+            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.10.22.02</span>
           </span>
           <span id="last-sync-time" class="text-muted"><i class="fa-solid fa-arrows-rotate fa-spin"></i> 同期中...</span>
           <button class="btn btn-secondary btn-sm" onclick="window.adminApp.refreshData()">
             <i class="fa-solid fa-rotate"></i> 最新データ更新
           </button>
-          <a href="index.html?v=20261022_01" target="_blank" class="btn btn-outline btn-sm">
+          <a href="index.html?v=20261022_02" target="_blank" class="btn btn-outline btn-sm">
             <i class="fa-solid fa-up-right-from-square"></i> アプリ実機表示
           </a>
         </div>
@@ -348,7 +348,7 @@
                   <option value="">企画: すべて</option>
                   <option value="both">両方参加</option>
                   <option value="set">セットのみ</option>
-                  <option value="quest">クエストのみ</option>
+                  <option value="quest">お遊びゲームのみ</option>
                 </select>
                 <select id="analytics-sort-select" class="form-select-sm" onchange="window.adminApp.renderAnalyticsStoreTable()">
                   <option value="used_desc">🍺 利用数が多い順</option>
@@ -496,9 +496,9 @@
                 <span>セット提供:</span> <strong id="store-kpi-set">-</strong>
               </div>
 
-              <div class="summary-pill" id="kpi-pill-store-quest" onclick="window.adminApp.quickFilterStores('quest')" title="クエスト提供店のみ絞り込み">
-                <i class="fa-solid fa-shield-halved" style="color: #7e22ce;"></i>
-                <span>クエスト提供:</span> <strong id="store-kpi-quest">-</strong>
+              <div class="summary-pill" id="kpi-pill-store-quest" onclick="window.adminApp.quickFilterStores('quest')" title="お遊びゲーム提供店のみ絞り込み">
+                <i class="fa-solid fa-dice" style="color: #7e22ce;"></i>
+                <span>お遊びゲーム提供:</span> <strong id="store-kpi-quest">-</strong>
               </div>
 
               <div class="summary-pill" id="kpi-pill-store-coupon" onclick="window.adminApp.quickFilterStores('coupon')" title="クーポン対象店のみ絞り込み">
@@ -550,9 +550,9 @@
                   <label><i class="fa-solid fa-utensils"></i> プラン:</label>
                   <select id="plan-filter" class="form-select-sm" onchange="window.adminApp.filterStores()">
                     <option value="">すべて</option>
-                    <option value="both">セット＋クエスト両方</option>
+                    <option value="both">セット＋お遊びゲーム両方</option>
                     <option value="set_only">セットのみ</option>
-                    <option value="quest_only">クエストのみ</option>
+                    <option value="quest_only">お遊びゲームのみ</option>
                   </select>
                 </div>
                 <div class="drawer-item">
@@ -584,7 +584,7 @@
                     <th>ジャンル / 席タイプ</th>
                     <th>提供時間・補足</th>
                     <th>酔いどれセット</th>
-                    <th>クエスト</th>
+                    <th>お遊びゲーム</th>
                     <th style="text-align: center;">クーポン対象</th>
                     <th style="text-align: center; width: 140px;">操作</th>
                   </tr>
@@ -1074,9 +1074,9 @@
               <label>参加企画 (どれクエ)</label>
               <select id="edit-store-plan-type" class="form-control">
                 <option value="">（未設定）</option>
-                <option value="「酔いどれセット」・「店舗クエスト」両方で参加">両方で参加 (セット＋クエスト)</option>
+                <option value="「酔いどれセット」・「お遊びゲーム」両方で参加">両方で参加 (セット＋お遊びゲーム)</option>
                 <option value="「酔いどれセット」のみで参加">セットのみで参加</option>
-                <option value="「店舗クエスト」のみで参加">クエストのみで参加</option>
+                <option value="「お遊びゲーム」のみで参加">お遊びゲームのみで参加</option>
               </select>
             </div>
             <div class="form-group">
@@ -1185,29 +1185,29 @@
             </div>
           </div>
 
-          <!-- クエスト情報 -->
-          <div class="form-section-title">⚔️ 酒場クエスト情報</div>
+          <!-- お遊びゲーム情報 -->
+          <div class="form-section-title">🎲 お遊びゲーム情報</div>
           <div class="grid-2col">
             <div class="form-group">
-              <label>クエスト名</label>
+              <label>お遊びゲーム名</label>
               <input type="text" id="edit-store-quest-name" class="form-control">
             </div>
             <div class="form-group">
-              <label>クエスト料金</label>
+              <label>ゲーム料金</label>
               <input type="text" id="edit-store-quest-price" class="form-control" placeholder="例: 無料、500円、500円〜900円 等">
             </div>
           </div>
           <div class="form-group">
-            <label>クエスト内容 / 報酬</label>
+            <label>ゲーム内容 / 報酬</label>
             <textarea id="edit-store-quest-content" class="form-control" rows="2"></textarea>
           </div>
           <div class="grid-2col">
             <div class="form-group">
-              <label>クエスト チャージ料</label>
+              <label>ゲーム チャージ料</label>
               <input type="text" id="edit-store-quest-charge" class="form-control" placeholder="不要, 込, 300円等">
             </div>
             <div class="form-group">
-              <label>クエスト 注意事項・備考</label>
+              <label>ゲーム 注意事項・備考</label>
               <input type="text" id="edit-store-quest-notes" class="form-control" placeholder="1人1日1回等">
             </div>
           </div>
@@ -1406,7 +1406,7 @@
                   <th>提供時間・補足</th>
                   <th>企画</th>
                   <th>セット名 (価格)</th>
-                  <th>クエスト名</th>
+                  <th>お遊びゲーム名</th>
                   <th style="text-align: center;">クーポン</th>
                 </tr>
               </thead>
@@ -1519,8 +1519,8 @@
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=20261022_01"></script>
-  <script src="js/api.js?v=20261022_01"></script>
-  <script src="js/admin.js?v=20261022_01"></script>
+  <script src="js/config.js?v=20261022_02"></script>
+  <script src="js/api.js?v=20261022_02"></script>
+  <script src="js/admin.js?v=20261022_02"></script>
 </body>
 </html>
