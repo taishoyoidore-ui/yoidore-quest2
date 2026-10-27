@@ -1305,11 +1305,16 @@ class YoidoreQuestApp {
     let topMessage = '大正酔いどれクエストへようこそ！コマンドを選んで酒場を探そう！楽しみ方は下の【冒険の心得】をチェック！';
 
     if (statusInfo) {
-      if (statusInfo.isEventActive) {
-        const seasonTitle = currentSeason.name ? `【${currentSeason.name} 開催中！】` : '【イベント開催中！】';
-        const daysLeftText = (statusInfo.daysLeft !== undefined) ? `（残り${statusInfo.daysLeft}日）` : '';
-        topMessage = `${seasonTitle}${daysLeftText}コマンドを選んで酒場を探そう！`;
-      } else if (statusInfo.isCouponActive) {
+      const seasonTitle = currentSeason.name ? `【${currentSeason.name}】` : '【大正酔いどれクエスト】';
+      if (statusInfo.isBeforeEvent) {
+        const startFormatted = currentSeason.start_date ? this.formatDateWithDay(currentSeason.start_date) : '';
+        const daysUntilText = (statusInfo.daysUntilEventStart !== undefined) ? `（開幕まであと${statusInfo.daysUntilEventStart}日）` : '';
+        topMessage = `【開催準備中】${seasonTitle}は ${startFormatted} からスタート！${daysUntilText}コマンドを選んで酒場を予習しよう！`;
+      } else if (statusInfo.isEventActive) {
+        const activeTitle = currentSeason.name ? `【${currentSeason.name} 開催中！】` : '【イベント開催中！】';
+        const daysLeftText = (statusInfo.daysLeftEvent !== undefined) ? `（残り${statusInfo.daysLeftEvent}日）` : '';
+        topMessage = `${activeTitle}${daysLeftText}コマンドを選んで酒場を探そう！`;
+      } else if (statusInfo.isCouponUsable) {
         const couponEndStr = currentSeason.coupon_valid_until ? `利用期限は${this.formatShortDateWithDay(currentSeason.coupon_valid_until)}まで！` : '';
         topMessage = `【酒場クーポン利用期間中】${couponEndStr}コマンドを選んで酒場を探そう！`;
       } else if (statusInfo.isExpired) {
@@ -1512,6 +1517,9 @@ class YoidoreQuestApp {
 
     if (isExpired) {
       this.typeMessage('イベント期間は終了しました。これまでの冒険の記録をご確認いただけます。');
+    } else if (info?.isBeforeEvent) {
+      const startFormatted = activeSeason?.start_date ? this.formatDateWithDay(activeSeason.start_date) : '開催日';
+      this.typeMessage(`【開催準備中】イベントは ${startFormatted} からスタート！各店を巡って店主のサインを集めよう！`);
     } else if (!isCouponUsable && couponStartDateStr) {
       if (unlockedTierCount > 0) {
         this.typeMessage(`特典解放済み！酒場クーポンの利用開始は ${this.formatShortDateWithDay(couponStartDateStr)} から！お楽しみに！`);
@@ -1789,10 +1797,12 @@ class YoidoreQuestApp {
             <span>🍺 ハシゴ達成・酒場クーポン</span>
             ${isExpired
               ? `<span class="tag" style="background:#475569; color:#cbd5e1; border-color:#64748b; font-size:11px; font-weight:bold;">利用期間終了</span>`
-              : (!isCouponUsable
-                ? `<span class="tag" style="background:#b45309; color:#fef3c7; border-color:#f59e0b; font-size:11px; font-weight:bold;">イベント終了後に利用可能</span>`
-                : `<span class="tag" style="background:#047857; color:#d1fae5; border-color:#34d399; font-size:11px; font-weight:bold;">現在利用可能</span>`
-              )}
+              : (info?.isBeforeEvent
+                ? `<span class="tag" style="background:#0284c7; color:#e0f2fe; border-color:#38bdf8; font-size:11px; font-weight:bold;">開催準備中</span>`
+                : (!isCouponUsable
+                  ? `<span class="tag" style="background:#b45309; color:#fef3c7; border-color:#f59e0b; font-size:11px; font-weight:bold;">イベント終了後に利用可能</span>`
+                  : `<span class="tag" style="background:#047857; color:#d1fae5; border-color:#34d399; font-size:11px; font-weight:bold;">現在利用可能</span>`
+                ))}
           </div>
           <div class="coupon-period-guide-box" style="margin-top:8px; padding:8px 10px; background:rgba(0,0,0,0.3); border:1px dashed #eab308; border-radius:6px; font-size:12px; line-height:1.5;">
             <div style="color:#fde047; font-weight:bold; display:flex; align-items:center; gap:6px;">
@@ -1801,9 +1811,11 @@ class YoidoreQuestApp {
             <div style="color:#cbd5e1; font-size:11px; margin-top:3px;">
               ${isExpired 
                 ? '※酒場クーポンの有効期限は終了いたしました。'
-                : (!isCouponUsable 
-                  ? '※本開催（食べ歩き）期間中はご利用いただけません。イベント終了後の上記期間中に各酒場でご利用いただけます。'
-                  : '※お会計時に『酒場を選んでクーポンを使う』から店舗を選んで画面をご提示ください。')}
+                : (info?.isBeforeEvent
+                  ? '※獲得したクーポンは、イベント本開催終了後の上記期間中に各酒場でご利用いただけます。'
+                  : (!isCouponUsable 
+                    ? '※本開催（食べ歩き）期間中はご利用いただけません。イベント終了後の上記期間中に各酒場でご利用いただけます。'
+                    : '※お会計時に『酒場を選んでクーポンを使う』から店舗を選んで画面をご提示ください。'))}
             </div>
           </div>
           <div style="margin-top:10px;">
@@ -2224,9 +2236,9 @@ class YoidoreQuestApp {
             </div>
           ` : (!isCouponUsable ? `
             <div style="padding: 14px 10px; border: 1px solid #f59e0b; border-radius: 8px; background: rgba(245,158,11,0.15); color: #fde68a; font-size: 13px; text-align: center; line-height: 1.5;">
-              🔒 <strong>イベント終了後にご利用いただけます</strong><br>
+              🔒 <strong>${info?.isBeforeEvent ? 'イベント開催前・利用期間外' : 'イベント終了後にご利用いただけます'}</strong><br>
               <strong style="color: var(--text-yellow); font-size: 15px; display: block; margin: 6px 0;">📅 ${this.formatShortDateWithDay(couponStartDateStr)} 〜 ${this.formatShortDateWithDay(window.questApi?.currentSeason?.coupon_valid_until)}</strong>
-              <span style="font-size:11px; color:#cbd5e1;">※イベント（食べ歩き）期間中はご利用いただけません。</span>
+              <span style="font-size:11px; color:#cbd5e1;">${info?.isBeforeEvent ? '※イベント開催前です。本イベント終了後の上記期間中にご利用いただけます。' : '※イベント（食べ歩き）期間中はご利用いただけません。'}</span>
             </div>
           ` : `
             <div class="staff-warning-banner" style="font-size: 12px; line-height: 1.4; padding: 8px 10px; margin-bottom: 12px;">

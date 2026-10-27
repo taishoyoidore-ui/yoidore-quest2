@@ -435,13 +435,16 @@ class QuestApiManager {
     }
 
     const isBeforeEvent = startDate ? (now < startDate) : false;
-    const isEventActive = (startDate && endDate) ? (now >= startDate && now <= endDate) : true; // 本開催中（サイン受取・宝箱解放）
+    const isEventActive = (startDate && endDate) ? (now >= startDate && now <= endDate) : false; // 本開催中（サイン受取・宝箱解放）
     const isCouponUsable = (couponStartDate && couponValidUntil) ? (now >= couponStartDate && now <= couponValidUntil) : false; // クーポン利用可能期間（本開催終了翌日〜有効期限）
     const isCouponActive = couponValidUntil ? (now <= couponValidUntil) : true; // クーポン期限内（獲得・所持可能期間）
     const isExpired = couponValidUntil ? (now > couponValidUntil) : false; // 全期間終了
 
-    const diffTime = couponValidUntil ? (couponValidUntil.getTime() - now.getTime()) : 0;
-    const daysLeft = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    // フェーズ別の正確な残り日数
+    const daysUntilEventStart = startDate ? Math.max(1, Math.ceil((startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : 0;
+    const daysLeftEvent = endDate ? Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : 0;
+    const daysLeftCoupon = couponValidUntil ? Math.max(0, Math.ceil((couponValidUntil.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : 0;
+    const daysLeft = isEventActive ? daysLeftEvent : (isCouponUsable ? daysLeftCoupon : 0);
 
     this.currentSeason.statusInfo = {
       now,
@@ -455,6 +458,9 @@ class QuestApiManager {
       isCouponUsable,
       isCouponActive,
       isExpired,
+      daysUntilEventStart,
+      daysLeftEvent,
+      daysLeftCoupon,
       daysLeft
     };
 
