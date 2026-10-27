@@ -1146,6 +1146,32 @@ body {
   margin-top: 4px;
 }
 
+.pop-tier-title {
+  font-size: 24px;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 14px 0 8px 0;
+  line-height: 1.3;
+}
+
+.pop-reward-badge {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0369a1;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  padding: 8px 18px;
+  border-radius: 8px;
+  display: inline-block;
+  margin-bottom: 14px;
+}
+
+.pop-footer-note {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 8px;
+}
+
 /* トースト */
 .admin-toast {
   position: fixed;
@@ -1163,9 +1189,19 @@ body {
 }
 
 /* --------------------------------------------------------------------------
- * 印刷時専用スタイル (@media print)
+ * 印刷時専用スタイル (@media print) - A4縦2列切り抜きPOP用レイアウト
  * -------------------------------------------------------------------------- */
+@page {
+  size: A4 portrait;
+  margin: 10mm;
+}
+
 @media print {
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   .no-print, .admin-sidebar, .top-header, .pop-controls {
     display: none !important;
   }
@@ -1185,22 +1221,84 @@ body {
   }
 
   .pop-cards-grid {
-    display: block !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8mm !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
   .pop-card {
-    page-break-after: always;
-    page-break-inside: avoid;
+    page-break-after: auto !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
     width: 100% !important;
-    max-width: 650px !important;
-    margin: 40px auto !important;
-    padding: 40px !important;
-    border: 4px solid #000 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 14px 12px !important;
+    border: 2px dashed #475569 !important; /* 切り取り線として分かりやすい破線枠 */
+    border-radius: 12px !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    box-sizing: border-box !important;
+    text-align: center !important;
   }
 
-  .pop-event-title { font-size: 1.8rem !important; }
-  .pop-store-name { font-size: 2rem !important; }
-  .pop-qr-wrapper { transform: scale(1.3); margin: 24px 0 !important; }
+  .pop-event-header {
+    border-bottom: 1.5px dashed #cbd5e1 !important;
+    padding-bottom: 6px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .pop-event-title {
+    font-size: 1.05rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.5px !important;
+  }
+
+  .pop-tier-title, .pop-store-name {
+    font-size: 1.35rem !important;
+    font-weight: 900 !important;
+    color: #0f172a !important;
+    margin: 4px 0 6px 0 !important;
+    line-height: 1.2 !important;
+  }
+
+  .pop-reward-badge {
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    color: #0369a1 !important;
+    background: #e0f2fe !important;
+    border: 1px solid #bae6fd !important;
+    padding: 4px 12px !important;
+    border-radius: 6px !important;
+    display: inline-block !important;
+    margin-bottom: 8px !important;
+  }
+
+  .pop-qr-wrapper {
+    transform: none !important;
+    margin: 4px auto 6px auto !important;
+    padding: 8px !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    background: #fff !important;
+    display: inline-block !important;
+  }
+
+  .pop-qr-wrapper img, .pop-qr-wrapper canvas {
+    width: 150px !important;
+    height: 150px !important;
+    display: block !important;
+    margin: 0 auto !important;
+  }
+
+  .pop-footer-note {
+    font-size: 0.72rem !important;
+    color: #64748b !important;
+    margin-top: 6px !important;
+    display: block !important;
+  }
 }
 
 /* --------------------------------------------------------------------------

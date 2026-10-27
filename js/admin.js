@@ -4170,13 +4170,14 @@ class YoidoreAdminApp {
         <div class="pop-event-header">
           <div class="pop-event-title">${this.escapeHtml(seasonTitle)}</div>
         </div>
-        <div class="pop-store-name" style="font-size: 26px; font-weight: 900; color: #0f172a; margin: 16px 0 8px 0;">
+        <div class="pop-tier-title">
           ${this.escapeHtml(tier.title)}
         </div>
-        <div style="font-size: 16px; font-weight: 700; color: #0369a1; margin-bottom: 16px; background: #e0f2fe; padding: 8px 18px; border-radius: 8px; display: inline-block;">
+        <div class="pop-reward-badge">
           ${rewardSummary}
         </div>
-        <div class="pop-qr-wrapper" id="pop-qr-tier-${tier.id}" style="margin: 12px auto 10px auto;"></div>
+        <div class="pop-qr-wrapper" id="pop-qr-tier-${tier.id}"></div>
+        <div class="pop-footer-note">※参加者にこのQRコードを提示して読み取ってもらってください</div>
       `;
 
       container.appendChild(card);
