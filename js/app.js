@@ -7,6 +7,26 @@
 function checkIsOpenToday(store, now = new Date()) {
   if (!store) return false;
 
+  // イベント開催ステータスに応じた利用可能判定
+  const activeSeason = window.questApi?.currentSeason;
+  if (activeSeason) {
+    const info = activeSeason.statusInfo;
+    if (info) {
+      if (info.isBeforeEvent) return false;
+      if (info.isExpired) return false;
+      if (info.isCouponUsable) return true; // クーポン利用期間中は全参加店舗で利用可能
+      if (!info.isEventActive) return false;
+    } else if (activeSeason.start_date && activeSeason.end_date) {
+      const startDate = new Date(activeSeason.start_date);
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(activeSeason.end_date);
+      endDate.setHours(23, 59, 59, 999);
+      if (now < startDate || now > endDate) {
+        return false;
+      }
+    }
+  }
+
   const rawDays = String(store.days || store.conditions?.days || '').trim();
   const rawHours = String(store.hours || store.conditions?.hours || '').trim();
 
@@ -119,6 +139,34 @@ function checkIsOpenToday(store, now = new Date()) {
 
 // グローバル公開
 window.checkIsOpenToday = checkIsOpenToday;
+
+/**
+ * イベント期間ステータスに応じた店舗のバッジ種別とテキストを返却する関数
+ * @param {Object} store 店舗データ
+ * @returns {{ badgeClass: string, text: string }}
+ */
+function getStoreStatusBadge(store) {
+  const activeSeason = window.questApi?.currentSeason;
+  const info = activeSeason?.statusInfo;
+  if (info) {
+    if (info.isBeforeEvent) {
+      return { badgeClass: 'status-prep', text: '開催準備中' };
+    }
+    if (info.isCouponUsable) {
+      return { badgeClass: 'status-coupon', text: 'クーポン利用可能' };
+    }
+    if (info.isExpired) {
+      return { badgeClass: 'status-ended', text: '全期間終了' };
+    }
+  }
+  // isEventActive または statusInfo未定義時
+  if (store && store.isOpenToday) {
+    return { badgeClass: 'status-open', text: 'どれクエ対応中' };
+  } else {
+    return { badgeClass: 'status-closed', text: 'どれクエ対象時間外' };
+  }
+}
+window.getStoreStatusBadge = getStoreStatusBadge;
 
 /**
  * URLやQRコード読み取り文字列からマイルストーン特典達成ID (claim_tier / tier_id) を安全・確実に抽出
@@ -1011,7 +1059,10 @@ class YoidoreQuestApp {
       if (this.filters.style !== 'ALL') activeTags.push(`<span class="sticky-tag-item">🪑 ${this.filters.style}</span>`);
       if (this.filters.type !== 'ALL') activeTags.push(`<span class="sticky-tag-item">🍺 ${this.filters.type}</span>`);
       if (this.filters.takeout === 'YES') activeTags.push(`<span class="sticky-tag-item">テイクアウト</span>`);
-      if (this.filters.openToday) activeTags.push(`<span class="sticky-tag-item text-green">対応中</span>`);
+      if (this.filters.openToday) {
+        const isCoupon = window.questApi?.currentSeason?.statusInfo?.isCouponUsable;
+        activeTags.push(`<span class="sticky-tag-item text-green">${isCoupon ? 'クーポン利用可' : '対応中'}</span>`);
+      }
       if (this.filters.quest) activeTags.push(`<span class="sticky-tag-item" style="color:#f472b6;">お遊びゲーム</span>`);
       if (this.filters.organizer) activeTags.push(`<span class="sticky-tag-item" style="color:#93c5fd;">運営店</span>`);
       if (this.filters.searchQuery) activeTags.push(`<span class="sticky-tag-item">🔎 ${this.filters.searchQuery}</span>`);
@@ -1282,6 +1333,13 @@ class YoidoreQuestApp {
   }
 
   /* ------------------------------------------------------------------------
+   * 開催ステータスに応じた店舗バッジ取得
+   * ------------------------------------------------------------------------ */
+  getStoreStatusBadge(store) {
+    return getStoreStatusBadge(store);
+  }
+
+  /* ------------------------------------------------------------------------
    * 3.1 トップ画面 (酒場案内所)
    * ------------------------------------------------------------------------ */
   renderTopView(container) {
@@ -1371,7 +1429,7 @@ class YoidoreQuestApp {
           <li class="command-item" data-action="today">
             <div class="command-item-left">
               <span class="command-cursor">▶</span>
-              <span class="command-label">どれクエ対応中の酒場</span>
+              <span class="command-label">${statusInfo?.isCouponUsable ? 'クーポンが使える酒場' : 'どれクエ対応中の酒場'}</span>
             </div>
             <span class="command-badge">${openCount}軒</span>
           </li>
@@ -3503,7 +3561,7 @@ class YoidoreQuestApp {
           </div>
           <div class="filter-chip-group">
             <div class="filter-chip ${this.filters.openToday ? 'active' : ''}" id="chip-open-today">
-              対応中
+              ${window.questApi?.currentSeason?.statusInfo?.isCouponUsable ? 'クーポン利用可' : '対応中'}
             </div>
             <div class="filter-chip ${this.filters.quest ? 'active' : ''}" id="chip-quest">
               お遊びゲーム
@@ -3557,6 +3615,24 @@ class YoidoreQuestApp {
         } else {
           this.typeMessage(`お遊びゲームに挑戦できる酒場が ${filtered.length}軒あります！気になるゲームに挑もう！`);
         }
+      } else if (this.filters.openToday) {
+        const info = window.questApi?.currentSeason?.statusInfo;
+        if (info?.isBeforeEvent) {
+          this.typeMessage('【開催準備中】現在はイベント開催前のため、どれクエ対応中の酒場はありません。各酒場の情報を見て予習しよう！');
+        } else if (info?.isCouponUsable) {
+          if (filtered.length === 0) {
+            this.typeMessage('条件に一致する酒場が見つかりませんでした。条件を変えて探してみよう！');
+          } else {
+            const couponEndDateStr = window.questApi?.currentSeason?.coupon_valid_until ? (this.formatShortDateWithDay ? this.formatShortDateWithDay(window.questApi.currentSeason.coupon_valid_until) : window.questApi.currentSeason.coupon_valid_until) : '';
+            this.typeMessage(`【酒場クーポン利用期間中】獲得したクーポンを各酒場でご利用いただけます！${couponEndDateStr ? `（利用期限: ${couponEndDateStr}まで）` : ''}気になる酒場へ出発しよう！`);
+          }
+        } else if (info?.isExpired) {
+          this.typeMessage('イベントおよび酒場クーポンの利用期間はすべて終了いたしました。ご参加ありがとうございました！');
+        } else if (filtered.length === 0) {
+          this.typeMessage('現在、どれクエ対応時間内の酒場は見つかりませんでした。各店の提供時間をご確認ください。');
+        } else {
+          this.typeMessage(`現在どれクエ対応中の酒場が ${filtered.length}軒あります！気になる酒場へ出発しよう！`);
+        }
       } else if (hasFilter) {
         if (filtered.length === 0) {
           this.typeMessage('条件に一致する酒場が見つかりませんでした。条件を変えて探してみよう！');
@@ -3568,14 +3644,15 @@ class YoidoreQuestApp {
       }
 
       const cardsHtml = filtered.length > 0 ? filtered.map(store => {
+        const statusBadge = this.getStoreStatusBadge(store);
         return `
         <div class="store-card" data-id="${store.id}">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
             <div class="store-name">
               <span>${store.name}</span>
             </div>
-            <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}" style="flex-shrink:0;">
-              ${store.isOpenToday ? 'どれクエ対応中' : 'どれクエ対象時間外'}
+            <span class="store-status-badge ${statusBadge.badgeClass}" style="flex-shrink:0;">
+              ${statusBadge.text}
             </span>
           </div>
 
@@ -3815,6 +3892,8 @@ class YoidoreQuestApp {
       : (store.payment ? String(store.payment).split(/[,、/|]/).map(p => p.trim()).filter(Boolean) : []);
     const paymentTagsHtml = paymentMethods.map(p => `<span class="tag" style="background:rgba(255,255,255,0.08); border-color:#8b7333; font-size:11px; padding:2px 6px;">${this.escapeHtml(p)}</span>`).join('');
 
+    const statusBadge = this.getStoreStatusBadge(store);
+
     container.innerHTML = `
       <div class="detail-section">
         <!-- 1. 酒場基本情報枠 -->
@@ -3824,8 +3903,8 @@ class YoidoreQuestApp {
               <h2 class="detail-store-name" style="margin:0;">${store.name}</h2>
               ${store.catchphrase ? `<div class="detail-catchphrase" style="margin-top:4px;">"${store.catchphrase}"</div>` : ''}
             </div>
-            <span class="store-status-badge ${store.isOpenToday ? 'status-open' : 'status-closed'}" style="flex-shrink:0;">
-              ${store.isOpenToday ? 'どれクエ対応中' : 'どれクエ対象時間外'}
+            <span class="store-status-badge ${statusBadge.badgeClass}" style="flex-shrink:0;">
+              ${statusBadge.text}
             </span>
           </div>
 

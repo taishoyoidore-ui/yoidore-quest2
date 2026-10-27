@@ -647,6 +647,24 @@ body {
   border: 1px solid var(--text-red);
 }
 
+.status-prep {
+  background: #0c4a6e;
+  color: #7dd3fc;
+  border: 1px solid #38bdf8;
+}
+
+.status-coupon {
+  background: #14532d;
+  color: #86efac;
+  border: 1px solid #4ade80;
+}
+
+.status-ended {
+  background: #334155;
+  color: #94a3b8;
+  border: 1px solid #64748b;
+}
+
 .store-tags {
   display: flex;
   flex-wrap: wrap;
