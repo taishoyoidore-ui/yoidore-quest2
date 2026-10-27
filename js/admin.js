@@ -4185,8 +4185,8 @@ class YoidoreAdminApp {
       if (qrElem && window.QRCode) {
         new window.QRCode(qrElem, {
           text: claimUrl,
-          width: 200,
-          height: 200,
+          width: 260,
+          height: 260,
           colorDark: "#000000",
           colorLight: "#ffffff",
           correctLevel: window.QRCode.CorrectLevel.M
