@@ -1193,7 +1193,7 @@ body {
  * -------------------------------------------------------------------------- */
 @page {
   size: A4 portrait;
-  margin: 10mm;
+  margin: 8mm;
 }
 
 @media print {
@@ -1223,7 +1223,7 @@ body {
   .pop-cards-grid {
     display: grid !important;
     grid-template-columns: repeat(2, 1fr) !important;
-    gap: 8mm !important;
+    gap: 4mm 6mm !important;
     padding: 0 !important;
     margin: 0 !important;
   }
@@ -1235,9 +1235,9 @@ body {
     width: 100% !important;
     max-width: none !important;
     margin: 0 !important;
-    padding: 14px 12px !important;
-    border: 2px dashed #475569 !important; /* 切り取り線として分かりやすい破線枠 */
-    border-radius: 12px !important;
+    padding: 8px 10px !important;
+    border: 1.5px dashed #475569 !important; /* 切り取り線として分かりやすい破線枠 */
+    border-radius: 10px !important;
     box-shadow: none !important;
     background: #fff !important;
     box-sizing: border-box !important;
@@ -1245,58 +1245,63 @@ body {
   }
 
   .pop-event-header {
-    border-bottom: 1.5px dashed #cbd5e1 !important;
-    padding-bottom: 6px !important;
-    margin-bottom: 8px !important;
+    border-bottom: 1px dashed #cbd5e1 !important;
+    padding-bottom: 4px !important;
+    margin-bottom: 4px !important;
   }
 
   .pop-event-title {
-    font-size: 1.05rem !important;
+    font-size: 0.9rem !important;
     font-weight: 800 !important;
     letter-spacing: 0.5px !important;
   }
 
   .pop-tier-title, .pop-store-name {
-    font-size: 1.35rem !important;
+    font-size: 1.15rem !important;
     font-weight: 900 !important;
     color: #0f172a !important;
-    margin: 4px 0 6px 0 !important;
+    margin: 2px 0 4px 0 !important;
     line-height: 1.2 !important;
   }
 
   .pop-reward-badge {
-    font-size: 0.85rem !important;
+    font-size: 0.78rem !important;
     font-weight: 700 !important;
     color: #0369a1 !important;
     background: #e0f2fe !important;
     border: 1px solid #bae6fd !important;
-    padding: 4px 12px !important;
-    border-radius: 6px !important;
+    padding: 2px 10px !important;
+    border-radius: 5px !important;
     display: inline-block !important;
-    margin-bottom: 8px !important;
+    margin-bottom: 4px !important;
   }
 
   .pop-qr-wrapper {
     transform: none !important;
-    margin: 4px auto 6px auto !important;
-    padding: 8px !important;
-    border: 1.5px solid #cbd5e1 !important;
-    border-radius: 8px !important;
+    margin: 2px auto 4px auto !important;
+    padding: 6px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
     background: #fff !important;
     display: inline-block !important;
   }
 
-  .pop-qr-wrapper img, .pop-qr-wrapper canvas {
-    width: 150px !important;
-    height: 150px !important;
+  /* QRCode.jsのcanvas非表示徹底とimgサイズ指定 */
+  .pop-qr-wrapper canvas {
+    display: none !important;
+  }
+
+  .pop-qr-wrapper img {
+    width: 115px !important;
+    height: 115px !important;
     display: block !important;
     margin: 0 auto !important;
   }
 
   .pop-footer-note {
-    font-size: 0.72rem !important;
+    font-size: 0.68rem !important;
     color: #64748b !important;
-    margin-top: 6px !important;
+    margin-top: 4px !important;
     display: block !important;
   }
 }

@@ -4177,7 +4177,6 @@ class YoidoreAdminApp {
           ${rewardSummary}
         </div>
         <div class="pop-qr-wrapper" id="pop-qr-tier-${tier.id}"></div>
-        <div class="pop-footer-note">※参加者にこのQRコードを提示して読み取ってもらってください</div>
       `;
 
       container.appendChild(card);
