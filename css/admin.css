@@ -1080,9 +1080,13 @@ body {
   box-shadow: var(--shadow-md);
   position: relative;
   page-break-inside: avoid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .pop-event-header {
+  width: 100%;
   border-bottom: 2px dashed #cbd5e1;
   padding-bottom: 12px;
   margin-bottom: 16px;
@@ -1189,11 +1193,11 @@ body {
 }
 
 /* --------------------------------------------------------------------------
- * 印刷時専用スタイル (@media print) - A4縦2列切り抜きPOP用レイアウト
+ * 印刷時専用スタイル (@media print) - バックオフィスのカード見た目を完全再現（A4縦4枚/ページ・2列×2行）
  * -------------------------------------------------------------------------- */
 @page {
   size: A4 portrait;
-  margin: 8mm;
+  margin: 10mm;
 }
 
 @media print {
@@ -1210,6 +1214,7 @@ body {
     background: #fff !important;
     padding: 0 !important;
     margin: 0 !important;
+    width: 100% !important;
   }
 
   .tab-pane {
@@ -1218,72 +1223,86 @@ body {
 
   #tab-pop {
     display: block !important;
+    width: 100% !important;
   }
 
   .pop-cards-grid {
     display: grid !important;
     grid-template-columns: repeat(2, 1fr) !important;
-    gap: 4mm 6mm !important;
+    gap: 8mm 8mm !important;
     padding: 0 !important;
     margin: 0 !important;
+    width: 100% !important;
   }
 
   .pop-card {
-    page-break-after: auto !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     width: 100% !important;
-    max-width: none !important;
+    height: 124mm !important;
+    box-sizing: border-box !important;
     margin: 0 !important;
-    padding: 8px 10px !important;
-    border: 1.5px dashed #475569 !important; /* 切り取り線として分かりやすい破線枠 */
-    border-radius: 10px !important;
+    padding: 16px 14px !important;
+    border: 3px solid #0f172a !important; /* 画面と完全に同一の太い黒枠 */
+    border-radius: 16px !important;
     box-shadow: none !important;
     background: #fff !important;
-    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
     text-align: center !important;
   }
 
   .pop-event-header {
-    border-bottom: 1px dashed #cbd5e1 !important;
-    padding-bottom: 4px !important;
-    margin-bottom: 4px !important;
+    width: 100% !important;
+    border-bottom: 2px dashed #cbd5e1 !important;
+    padding-bottom: 8px !important;
+    margin-bottom: 8px !important;
+    text-align: center !important;
   }
 
   .pop-event-title {
-    font-size: 0.9rem !important;
-    font-weight: 800 !important;
-    letter-spacing: 0.5px !important;
-  }
-
-  .pop-tier-title, .pop-store-name {
     font-size: 1.15rem !important;
     font-weight: 900 !important;
     color: #0f172a !important;
-    margin: 2px 0 4px 0 !important;
-    line-height: 1.2 !important;
+    letter-spacing: 0.5px !important;
+    margin: 0 !important;
+  }
+
+  .pop-tier-title, .pop-store-name {
+    font-size: 1.35rem !important;
+    font-weight: 900 !important;
+    color: #0f172a !important;
+    margin: 2px 0 8px 0 !important;
+    line-height: 1.25 !important;
+    text-align: center !important;
   }
 
   .pop-reward-badge {
-    font-size: 0.78rem !important;
+    font-size: 0.85rem !important;
     font-weight: 700 !important;
     color: #0369a1 !important;
     background: #e0f2fe !important;
     border: 1px solid #bae6fd !important;
-    padding: 2px 10px !important;
-    border-radius: 5px !important;
+    padding: 5px 14px !important;
+    border-radius: 8px !important;
     display: inline-block !important;
-    margin-bottom: 4px !important;
+    margin: 0 auto 10px auto !important;
+    max-width: 95% !important;
+    text-align: center !important;
   }
 
   .pop-qr-wrapper {
-    transform: none !important;
-    margin: 2px auto 4px auto !important;
-    padding: 6px !important;
-    border: 1px solid #cbd5e1 !important;
-    border-radius: 6px !important;
     background: #fff !important;
-    display: inline-block !important;
+    padding: 10px !important;
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    margin: 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: fit-content !important;
   }
 
   /* QRCode.jsのcanvas非表示徹底とimgサイズ指定 */
@@ -1292,16 +1311,16 @@ body {
   }
 
   .pop-qr-wrapper img {
-    width: 115px !important;
-    height: 115px !important;
+    width: 140px !important;
+    height: 140px !important;
     display: block !important;
     margin: 0 auto !important;
   }
 
   .pop-footer-note {
-    font-size: 0.68rem !important;
+    font-size: 0.72rem !important;
     color: #64748b !important;
-    margin-top: 4px !important;
+    margin-top: 6px !important;
     display: block !important;
   }
 }
