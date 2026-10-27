@@ -442,7 +442,16 @@ class YoidoreQuestApp {
     const stores = this.getStores();
     if (stores.length > 0) {
       const areas = Array.from(new Set(stores.map(s => s.area))).filter(Boolean);
-      if (areas.length > 0) return areas;
+      const orderPriority = ['駅前', '三軒家東', '三軒家西', '泉尾', '千島', '平尾', '南恩加島', '鶴町'];
+      areas.sort((a, b) => {
+        const idxA = orderPriority.indexOf(a);
+        const idxB = orderPriority.indexOf(b);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.localeCompare(b, 'ja');
+      });
+      return areas;
     }
     return [];
   }
@@ -1054,7 +1063,10 @@ class YoidoreQuestApp {
     const tagsContainer = document.getElementById('sticky-filter-tags');
     if (tagsContainer) {
       const activeTags = [];
-      if (this.filters.area !== 'ALL') activeTags.push(`<span class="sticky-tag-item">📍 ${this.filters.area}</span>`);
+      if (this.filters.area !== 'ALL') {
+        const areaTagLabel = this.filters.area === '駅前' ? '駅前（三軒家周辺）' : this.filters.area;
+        activeTags.push(`<span class="sticky-tag-item">📍 ${areaTagLabel}</span>`);
+      }
       if (this.filters.category !== 'ALL') activeTags.push(`<span class="sticky-tag-item">${this.filters.category}</span>`);
       if (this.filters.style !== 'ALL') activeTags.push(`<span class="sticky-tag-item">🪑 ${this.filters.style}</span>`);
       if (this.filters.type !== 'ALL') activeTags.push(`<span class="sticky-tag-item">🍺 ${this.filters.type}</span>`);
@@ -1070,7 +1082,13 @@ class YoidoreQuestApp {
       let count = 0;
       count = this.getStores().filter(store => {
         if (this.filters.organizer && !store.isOrganizer) return false;
-        if (this.filters.area !== 'ALL' && store.area !== this.filters.area) return false;
+        if (this.filters.area !== 'ALL') {
+          if (this.filters.area === '駅前') {
+            if (!['駅前', '三軒家東', '三軒家西'].includes(store.area)) return false;
+          } else if (store.area !== this.filters.area) {
+            return false;
+          }
+        }
         if (this.filters.category !== 'ALL' && store.category !== this.filters.category) return false;
         if (this.filters.style !== 'ALL' && store.style !== this.filters.style) return false;
         if (this.filters.type !== 'ALL' && store.type !== this.filters.type) return false;
@@ -3336,12 +3354,16 @@ class YoidoreQuestApp {
     const stores = this.getStores();
     const areas = this.getAreas();
     const areaItems = areas.map(area => {
-      const count = stores.filter(s => s.area === area).length;
+      const isEkimae = (area === '駅前');
+      const count = isEkimae
+        ? stores.filter(s => ['駅前', '三軒家東', '三軒家西'].includes(s.area)).length
+        : stores.filter(s => s.area === area).length;
+      const label = isEkimae ? '駅前（三軒家周辺）' : area;
       return `
         <li class="command-item" data-area="${area}">
           <div class="command-item-left">
             <span class="command-cursor">▶</span>
-            <span class="command-label">${area}</span>
+            <span class="command-label">${label}</span>
           </div>
           <span class="command-badge">${count}軒</span>
         </li>
@@ -3518,9 +3540,10 @@ class YoidoreQuestApp {
                        this.filters.searchQuery !== '';
 
     const areasList = this.getAreas();
-    const areaOptions = ['ALL', ...areasList].map(a => 
-      `<option value="${a}" ${this.filters.area === a ? 'selected' : ''}>${a === 'ALL' ? '全エリア' : a}</option>`
-    ).join('');
+    const areaOptions = ['ALL', ...areasList].map(a => {
+      const label = a === 'ALL' ? '全エリア' : (a === '駅前' ? '駅前（三軒家周辺）' : a);
+      return `<option value="${a}" ${this.filters.area === a ? 'selected' : ''}>${label}</option>`;
+    }).join('');
 
     const categoriesList = this.getCategories();
     const catOptions = ['ALL', ...categoriesList].map(c => 
@@ -3585,7 +3608,13 @@ class YoidoreQuestApp {
     const updateStoreList = () => {
       let filtered = this.getStores().filter(store => {
         if (this.filters.organizer && !store.isOrganizer) return false;
-        if (this.filters.area !== 'ALL' && store.area !== this.filters.area) return false;
+        if (this.filters.area !== 'ALL') {
+          if (this.filters.area === '駅前') {
+            if (!['駅前', '三軒家東', '三軒家西'].includes(store.area)) return false;
+          } else if (store.area !== this.filters.area) {
+            return false;
+          }
+        }
         if (this.filters.category !== 'ALL' && store.category !== this.filters.category) return false;
         if (this.filters.style !== 'ALL' && store.style !== this.filters.style) return false;
         if (this.filters.type !== 'ALL' && store.type !== this.filters.type) return false;
