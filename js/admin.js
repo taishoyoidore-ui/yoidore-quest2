@@ -1187,8 +1187,6 @@ class YoidoreAdminApp {
    * ------------------------------------------------------------------------ */
   updateStoreKPIs() {
     const total = this.stores.length;
-    const participating = this.stores.filter(s => s.is_participating !== false).length;
-    const nonParticipating = total - participating;
     const organizer = this.stores.filter(s => Boolean(s.is_organizer || s.isOrganizer)).length;
     const setStores = this.stores.filter(s => Boolean(s.set_name || s.set_price || (s.plan_type && s.plan_type.includes('セット')))).length;
     const questStores = this.stores.filter(s => Boolean(s.quest_name || s.quest_price || (s.plan_type && (s.plan_type.includes('クエスト') || s.plan_type.includes('ゲーム'))))).length;
@@ -1196,9 +1194,6 @@ class YoidoreAdminApp {
 
     const elemTotal = document.getElementById('store-kpi-total');
     if (elemTotal) elemTotal.textContent = `${total.toLocaleString()} 軒`;
-
-    const elemPartSub = document.getElementById('store-kpi-participating-sub');
-    if (elemPartSub) elemPartSub.textContent = `参加 ${participating} / 不参加 ${nonParticipating}`;
 
     const elemOrganizer = document.getElementById('store-kpi-organizer');
     if (elemOrganizer) elemOrganizer.textContent = `${organizer.toLocaleString()} 軒`;
@@ -1254,14 +1249,11 @@ class YoidoreAdminApp {
       const questPriceText = this.formatPrice(store.quest_price, true);
 
       return `
-        <tr style="${!isParticipating ? 'opacity: 0.65; background: #f8fafc;' : ''}">
+        <tr>
           <td><code>${this.escapeHtml(store.id)}</code></td>
           <td>
             <div class="table-store-name" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
               <strong>${this.escapeHtml(store.name)}</strong>
-              ${isParticipating ? 
-                '<span class="badge" style="background:#dcfce7; color:#15803d; font-size:11px; padding:2px 6px;">参加中</span>' : 
-                '<span class="badge" style="background:#f1f5f9; color:#64748b; font-size:11px; padding:2px 6px;">不参加</span>'}
               ${(store.is_organizer || store.isOrganizer) ? 
                 '<span class="badge" style="background:#dbeafe; color:#1d4ed8; border:1px solid #bfdbfe; font-size:11px; padding:2px 6px; font-weight:bold;">運営店</span>' : ''}
             </div>
@@ -1287,7 +1279,7 @@ class YoidoreAdminApp {
             <small class="text-muted">${questPriceText}</small>
           </td>
           <td style="text-align: center;">
-            <button class="btn btn-sm ${isCoupon ? 'btn-primary' : 'btn-secondary'}" onclick="window.adminApp.toggleCouponTarget('${store.id}')" title="クリックで切替" ${!isParticipating ? 'style="opacity:0.6;"' : ''}>
+            <button class="btn btn-sm ${isCoupon ? 'btn-primary' : 'btn-secondary'}" onclick="window.adminApp.toggleCouponTarget('${store.id}')" title="クリックで切替">
               ${isCoupon ? '✅ 対象' : '❌ 対象外'}
             </button>
           </td>
@@ -1436,20 +1428,12 @@ class YoidoreAdminApp {
     // フィルターの各値をリセット
     const searchElem = document.getElementById('store-search');
     const areaElem = document.getElementById('area-filter');
-    const partElem = document.getElementById('participating-filter');
     const planElem = document.getElementById('plan-filter');
     const couponElem = document.getElementById('coupon-target-filter');
     const orgElem = document.getElementById('organizer-filter');
 
     if (searchElem) searchElem.value = '';
     if (areaElem) areaElem.value = '';
-    if (partElem) partElem.value = '';
-    const partGroup = document.getElementById('store-participating-segmented');
-    if (partGroup) {
-      partGroup.querySelectorAll('.segment-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.val === '');
-      });
-    }
     if (planElem) planElem.value = '';
     if (couponElem) couponElem.value = '';
     if (orgElem) orgElem.value = '';
@@ -1491,20 +1475,12 @@ class YoidoreAdminApp {
 
     const searchElem = document.getElementById('store-search');
     const areaElem = document.getElementById('area-filter');
-    const partElem = document.getElementById('participating-filter');
     const planElem = document.getElementById('plan-filter');
     const couponElem = document.getElementById('coupon-target-filter');
     const orgElem = document.getElementById('organizer-filter');
 
     if (searchElem) searchElem.value = '';
     if (areaElem) areaElem.value = '';
-    if (partElem) partElem.value = '';
-    const partGroup = document.getElementById('store-participating-segmented');
-    if (partGroup) {
-      partGroup.querySelectorAll('.segment-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.val === '');
-      });
-    }
     if (planElem) planElem.value = '';
     if (couponElem) couponElem.value = '';
     if (orgElem) orgElem.value = '';

@@ -12,7 +12,7 @@
 
   <link rel="icon" href="assets/banner.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/admin.css?v=20261027_08">
+  <link rel="stylesheet" href="css/admin.css?v=20261027_09">
   <!-- Supabase JS Client for Auth -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- SheetJS for Excel Import -->
@@ -171,7 +171,7 @@
           <button class="btn btn-secondary btn-sm" onclick="window.adminApp.refreshData()">
             <i class="fa-solid fa-rotate"></i> 最新データ更新
           </button>
-          <a href="index.html?v=20261027_08" target="_blank" class="btn btn-outline btn-sm">
+          <a href="index.html?v=20261027_09" target="_blank" class="btn btn-outline btn-sm">
             <i class="fa-solid fa-up-right-from-square"></i> アプリ実機表示
           </a>
         </div>
@@ -482,8 +482,7 @@
             <div class="store-summary-strip">
               <div class="summary-pill active" id="kpi-pill-store-total" onclick="window.adminApp.quickFilterStores('all')" title="全店舗を表示">
                 <i class="fa-solid fa-store" style="color: #0284c7;"></i>
-                <span>全登録:</span> <strong id="store-kpi-total">-</strong>
-                <small style="color: #64748b; font-size: 0.72rem;" id="store-kpi-participating-sub">(-)</small>
+                <span>参加店舗数:</span> <strong id="store-kpi-total">-</strong>
               </div>
 
               <div class="summary-pill" id="kpi-pill-store-organizer" onclick="window.adminApp.quickFilterStores('organizer')" title="運営店のみ絞り込み">
@@ -514,12 +513,6 @@
                   <i class="fa-solid fa-magnifying-glass"></i>
                   <input type="text" id="store-search" placeholder="店舗名・ID・エリア・セット内容等で検索..." oninput="window.adminApp.filterStores()">
                 </div>
-                <div class="btn-group-segmented" id="store-participating-segmented" title="参加状況で絞り込み">
-                  <button type="button" class="segment-btn active" data-val="" onclick="window.adminApp.setStoreParticipatingFilter('')">全店舗</button>
-                  <button type="button" class="segment-btn" data-val="true" onclick="window.adminApp.setStoreParticipatingFilter('true')">参加中</button>
-                  <button type="button" class="segment-btn" data-val="false" onclick="window.adminApp.setStoreParticipatingFilter('false')">不参加</button>
-                </div>
-                <input type="hidden" id="participating-filter" value="">
                 <select id="area-filter" class="form-select-sm" onchange="window.adminApp.filterStores()">
                   <option value="">エリア: すべて</option>
                 </select>
@@ -1519,8 +1512,8 @@
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=20261027_08"></script>
-  <script src="js/api.js?v=20261027_08"></script>
-  <script src="js/admin.js?v=20261027_08"></script>
+  <script src="js/config.js?v=20261027_09"></script>
+  <script src="js/api.js?v=20261027_09"></script>
+  <script src="js/admin.js?v=20261027_09"></script>
 </body>
 </html>
