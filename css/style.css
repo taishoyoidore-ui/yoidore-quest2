@@ -628,6 +628,15 @@ body {
   line-height: 1.45;
 }
 
+.store-catchphrase {
+  font-size: 13px;
+  color: var(--text-cyan);
+  line-height: 1.4;
+  margin-top: 4px;
+  margin-bottom: 2px;
+  word-break: break-word;
+}
+
 .store-status-badge {
   font-size: 12px;
   padding: 3px 8px;

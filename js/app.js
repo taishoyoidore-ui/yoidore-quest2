@@ -3685,6 +3685,12 @@ class YoidoreQuestApp {
             </span>
           </div>
 
+          ${store.catchphrase && store.catchphrase.trim() ? (() => {
+            const cp = store.catchphrase.trim();
+            const displayCp = (cp.startsWith('「') && cp.endsWith('」')) ? cp : `「${cp}」`;
+            return `<div class="store-catchphrase">${displayCp}</div>`;
+          })() : ''}
+
           <div class="store-previews" style="margin-top:6px;">
             ${(() => {
               if (!store.yoidoreSet || !store.yoidoreSet.title) return '';
