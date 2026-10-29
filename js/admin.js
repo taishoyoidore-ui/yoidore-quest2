@@ -18,6 +18,12 @@ class YoidoreAdminApp {
     this.activeTab = 'dashboard';
     this.activeLogSubTab = 'users';
 
+    // ページネーション状態管理
+    this.storePagination = { page: 1, pageSize: 20 };
+    this.userPagination = { page: 1, pageSize: 20 };
+    this.lastFilteredStores = [];
+    this.lastFilteredUsers = [];
+
     this.initSupabaseClient();
     this.init();
   }
@@ -1195,10 +1201,144 @@ class YoidoreAdminApp {
     if (elemCoupon) elemCoupon.textContent = `${couponStores.toLocaleString()} 軒`;
   }
 
-  renderStoresTable(filtered = null) {
+  /* 共通テーブルページネーション描画ヘルパー */
+  renderPaginationControls({
+    barId,
+    rangeTextId,
+    controlsId,
+    totalItems,
+    currentPage,
+    pageSize,
+    unit = '件',
+    onPageChange
+  }) {
+    const bar = document.getElementById(barId);
+    if (!bar) return;
+
+    if (totalItems === 0) {
+      bar.style.display = 'none';
+      return;
+    }
+    bar.style.display = 'flex';
+
+    const rangeText = document.getElementById(rangeTextId);
+    const controls = document.getElementById(controlsId);
+
+    const isAll = pageSize === 'all';
+    const numPageSize = isAll ? totalItems : Number(pageSize);
+    const totalPages = isAll ? 1 : Math.max(1, Math.ceil(totalItems / numPageSize));
+    const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+    // 範囲テキスト表示
+    if (rangeText) {
+      if (isAll) {
+        rangeText.textContent = `全 ${totalItems.toLocaleString()} ${unit} を表示中`;
+      } else {
+        const start = (validCurrentPage - 1) * numPageSize + 1;
+        const end = Math.min(validCurrentPage * numPageSize, totalItems);
+        rangeText.textContent = `${start.toLocaleString()} 〜 ${end.toLocaleString()} ${unit} / 全 ${totalItems.toLocaleString()} ${unit}`;
+      }
+    }
+
+    if (!controls) return;
+
+    // 全件表示時、または 1ページのみの場合は簡易表示
+    if (totalPages <= 1) {
+      controls.innerHTML = `
+        <button class="pagination-btn" disabled><i class="fa-solid fa-chevron-left"></i> 前へ</button>
+        <button class="pagination-btn active">1</button>
+        <button class="pagination-btn" disabled>次へ <i class="fa-solid fa-chevron-right"></i></button>
+      `;
+      return;
+    }
+
+    // 複数ページある場合のボタン生成
+    let buttonsHtml = '';
+
+    // 前へボタン
+    const prevDisabled = validCurrentPage <= 1 ? 'disabled' : '';
+    const prevOnClick = validCurrentPage <= 1 ? '' : `onclick="${onPageChange}(${validCurrentPage - 1})"`;
+    buttonsHtml += `<button class="pagination-btn" ${prevDisabled} ${prevOnClick} title="前のページ"><i class="fa-solid fa-chevron-left"></i> 前へ</button>`;
+
+    // ページ番号ボタン生成ロジック
+    const pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (validCurrentPage > 3) {
+        pages.push('...');
+      }
+      const startP = Math.max(2, validCurrentPage - 1);
+      const endP = Math.min(totalPages - 1, validCurrentPage + 1);
+      for (let i = startP; i <= endP; i++) {
+        pages.push(i);
+      }
+      if (validCurrentPage < totalPages - 2) {
+        pages.push('...');
+      }
+      pages.push(totalPages);
+    }
+
+    pages.forEach(p => {
+      if (p === '...') {
+        buttonsHtml += `<span class="pagination-ellipsis">…</span>`;
+      } else if (p === validCurrentPage) {
+        buttonsHtml += `<button class="pagination-btn active">${p}</button>`;
+      } else {
+        buttonsHtml += `<button class="pagination-btn" onclick="${onPageChange}(${p})">${p}</button>`;
+      }
+    });
+
+    // 次へボタン
+    const nextDisabled = validCurrentPage >= totalPages ? 'disabled' : '';
+    const nextOnClick = validCurrentPage >= totalPages ? '' : `onclick="${onPageChange}(${validCurrentPage + 1})"`;
+    buttonsHtml += `<button class="pagination-btn" ${nextDisabled} ${nextOnClick} title="次のページ">次へ <i class="fa-solid fa-chevron-right"></i></button>`;
+
+    controls.innerHTML = buttonsHtml;
+  }
+
+  /* 店舗マスター ページ移動 */
+  goToStorePage(targetPage) {
+    this.storePagination.page = targetPage;
+    this.renderStoresTable(this.lastFilteredStores, true);
+    const tableElem = document.getElementById('store-table-body');
+    if (tableElem) {
+      tableElem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  /* 店舗マスター 表示件数変更 */
+  setStorePageSize(size) {
+    this.storePagination.pageSize = size === 'all' ? 'all' : parseInt(size, 10);
+    this.storePagination.page = 1;
+    this.renderStoresTable(this.lastFilteredStores, true);
+  }
+
+  renderStoresTable(filtered = null, preservePage = false) {
     this.updateStoreKPIs();
 
     const stores = filtered !== null ? filtered : this.stores;
+    this.lastFilteredStores = stores;
+
+    // ページ位置の制御
+    if (!preservePage) {
+      this.storePagination.page = 1;
+    }
+
+    const pageSize = this.storePagination.pageSize;
+    const totalItems = stores.length;
+    const totalPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(totalItems / pageSize));
+    if (this.storePagination.page > totalPages) {
+      this.storePagination.page = totalPages;
+    }
+    const currentPage = this.storePagination.page;
+
+    // ページネーション用スライス
+    const startIndex = pageSize === 'all' ? 0 : (currentPage - 1) * pageSize;
+    const endIndex = pageSize === 'all' ? totalItems : Math.min(startIndex + pageSize, totalItems);
+    const pagedStores = stores.slice(startIndex, endIndex);
+
     const tbody = document.getElementById('store-table-body');
 
     // エリアプルダウンの動的生成
@@ -1216,15 +1356,29 @@ class YoidoreAdminApp {
     // 表示件数バッジの更新
     const countBadge = document.getElementById('store-filtered-count');
     if (countBadge) {
-      countBadge.textContent = `表示中: ${stores.length} / ${this.stores.length} 軒`;
+      countBadge.textContent = stores.length === this.stores.length 
+        ? `表示中: ${stores.length} 軒` 
+        : `表示中: ${stores.length} / ${this.stores.length} 軒`;
     }
+
+    // ページネーションコントロール描画
+    this.renderPaginationControls({
+      barId: 'store-pagination-bar',
+      rangeTextId: 'store-pagination-range-text',
+      controlsId: 'store-pagination-controls',
+      totalItems,
+      currentPage,
+      pageSize,
+      unit: '軒',
+      onPageChange: 'window.adminApp.goToStorePage'
+    });
 
     if (stores.length === 0) {
       tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">該当する店舗がありません</td></tr>';
       return;
     }
 
-    tbody.innerHTML = stores.map(store => {
+    tbody.innerHTML = pagedStores.map(store => {
       const isParticipating = Boolean(store.is_participating);
       const isCoupon = Boolean(store.is_coupon_target);
       const hoursText = store.hours || '-';
@@ -3209,8 +3363,25 @@ class YoidoreAdminApp {
     this.renderParticipants();
   }
 
+  /* 参加者 ページ移動 */
+  goToUserPage(targetPage) {
+    this.userPagination.page = targetPage;
+    this.renderParticipants(true);
+    const tableElem = document.getElementById('users-table-body');
+    if (tableElem) {
+      tableElem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  /* 参加者 表示件数変更 */
+  setUserPageSize(size) {
+    this.userPagination.pageSize = size === 'all' ? 'all' : parseInt(size, 10);
+    this.userPagination.page = 1;
+    this.renderParticipants(true);
+  }
+
   /* 参加者一覧テーブルの描画（検索・絞り込み・ソート・サマリーKPI連動） */
-  renderParticipants() {
+  renderParticipants(preservePage = false) {
     const userTbody = document.getElementById('users-table-body');
     if (!userTbody) return;
 
@@ -3221,6 +3392,8 @@ class YoidoreAdminApp {
       if (kpiTotal) kpiTotal.textContent = '0 名';
       const countBadge = document.getElementById('users-filtered-count');
       if (countBadge) countBadge.textContent = '表示中: 0 / 0 名';
+      const paginationBar = document.getElementById('users-pagination-bar');
+      if (paginationBar) paginationBar.style.display = 'none';
       return;
     }
 
@@ -3395,22 +3568,55 @@ class YoidoreAdminApp {
       return 0;
     });
 
+    this.lastFilteredUsers = filtered;
+
     // 5. 件数バッジ更新
     const filteredCountElem = document.getElementById('users-filtered-count');
     if (filteredCountElem) {
-      filteredCountElem.textContent = `表示中: ${filtered.length} / ${enrichedUsers.length} 名`;
+      filteredCountElem.textContent = filtered.length === enrichedUsers.length
+        ? `表示中: ${filtered.length} 名`
+        : `表示中: ${filtered.length} / ${enrichedUsers.length} 名`;
     }
     const tabCountElem = document.getElementById('count-users');
     if (tabCountElem) {
       tabCountElem.textContent = enrichedUsers.length;
     }
 
+    // ページ位置の制御
+    if (!preservePage) {
+      this.userPagination.page = 1;
+    }
+
+    const pageSize = this.userPagination.pageSize;
+    const totalItems = filtered.length;
+    const totalPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(totalItems / pageSize));
+    if (this.userPagination.page > totalPages) {
+      this.userPagination.page = totalPages;
+    }
+    const currentPage = this.userPagination.page;
+
+    const startIndex = pageSize === 'all' ? 0 : (currentPage - 1) * pageSize;
+    const endIndex = pageSize === 'all' ? totalItems : Math.min(startIndex + pageSize, totalItems);
+    const pagedUsers = filtered.slice(startIndex, endIndex);
+
+    // ページネーションコントロール描画
+    this.renderPaginationControls({
+      barId: 'users-pagination-bar',
+      rangeTextId: 'users-pagination-range-text',
+      controlsId: 'users-pagination-controls',
+      totalItems,
+      currentPage,
+      pageSize,
+      unit: '名',
+      onPageChange: 'window.adminApp.goToUserPage'
+    });
+
     if (filtered.length === 0) {
       userTbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">該当する参加者が見つかりません</td></tr>';
       return;
     }
 
-    userTbody.innerHTML = filtered.map(item => {
+    userTbody.innerHTML = pagedUsers.map(item => {
       const u = item.user;
       const tierList = item.tierStatusList;
 
