@@ -1381,7 +1381,19 @@ class YoidoreAdminApp {
     tbody.innerHTML = pagedStores.map(store => {
       const isParticipating = Boolean(store.is_participating);
       const isCoupon = Boolean(store.is_coupon_target);
-      const hoursText = store.hours || '-';
+      // 1899年等の壊れた日時文字列をクレンジングして安全に表示
+      const formatDisplayHours = (h) => {
+        if (!h) return '-';
+        if (h.includes('1899')) {
+          const matches = h.match(/\d{1,2}:\d{2}/g);
+          if (matches && matches.length >= 2) {
+            const isOver = matches[1] < matches[0];
+            return `${matches[0]}〜${isOver ? '翌' : ''}${matches[1]}`;
+          }
+        }
+        return h;
+      };
+      const hoursText = formatDisplayHours(store.hours);
       const timeNotes = store.time_notes || store.conditions?.timeNotes || '';
       const daysText = store.days || '-';
       const setNameText = store.set_name || '-';
@@ -1913,12 +1925,30 @@ class YoidoreAdminApp {
 
     // 7. 提供時間/営業時間設定
     const currentHours = String(store.hours || '');
-    const timeMatch = currentHours ? currentHours.match(/(\d{1,2}:\d{2})\s*[-〜~]\s*(?:翌)?(\d{1,2}:\d{2})/) : null;
+    // 通常形式: 17:00〜22:00, 21:00〜翌03:00、および破損救済（Sat Dec 30 1899 17:00〜Sat Dec 30 1899 22:00等）
+    let timeMatch = currentHours ? currentHours.match(/(?:Sat|Sun|Mon|Tue|Wed|Thu|Fri|[A-Za-z0-9,\s\-_]+)?(\d{1,2}:\d{2})\s*[-〜~]\s*(?:Sat|Sun|Mon|Tue|Wed|Thu|Fri|[A-Za-z0-9,\s\-_]+)?(?:翌)?(\d{1,2}:\d{2})/) : null;
+    if (!timeMatch && currentHours.includes('1899')) {
+      const allTimes = currentHours.match(/\d{1,2}:\d{2}/g);
+      if (allTimes && allTimes.length >= 2) {
+        timeMatch = [currentHours, allTimes[0], allTimes[1]];
+      }
+    }
+
     if (timeMatch) {
-      document.getElementById('edit-store-hours-start').value = timeMatch[1].padStart(5, '0');
-      document.getElementById('edit-store-hours-end').value = timeMatch[2].padStart(5, '0');
-      document.getElementById('edit-store-hours-nextday').checked = currentHours.includes('翌');
-      const cleaned = currentHours.replace(timeMatch[0], '').replace(/翌/, '').replace(/^[()（）\s]+|[()（）\s]+$/g, '').trim();
+      const startH = timeMatch[1].padStart(5, '0');
+      const endH = timeMatch[2].padStart(5, '0');
+      document.getElementById('edit-store-hours-start').value = startH;
+      document.getElementById('edit-store-hours-end').value = endH;
+      // 翌日判定: 「翌」が含まれるか、終了時刻が開始時刻より前（例: 21:00〜03:00）の場合に自動チェック
+      const isNextDay = currentHours.includes('翌') || (endH < startH);
+      document.getElementById('edit-store-hours-nextday').checked = isNextDay;
+      
+      let cleaned = currentHours
+        .replace(timeMatch[0], '')
+        .replace(/Sat\s+Dec\s+30\s+1899\s+\d{1,2}:\d{2}/gi, '')
+        .replace(/翌/, '')
+        .replace(/^[()（）\s]+|[()（）\s]+$/g, '')
+        .trim();
       document.getElementById('edit-store-hours-custom').value = cleaned;
     } else {
       document.getElementById('edit-store-hours-start').value = '';
@@ -2094,14 +2124,15 @@ class YoidoreAdminApp {
     const hStart = document.getElementById('edit-store-hours-start').value;
     const hEnd = document.getElementById('edit-store-hours-end').value;
     const isNextDay = document.getElementById('edit-store-hours-nextday').checked;
+    const effectiveNextDay = isNextDay || (hStart && hEnd && hEnd < hStart);
     const hCustom = document.getElementById('edit-store-hours-custom').value.trim();
     let hours = '';
     if (hStart && hEnd) {
-      hours = `${hStart}〜${isNextDay ? '翌' : ''}${hEnd}`;
+      hours = `${hStart}〜${effectiveNextDay ? '翌' : ''}${hEnd}`;
     } else if (hStart) {
       hours = `${hStart}〜`;
     } else if (hEnd) {
-      hours = `〜${isNextDay ? '翌' : ''}${hEnd}`;
+      hours = `〜${effectiveNextDay ? '翌' : ''}${hEnd}`;
     }
     if (hCustom) {
       hours = hours ? `${hours} (${hCustom})` : hCustom;
@@ -2487,20 +2518,30 @@ class YoidoreAdminApp {
         // 2. カテゴリ（Excel記載の生文字列をそのまま尊重）
         const category = String(row[4] !== undefined && row[4] !== '' ? row[4] : (rowObj['カテゴリ'] || '')).trim();
 
-        // 時刻フォーマット変換（Excelの小数シリアル値 0.5 -> 12:00 等を変換。空なら空文字）
+        // 時刻フォーマット変換（Dateオブジェクト、シリアル値、文字列すべてに対応するハイブリッド仕様）
         const formatExcelTime = (val) => {
           if (val === null || val === undefined || val === '') return '';
-          const num = typeof val === 'number' ? val : (typeof val === 'string' && !val.includes(':') ? parseFloat(val) : NaN);
-          if (!isNaN(num) && num >= 0 && num <= 1) {
-            const totalMinutes = Math.round(num * 24 * 60);
+          // 1. Date オブジェクト（SheetJS cellDates: true の場合）
+          if (val instanceof Date) {
+            if (isNaN(val.getTime())) return '';
+            const hours = String(val.getHours()).padStart(2, '0');
+            const mins = String(val.getMinutes()).padStart(2, '0');
+            return `${hours}:${mins}`;
+          }
+          // 2. 数値シリアル値（cellDates: false や小数値の場合）
+          const num = typeof val === 'number' ? val : (typeof val === 'string' && !val.includes(':') && !isNaN(parseFloat(val)) ? parseFloat(val) : NaN);
+          if (!isNaN(num) && num >= 0) {
+            const frac = num >= 1 ? (num - Math.floor(num)) : num;
+            const totalMinutes = Math.round(frac * 24 * 60);
             const hours = Math.floor(totalMinutes / 60) % 24;
             const mins = totalMinutes % 60;
             return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
           }
+          // 3. 文字列（"17:00"、破損文字列 "Sat Dec 30 1899 17:00:00" 等の救済）
           const str = String(val).trim();
-          if (str.includes(':')) {
-            const parts = str.split(':');
-            return `${parts[0].padStart(2, '0')}:${(parts[1] || '00').padStart(2, '0')}`;
+          const timeMatch = str.match(/(?:^|\s|[A-Za-z])(\d{1,2}):(\d{2})(?::\d{2})?/);
+          if (timeMatch) {
+            return `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`;
           }
           return str;
         };
@@ -2541,7 +2582,8 @@ class YoidoreAdminApp {
         const hEnd = formatExcelTime(rawHEnd);
         let hours = '';
         if (hStart && hEnd) {
-          hours = `${hStart}〜${hEnd}`;
+          const isOvernight = hEnd < hStart;
+          hours = `${hStart}〜${isOvernight ? '翌' : ''}${hEnd}`;
         } else if (hStart) {
           hours = `${hStart}〜`;
         } else if (hEnd) {
