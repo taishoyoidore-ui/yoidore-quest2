@@ -60,7 +60,7 @@ function checkIsOpenToday(store, now = new Date()) {
   };
 
   const cleanDays = normalizeStr(rawDays);
-  const cleanHours = normalizeStr(rawHours);
+  const cleanHours = normalizeStr(rawHours).replace(/[A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{1,2}\s+1899\s*/gi, '').trim();
 
   // 1. 曜日リストの解析
   const parseAllowedDays = (daysStr) => {

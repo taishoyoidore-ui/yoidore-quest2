@@ -1384,14 +1384,18 @@ class YoidoreAdminApp {
       // 1899年等の壊れた日時文字列をクレンジングして安全に表示
       const formatDisplayHours = (h) => {
         if (!h) return '-';
-        if (h.includes('1899')) {
-          const matches = h.match(/\d{1,2}:\d{2}/g);
-          if (matches && matches.length >= 2) {
-            const isOver = matches[1] < matches[0];
-            return `${matches[0]}〜${isOver ? '翌' : ''}${matches[1]}`;
-          }
+        let val = String(h).trim();
+        val = val.replace(/[A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{1,2}\s+1899\s*/gi, '').trim();
+        const m = val.match(/(?:^|[^\d])(\d{1,2}:\d{2})\s*[-〜~]\s*(?:翌)?(\d{1,2}:\d{2})/);
+        if (m) {
+          const startH = m[1].padStart(5, '0');
+          const endH = m[2].padStart(5, '0');
+          const isOvernight = val.includes('翌') || (endH <= startH);
+          const base = `${startH}〜${isOvernight ? '翌' : ''}${endH}`;
+          const custom = val.replace(m[0], '').replace(/翌/, '').replace(/^[()（）\s]+|[()（）\s]+$/g, '').trim();
+          return custom ? `${base} (${custom})` : base;
         }
-        return h;
+        return val || '-';
       };
       const hoursText = formatDisplayHours(store.hours);
       const timeNotes = store.time_notes || store.conditions?.timeNotes || '';
@@ -1924,28 +1928,24 @@ class YoidoreAdminApp {
     }
 
     // 7. 提供時間/営業時間設定
-    const currentHours = String(store.hours || '');
-    // 通常形式: 17:00〜22:00, 21:00〜翌03:00、および破損救済（Sat Dec 30 1899 17:00〜Sat Dec 30 1899 22:00等）
-    let timeMatch = currentHours ? currentHours.match(/(?:Sat|Sun|Mon|Tue|Wed|Thu|Fri|[A-Za-z0-9,\s\-_]+)?(\d{1,2}:\d{2})\s*[-〜~]\s*(?:Sat|Sun|Mon|Tue|Wed|Thu|Fri|[A-Za-z0-9,\s\-_]+)?(?:翌)?(\d{1,2}:\d{2})/) : null;
-    if (!timeMatch && currentHours.includes('1899')) {
-      const allTimes = currentHours.match(/\d{1,2}:\d{2}/g);
-      if (allTimes && allTimes.length >= 2) {
-        timeMatch = [currentHours, allTimes[0], allTimes[1]];
-      }
-    }
+    let currentHours = String(store.hours || '').trim();
+    // 1899年等の破損Date文字列（Sat Dec 30 1899 等）を事前クレンジング
+    currentHours = currentHours.replace(/[A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{1,2}\s+1899\s*/gi, '').trim();
+
+    // 通常形式: 17:00〜22:00, 21:00〜翌03:00 等
+    let timeMatch = currentHours ? currentHours.match(/(?:^|[^\d])(\d{1,2}:\d{2})\s*[-〜~]\s*(?:翌)?(\d{1,2}:\d{2})/) : null;
 
     if (timeMatch) {
       const startH = timeMatch[1].padStart(5, '0');
       const endH = timeMatch[2].padStart(5, '0');
       document.getElementById('edit-store-hours-start').value = startH;
       document.getElementById('edit-store-hours-end').value = endH;
-      // 翌日判定: 「翌」が含まれるか、終了時刻が開始時刻より前（例: 21:00〜03:00）の場合に自動チェック
-      const isNextDay = currentHours.includes('翌') || (endH < startH);
+      // 翌日判定: 「翌」が含まれるか、終了時刻が開始時刻以下（例: 21:00〜03:00, 12:00〜00:00）の場合に自動チェック
+      const isNextDay = currentHours.includes('翌') || (endH <= startH);
       document.getElementById('edit-store-hours-nextday').checked = isNextDay;
       
       let cleaned = currentHours
         .replace(timeMatch[0], '')
-        .replace(/Sat\s+Dec\s+30\s+1899\s+\d{1,2}:\d{2}/gi, '')
         .replace(/翌/, '')
         .replace(/^[()（）\s]+|[()（）\s]+$/g, '')
         .trim();
@@ -2124,7 +2124,7 @@ class YoidoreAdminApp {
     const hStart = document.getElementById('edit-store-hours-start').value;
     const hEnd = document.getElementById('edit-store-hours-end').value;
     const isNextDay = document.getElementById('edit-store-hours-nextday').checked;
-    const effectiveNextDay = isNextDay || (hStart && hEnd && hEnd < hStart);
+    const effectiveNextDay = isNextDay || (hStart && hEnd && hEnd <= hStart);
     const hCustom = document.getElementById('edit-store-hours-custom').value.trim();
     let hours = '';
     if (hStart && hEnd) {

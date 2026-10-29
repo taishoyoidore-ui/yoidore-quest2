@@ -220,8 +220,27 @@ class QuestApiManager {
           const setIncludeCharge = Boolean(setCharge === '込' || seasonData?.yoidoreSet?.includeCharge || seasonData?.['チャージ込']);
           const setNotes = seasonData ? (seasonData.set_notes || seasonData.yoidoreSet?.notes || seasonData['セット備考'] || (seasonData === raw ? s.set_notes : '') || '') : '';
 
+          // 提供時間クレンジング（1899年破損文字列の救済 & 翌日跨ぎ自動判定）
+          const cleanHours = (rawVal) => {
+            if (!rawVal) return '';
+            let val = String(rawVal).trim();
+            if (!val) return '';
+            val = val.replace(/[A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{1,2}\s+1899\s*/gi, '').trim();
+            const m = val.match(/(?:^|[^\d])(\d{1,2}:\d{2})\s*[-〜~]\s*(?:翌)?(\d{1,2}:\d{2})/);
+            if (m) {
+              const startH = m[1].padStart(5, '0');
+              const endH = m[2].padStart(5, '0');
+              const isOvernight = val.includes('翌') || (endH <= startH);
+              const base = `${startH}〜${isOvernight ? '翌' : ''}${endH}`;
+              const custom = val.replace(m[0], '').replace(/翌/, '').replace(/^[()（）\s]+|[()（）\s]+$/g, '').trim();
+              return custom ? `${base} (${custom})` : base;
+            }
+            return val;
+          };
+
           const days = seasonData ? (seasonData.days || seasonData.conditions?.days || seasonData['提供日'] || (seasonData === raw ? s.days : '') || '') : '';
-          const hours = seasonData ? (seasonData.hours || seasonData.conditions?.hours || seasonData['提供時間'] || (seasonData === raw ? s.hours : '') || '') : '';
+          const rawHoursVal = seasonData ? (seasonData.hours || seasonData.conditions?.hours || seasonData['提供時間'] || (seasonData === raw ? s.hours : '') || '') : '';
+          const hours = cleanHours(rawHoursVal);
           const timeNotes = seasonData ? (seasonData.time_notes || seasonData.conditions?.timeNotes || seasonData['提供時間に対する補足'] || (seasonData === raw ? s.time_notes : '') || '') : '';
           const limit = seasonData ? (seasonData.set_limit || seasonData.conditions?.limit || seasonData['限定数'] || (seasonData === raw ? s.set_limit : '') || '') : '';
           const specialDate = seasonData ? (seasonData.special_date || seasonData.conditions?.specialDate || seasonData['特定日'] || (seasonData === raw ? s.special_date : '') || '') : (s.special_date || raw['special_date'] || '');
