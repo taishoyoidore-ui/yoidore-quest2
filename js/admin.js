@@ -215,11 +215,14 @@ class YoidoreAdminApp {
    * ------------------------------------------------------------------------ */
   formatPrice(price, isQuest = false) {
     if (price === null || price === undefined || price === '') {
-      return isQuest ? '無料' : '-';
+      return '-';
     }
     const str = String(price).trim();
+    if (!str) {
+      return '-';
+    }
     if (str === '0' || str === '0円' || str === '無料' || str === 'なし' || str === '不要') {
-      return isQuest ? '無料' : '-';
+      return isQuest ? '無料' : '¥0';
     }
     const cleanNumStr = str.replace(/[,，]/g, '');
     if (/^\d+(\.\d+)?$/.test(cleanNumStr)) {
@@ -1400,10 +1403,17 @@ class YoidoreAdminApp {
       const hoursText = formatDisplayHours(store.hours);
       const timeNotes = store.time_notes || store.conditions?.timeNotes || '';
       const daysText = store.days || '-';
-      const setNameText = store.set_name || '-';
-      const setPriceText = this.formatPrice(store.set_price);
-      const questNameText = store.quest_name || '-';
-      const questPriceText = this.formatPrice(store.quest_price, true);
+      const planType = store.plan_type || store.planType || '';
+      const isSetOnly = planType.includes('「酔いどれセット」のみ');
+      const isQuestOnly = planType.includes('「店舗クエスト」のみ') || planType.includes('「お遊びゲーム」のみ');
+
+      const hasSet = Boolean(store.set_name && !isQuestOnly);
+      const hasQuest = Boolean(store.quest_name && !isSetOnly);
+
+      const setNameText = hasSet ? store.set_name : '-';
+      const setPriceText = hasSet ? this.formatPrice(store.set_price) : '';
+      const questNameText = hasQuest ? store.quest_name : '-';
+      const questPriceText = hasQuest ? this.formatPrice(store.quest_price, true) : '';
 
       return `
         <tr>
@@ -1429,12 +1439,20 @@ class YoidoreAdminApp {
             ${timeNotes ? `<div style="font-size: 11px; color: #b45309; background: #fef3c7; padding: 2px 5px; border-radius: 3px; margin-top: 2px; display: inline-block;">💡 ${this.escapeHtml(timeNotes)}</div>` : ''}
           </td>
           <td>
-            <div style="font-weight: 500;">${this.escapeHtml(setNameText)}</div>
-            <small style="color: #b45309; font-weight: bold;">${setPriceText}</small>
+            ${hasSet ? `
+              <div style="font-weight: 500;">${this.escapeHtml(setNameText)}</div>
+              ${setPriceText && setPriceText !== '-' ? `<small style="color: #b45309; font-weight: bold;">${setPriceText}</small>` : ''}
+            ` : `
+              <span class="text-muted">-</span>
+            `}
           </td>
           <td>
-            <div>${this.escapeHtml(questNameText)}</div>
-            <small class="text-muted">${questPriceText}</small>
+            ${hasQuest ? `
+              <div style="font-weight: 500;">${this.escapeHtml(questNameText)}</div>
+              ${questPriceText && questPriceText !== '-' ? `<small class="text-muted">${questPriceText}</small>` : ''}
+            ` : `
+              <span class="text-muted">-</span>
+            `}
           </td>
           <td style="text-align: center;">
             <button class="btn btn-sm ${isCoupon ? 'btn-primary' : 'btn-secondary'}" onclick="window.adminApp.toggleCouponTarget('${store.id}')" title="クリックで切替">
