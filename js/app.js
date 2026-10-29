@@ -3912,7 +3912,7 @@ class YoidoreQuestApp {
     if (store.isOrganizer) {
       this.typeMessage(`「${store.name}」は大正酔いどれクエストの運営店です！達成QRコードの読み取りやグッズ交換ができます。`);
     } else {
-      this.typeMessage(`「${store.name}」の情報です。営業時間やメニューをご確認いただけます。`);
+      this.typeMessage(`「${store.name}」の情報です。どれクエ対応時間やメニューをご確認いただけます。`);
     }
 
     const conditions = store.conditions || {
