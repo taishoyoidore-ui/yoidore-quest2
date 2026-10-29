@@ -224,6 +224,7 @@ class QuestApiManager {
           const hours = seasonData ? (seasonData.hours || seasonData.conditions?.hours || seasonData['提供時間'] || (seasonData === raw ? s.hours : '') || '') : '';
           const timeNotes = seasonData ? (seasonData.time_notes || seasonData.conditions?.timeNotes || seasonData['提供時間に対する補足'] || (seasonData === raw ? s.time_notes : '') || '') : '';
           const limit = seasonData ? (seasonData.set_limit || seasonData.conditions?.limit || seasonData['限定数'] || (seasonData === raw ? s.set_limit : '') || '') : '';
+          const specialDate = seasonData ? (seasonData.special_date || seasonData.conditions?.specialDate || seasonData['特定日'] || (seasonData === raw ? s.special_date : '') || '') : (s.special_date || raw['special_date'] || '');
 
           const paymentMethods = s.payment ? String(s.payment).split(/[,、]/).map(p => p.trim()) : 
             (Array.isArray(raw['paymentMethods']) ? raw['paymentMethods'] : 
@@ -231,15 +232,17 @@ class QuestApiManager {
           const paymentStr = Array.isArray(paymentMethods) && paymentMethods.length > 0 ? paymentMethods.join(', ') : String(s.payment || raw['payment'] || raw['決済方法'] || '');
 
           // 固定基本情報
-          const address = s.address || raw['address'] || raw['住所'] || raw['店舗住所'] || '';
-          let directMapUrl = s.map_url || raw['map_url'] || raw['googleMapUrl'] || raw['Google Map URL'] || '';
-          if (directMapUrl && directMapUrl.includes('google.com/maps/search')) {
-            directMapUrl = '';
+          const address = String(s.address || raw['address'] || raw['住所'] || raw['店舗住所'] || '').trim();
+          let rawMapUrl = String(s.map_url || raw['map_url'] || raw['googleMapUrl'] || raw['Google Map URL'] || '').trim();
+          let directMapUrl = '';
+          if (/^https?:\/\//i.test(rawMapUrl) && !rawMapUrl.includes('google.com/maps/search')) {
+            directMapUrl = rawMapUrl;
           }
           const rawQuery = address || (s.name ? (s.name.includes('大正') ? s.name : `大阪市大正区 ${s.name}`) : '大阪市大正区');
           const fallbackMapQuery = rawQuery.trim();
-          const effectiveMapUrl = directMapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fallbackMapQuery)}`;
-          const instaUrl = s.insta_url || raw['insta_url'] || raw['instagramUrl'] || raw['Instagram URL'] || '';
+          const effectiveMapUrl = directMapUrl || (fallbackMapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fallbackMapQuery)}` : 'https://www.google.com/maps');
+          let rawInsta = String(s.insta_url || raw['insta_url'] || raw['instagramUrl'] || raw['Instagram URL'] || '').trim();
+          const instaUrl = /^https?:\/\//i.test(rawInsta) ? rawInsta : '';
           const catchphrase = s.catchphrase || raw['catchphrase'] || raw['キャッチコピー'] || '';
           const area = s.area || raw['area'] || raw['エリア'] || '';
           const category = s.category || raw['category'] || raw['カテゴリ'] || '';
@@ -297,6 +300,8 @@ class QuestApiManager {
             days: days,
             hours: hours,
             time_notes: timeNotes,
+            special_date: specialDate,
+            specialDate: specialDate,
             payment: paymentStr,
             map_url: directMapUrl,
             direct_map_url: directMapUrl,
@@ -322,6 +327,8 @@ class QuestApiManager {
               hours: hours,
               timeNotes: timeNotes,
               limit: limit,
+              special_date: specialDate,
+              specialDate: specialDate,
               soldOutEnd: Boolean(seasonData?.conditions?.soldOutEnd || seasonData?.['売切終了'])
             },
             paymentMethods: paymentMethods,

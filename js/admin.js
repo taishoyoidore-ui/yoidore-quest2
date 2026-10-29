@@ -1255,6 +1255,7 @@ class YoidoreAdminApp {
           <td>
             <div style="font-size: 12px; font-weight: 500;">🕒 ${this.escapeHtml(hoursText)}</div>
             <div style="font-size: 11px; color: #64748b;">📅 ${this.escapeHtml(daysText)}</div>
+            ${store.special_date ? `<div style="font-size: 11px; color: #b91c1c; background: #fee2e2; border:1px solid #fecaca; padding: 2px 5px; border-radius: 3px; margin-top: 2px; display: inline-block; font-weight: bold;">📅 特定日: ${this.escapeHtml(store.special_date)}</div>` : ''}
             ${timeNotes ? `<div style="font-size: 11px; color: #b45309; background: #fef3c7; padding: 2px 5px; border-radius: 3px; margin-top: 2px; display: inline-block;">💡 ${this.escapeHtml(timeNotes)}</div>` : ''}
           </td>
           <td>
@@ -1615,6 +1616,7 @@ class YoidoreAdminApp {
         catchphrase: '',
         days: '',
         hours: '',
+        special_date: '',
         payment: '',
         is_coupon_target: true,
         plan_type: '',
@@ -1748,6 +1750,13 @@ class YoidoreAdminApp {
       cb.checked = currentDays ? currentDays.includes(cb.value) : false;
     });
 
+    // 特定日設定
+    const rawSpecialDate = String(store.special_date || raw.special_date || raw.seasons?.[this.selectedSeasonId]?.special_date || '').trim();
+    const specialDateInput = document.getElementById('edit-store-special-date');
+    if (specialDateInput) {
+      specialDateInput.value = rawSpecialDate;
+    }
+
     // 7. 提供時間/営業時間設定
     const currentHours = String(store.hours || '');
     const timeMatch = currentHours ? currentHours.match(/(\d{1,2}:\d{2})\s*[-〜~]\s*(?:翌)?(\d{1,2}:\d{2})/) : null;
@@ -1804,9 +1813,10 @@ class YoidoreAdminApp {
     document.getElementById('edit-store-quest-charge').value = store.quest_charge || '';
     document.getElementById('edit-store-quest-notes').value = store.quest_notes || '';
 
-    const rawMapUrl = (store.map_url || store.googleMapUrl || '').trim();
-    document.getElementById('edit-store-map-url').value = rawMapUrl.includes('google.com/maps/search') ? '' : rawMapUrl;
-    document.getElementById('edit-store-insta-url').value = store.insta_url || store.instagramUrl || '';
+    const rawMapUrl = String(store.map_url || store.googleMapUrl || '').trim();
+    document.getElementById('edit-store-map-url').value = (!/^https?:\/\//i.test(rawMapUrl) || rawMapUrl.includes('google.com/maps/search')) ? '' : rawMapUrl;
+    const rawInstaUrl = String(store.insta_url || store.instagramUrl || '').trim();
+    document.getElementById('edit-store-insta-url').value = /^https?:\/\//i.test(rawInstaUrl) ? rawInstaUrl : '';
     document.getElementById('edit-store-photo-url').value = store.photo_url || store.photoUrl || (numId ? `photo/${numId}.jpg` : '');
     document.getElementById('edit-store-badge-sales').value = store.badge_sales_count || '';
     document.getElementById('edit-store-coupon-target').checked = Boolean(store.is_coupon_target);
@@ -1842,7 +1852,7 @@ class YoidoreAdminApp {
     // 地図URLテストリンク
     const mapBtn = document.getElementById('btn-check-map');
     if (mapBtn) {
-      if (mapVal && mapVal.startsWith('http') && !mapVal.includes('google.com/maps/search')) {
+      if (mapVal && /^https?:\/\//i.test(mapVal) && !mapVal.includes('google.com/maps/search')) {
         mapBtn.href = mapVal;
         mapBtn.style.display = 'inline-flex';
       } else {
@@ -1979,11 +1989,15 @@ class YoidoreAdminApp {
       questName = ''; questPrice = ''; questContent = ''; questCharge = ''; questNotes = '';
     }
     const badgeSalesCount = document.getElementById('edit-store-badge-sales').value.trim();
+    const specialDate = (document.getElementById('edit-store-special-date')?.value || '').trim();
     let mapUrl = document.getElementById('edit-store-map-url').value.trim();
-    if (mapUrl.includes('google.com/maps/search')) {
+    if (!/^https?:\/\//i.test(mapUrl) || mapUrl.includes('google.com/maps/search')) {
       mapUrl = '';
     }
-    const instaUrl = document.getElementById('edit-store-insta-url').value.trim();
+    let instaUrl = document.getElementById('edit-store-insta-url').value.trim();
+    if (instaUrl && !/^https?:\/\//i.test(instaUrl)) {
+      instaUrl = '';
+    }
     const photoUrl = document.getElementById('edit-store-photo-url').value.trim();
     const isCouponTarget = document.getElementById('edit-store-coupon-target').checked;
     const isOrganizer = document.getElementById('edit-store-organizer') ? document.getElementById('edit-store-organizer').checked : false;
@@ -2015,6 +2029,7 @@ class YoidoreAdminApp {
       days: days,
       hours: hours,
       time_notes: timeNotes,
+      special_date: specialDate,
       takeout: takeout
     };
 
@@ -2040,6 +2055,7 @@ class YoidoreAdminApp {
         days,
         hours,
         time_notes: timeNotes,
+        special_date: specialDate,
         is_coupon_target: isCouponTarget,
         is_organizer: isOrganizer,
         plan_type: planType,
@@ -2178,7 +2194,7 @@ class YoidoreAdminApp {
     try {
       this.showToast('ファイルを解析中...');
       const buffer = await file.arrayBuffer();
-      const wb = XLSX.read(buffer, { type: 'array' });
+      const wb = XLSX.read(buffer, { type: 'array', cellDates: true });
       const firstSheetName = wb.SheetNames[0];
       const sheet = wb.Sheets[firstSheetName];
       const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
@@ -2399,6 +2415,33 @@ class YoidoreAdminApp {
           return s === 'None' ? '' : s;
         };
 
+        // 日付セル（Date型、YYYY-MM-DD/YYYY/MM/DD、Excelシリアル値）を 'YYYY-MM-DD' に正規化するヘルパー
+        const normalizeSpecialDate = (val) => {
+          if (val === null || val === undefined || val === '') return '';
+          if (val instanceof Date) {
+            if (isNaN(val.getTime())) return '';
+            const y = val.getFullYear();
+            const m = String(val.getMonth() + 1).padStart(2, '0');
+            const d = String(val.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+          }
+          const s = String(val).trim();
+          if (!s || s === '0' || s === 'None' || s === 'null' || s === 'undefined') return '';
+          const match = s.match(/^(\d{4})[./\-\u5E74](\d{1,2})[./\-\u6708](\d{1,2})\u65E5?$/);
+          if (match) {
+            return `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`;
+          }
+          const num = Number(s);
+          if (!isNaN(num) && num > 40000 && num < 60000) {
+            const date = new Date(Math.round((num - 25569) * 86400 * 1000));
+            const y = date.getUTCFullYear();
+            const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+            const d = String(date.getUTCDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+          }
+          return s;
+        };
+
         let planType = planTypeRaw;
         let setName = '', setContent = '', setNotes = '', setPrice = '', setCharge = '', setLimit = '';
         let questName = '', questContent = '', questNotes = '', questPrice = '', questCharge = '';
@@ -2451,12 +2494,18 @@ class YoidoreAdminApp {
 
         // 12. 追加マスタ情報（キャッチコピー, Instagram, 住所, GoogleマップURL）
         const catchphrase = cleanCellText(row[39] !== undefined && row[39] !== '' ? row[39] : (rowObj['キャッチコピー'] || masterInfo?.catchphrase || existing?.catchphrase || existing?.raw_data?.catchphrase || ''));
-        const insta_url = cleanCellText(row[40] !== undefined && row[40] !== '' ? row[40] : (rowObj['Instagram'] || masterInfo?.insta_url || existing?.insta_url || existing?.raw_data?.insta_url || ''));
+        let insta_url = cleanCellText(row[40] !== undefined && row[40] !== '' ? row[40] : (rowObj['Instagram'] || masterInfo?.insta_url || existing?.insta_url || existing?.raw_data?.insta_url || ''));
+        if (insta_url && !/^https?:\/\//i.test(insta_url)) {
+          insta_url = '';
+        }
         const address = cleanCellText(row[41] !== undefined && row[41] !== '' ? row[41] : (rowObj['住所'] || rowObj['店舗住所'] || masterInfo?.address || existing?.address || existing?.raw_data?.address || ''));
         let map_url = cleanCellText(row[42] !== undefined && row[42] !== '' ? row[42] : (rowObj['googlemap'] || masterInfo?.map_url || existing?.map_url || existing?.raw_data?.map_url || ''));
-        if (map_url.includes('google.com/maps/search')) {
+        if (!/^https?:\/\//i.test(map_url) || map_url.includes('google.com/maps/search')) {
           map_url = '';
         }
+
+        // 13. 特定日（Col 43 / AR列 / rowObj['特定日']）
+        const special_date = normalizeSpecialDate(row[43] !== undefined && row[43] !== '' ? row[43] : (rowObj['特定日'] || existing?.special_date || existing?.raw_data?.seasons?.[targetSeasonId]?.special_date || ''));
 
         const numStr3 = storeNum !== null ? String(storeNum).padStart(3, '0') : '';
         const photo_url = (numStr3 ? `photo/${numStr3}.jpg` : (existing?.photo_url || existing?.raw_data?.photo || ''));
@@ -2477,6 +2526,7 @@ class YoidoreAdminApp {
           days,
           hours,
           time_notes: cleanTimeNote,
+          special_date,
           payment,
           is_coupon_target: isCouponTarget,
           planType,
@@ -2536,7 +2586,7 @@ class YoidoreAdminApp {
           '<span class="badge" style="background:#dcfce7; color:#15803d;">上書き更新</span>' :
           '<span class="badge" style="background:#fef3c7; color:#b45309;">新規追加</span>');
 
-      const timeDisplay = `${item.hours || '-'}${item.time_notes ? `<br><small style="color:#d97706;">💡 ${item.time_notes}</small>` : ''}`;
+      const timeDisplay = `${item.special_date ? `<span class="badge" style="background:#fee2e2; color:#b91c1c; font-size:10px; margin-bottom:2px; display:inline-block;"><i class="fa-regular fa-calendar"></i> 特定日: ${item.special_date}</span><br>` : ''}${item.hours || '-'}${item.time_notes ? `<br><small style="color:#d97706;">💡 ${item.time_notes}</small>` : ''}`;
 
       return `
         <tr style="${item.isSkip ? 'opacity: 0.5; background: #f8fafc;' : ''}">
@@ -2602,6 +2652,7 @@ class YoidoreAdminApp {
           days: item.days || '',
           hours: item.hours || '',
           time_notes: item.time_notes || '',
+          special_date: item.special_date || '',
           takeout: item.takeout || ''
         };
 
@@ -2627,6 +2678,7 @@ class YoidoreAdminApp {
             days: item.days || '',
             hours: item.hours || '',
             time_notes: item.time_notes || '',
+            special_date: item.special_date || '',
             is_coupon_target: Boolean(item.is_coupon_target),
             plan_type: item.planType || '',
             set_name: item.set_name || '',

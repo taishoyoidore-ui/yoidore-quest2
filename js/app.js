@@ -7,6 +7,18 @@
 function checkIsOpenToday(store, now = new Date()) {
   if (!store) return false;
 
+  // 特定日（限定日営業）の判定: 設定されている場合、本日と一致しなければ即座に対象時間外(false)
+  const specialDate = String(store.special_date || store.specialDate || store.conditions?.special_date || store.conditions?.specialDate || '').trim();
+  if (specialDate) {
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const nowDateStr = `${year}-${month}-${day}`;
+    if (nowDateStr !== specialDate) {
+      return false;
+    }
+  }
+
   // イベント開催ステータスに応じた利用可能判定
   const activeSeason = window.questApi?.currentSeason;
   if (activeSeason) {
@@ -152,11 +164,25 @@ function getStoreStatusBadge(store) {
     if (info.isBeforeEvent) {
       return { badgeClass: 'status-prep', text: '開催準備中' };
     }
-    if (info.isCouponUsable) {
-      return { badgeClass: 'status-coupon', text: 'クーポン利用可能' };
-    }
     if (info.isExpired) {
       return { badgeClass: 'status-ended', text: '全期間終了' };
+    }
+
+    // 特定日店舗は、特定日以外はクーポン利用期間中であっても時間外とする
+    const specialDate = String(store?.special_date || store?.specialDate || store?.conditions?.special_date || store?.conditions?.specialDate || '').trim();
+    if (specialDate) {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const nowDateStr = `${year}-${month}-${day}`;
+      if (nowDateStr !== specialDate) {
+        return { badgeClass: 'status-closed', text: 'どれクエ対象時間外' };
+      }
+    }
+
+    if (info.isCouponUsable) {
+      return { badgeClass: 'status-coupon', text: 'クーポン利用可能' };
     }
   }
   // isEventActive または statusInfo未定義時
@@ -3737,6 +3763,7 @@ class YoidoreQuestApp {
           </div>
 
           <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:8px; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.15);">
+            ${store.special_date ? `<span class="tag" style="background:#7f1d1d; color:#fca5a5; border-color:#ef4444; font-weight:bold;">📅 ${store.special_date}限定</span>` : ''}
             ${store.isOrganizer ? `<span class="tag" style="background:#1e3a8a; color:#93c5fd; border-color:#3b82f6;">運営店</span>` : ''}
             ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
             ${store.category ? `<span class="tag">${store.category}</span>` : ''}
@@ -3919,8 +3946,22 @@ class YoidoreQuestApp {
       days: store.days,
       hours: store.hours,
       timeNotes: store.time_notes,
-      limit: store.set_limit
+      limit: store.set_limit,
+      special_date: store.special_date
     };
+
+    const specialDateStr = String(store.special_date || store.specialDate || conditions.special_date || conditions.specialDate || '').trim();
+    let formattedSpecialDate = '';
+    if (specialDateStr) {
+      const m = specialDateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (m) {
+        const dObj = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+        const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+        formattedSpecialDate = `${parseInt(m[1], 10)}年${parseInt(m[2], 10)}月${parseInt(m[3], 10)}日(${dayNames[dObj.getDay()]})`;
+      } else {
+        formattedSpecialDate = specialDateStr;
+      }
+    }
 
     const paymentMethods = Array.isArray(store.paymentMethods) && store.paymentMethods.length > 0
       ? store.paymentMethods
@@ -3944,6 +3985,7 @@ class YoidoreQuestApp {
           </div>
 
           <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:10px;">
+            ${formattedSpecialDate ? `<span class="tag" style="background:#7f1d1d; color:#fca5a5; border-color:#ef4444; font-weight:bold;">📅 ${formattedSpecialDate}限定</span>` : ''}
             ${store.isOrganizer ? `<span class="tag" style="background:#1e3a8a; color:#93c5fd; border-color:#3b82f6;">運営店</span>` : ''}
             ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
             ${store.category ? `<span class="tag">${store.category}</span>` : ''}
@@ -3983,10 +4025,19 @@ class YoidoreQuestApp {
             <span>⏰ どれクエ対象時間</span>
           </div>
           <table class="info-table">
-            ${conditions.days ? `
+            ${(conditions.days || formattedSpecialDate) ? `
               <tr>
                 <th>提供日</th>
-                <td><strong style="color:#ffffff;">${conditions.days}</strong></td>
+                <td>
+                  <strong style="color:#ffffff;">${conditions.days || formattedSpecialDate}</strong>
+                  ${formattedSpecialDate ? `
+                    <div style="margin-top:4px;">
+                      <span class="tag" style="background:#7f1d1d; color:#fca5a5; border-color:#ef4444; font-size:12px; font-weight:bold;">
+                        📅 ${formattedSpecialDate} のみ営業
+                      </span>
+                    </div>
+                  ` : ''}
+                </td>
               </tr>
             ` : ''}
             ${conditions.hours ? `
@@ -4127,13 +4178,21 @@ class YoidoreQuestApp {
 
         <!-- 外部リンク (Googleマップ / Instagram) -->
         ${(() => {
-          let directUrl = (store.googleMapUrl || store.map_url || '').trim();
-          if (directUrl && directUrl.includes('google.com/maps/search')) {
+          let directUrl = String(store.googleMapUrl || store.map_url || '').trim();
+          if (!/^https?:\/\//i.test(directUrl) || directUrl.includes('google.com/maps/search')) {
             directUrl = '';
           }
           const rawQuery = store.address || (store.name ? (store.name.includes('大正') ? store.name : `大阪市大正区 ${store.name}`) : '大阪市大正区');
           const mapQuery = rawQuery.trim();
-          const effectiveMapUrl = directUrl || store.effectiveMapUrl || (mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}` : 'https://www.google.com/maps');
+          let effectiveMapUrl = directUrl;
+          if (!effectiveMapUrl && store.effectiveMapUrl && /^https?:\/\//i.test(store.effectiveMapUrl)) {
+            effectiveMapUrl = store.effectiveMapUrl;
+          }
+          if (!effectiveMapUrl) {
+            effectiveMapUrl = mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}` : 'https://www.google.com/maps';
+          }
+          const rawInsta = String(store.instagramUrl || store.insta_url || '').trim();
+          const validInstaUrl = /^https?:\/\//i.test(rawInsta) ? rawInsta : '';
 
           return `
             <div class="rpg-window">
@@ -4141,8 +4200,8 @@ class YoidoreQuestApp {
                 <a href="${effectiveMapUrl}" target="_blank" rel="noopener noreferrer" class="external-link-btn">
                   <span>📍 Googleマップで酒場へ行く</span>
                 </a>
-                ${store.instagramUrl ? `
-                  <a href="${store.instagramUrl}" target="_blank" rel="noopener noreferrer" class="external-link-btn" style="background: linear-gradient(180deg, #801848 0%, #380820 100%);">
+                ${validInstaUrl ? `
+                  <a href="${validInstaUrl}" target="_blank" rel="noopener noreferrer" class="external-link-btn" style="background: linear-gradient(180deg, #801848 0%, #380820 100%);">
                     <span>📷 酒場のInstagramを開く</span>
                   </a>
                 ` : ''}
