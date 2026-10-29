@@ -3763,7 +3763,7 @@ class YoidoreQuestApp {
           </div>
 
           <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:8px; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.15);">
-            ${store.special_date ? `<span class="tag" style="background:#7f1d1d; color:#fca5a5; border-color:#ef4444; font-weight:bold;">📅 ${store.special_date}限定</span>` : ''}
+            ${store.special_date ? `<span class="tag" style="background:#7f1d1d; color:#fca5a5; border-color:#ef4444; font-weight:bold;">${store.special_date}限定</span>` : ''}
             ${store.isOrganizer ? `<span class="tag" style="background:#1e3a8a; color:#93c5fd; border-color:#3b82f6;">運営店</span>` : ''}
             ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
             ${store.category ? `<span class="tag">${store.category}</span>` : ''}
@@ -3985,7 +3985,7 @@ class YoidoreQuestApp {
           </div>
 
           <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:10px;">
-            ${formattedSpecialDate ? `<span class="tag" style="background:#7f1d1d; color:#fca5a5; border-color:#ef4444; font-weight:bold;">📅 ${formattedSpecialDate}限定</span>` : ''}
+            ${formattedSpecialDate ? `<span class="tag" style="background:#7f1d1d; color:#fca5a5; border-color:#ef4444; font-weight:bold;">${formattedSpecialDate}限定</span>` : ''}
             ${store.isOrganizer ? `<span class="tag" style="background:#1e3a8a; color:#93c5fd; border-color:#3b82f6;">運営店</span>` : ''}
             ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
             ${store.category ? `<span class="tag">${store.category}</span>` : ''}
@@ -4033,7 +4033,7 @@ class YoidoreQuestApp {
                   ${formattedSpecialDate ? `
                     <div style="margin-top:4px;">
                       <span class="tag" style="background:#7f1d1d; color:#fca5a5; border-color:#ef4444; font-size:12px; font-weight:bold;">
-                        📅 ${formattedSpecialDate} のみ営業
+                        ${formattedSpecialDate} のみ営業
                       </span>
                     </div>
                   ` : ''}

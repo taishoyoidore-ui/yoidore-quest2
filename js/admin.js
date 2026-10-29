@@ -2204,6 +2204,8 @@ class YoidoreAdminApp {
         return;
       }
 
+      const targetSeasonId = this.selectedSeasonId || 2;
+
       const headers = rows[0].map(h => String(h || '').trim());
       const dataRows = rows.slice(1);
 
@@ -2505,7 +2507,7 @@ class YoidoreAdminApp {
         }
 
         // 13. 特定日（Col 43 / AR列 / rowObj['特定日']）
-        const special_date = normalizeSpecialDate(row[43] !== undefined && row[43] !== '' ? row[43] : (rowObj['特定日'] || existing?.special_date || existing?.raw_data?.seasons?.[targetSeasonId]?.special_date || ''));
+        const special_date = normalizeSpecialDate(row[43] !== undefined && row[43] !== '' ? row[43] : (rowObj['特定日'] || ''));
 
         const numStr3 = storeNum !== null ? String(storeNum).padStart(3, '0') : '';
         const photo_url = (numStr3 ? `photo/${numStr3}.jpg` : (existing?.photo_url || existing?.raw_data?.photo || ''));
