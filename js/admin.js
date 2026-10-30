@@ -3079,13 +3079,18 @@ class YoidoreAdminApp {
         }
         if (!notesHtml) notesHtml = '<span class="text-muted">-</span>';
 
+        const isAll = Boolean(t.is_all_stores || /全店|全軒|全件/.test(t.title || ''));
+        const visitsBadge = isAll
+          ? `<span class="badge" style="background:#fef3c7; color:#b45309; font-weight:bold; font-size:0.85rem; border:1px solid #fde68a;">
+              <i class="fa-solid fa-crown text-gold"></i> <strong>全軒制覇</strong>
+            </span>`
+          : `<span class="badge" style="background:#f1f5f9; color:#0f172a; font-weight:bold; font-size:0.85rem;">
+              <i class="fa-solid fa-beer-mug-empty text-gold"></i> <strong>${t.required_visits}</strong> 軒
+            </span>`;
+
         return `
           <tr>
-            <td>
-              <span class="badge" style="background:#f1f5f9; color:#0f172a; font-weight:bold; font-size:0.85rem;">
-                <i class="fa-solid fa-beer-mug-empty text-gold"></i> <strong>${t.required_visits}</strong> 軒
-              </span>
-            </td>
+            <td>${visitsBadge}</td>
             <td>${typeBadge}</td>
             <td><strong style="color:#0f172a; font-size:0.95rem;">${this.escapeHtml(t.title)}</strong></td>
             <td>${heroTitleBadge}</td>
@@ -3113,6 +3118,19 @@ class YoidoreAdminApp {
     if (goodsSettings) goodsSettings.style.display = isGoods ? 'block' : 'none';
   }
 
+  toggleTierReqTypeUI() {
+    const isAll = document.getElementById('edit-tier-req-type-all')?.checked;
+    const numWrap = document.getElementById('tier-req-number-wrap');
+    const allWrap = document.getElementById('tier-req-all-wrap');
+    const reqInput = document.getElementById('edit-tier-required');
+    if (numWrap) numWrap.style.display = isAll ? 'none' : 'block';
+    if (allWrap) allWrap.style.display = isAll ? 'block' : 'none';
+    if (isAll && reqInput && (!reqInput.value || Number(reqInput.value) <= 0)) {
+      const storeCount = this.stores?.length || 41;
+      reqInput.value = storeCount;
+    }
+  }
+
   openTierModal(tierIdOrMode, optionalId) {
     const isNew = tierIdOrMode === 'new';
     const targetId = (tierIdOrMode === 'edit' && optionalId !== undefined) ? optionalId : tierIdOrMode;
@@ -3127,6 +3145,7 @@ class YoidoreAdminApp {
       tier = {
         id: '',
         reward_type: 'store_coupon',
+        is_all_stores: false,
         title: '',
         hero_title: '',
         badge_color: '#facc15',
@@ -3145,6 +3164,13 @@ class YoidoreAdminApp {
       document.getElementById('edit-tier-type-coupon').checked = !isGoods;
     }
     this.toggleTierTypeUI();
+
+    const isAllStores = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || '') || (tier.required_visits && Number(tier.required_visits) >= 40));
+    if (document.getElementById('edit-tier-req-type-all')) {
+      document.getElementById('edit-tier-req-type-all').checked = isAllStores;
+      document.getElementById('edit-tier-req-type-number').checked = !isAllStores;
+    }
+    this.toggleTierReqTypeUI();
 
     document.getElementById('edit-tier-id').value = tier.id || '';
     document.getElementById('edit-tier-title').value = tier.title || '';
@@ -3170,9 +3196,14 @@ class YoidoreAdminApp {
   async saveTierForm() {
     const idVal = document.getElementById('edit-tier-id').value;
     const isGoods = document.getElementById('edit-tier-type-goods').checked;
+    const isAllStores = Boolean(document.getElementById('edit-tier-req-type-all')?.checked);
     const reward_type = isGoods ? 'goods' : 'store_coupon';
     const title = document.getElementById('edit-tier-title').value.trim();
-    const required_visits = parseInt(document.getElementById('edit-tier-required').value, 10);
+    let required_visits = parseInt(document.getElementById('edit-tier-required').value, 10);
+    if (isAllStores) {
+      const storeCount = this.stores?.length || 41;
+      required_visits = storeCount;
+    }
     const hero_title = document.getElementById('edit-tier-hero-title')?.value.trim() || null;
     const badge_color = document.getElementById('edit-tier-badge-color')?.value.trim() || '#facc15';
     const selectable_count_raw = document.getElementById('edit-tier-selectable').value.trim();
@@ -3183,7 +3214,7 @@ class YoidoreAdminApp {
     const description = document.getElementById('edit-tier-desc').value.trim();
     const season_id = this.selectedSeasonId;
 
-    if (!title || isNaN(required_visits)) {
+    if (!title || (!isAllStores && isNaN(required_visits))) {
       alert('タイトルと必要店舗数は必須です。');
       return;
     }
@@ -3199,6 +3230,7 @@ class YoidoreAdminApp {
     const tierData = {
       season_id,
       reward_type,
+      is_all_stores: isAllStores,
       title,
       hero_title,
       badge_color,

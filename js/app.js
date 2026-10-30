@@ -428,17 +428,26 @@ class YoidoreQuestApp {
     // 達成済み特典（1〜count番目まで）
     const unlockedTiers = sortedTiers.slice(0, count);
     const highestUnlockedTier = unlockedTiers[unlockedTiers.length - 1];
-    // 件数とレベル数字の完全連動（例: 5軒ならLv.5、20軒ならLv.20）
-    const currentLv = (highestUnlockedTier && highestUnlockedTier.required_visits) 
+
+    // 全店制覇（最高特典）達成時のレベル表記は数字ではなく「MAX」
+    const isAllStores = Boolean(
+      highestUnlockedTier && (
+        highestUnlockedTier.is_all_stores ||
+        /全店|全軒|全件/.test(highestUnlockedTier.title || '') ||
+        count >= sortedTiers.length
+      )
+    );
+    // 件数とレベル数字の完全連動（例: 5軒ならLv.5、20軒ならLv.20、全店制覇ならLv.MAX）
+    const currentLv = isAllStores ? 'MAX' : ((highestUnlockedTier && highestUnlockedTier.required_visits) 
       ? Number(highestUnlockedTier.required_visits) 
-      : (1 + count);
+      : (1 + count));
 
     // 達成した最高位特典のDB登録称号をそのまま反映（未設定時は空文字。プログラムによる過剰な推測補完は行わない）
     const activeTitle = (highestUnlockedTier?.hero_title && typeof highestUnlockedTier.hero_title === 'string')
       ? highestUnlockedTier.hero_title.trim()
       : '';
     const activeBadgeColor = highestUnlockedTier?.badge_color || '#facc15';
-    const activeDesc = highestUnlockedTier?.description || `${currentLv}軒制覇の勇者`;
+    const activeDesc = highestUnlockedTier?.description || (isAllStores ? '全軒制覇の勇者' : `${currentLv}軒制覇の勇者`);
 
     return {
       level: currentLv,
@@ -1680,6 +1689,7 @@ class YoidoreQuestApp {
     // 1. クーポン型特典の一覧HTML（A案：スリム＆シンプルカード）
     const couponTiersList = rewardTiers.filter(t => t.reward_type !== 'goods');
     const couponsHtml = (couponTiersList.length > 0) ? couponTiersList.map(tier => {
+      const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || '') || Number(tier.required_visits) >= 40);
       const isReached = userCoupons.some(c => Number(c.reward_tier_id) === Number(tier.id));
       const maxCount = tier.selectable_count || 5;
       const usedCoupons = tierCouponMap.get(Number(tier.id)) || [];
@@ -1707,7 +1717,8 @@ class YoidoreQuestApp {
           statusBadge = `<span class="treasure-tier-status status-unlocked" style="background:#0284c7; border-color:#38bdf8;">✨ 利用可能 (${remainCount}/${maxCount}回)</span>`;
         }
       } else {
-        statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成 (${tier.required_visits}軒)</span>`;
+        const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || '') || Number(tier.required_visits) >= 40);
+        statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成 (${isAll ? '全軒' : `${tier.required_visits}軒`})</span>`;
       }
 
       // 利用済み店舗の履歴HTML
@@ -1782,7 +1793,7 @@ class YoidoreQuestApp {
             <h4 class="treasure-tier-title">🏆 ${this.escapeHtml(tier.title)}</h4>
           </div>
           <div class="treasure-tier-condition">
-            <span>🍺 条件: <strong class="text-yellow">${tier.required_visits}軒ハシゴ</strong></span>
+            <span>🍺 条件: <strong class="text-yellow">${isAll ? '全軒ハシゴ' : `${tier.required_visits}軒ハシゴ`}</strong></span>
             <span> | 🎟️ <strong style="color:#ffffff;">お好きな${maxCount}軒で利用可能</strong></span>
           </div>
           ${actionHtml ? `<div class="treasure-tier-action">${actionHtml}</div>` : ''}
@@ -1793,6 +1804,7 @@ class YoidoreQuestApp {
     // 2. グッズ記念品型特典の一覧HTML（A案：スリム＆シンプルカード）
     const goodsTiersList = rewardTiers.filter(t => t.reward_type === 'goods');
     const goodsHtml = (goodsTiersList.length > 0) ? goodsTiersList.map(tier => {
+      const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || '') || Number(tier.required_visits) >= 40);
       const goodsCoupons = userCoupons.filter(c => c.reward_type === 'goods' && (Number(c.reward_tier_id) === Number(tier.id) || c.goods_name === tier.goods_name || c.goods_name === tier.title));
       const usedGoodsCoupon = goodsCoupons.find(c => c.status === 'used');
       const activeGoodsCoupon = goodsCoupons.find(c => c.status !== 'used');
@@ -1820,7 +1832,8 @@ class YoidoreQuestApp {
           </button>
         `;
       } else {
-        statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成 (${tier.required_visits}軒)</span>`;
+        const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || '') || Number(tier.required_visits) >= 40);
+        statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成 (${isAll ? '全軒' : `${tier.required_visits}軒`})</span>`;
       }
 
       return `
@@ -1834,7 +1847,7 @@ class YoidoreQuestApp {
             <h4 class="treasure-tier-title">🏆 ${this.escapeHtml(tier.title)}</h4>
           </div>
           <div class="treasure-tier-condition">
-            <span>🍺 条件: <strong class="text-yellow">${tier.required_visits}軒ハシゴ</strong></span>
+            <span>🍺 条件: <strong class="text-yellow">${isAll ? '全軒ハシゴ' : `${tier.required_visits}軒ハシゴ`}</strong></span>
             <span> | 🎁 <strong style="color:#ffffff;">${this.escapeHtml(tier.goods_name || tier.title || '記念品')}</strong></span>
           </div>
           ${tier.exchange_location ? `
@@ -1873,7 +1886,7 @@ class YoidoreQuestApp {
               <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:4px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                   <span style="color:#ffffff; font-weight:bold; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${this.escapeHtml ? this.escapeHtml(user.displayName) : user.displayName}</span>
-                  <span class="dq-status-lv-badge">Lv.${heroLv}</span>
+                  <span class="dq-status-lv-badge" style="${heroLv === 'MAX' ? 'background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); border-color:#fca5a5; color:#ffffff; font-weight:bold; box-shadow:0 0 10px rgba(239,68,68,0.6);' : ''}">Lv.${heroLv}</span>
                 </div>
                 <div style="font-size:12px; color:#cbd5e1; display:flex; align-items:center; gap:6px;">
                   <span style="color:#94a3b8; font-size:11px;">酒場クーポン:</span>
@@ -2587,7 +2600,8 @@ class YoidoreQuestApp {
 
       const tierButtonsHtml = tiers.map((tier) => {
         const visits = Number(tier.required_visits || 0);
-        const label = visits >= 40 ? `👑 全店制覇 (${visits}軒)` : `🏆 ${visits}軒達成`;
+        const isAll = Boolean(tier.is_all_stores || visits >= 40 || /全店|全軒|全件/.test(tier.title || ''));
+        const label = isAll ? `👑 全軒制覇 (MAX)` : `🏆 ${visits}軒達成`;
         return `<button type="button" class="treasure-claim-btn qr-modal-test-tier-btn" data-tier-id="${tier.id}" style="background:#4a2c00; border-color:#d4af37; padding:6px 4px; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
           ${label}
         </button>`;
@@ -2934,8 +2948,9 @@ class YoidoreQuestApp {
       claimedTiers.forEach(t => {
         const isGoods = t.reward_type === 'goods';
         const name = isGoods ? `『${t.goods_name || t.title}』` : `酒場クーポン ${t.selectable_count || 5}軒分`;
+        const reqPrefix = (t.is_all_stores || /全店|全軒|全件/.test(t.title || '') || Number(t.required_visits) >= 40) ? '全軒達成' : `${t.required_visits}軒達成`;
         lines.push({
-          text: `${t.required_visits}軒達成: ${name} を 受け取った！`,
+          text: `${reqPrefix}: ${name} を 受け取った！`,
           cls: 'tier'
         });
       });
@@ -2961,7 +2976,7 @@ class YoidoreQuestApp {
               <div class="dq-status-profile">
                 <div class="dq-status-header-row">
                   <div class="dq-status-name">${displayName}</div>
-                  <div class="dq-status-lv-badge">Lv.${heroData.level}</div>
+                  <div class="dq-status-lv-badge" style="${heroData.level === 'MAX' ? 'background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); border-color:#fca5a5; color:#ffffff; font-weight:bold; box-shadow:0 0 10px rgba(239,68,68,0.6);' : ''}">Lv.${heroData.level}</div>
                 </div>
                 <div class="dq-status-title-badge" style="border-color:${heroData.title ? (heroData.badge_color || '#ffd700') : '#94a3b8'};">
                   <span class="royal-title-text" style="color:${heroData.title ? (heroData.badge_color || '#ffd700') : '#94a3b8'};">

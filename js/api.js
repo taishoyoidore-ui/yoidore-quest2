@@ -550,6 +550,7 @@ class QuestApiManager {
         id: Number(s.id),
         season_id: targetSeasonId,
         reward_type: s.reward_type || 'store_coupon',
+        is_all_stores: Boolean(s.is_all_stores || /全店|全軒|全件/.test(s.title || '')),
         title: s.title,
         required_visits: Number(s.required_visits),
         selectable_count: Number(s.selectable_count) || 1,
@@ -576,6 +577,7 @@ class QuestApiManager {
           id: Number(s.id),
           season_id: targetSeasonId,
           reward_type: s.reward_type || 'store_coupon',
+          is_all_stores: Boolean(s.is_all_stores || /全店|全軒|全件/.test(s.title || '')),
           title: s.title,
           required_visits: Number(s.required_visits),
           selectable_count: Number(s.selectable_count) || 1,
@@ -1398,6 +1400,7 @@ class QuestApiManager {
     const cleanData = {
       season_id: targetSeasonId,
       reward_type: tierData.reward_type || 'store_coupon',
+      is_all_stores: Boolean(tierData.is_all_stores),
       title: tierData.title,
       required_visits: Number(tierData.required_visits),
       selectable_count: Number(tierData.selectable_count) || 1,
