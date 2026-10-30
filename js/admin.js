@@ -2053,16 +2053,22 @@ class YoidoreAdminApp {
     });
     currentPayments.forEach(p => {
       let matched = false;
+      const pTrimmed = String(p).trim();
+      const pLower = pTrimmed.toLowerCase();
       payCbs.forEach(cb => {
-        if (cb.value === p || 
-            (cb.value === 'クレジットカード' && (p === 'クレカ' || p === 'カード' || p === 'VISA' || p === 'Mastercard')) || 
-            (cb.value === '電子マネー・交通系IC' && (p === '電子マネー' || p === '交通系IC' || p === 'ICカード'))) {
+        const cbVal = cb.value;
+        const cbLower = cbVal.toLowerCase();
+        if (cbLower === pLower || 
+            (cbVal === 'PayPay' && (pLower === 'paypay' || pLower === 'ペイペイ')) ||
+            (cbVal === 'クレジットカード' && (['クレカ', 'カード', 'visa', 'mastercard', 'master', 'jcb', 'amex'].includes(pLower))) || 
+            (cbVal === '電子マネー・交通系IC' && (['電子マネー', '交通系ic', 'icカード', '交通系'].includes(pLower))) ||
+            (cbVal === 'その他QR決済' && (['qr決済', 'qrコード決済', 'バーコード決済'].includes(pLower)))) {
           cb.checked = true;
           matched = true;
         }
       });
-      if (!matched && p && p !== '-') {
-        otherPayments.push(p);
+      if (!matched && pTrimmed && pTrimmed !== '-') {
+        otherPayments.push(pTrimmed);
       }
     });
     document.getElementById('edit-store-payment-other').value = otherPayments.join(', ');
