@@ -23,6 +23,12 @@ class YoidoreAdminApp {
     this.userPagination = { page: 1, pageSize: 20 };
     this.lastFilteredStores = [];
     this.lastFilteredUsers = [];
+    this.isHandlingAuthExpired = false;
+
+    // API層の認証切れコールバック登録
+    if (this.api) {
+      this.api.onAdminAuthExpired = () => this.handleAuthExpired();
+    }
 
     this.initSupabaseClient();
     this.init();
@@ -65,6 +71,15 @@ class YoidoreAdminApp {
           if (sessionStorage.getItem('yoidore_admin_session_only') === 'expired') {
             await this.supabaseClient.auth.signOut();
           } else {
+            // トークン有効期限切れチェック（UNIX秒）
+            const now = Math.floor(Date.now() / 1000);
+            if (session.expires_at && session.expires_at <= now) {
+              console.warn('Restored session is expired:', session.expires_at, '<=', now);
+              await this.supabaseClient.auth.signOut();
+              this.handleAuthExpired(false); // 初期化時はアラートなしで静かにログイン画面表示
+              return;
+            }
+
             this.adminSession = session;
             if (this.api) {
               this.api.setAdminAccessToken(session.access_token);
@@ -83,6 +98,56 @@ class YoidoreAdminApp {
     if (lockModal) lockModal.style.display = 'flex';
     const adminAppEl = document.getElementById('admin-app');
     if (adminAppEl) adminAppEl.style.display = 'none';
+  }
+
+  /* ------------------------------------------------------------------------
+   * 認証期限切れ時の安全ハンドラ (明快に再ログイン誘導)
+   * ------------------------------------------------------------------------ */
+  handleAuthExpired(showAlert = true) {
+    if (this.isHandlingAuthExpired) return;
+    this.isHandlingAuthExpired = true;
+
+    // 開いているExcelインポートモーダル等を整理
+    try {
+      this.closeExcelImportModal();
+    } catch (e) {}
+
+    // セッション破棄
+    this.adminSession = null;
+    if (this.api) {
+      this.api.setAdminAccessToken(null);
+    }
+    if (this.supabaseClient) {
+      this.supabaseClient.auth.signOut().catch(() => {});
+    }
+
+    if (showAlert) {
+      alert('⚠️ ログインの有効期限が切れました。\n安全のため、再度ログインしてください。');
+    }
+
+    // ログイン画面を表示（管理画面をロック）
+    const lockModal = document.getElementById('auth-lock-modal');
+    if (lockModal) lockModal.style.display = 'flex';
+    const adminAppEl = document.getElementById('admin-app');
+    if (adminAppEl) adminAppEl.style.display = 'none';
+
+    // ログインフォームに案内メッセージを表示
+    const errEl = document.getElementById('auth-error');
+    if (errEl) {
+      errEl.textContent = 'ログインの有効期限が切れました。再度ログインしてください。';
+      errEl.style.display = 'block';
+    }
+
+    // パスワード入力欄をクリアしてフォーカス
+    const passwordEl = document.getElementById('admin-password');
+    if (passwordEl) {
+      passwordEl.value = '';
+      setTimeout(() => passwordEl.focus(), 150);
+    }
+
+    setTimeout(() => {
+      this.isHandlingAuthExpired = false;
+    }, 1000);
   }
 
   async handleLogin() {
@@ -2313,7 +2378,9 @@ class YoidoreAdminApp {
       this.showToast(`🎉 酒場「${name}」の企画データをSupabaseに保存しました！`);
       await this.loadAllData();
     } catch (err) {
-      alert('保存に失敗しました: ' + err.message);
+      if (!err.message || !err.message.includes('有効期限が切れました')) {
+        alert('保存に失敗しました: ' + err.message);
+      }
       console.error(err);
     }
   }
@@ -2336,7 +2403,9 @@ class YoidoreAdminApp {
       this.showToast(`酒場「${name}」を削除しました`);
       await this.loadAllData();
     } catch (err) {
-      alert('削除に失敗しました: ' + err.message);
+      if (!err.message || !err.message.includes('有効期限が切れました')) {
+        alert('削除に失敗しました: ' + err.message);
+      }
       console.error(err);
     }
   }
@@ -2938,8 +3007,12 @@ class YoidoreAdminApp {
       this.showToast(`🎉 ${successCount} 軒の酒場アンケート情報を「${seasonName}」のデータとしてSupabaseへ同期・更新しました！`);
       await this.loadAllData();
     } catch (err) {
-      alert('インポート途中でエラーが発生しました: ' + err.message);
-      console.error(err);
+      if (err.message && err.message.includes('有効期限が切れました')) {
+        console.warn('Import aborted due to auth expiration:', err.message);
+      } else {
+        alert('インポート途中でエラーが発生しました: ' + err.message);
+        console.error(err);
+      }
     }
   }
 
@@ -3253,7 +3326,9 @@ class YoidoreAdminApp {
       this.showToast(`特典「${title}」を保存しました！`);
       await this.loadAllData();
     } catch (err) {
-      alert('保存に失敗しました: ' + err.message);
+      if (!err.message || !err.message.includes('有効期限が切れました')) {
+        alert('保存に失敗しました: ' + err.message);
+      }
     }
   }
 
@@ -3268,7 +3343,9 @@ class YoidoreAdminApp {
       this.showToast(`特典「${title}」を削除しました。`);
       await this.loadAllData();
     } catch (err) {
-      alert('削除に失敗しました: ' + err.message);
+      if (!err.message || !err.message.includes('有効期限が切れました')) {
+        alert('削除に失敗しました: ' + err.message);
+      }
     }
   }
 
@@ -3318,7 +3395,9 @@ class YoidoreAdminApp {
       await this.loadAllData();
       this.renderSeasonSettings();
     } catch (err) {
-      alert('保存に失敗しました: ' + err.message);
+      if (!err.message || !err.message.includes('有効期限が切れました')) {
+        alert('保存に失敗しました: ' + err.message);
+      }
     }
   }
 
@@ -4279,7 +4358,9 @@ class YoidoreAdminApp {
         this.openParticipantDetailModal(coupon.user_id);
       }
     } catch (err) {
-      alert('消込に失敗しました: ' + err.message);
+      if (!err.message || !err.message.includes('有効期限が切れました')) {
+        alert('消込に失敗しました: ' + err.message);
+      }
     }
   }
 
@@ -4295,7 +4376,9 @@ class YoidoreAdminApp {
         this.openParticipantDetailModal(coupon.user_id);
       }
     } catch (err) {
-      alert('更新に失敗しました: ' + err.message);
+      if (!err.message || !err.message.includes('有効期限が切れました')) {
+        alert('更新に失敗しました: ' + err.message);
+      }
     }
   }
 

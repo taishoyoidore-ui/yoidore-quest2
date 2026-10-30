@@ -36,6 +36,7 @@ class QuestApiManager {
     
     // バックオフィス管理者トークン (Supabase Auth 連携用)
     this.adminAccessToken = null;
+    this.onAdminAuthExpired = null; // 管理者トークン期限切れ時コールバック
   }
 
   setAdminAccessToken(token) {
@@ -68,6 +69,16 @@ class QuestApiManager {
     if (!res.ok) {
       const errText = await res.text();
       console.error(`Supabase API error (${endpoint}):`, errText);
+
+      // 管理者トークン使用時の 401（認証切れ / JWT expired）判定
+      if (res.status === 401 && this.adminAccessToken) {
+        this.adminAccessToken = null;
+        if (typeof this.onAdminAuthExpired === 'function') {
+          this.onAdminAuthExpired();
+        }
+        throw new Error('認証の有効期限が切れました。安全のため再度ログインしてください。');
+      }
+
       throw new Error(`API Error: ${res.status} ${errText}`);
     }
 
