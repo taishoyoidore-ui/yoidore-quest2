@@ -1593,6 +1593,7 @@ class YoidoreQuestApp {
     // 参加店舗のみを対象とする
     const stores = (seasonStores || []).filter(s => s.is_participating !== false);
     const totalStores = stores.length;
+    const targetStoresCount = stores.filter(s => s.isCouponTarget !== false).length;
     const visits = seasonVisits || [];
     const userCoupons = seasonCoupons || [];
     const rewardTiers = seasonRewardTiers;
@@ -1923,14 +1924,17 @@ class YoidoreQuestApp {
             <div style="color:#fde047; font-weight:bold; display:flex; align-items:center; gap:6px;">
               <span>📅 利用可能期間: ${couponPeriodText || 'シーズン開催設定を参照'}</span>
             </div>
-            <div style="color:#cbd5e1; font-size:11px; margin-top:3px;">
+            <div style="color:#cbd5e1; font-size:11.5px; margin-top:4px;">
               ${isExpired 
                 ? '※酒場クーポンの有効期限は終了いたしました。'
-                : (info?.isBeforeEvent
-                  ? '※獲得したクーポンは、イベント本開催終了後の上記期間中に各酒場でご利用いただけます。'
-                  : (!isCouponUsable 
-                    ? '※本開催（食べ歩き）期間中はご利用いただけません。イベント終了後の上記期間中に各酒場でご利用いただけます。'
-                    : '※お会計時に『酒場を選んでクーポンを使う』から店舗を選んで画面をご提示ください。'))}
+                : (!isCouponUsable 
+                  ? '※酒場クーポンはイベント終了後に、対象の店のみで利用できます。'
+                  : '※酒場クーポンは対象の店のみでご利用いただけます。お会計時に『酒場を選んでクーポンを使う』から店舗を選んで画面をご提示ください。')}
+            </div>
+            <div style="margin-top:8px; display:flex; justify-content:flex-end;">
+              <button type="button" class="btn btn-sm btn-open-target-stores" style="background:#1e293b; border:1px solid #eab308; color:#fde047; font-size:11px; font-weight:bold; padding:4px 9px; border-radius:4px; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
+                <i class="fa-solid fa-list-check"></i> クーポン対象店舗一覧を見る (${targetStoresCount}店)
+              </button>
             </div>
           </div>
           <div style="margin-top:10px;">
@@ -1962,9 +1966,20 @@ class YoidoreQuestApp {
               <span style="color:#fde047; font-weight:bold; flex-shrink:0;">②</span>
               <span><strong>運営店</strong>へ行き「<strong>達成QRコード</strong>（5軒・10軒・15軒達成等）」をスマホで読み取ります。</span>
             </div>
-            <div style="display:flex; align-items:flex-start; gap:6px;">
+            <div style="margin-bottom:8px; display:flex; align-items:flex-start; gap:6px;">
               <span style="color:#fde047; font-weight:bold; flex-shrink:0;">③</span>
               <span>冒険の書に酒場クーポン・グッズ引換券が解放されます！</span>
+            </div>
+            <div style="margin-top:8px; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.2); font-size:11.5px; color:#cbd5e1; line-height:1.5;">
+              <div style="color:#fde047; font-weight:bold; margin-bottom:3px; display:flex; align-items:center; gap:5px;">
+                <i class="fa-solid fa-circle-info"></i> 酒場クーポンのご利用について
+              </div>
+              ※酒場クーポンはイベント終了後に、対象の店のみで利用できます。<br>
+              <div style="margin-top:6px;">
+                <button type="button" class="btn btn-sm btn-open-target-stores" style="background:#064e3b; border:1px solid #34d399; color:#a7f3d0; font-size:11px; font-weight:bold; padding:4px 9px; border-radius:4px; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
+                  <i class="fa-solid fa-list-check"></i> クーポン対象店舗一覧を見る (${targetStoresCount}店)
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1972,6 +1987,14 @@ class YoidoreQuestApp {
         ${this.getFooterVersionHTML()}
       </div>
     `;
+
+    // 1. クーポン対象店舗一覧を開くボタン
+    container.querySelectorAll('.btn-open-target-stores').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.playSelectSE();
+        this.openCouponTargetStoresModal();
+      });
+    });
 
     // 2. 宝箱を開けてお店を選ぶ / 続けてクーポンを使うボタン
     container.querySelectorAll('.btn-direct-open-store-coupon').forEach(btn => {
@@ -2084,6 +2107,110 @@ class YoidoreQuestApp {
     } finally {
       this._isQuestBookSyncing = false;
     }
+  }
+
+  /* ------------------------------------------------------------------------
+   * クーポン対象店舗一覧モーダル（閲覧用）
+   * ------------------------------------------------------------------------ */
+  openCouponTargetStoresModal() {
+    const stores = this.getStores();
+    // 今期参加かつクーポン対象店舗のみを抽出
+    const targetStores = stores.filter(s => s.is_participating !== false && s.isCouponTarget !== false);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'rpg-modal-overlay';
+    overlay.id = 'coupon-target-stores-modal';
+
+    const renderStoreList = (searchQuery = '') => {
+      let list = targetStores;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        list = list.filter(s => (s.name || '').toLowerCase().includes(q) || (s.area || '').toLowerCase().includes(q) || (s.category || '').toLowerCase().includes(q));
+      }
+
+      if (list.length === 0) {
+        return `<div style="padding:24px; text-align:center; color:#94a3b8; font-size:13px;">該当するクーポン対象店が見つかりません</div>`;
+      }
+
+      return list.map(s => {
+        const metaInfo = [
+          s.area ? `📍 ${this.escapeHtml(s.area)}` : '',
+          s.category ? `🍴 ${this.escapeHtml(s.category)}` : ''
+        ].filter(Boolean).join(' / ');
+
+        return `
+          <div class="coupon-target-item-card" data-store-id="${s.id}" style="min-height:50px; box-sizing:border-box; background:#101424; border:1px solid #33406b; border-radius:8px; padding:9px 12px; display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer;">
+            <div style="flex:1; min-width:0; overflow:hidden;">
+              <div style="font-weight:bold; color:var(--text-yellow); font-size:14px; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                ${this.escapeHtml(s.name)}
+              </div>
+              ${metaInfo ? `<div style="font-size:11px; color:var(--text-cyan); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${metaInfo}</div>` : ''}
+            </div>
+            <div style="font-size:11px; color:#cbd5e1; white-space:nowrap; padding:4px 9px; border:1px solid #475569; border-radius:4px; background:rgba(255,255,255,0.06); flex-shrink:0; display:flex; align-items:center; gap:4px;">
+              <span>店舗詳細</span> <i class="fa-solid fa-chevron-right" style="font-size:10px;"></i>
+            </div>
+          </div>
+        `;
+      }).join('');
+    };
+
+    overlay.innerHTML = `
+      <div class="rpg-modal-window gold-border" style="max-width:440px; width:94%; max-height:86vh; display:flex; flex-direction:column; padding:12px 10px;">
+        <div class="rpg-window-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <span style="font-size:15px; font-weight:bold;">🍺 クーポン対象店舗一覧</span>
+          <button id="target-store-modal-close-btn" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer; padding:0 4px;">✕</button>
+        </div>
+        <div style="padding:4px 0 6px; font-size:12px; color:var(--text-yellow); line-height:1.4;">
+          酒場クーポンはイベント終了後に、対象の店のみで利用できます。<br>
+          <span style="font-size:11px; color:var(--text-dim);">※対象酒場: 全${targetStores.length}店舗（タップで詳細を表示）</span>
+        </div>
+        <div style="margin-bottom:8px;">
+          <input type="text" id="coupon-target-search-input" placeholder="🔍 酒場名・エリア・ジャンルで検索..." style="width:100%; box-sizing:border-box; padding:7px 10px; background:#0f172a; border:1px solid var(--border-gold); color:#fff; border-radius:6px; font-size:12px;" />
+        </div>
+        <div class="coupon-select-list" id="coupon-target-stores-container" style="flex:1; overflow-y:auto; max-height:54vh; display:flex; flex-direction:column; gap:6px;">
+          ${renderStoreList()}
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const containerEl = document.getElementById('coupon-target-stores-container');
+    const searchInput = document.getElementById('coupon-target-search-input');
+
+    const bindStoreClicks = () => {
+      containerEl.querySelectorAll('.coupon-target-item-card').forEach(item => {
+        item.addEventListener('click', () => {
+          this.playSelectSE();
+          const storeId = item.dataset.storeId;
+          const store = stores.find(s => s.id === storeId);
+          if (!store) return;
+          overlay.remove();
+          this.navigateTo('detail', { store });
+        });
+      });
+    };
+
+    bindStoreClicks();
+
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        containerEl.innerHTML = renderStoreList(searchInput.value);
+        bindStoreClicks();
+      });
+    }
+
+    // 閉じるボタン＆モーダル外クリック
+    document.getElementById('target-store-modal-close-btn').addEventListener('click', () => {
+      this.playBackSE();
+      overlay.remove();
+    });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        this.playBackSE();
+        overlay.remove();
+      }
+    });
   }
 
   /* ------------------------------------------------------------------------
