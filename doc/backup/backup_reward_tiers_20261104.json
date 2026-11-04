@@ -1,0 +1,20 @@
+{
+  "table": "reward_tiers",
+  "exported_at": "2026-11-04T02:09:47.042Z",
+  "rows": [
+    {
+      "id": 1,
+      "required_visits": 3,
+      "title": "3軒はしご達成クーポン",
+      "selectable_count": 1,
+      "description": "対象店舗の中からお好きな1店舗の特典を選べます！"
+    },
+    {
+      "id": 2,
+      "required_visits": 5,
+      "title": "5軒完全制覇クーポン",
+      "selectable_count": 5,
+      "description": "対象店舗の中からお好きな5店舗の特典を選べます！"
+    }
+  ]
+}

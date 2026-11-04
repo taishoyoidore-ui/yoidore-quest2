@@ -8,7 +8,7 @@
 第1回イベントで好評だった「紙の冒険の書（台紙）」に店主が手書きサインを書くという**アナログな交流体験・接客負荷軽減**を軸とし、**LINE公式アカウントと連動したデジタル機能（マイルストーン達成QR解除・オンデマンド酒場クーポン・店頭消し込み）**を組み合わせた**「ハイブリッド運用モデル」**を採用しています。
 
 ### 1.2 主な目的とハイブリッド運用の背景
-1. **店舗接客負荷の完全解消と偽造防止**: 全33参加店での会計時個別QRスキャンを廃止し、紙の冒険の書（手書きサイン）で周遊。運営店（6店舗）のみで達成軒数確認とQRスキャンを行うことで、参加店舗のオペレーション混乱を防止。
+1. **店舗接客負荷の完全解消と偽造防止**: 全参加酒場での会計時個別QRスキャンを廃止し、紙の冒険の書（手書きサイン）で周遊。運営店（バックオフィスで `is_organizer: true` に指定された店舗）のみで達成軒数確認とQRスキャンを行うことで、参加店舗のオペレーション混乱を防止。
 2. **LINE公式アカウントの友達獲得とエンゲージメント強化**: 参加導線をLINE公式アカウントに一本化。過去回次の友だち全員をそのまま引き継ぎ可能。
 3. **カスケード特典付与（まとめ獲得）**: 参加者が上位のマイルストーン達成QR（例: 10軒達成QR）をスキャンした際、未獲得の下位特典（5軒達成分等）も自動で合算付与され、取りこぼしなく獲得可能。
 4. **オンデマンド酒場クーポン方式（回数券チケット）＆直感的な一体型UI**: 獲得したクーポン利用可能枠（例: 5回分）は、イベント終了後のクーポン利用期間に来店時にその都度1店舗ずつ選んで消し込みを行う回数券チケット方式。冒険の書内で「獲得特典カード・クーポン利用可能期間・残枠・利用履歴」を一元管理。
@@ -42,7 +42,7 @@ flowchart TD
 
     subgraph Backend [バックエンド (Supabase BaaS / Single Source of Truth)]
         Auth[LINE UID 認証・ユーザー管理]
-        DB[(PostgreSQL データベース<br/>seasons / stores / users / user_coupons / reward_tiers)]
+        DB[(PostgreSQL データベース<br/>users / stores / visits / user_coupons)]
         Storage[(店舗ロゴ / 写真画像)]
     end
 
@@ -59,7 +59,7 @@ flowchart TD
     LineOA -->|トーク画面・リッチメニューから起動| LIFF
     LIFF -->|LINE UID / プロフィール連携| App
     App -->|リアルタイムデータ送受信| Backend
-    PaperBook -->|運営店6店舗で手書きサイン提示| QRScanner
+    PaperBook -->|運営店で手書きサイン提示| QRScanner
     QRScanner -->|マイルストーン達成解除 (?claim_tier=XX)| App
     NoticeBanner -->|フェーズ状態判定| App
     Admin -->|運営・削除・設定変更・POP印刷| DB
@@ -78,6 +78,28 @@ flowchart TD
 4. **開発・ローカル環境の互換性**:
    - LIFF環境外（PCブラウザローカル開発環境やバックオフィス管理画面）では、自動的にフレンドチェックをバイパス（`isFriend = true`）し、デバッグや管理業務を阻害しません。
 
+### 2.2 システムファイル・モジュール構成一覧
+
+本システムはビルドツールを必要としない完全なバニラ（HTML5 / ES6+ JavaScript / CSS3）の静的 Web アプリケーション（SPA）として構成されています。各モジュール・ファイルの責務と配置は以下の通りです。
+
+```
+C:\AG_WORK\yoidore-quest2\yoidore-quest2/
+├── index.html                  # 【ユーザーアプリ】メイン画面（スタート、案内所、酒場一覧、冒険の書、マップ、QRリーダー）
+├── admin.html                  # 【バックオフィス】運営管理システム画面（ダッシュボード、店舗、シーズン、特典、参加者、分析、POP）
+├── js/
+│   ├── config.js               # システム設定（Supabase接続URL/anonKey、LIFF ID、公式LINE URL、testMode等）
+│   ├── api.js                  # Supabase REST API通信層（認証、stores、visits、user_coupons、__system_config__ のCRUD）
+│   ├── app.js                  # ユーザーアプリ制御層（LIFF初期化、フレンドシップガード、画面遷移、ステータス計算、演出）
+│   └── admin.js                # バックオフィス制御層（Supabase Auth認証、Excelインポート、店舗・シーズン・特典管理、CSV出力）
+├── css/
+│   ├── app.css                 # ユーザーアプリ用スタイルシート（ドラクエ・レトロRPG風テーマ、アニメーション）
+│   └── admin.css               # バックオフィス管理画面用スタイルシート（レスポンシブ、ダッシュボード、テーブルUI）
+├── assets/                     # 共通画像アセット（アイコン、宝箱、バナー等）
+├── photo/                      # 店舗外観・料理写真
+├── data/                       # インポート用Excel等（店舗アンケート回答シート）
+└── doc/                        # 初期SQLスキーマ・マイグレーション用リファレンス
+```
+
 ---
 
 ## 3. ユーザー体験（UX）フロー
@@ -86,8 +108,8 @@ flowchart TD
 sequenceDiagram
     autonumber
     actor User as 参加者 (お客さま)
-    actor Shop as 参加酒場 (33店舗)
-    actor OpsShop as 運営店 (6店舗)
+    actor Shop as 参加酒場 (各シーズン参加店舗)
+    actor OpsShop as 運営店 (特定酒場)
     participant LINE as LINE公式アカウント / LIFF
     participant App as 酔いどれクエストアプリ
     participant DB as データベース (Supabase)
@@ -127,38 +149,116 @@ sequenceDiagram
 
 ---
 
-## 4. データベース設計 (Supabase / PostgreSQL)
+## 4. データベース設計と物理運用アーキテクチャ (Supabase / PostgreSQL)
+
+> [!IMPORTANT]
+> **【AI・開発者向け 最重要アーキテクチャ・ガードレール（設計不変原則）】**
+> 本システムは、サーバーレス/フロントエンド完結（SPA）におけるSupabase RLS権限トラブルの防止および原子的（アトミック）な設定同期を実現するため、**「設定ドキュメント（NoSQL型）ハイブリッド構造」** を採用して本番稼働しています。
+> 1. **独自判断による設計・テーブル変更の絶対禁止**:
+>    AIや実装者が独断で新しいテーブルを作成したり、`__system_config__` の読み書き先を別の物理テーブルへ切り替える等の設計変更を行ってはならない。必ず設計者（ユーザー）の明示的な指示に従うこと。
+> 2. **稼働テーブルの厳守**:
+>    実際に稼働している物理テーブルは **`users`, `stores`, `visits`, `user_coupons` の4つのみ** である。
+> 3. **手動SQL実行時の設定レコード保護**:
+>    テストデータ削除等で `users` テーブルを操作する際は、必ず `WHERE line_user_id != '__system_config__'` を付与し、システム設定レコードの巻き込み削除を絶対に防ぐこと。
+
+---
+
+### 4.1 物理テーブル稼働状況一覧
+
+| テーブル名 | 物理稼働状態 | 役割と物理実装詳細 |
+| :--- | :---: | :--- |
+| **`users`** | **実稼働** | **① 一般ユーザー**: LINE UID, 表示名, アイコン画像, 最終アクセス日時<br>**② システム設定**: `line_user_id = '__system_config__'` の特別行にシステム全設定（シーズン、特典、称号）をJSON格納 |
+| **`stores`** | **実稼働** | 店舗マスタ。物理カラムは `[id, name, area, display_order, is_coupon_target, raw_data]`。<br>※定休日・営業時間・シーズン別参加データ等はすべて `raw_data` (JSONB) に格納。 |
+| **`visits`** | **実稼働** | 来店ログ。`[id, season_id, user_id, store_id, visited_at]`。`season_id` によりシーズンごとに完全分離。 |
+| **`user_coupons`** | **実稼働** | ユーザー所持クーポン・グッズ引換記録。`[id, season_id, reward_tier_id, user_id, store_id, reward_type, goods_name, exchange_location, exchange_notice, status, acquired_at, used_at]`。 |
+| **`reward_tiers`** | **非稼働 (形骸化)** | ※初期構築時の古いテストデータ2件が残骸として残っているのみ。**アプリや管理画面は一切アクセス（SELECT/INSERT）しない。** |
+| **`seasons`** | **非稼働 (形骸化)** | ※初期スキーマの残骸。**アプリや管理画面は一切アクセスしない。** |
+| **`hero_titles`** | **非稼働 (形骸化)** | ※初期スキーマの残骸。**アプリや管理画面は一切アクセスしない。** |
+
+---
+
+### 4.2 システム共有設定（`__system_config__`）の内部データ構造
+
+Supabaseの `users` テーブル内の `line_user_id = '__system_config__'` 行における `display_name` カラムに、以下のJSON構造が文字列として格納され、アプリ（`js/app.js`）および管理画面（`js/admin.js`）間で同期されます。
+
+```json
+{
+  "seasons": [
+    {
+      "id": 2,
+      "name": "大正酔いどれクエストⅡ",
+      "start_date": "2027-01-29",
+      "end_date": "2027-02-07",
+      "coupon_valid_until": "2027-03-07",
+      "is_active": true,
+      "overview": "イベント概要...",
+      "guide_steps": ["ステップ1", "ステップ2", "ステップ3"],
+      "rules_notes": "注意事項...",
+      "initial_hero_title": "駆け出しの呑兵衛",
+      "initial_badge_color": "#94a3b8"
+    }
+  ],
+  "current_season": {
+    "id": 2,
+    "name": "大正酔いどれクエストⅡ",
+    "start_date": "2027-01-29",
+    "end_date": "2027-02-07",
+    "coupon_valid_until": "2027-03-07",
+    "is_active": true
+  },
+  "reward_tiers_by_season": {
+    "2": [
+      {
+        "id": 1,
+        "season_id": 2,
+        "reward_type": "store_coupon",
+        "is_all_stores": false,
+        "title": "5軒はしご達成特典",
+        "required_visits": 5,
+        "selectable_count": 5,
+        "goods_name": null,
+        "exchange_location": null,
+        "exchange_notice": null,
+        "hero_title": "酒場制覇の豪傑",
+        "badge_color": "#facc15",
+        "description": "お好きな5店舗を選んで特典チケットを獲得！"
+      },
+      {
+        "id": 4,
+        "season_id": 2,
+        "reward_type": "goods",
+        "is_all_stores": true,
+        "title": "全店舗制覇特典",
+        "required_visits": 40,
+        "selectable_count": 1,
+        "goods_name": "記念Tシャツ & 認定証",
+        "exchange_location": "案内所（運営本部）",
+        "exchange_notice": "イベント期間中のみ引換可能",
+        "hero_title": "完全制覇グランドマスター",
+        "badge_color": "#eab308",
+        "description": "通常営業40店舗を制覇した猛者への特別記念品"
+      }
+    ]
+  },
+  "reward_tiers": [ /* 全シーズンのフラット配列（互換用） */ ],
+  "hero_titles": [ /* 称号マスタ配列 */ ]
+}
+```
+
+---
+
+### 4.3 データベース論理・物理ER図
 
 ```mermaid
 erDiagram
-    seasons ||--o{ season_stores : "1シーズン 対 多参加店舗"
-    stores ||--o{ season_stores : "1店舗 対 歴代シーズンの参加データ"
-    seasons ||--o{ reward_tiers : "シーズンごとの特典ルール"
-    seasons ||--o{ visits : "シーズンごとの来店ログ"
     users ||--o{ visits : "1ユーザー 対 多来店ログ"
-    stores ||--o{ visits : "店舗 対 来店ログ"
-    seasons ||--o{ user_coupons : "シーズンごとのクーポン"
+    stores ||--o{ visits : "1店舗 対 多来店ログ"
     users ||--o{ user_coupons : "1ユーザー 対 多クーポン"
-    reward_tiers ||--o{ user_coupons : "特典ランク 対 クーポン"
-    stores ||--o{ user_coupons : "店舗 対 クーポン"
-
-    seasons {
-        int id PK "シーズン番号 (1: 第1回, 2: 第2回...)"
-        string name "イベント名称 (例: 大正酔いどれクエストⅡ)"
-        date start_date "開始日 (本開催初日)"
-        date end_date "終了日 (本開催最終日)"
-        date coupon_valid_until "クーポン利用有効期限"
-        boolean is_active "現在アクティブ（開催中）フラグ"
-        text overview "イベント概要説明文"
-        jsonb guide_steps "はしご酒の導き (3ステップJSON)"
-        text rules_notes "冒険の心得・注意事項"
-        string initial_hero_title "参加開始時の初期称号 (Lv.1・未巡回時の称号)"
-        string initial_badge_color "初期称号バッジ色 (HEXコード)"
-    }
+    stores ||--o{ user_coupons : "店舗 対 クーポン（利用先）"
 
     users {
-        string line_user_id PK "LINE User ID"
-        string display_name "LINE表示名"
+        string line_user_id PK "LINE User ID（※ '__system_config__' はシステム設定保管用）"
+        string display_name "表示名（※ '__system_config__' 行では設定JSONテキスト）"
         string picture_url "アイコン画像URL"
         timestamp created_at "初回登録日時"
         timestamp last_active_at "最終アクセス日時"
@@ -168,73 +268,26 @@ erDiagram
         string id PK "店舗ユニークID (例: store-01)"
         string name "店舗名 (正式名称)"
         string area "エリア (三軒家西, 三軒家東, 泉尾, 平尾等)"
-        int display_order "並び順 (任意)"
+        int display_order "並び順"
         boolean is_coupon_target "クーポン取扱フラグ (互換用)"
-        jsonb raw_data "全拡張属性・シーズン別企画データ格納JSONB"
+        jsonb raw_data "定休日・営業時間・シーズン別企画データ格納JSONB"
         timestamp created_at "登録日時"
-        timestamp updated_at "更新日時"
-    }
-
-    season_stores {
-        string id PK "論理モデル (raw_data.seasons[season_id] として物理実装)"
-        int season_id FK "シーズンID"
-        string store_id FK "店舗ID (stores.id)"
-        boolean is_participating "そのシーズンへの参加フラグ (true: 参加 / false: 不参加)"
-        boolean is_organizer "運営店フラグ (true: 運営店 / false: 通常店)"
-        int display_order "そのシーズンでの表示順 / MAPピン番号"
-        boolean is_coupon_target "クーポン取扱店フラグ"
-        string plan_type "参加企画 (酔いどれセット / お遊びゲーム / 両方)"
-        string quest_hours "どれクエ提供時間 (例: 17:00〜22:00)"
-        string quest_days "どれクエ提供曜日 (例: 火,水,木,金,土,日)"
-        string time_notes "提供時間に対する補足"
-        string is_takeout "テイクアウト対応 (テイクアウトOK / 不可 / 専門)"
-        string set_name "限定セット名 (例: 選べるおばんざい3種セット)"
-        string set_content "セット内容詳細"
-        string set_notes "セット内容備考"
-        number set_price "セット価格 (税込)"
-        string set_charge "チャージ料"
-        string set_limit "限定数量"
-        string quest_name "お遊びゲーム名"
-        string quest_content "お遊びゲーム内容 / 達成報酬"
-        number quest_price "ゲーム料金 (税込)"
-        string quest_charge "ゲームチャージ料"
-        string quest_notes "ゲーム備考"
-        string badge_sales_count "缶バッチ販売希望数"
-        string season_photo_url "そのシーズンのセット料理写真"
-    }
-
-    note for stores "【重要: 物理DB保存規約】<br/>Supabaseの stores テーブルの物理カラムは [id, name, area, display_order, is_coupon_target, raw_data] のみです。<br/>is_organizer や営業時間・メニュー等の拡張データは必ず raw_data 内に格納し、テーブル直下へ送信しないでください (PGRST204エラー防止)。"
-
-
-    reward_tiers {
-        int id PK "特典ランクID"
-        int season_id FK "シーズンID (完全分離・シーズンごと)"
-        string reward_type "特典種別 (store_coupon: 店舗クーポン / goods: グッズ引換)"
-        int required_visits "必要来店店舗数 (例: 5, 10, 20)"
-        string title "特典名 (例: 5軒ハシゴ達成特典 / 特製トートバッグ)"
-        string hero_title "獲得称号名 (達成時に付与される称号。例: 酒場巡りの達人)"
-        string badge_color "バッジカラーコード (#facc15 等)"
-        int selectable_count "選択可能店舗数 (クーポン型の場合、例: 5)"
-        string goods_name "グッズ名称 (グッズ型の場合)"
-        string exchange_location "引換場所 (グッズ型の場合)"
-        string exchange_notice "引換注意事項 (グッズ型の場合)"
-        string description "説明文"
     }
 
     visits {
         uuid id PK "来店ログID"
-        int season_id FK "シーズンID (seasons.id / どのシーズンの来店か)"
-        string user_id FK "LINE User ID (users.line_user_id / CASCADE DELETE)"
+        int season_id "シーズン番号（各シーズンの来店ログ分離用）"
+        string user_id FK "LINE User ID (users.line_user_id)"
         string store_id FK "店舗ID (stores.id)"
         timestamp visited_at "来店日時"
     }
 
     user_coupons {
         uuid id PK "ユーザー所持クーポンID"
-        int season_id FK "シーズンID (seasons.id / どのシーズンのクーポンか)"
-        int reward_tier_id FK "獲得元特典ランクID (reward_tiers.id)"
-        string user_id FK "LINE User ID (users.line_user_id / CASCADE DELETE)"
-        string store_id FK "選択した店舗ID (stores.id / グッズ型の場合はnull)"
+        int season_id "シーズン番号"
+        int reward_tier_id "獲得元特典ランクID"
+        string user_id FK "LINE User ID (users.line_user_id)"
+        string store_id FK "選択・消込店舗ID (stores.id / 未選択時・グッズ型はnull)"
         string reward_type "特典種別 (store_coupon / goods)"
         string goods_name "グッズ名称 (グッズ型の場合)"
         string exchange_location "引換場所 (グッズ型の場合)"
@@ -256,7 +309,7 @@ erDiagram
 | **ユーザーアプリ** | **酒場一覧（今期専有・過去非遷移）** | 迷いや誤認を防止するため、酒場一覧・店舗詳細画面は**常に現在開催中（アクティブ）のシーズンに参加している店舗（`is_participating = true`）と今期のセットメニューのみ**を表示。過去シーズンへの遷移は行わない。 |
 | **ユーザーアプリ** | **冒険の書（歴代アーカイブ閲覧）** | 自分の冒険の思い出・達成履歴として、上部セレクターで「第1回の冒険の書」などを振り返り閲覧可能（過去回は読み取り専用でQR読取等はロック）。ロゴコレクションは**選択中シーズンに参加している店舗のみ**を動的に整列表示。 |
 | **ユーザーアプリ** | **案内所（トップガイダンス）** | 現在開催中シーズンの概要・はしご酒の導き（3ステップ）・冒険の心得を動的表示。 |
-| **ユーザーアプリ** | **アプリ内蔵カメラQRリーダー** | ボトムナビ「📷 QR読取」からWebカメラを起動し、運営店舗（6店舗）に設置されたマイルストーン達成QRコード（`?claim_tier=XX`）をスキャン。該当ランクおよび未獲得の下位ランク特典を一括カスケード自動解放。 |
+| **ユーザーアプリ** | **アプリ内蔵カメラQRリーダー** | ボトムナビ「📷 QR読取」からWebカメラを起動し、運営店舗に設置されたマイルストーン達成QRコード（`?claim_tier=XX`）をスキャン。該当ランクおよび未獲得の下位ランク特典を一括カスケード自動解放。 |
 | **ユーザーアプリ** | **ドラクエ風達成ファンファーレ＆メッセージウィンドウ演出** | 達成QRスキャン成功時に8bitレベルアップファンファーレSE・金紙吹雪/打ち上げ花火パーティクルとともに、ドラクエのステータス画面風レイアウト（アバター・なまえ・Lv・独立全幅の称号プレート）およびクラシックな黒枠メッセージウィンドウ（純白テキスト・アイコンなしスマート表示・自動ピコピコ文字送り＆タップスキップ対応）で獲得特典を演出。レベル数値は達成マイルストーンの必要軒数と完全一致（5軒達成でLv.5、20軒達成でLv.20等）。宝箱開封時の画面点滅（フリッカー）やSE二重鳴動を完全解消し、称号などの文字見切れを防ぎつつ下位特典の一括大量アンロック時も画面高を超えず「ぼうけんのしょを ひらく」ボタンが常時確実に押下可能。 |
 | **ユーザーアプリ** | **冒険者ステータス欄（テーブル整列レイアウト ＆ 軒数連動Lv表示）** | なまえ、しょうごう、酒場クーポン残枠数のラベルと値を左揃えテーブル形式で整列表示し、視認性を大幅向上。レベル（Lv）は未達成時「Lv.1」から、各マイルストーン達成時の必要軒数（Lv.5、Lv.10、Lv.20等）と完全一致して連動表示。 |
 | **ユーザーアプリ** | **開催フェーズ動的バナー** | 本開催中・後夜祭（クーポン利用期間）・期間終了の3状態を自動検知してヘッダーにリアルタイム告知。 |
@@ -318,6 +371,44 @@ flowchart TD
 > [!IMPORTANT]
 > **新属性追加時の鉄則**：
 > 「運営店フラグ（`is_organizer`）」など新しい属性を画面・APIに追加する際は、**絶対に `stores` テーブルのルートペイロードに含めず、必ず `raw_data` および `raw_data.seasons[seasonId]` に格納してください。**
+
+---
+
+### 6.1.2 特定日限定営業店舗（1日のみ営業）の運用規則と全店制覇（王の器）算定ルール
+
+> [!NOTE]
+> **【ステータス: 運営メンバー検討中（保留中）】**  
+> 本項の「特定日営業店舗を除外した全店制覇（40店舗）仕様」は、現在運営チーム内で合意形成中の提案仕様です。現行のコードおよびDBはまだ変更されていません。  
+> 検討完了・合意後に、どのAI/開発者でも迷わず即座に安全・正確に実装できるよう、完全なコード差分・DB更新SQL・検証手順をまとめた指示書 `doc/RFC_all_stores_conquest_special_date_rule.md` を策定済みです。合意後はその手順書に従って着手してください。
+
+イベント期間中、極めて限定された日時（例: 1日のみ・数時間）に限り特別営業を行う店舗（特定日限定営業店舗）が存在します。一般参加者が全店制覇（最高位特典マイルストーン）を目指すにあたり、特定日営業の参加可否によって不公平や達成不能が生じないよう、以下の**設計・運用ルール**を厳格に定めます。
+
+#### ① 実例：第2回「かのじょとカレー」（store-45）の営業仕様
+- **対象店舗**: `store-45`（かのじょとカレー）
+- **特定日営業日時**: `2027年1月30日（土） 11:30 〜 15:30`（イベント期間中わずか4時間のみ）
+- **データ管理**: `stores.raw_data.seasons["2"].special_date = '2027-01-30'` および `quest_hours = '11:30〜15:30'`。
+
+#### ② 全店制覇特典（最高位マイルストーン）における必須除外ルール
+1. **全店制覇の必要来店数（`required_visits`）の自動算出**:
+   - バックオフィスで特典マイルストーンの「👑 全軒制覇（全店舗達成）」を選択して保存する際、単に全参加店舗数（例: 41軒）を充てるのではなく、**「今期参加店舗数 − 特定日限定営業店舗数」** を自動算出して登録する。
+   - 例（第2回）: 参加店舗 41軒 − 特定日営業 1軒（かのじょとカレー） ＝ **40軒**
+   - これにより、特定日営業の店舗に足を運ぶことができない参加者であっても、通常営業の40軒を巡ることで**確実に「全店制覇（せかいのはんぶん / 酔いどれの神々）」を達成可能**とする。
+2. **特定日営業店舗に来店した場合の扱い（ボーナス加算）**:
+   - 特定日営業店舗（`store-45`）への来店も、正規のハシゴ軒数（`visits`）として1軒分カウントされる。
+   - 他の通常営業店舗を1軒スキップしても、特定日店舗を訪れていれば合計40軒で全店制覇を達成できる（救済・代替店舗として機能する）。
+3. **アプリ判定ロジックの不変原則（リアルタイム引き算の禁止）**:
+   - アプリ側の判定は常に `visitedCount >= tier.required_visits`（40軒）の単一絶対評価を維持する。
+   - アプリ実行時に特定日店舗の有無を動的に差し引くような複雑な条件分岐は行わず、DBに保存された `required_visits = 40` を唯一の真実（Single Source of Truth）として愚直に判定する。
+
+#### ③ ユーザー向けUIでの事前周知・注意書き仕様
+誤解やトラブルを防止するため、以下の画面に明確な注記を掲示する。
+1. **酒場一覧カード ＆ 店舗詳細モーダル**:
+   - 特定日設定がある店舗には、特定日タグおよび営業時間の横に以下の注意書きを明記する。
+   > `※全店制覇の必須店舗ではありません（ハシゴ軒数にはカウントされます）`
+2. **冒険の書「全店制覇」宝箱カード**:
+   - 全店制覇特典カードの条件表示枠に、以下の案内を明記する。
+   > `🍺 条件: 通常営業 40店舗ハシゴ`<br/>
+   > `※特定日営業の店舗に行かなくても全店制覇を達成できます`
 
 ---
 
@@ -600,6 +691,7 @@ flowchart TD
 
 | バージョン | 改定日 | 主な改定内容・実装項目 |
 | :--- | :--- | :--- |
+| **v2026.11.04.01** | 2026-11-04 | **Supabase物理稼働アーキテクチャの厳格明文化 ＆ AIガードレール（設計不変原則）策定 ＆ インフラ/外部サービス仕様 ＆ バックオフィス全入力項目定義の明文化 ＆ 固定値完全排除**<br>・【物理稼働テーブルの限定】実際に稼働している物理テーブルは `users`, `stores`, `visits`, `user_coupons` の4つのみであり、`reward_tiers`, `seasons`, `hero_titles` はアクセスされない非稼働残骸であることを第4章に明記。<br>・【設定ドキュメント運用の完全定義】システム共有設定（シーズン、特典、称号）は `users` テーブルの `line_user_id = '__system_config__'` の `display_name`（JSON）に単一集約管理される仕様と詳細データ構造を定義。<br>・【AI・開発者向け設計不変原則（ガードレール）】AIが独断で新規テーブルを作成したり、保存先を物理テーブルへ切り替える改変を絶対禁止とする不変ルール、およびSQL実行時の設定レコード保護ルールを策定。<br>・【特定日限定営業店舗と全店制覇（王の器）算定ルール】特定日限定営業店舗（1日のみ・数時間営業）が存在する場合の全店制覇特典条件「今期参加店舗数 − 特定日限定営業店舗数」の動的算定ルールおよびUI事前周知仕様を第6章（6.1.2）に策定。<br>・【仕様書内の固定値完全排除】過去の仕様書内に残存していた「33店舗」「6店舗」等の古い固定記述を排除し、すべて「シーズン別参加店舗マスタ」「バックオフィス指定運営店」による動的仕様へ是正。<br>・【システム環境・インフラ・外部サービス仕様（第11章）新設】Supabase接続先情報、LINE LIFF / 公式アカウント詳細、GitHub Pages静的ホスティング等の環境仕様を体系化。<br>・【バックオフィス入力項目定義書（第12章）新設】シーズン開催設定、特典ランク設定、店舗マスター管理の各入力項目（HTML ID, 型, 必須/任意, 初期値空文字原則, プレースホルダー）を網羅明記し、AIによる勝手な初期値代入や入力項目の改変を恒久的に遮断。<br>・システム共通バージョンを `v2026.11.04.01` に更新。 |
 | **v2026.10.30.04** | 2026-10-30 | **バックオフィス店舗編集における決済方法（PayPay等）の大文字・小文字不問化（case-insensitive）＆ 表記ゆれ自動マッピング**<br>・【決済方法チェックボックスの柔軟化】Excel取込データや既存DBデータにおいて `paypay`, `Paypay`, `PAYPAY` 等の小文字・混在表記、または `ペイペイ` と登録されていた場合に、バックオフィス編集画面でチェックボックス（`PayPay`）がONにならず「その他決済（フリーテキスト）」欄に流れていた問題を解消。<br>・大文字・小文字を区別しない比較（`toLowerCase()`）および主要な表記ゆれ（`paypay` / `ペイペイ`、`クレカ` / `カード` / `visa` / `mastercard` 等）の自動マッピングを導入し、該当チェックボックスへ正しく選択状態を反映。<br>・システム共通バージョンを `v2026.10.30.04`（キャッシュバスター: `v=20261030_04`）に更新。 |
 | **v2026.10.30.03** | 2026-10-30 | **バックオフィス認証トークン期限切れ（401 JWT expired）の簡潔・明快な再ログイン制御への刷新 ＆ 生エラー遮断 ＆ 安全な画面ロック**<br>・【生エラー（PGRST303 JWT expired）の完全遮断】Supabase REST API通信層（`js/api.js` の `supabaseFetch`）において、管理者アクセストークン使用時の `401 Unauthorized`（`JWT expired`）を共通検知。英語の謎システムエラー文字列（`API Error: 401 {"code":"PGRST303","message":"JWT expired"}`）の画面露出を完全に遮断。<br>・【シンプルかつ厳格な再ログイン誘導（小手先リフレッシュの排除）】有効期限切れ発生時、裏でトークンを自動延長する仕様矛盾を排除し、期限切れの事実を明確に案内するダイアログ（「⚠️ ログインの有効期限が切れました。安全のため、再度ログインしてください。」）を表示。期限切れセッションを安全に破棄し、自動的にログイン入力画面を表示して管理画面をロック。再ログイン成功により直ちに新しい有効セッションで作業を継続可能に。<br>・【一括インポート・店舗保存等の二重アラート防止】Excel一括インポート（`executeImport`）、店舗作成・編集・削除、シーズン保存、特典保存、手動クーポン消込等の各操作において、認証切れ時は多重ダイアログを出さず安全に処理を中断・ログイン画面へ遷移するガードを実装。<br>・【復元セッションの事前有効期限チェック】管理画面起動時（`checkAuthSession`）において、ローカル復元されたセッションが既に期限切れ（`session.expires_at <= now`）の場合は画面を開かせず安全にログイン画面へ導く制御を追加。<br>・システム共通バージョンを `v2026.10.30.03`（キャッシュバスター: `v=20261030_03`）に更新。 |
 | **v2026.10.30.02** | 2026-10-30 | **Supabaseシステム設定（__system_config__）文字化けの緊急完全リストア ＆ 全店制覇特典の「全軒ハシゴ」「未達成 (全軒)」「Lv.MAX」「全軒制覇マスタ選択」の完全同期・キャッシュバスター更新**<br>・【システム設定文字化けの緊急完全リストア】直前のDB更新時に発生したエンコーディング不備によるシステム設定（`__system_config__`）の全「?」化障害に対し、バックアップログからシーズン開催設定（イベント名・開催概要・冒険の心得其の一〜三・注意事項）、特典ランク設定（全6種）、勇者称号マスタ（Lv.1〜7）の全正規日本語テキストを100%完全抽出し、Node.js（UTF-8ネイティブ通信）によりSupabase DBへ完全リストア完了。「?」文字が0件であることを厳密に検証。<br>・【全店制覇特典の設定整合化完了】第2回イベントの全店制覇達成特典（ID 6: せかいのはんぶん / 称号: 酔いどれの神々）に `is_all_stores: true`, `required_visits: 41` を正式付与し、店舗マスタ実件数との自動連動を確立。<br>・【キャッシュバスター更新】ブラウザ側で古いJS・CSSがキャッシュされて文字化けや古い表示が残存することを防ぐため、システム共通バージョンを `v2026.10.30.02`（キャッシュバスター: `v=20261030_02`）に更新。 |
@@ -694,8 +786,123 @@ flowchart TD
 | **v2026.09.18.28** | 2026-09-18 | **特典宝箱「宝箱を開ける」ボタンの中央揃えUI調整**<br>・冒険の書の特典カード下部のアクションエリア（「宝箱を開ける」ボタンおよびステータスメッセージ）を中央揃えに最適化。<br>・システム共通バージョンを `v2026.09.18.28` に更新。 |
 | **v2026.09.18.27** | 2026-09-18 | **クーポン酒場選択ダイアログの店舗ロゴアイコン追加**<br>・クーポン選択モーダル内の酒場一覧に各店舗のロゴアイコン（36px角・黒背景ゴールド枠）を表示し、直感的な視認性を大幅向上。<br>・ロゴ未設定・読み込み失敗時のフォールバック表示および取得済み店舗のトーンダウン表示に対応。<br>・システム共通バージョンを `v2026.09.18.27` に更新。 |
 | **v2026.09.18.26** | 2026-09-18 | **店舗クーポン仕様の統一 ＆ 未制覇ロゴ視認性改善**<br>・クーポン選択ダイアログの不要なサブテキストを削除し店舗名・エリアのみに整理。<br>・DB/スキーマ/API/管理画面から不要な `coupon_description` カラムを完全削除。<br>・店舗詳細画面の写真下部「ハシゴ達成クーポン対象枠」を削除。<br>・冒険の書の未制覇ロゴアイコンを明るく見やすいグレースケール表示に調整。<br>・システム共通バージョンを `v2026.09.18.26` に更新。 |
-| **v2026.09.18.24** | 2026-09-18 | **店舗・特典別集計分析（Analytics）機能 ＆ 記念品グッズ引換対応**<br>・バックオフィスに店舗別集計、特典別集計、CSV出力を実装。<br>・記念品グッズ型特典（トートバッグ等）の引換所・注意事項管理と店頭消し込みをサポート。 |
-| **v2026.09.18.01** | 2026-09-18 | **第2回イベント向けシステム基盤構築（初期リリース）** |
+---
+
+## 11. システム環境・インフラ・外部サービス連携仕様
+
+本システムの稼働環境、データベース接続情報、LINEプラットフォーム連携情報、およびソースコード管理仕様を以下に明記します。プログラムコードや設定ファイル、本仕様書の間で設定値の齟齬が生じないよう、本定義を基準とします。
+
+### 11.1 Supabase BaaS（データベース・認証基盤）
+- **Project URL**: `https://fjpvmbzanbuwwpcjnajt.supabase.co`
+- **接続キー管理**:
+  - `anonKey`: `js/config.js` 内の `APP_CONFIG.supabase.anonKey` に設定（クライアント公開用公開鍵）。
+  - **管理者認証（Supabase Auth）**: 管理画面ログイン時は Supabase Auth（`auth.signInWithPassword`）を用い、発行された JWT アクセストークンを Bearer ヘッダーに付与して REST API 通信を実行。
+- **物理テーブル（実稼働 4テーブル）**: `users`, `stores`, `visits`, `user_coupons`（※詳細は第4章参照）。
+
+### 11.2 LINE プラットフォーム連携仕様
+- **LINE プロバイダー名**: 大正酔いどれ
+- **公式アカウントID**: `@277lqewi`
+- **友だち追加URL**: `https://line.me/R/ti/p/@277lqewi`
+- **LIFF ID**: `2011637649-WWv6pnTL`
+- **LIFF エンドポイントURL**: `https://liff.line.me/2011637649-WWv6pnTL`
+- **フレンドシップ検証**: アプリ起動時に `liff.getFriendship()` を実行し、未登録・ブロック中の場合は画面をロックして友だち追加画面へ誘導。
+
+### 11.3 ソースコード管理・デプロイ環境
+- **作業ディレクトリ構成**: `C:\AG_WORK\yoidore-quest2\yoidore-quest2`
+- **ホスティング環境**: GitHub Pages（静的 Web サイトホスティング / SPA 構成）
+- **公開本番URL**: LINE LIFF エンドポイント（`https://liff.line.me/2011637649-WWv6pnTL`）に紐づく GitHub Pages ホスティング環境
+- **ビルドシステム**: ビルドツール（Webpack/Vite等）不要の純粋なネイティブ Vanilla JS / HTML5 / CSS3 構成。
+- **キャッシュバスター運用**: `index.html` および `admin.html` の CSS/JS 読み込みクエリパラメータ（`?v=YYYYMMDD_XX`）により、ブラウザキャッシュによる新機能反映漏れを防止。
+- **Git・リポジトリ運用方針**:
+  - 本ローカル作業ディレクトリ（`C:\AG_WORK\yoidore-quest2`）は開発・実行作業用であり、リモートリポジトリへのプッシュや本番公開は指示者の承認・方針に基づき管理される。
+  - AIが独断で `.git` の強制初期化、破壊的コミット・リセット、未承認のリモート強制上書き等を行ってはならない。
+
+---
+
+## 12. バックオフィス管理画面 入力項目定義書 (Admin Fields Specification)
+
+第9章「データ取得・フォールバック偽装の完全禁止規約」に基づき、バックオフィス（`admin.html`）の各管理モーダルおよび編集フォームにおける全入力項目を定義します。
+**【鉄則】新規作成時はすべての入力欄が「完全な空文字（`""`）」または「未選択状態」で初期化され、プログラム側から勝手な固定値や決め打ち文字列を初期値（`.value`）としてセットすることは恒久的に禁止**とします。
+
+### 12.1 シーズン開催設定（`#season-modal` / `#tab-seasons`）
+主催者が開催回（第1回、第2回、第3回…）を作成・編集するフォーム項目です。
+
+| フォーム入力項目名 | HTML要素ID / name | データ型 | 必須/任意 | 初期値（新規時） | プレースホルダー / 説明・仕様 |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **イベント名** | `#edit-season-name` | string | **必須** | `""` | `placeholder="例: 大正酔いどれクエストⅡ"`<br/>回次名・イベント正式名称。 |
+| **開催開始日** | `#edit-season-start` | date (`YYYY-MM-DD`) | **必須** | `""` | カレンダー選択。イベントのサイン集め（周遊）開始日。 |
+| **開催終了日** | `#edit-season-end` | date (`YYYY-MM-DD`) | **必須** | `""` | カレンダー選択。サイン集め終了日。翌日からクーポン利用期間に移行。 |
+| **クーポン有効期限** | `#edit-season-coupon-valid` | date (`YYYY-MM-DD`) | **必須** | `""` | カレンダー選択。ハシゴ達成酒場クーポンの最終利用可能期日。 |
+| **イベント開催概要** | `#edit-season-overview` | string (textarea) | 任意 | `""` | `placeholder="イベント概要を入力"`<br/>案内所トップに表示される概要案内文。 |
+| **導きステップ1** | `#edit-season-step1` | string | 任意 | `""` | `placeholder="例: 酒場へ突入せよ"`<br/>案内所「はしご酒の導き」其の一見出し。 |
+| **導きステップ1詳細** | `#edit-season-step1-desc` | string (textarea) | 任意 | `""` | `placeholder="其の一の説明を入力"` |
+| **導きステップ2** | `#edit-season-step2` | string | 任意 | `""` | `placeholder="例: サインを集めよ"`<br/>案内所「はしご酒の導き」其の二見出し。 |
+| **導きステップ2詳細** | `#edit-season-step2-desc` | string (textarea) | 任意 | `""` | `placeholder="其の二の説明を入力"` |
+| **導きステップ3** | `#edit-season-step3` | string | 任意 | `""` | `placeholder="例: 宝箱を解放せよ"`<br/>案内所「はしご酒の導き」其の三見出し。 |
+| **導きステップ3詳細** | `#edit-season-step3-desc` | string (textarea) | 任意 | `""` | `placeholder="其の三の説明を入力"` |
+| **冒険の心得（注意事項）** | `#edit-season-rules` | string (textarea) | 任意 | `""` | `placeholder="改行区切りで注意事項を入力"`<br/>案内所アコーディオンに表示される箇条書き注意事項。 |
+| **開始時初期称号 (Lv.1)** | `#edit-season-initial-title` | string | 任意 | `""` | `placeholder="例: 駆け出しの呑兵衛"`<br/>未巡回時の初期ステータス称号名（未設定時は「称号未獲得」）。 |
+| **初期称号バッジ色** | `#edit-season-initial-color` | color (`#HEX`) | 任意 | `#38bdf8` | 称号プレート枠・アイコンの色。 |
+
+---
+
+### 12.2 特典ランク（宝箱マイルストーン）設定（`#tier-modal`）
+ハシゴ達成（サイン確認）によって獲得できる宝箱とクーポン・グッズを定義するフォーム項目です。
+
+| フォーム入力項目名 | HTML要素ID / name | データ型 | 必須/任意 | 初期値（新規時） | プレースホルダー / 説明・仕様 |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **特典ランクタイトル** | `#tier-title` | string | **必須** | `""` | `placeholder="例: 5軒ハシゴ達成特典"`<br/>達成ダイアログや冒険の書に表示されるタイトル。 |
+| **達成条件種別** | `input[name="tier-visits-type"]` | radio | **必須** | `fixed` | `fixed`: 指定軒数で達成<br/>`all`: 👑 全軒制覇（全店舗達成） |
+| **必要来店店舗数** | `#tier-required-visits` | number | 条件付き必須 | `""` | `placeholder="例: 5"`<br/>`fixed` 選択時に1以上の数値を入力（そのまま勇者Lvになる）。 |
+| **特典タイプ** | `input[name="tier-reward-type"]` | radio | **必須** | `store_coupon` | `store_coupon`: 酒場クーポン型<br/>`goods`: 記念品グッズ引換型 |
+| **獲得可能クーポン数** | `#tier-coupon-count` | number | 条件付き必須 | `""` | `placeholder="例: 5"`<br/>クーポン型選択時に入力（1以上の枠数）。 |
+| **記念品グッズ名称** | `#tier-goods-name` | string | 条件付き必須 | `""` | `placeholder="例: 特製酔いどれトートバッグ"`<br/>グッズ型選択時に入力。 |
+| **記念品引換場所** | `#tier-exchange-location` | string | 任意 | `""` | `placeholder="例: 運営本部または対象運営店"`<br/>グッズ受取窓口の案内。 |
+| **記念品受取注意事項** | `#tier-exchange-notice` | string (textarea) | 任意 | `""` | `placeholder="例: 引換はイベント期間中のみ有効です"` |
+| **獲得称号名** | `#tier-hero-title` | string | 任意 | `""` | `placeholder="例: 呑み歩き勇者"`<br/>達成時に獲得・昇格する勇者称号名。 |
+| **称号バッジカラー** | `#tier-badge-color` | color (`#HEX`) | 任意 | `#ffd700` | 冒険の書および演出時の称号枠カラー。 |
+| **特典説明文** | `#tier-description` | string (textarea) | 任意 | `""` | `placeholder="特典内容の説明を入力"` |
+
+---
+
+### 12.3 店舗マスター管理（`#store-modal`）
+店舗の基本情報（`stores`）および選択中シーズンの企画情報（`season_stores`）を登録・編集するフォーム項目です。
+
+| フォーム入力項目名 | HTML要素ID / name | 格納先レイヤー | 必須/任意 | 初期値（新規時） | プレースホルダー / 説明・仕様 |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **店舗ID** | `#edit-store-id` | `stores.id` | **必須** | `""` | `placeholder="例: store-01"`<br/>英数字ユニークID（編集時は変更不可）。 |
+| **店舗正式名称** | `#edit-store-name` | `stores.name` | **必須** | `""` | `placeholder="店舗名を入力"` |
+| **キャッチコピー** | `#edit-store-catch` | `stores.raw_data` | 任意 | `""` | `placeholder="例: 牛すじとお酒とおばんざい"` |
+| **エリア** | `#edit-store-area` | `stores.area` | **必須** | `""`（未選択） | ドロップダウン選択（三軒家西/東/駅前/泉尾/平尾等）。 |
+| **ジャンル (カテゴリ)** | `#edit-store-cat` | `stores.raw_data` | **必須** | `""`（未選択） | ドロップダウン選択（居酒屋/おばんざい/焼肉/BAR等）。 |
+| **席スタイル** | `#edit-store-style` | `stores.raw_data` | **必須** | `""`（未選択） | ドロップダウン選択 ＋ 自由入力欄。 |
+| **酔いどれタイプ** | `#edit-store-type` | `stores.raw_data` | **必須** | `""`（未選択） | ドロップダウン選択（サク飲み/腹ごしらえ/腰を据えて等）。 |
+| **店舗住所** | `#edit-store-address` | `stores.raw_data` | 任意 | `""` | `placeholder="大阪市大正区..."` |
+| **電話番号** | `#edit-store-tel` | `stores.raw_data` | 任意 | `""` | `placeholder="06-xxxx-xxxx"` |
+| **決済方法** | `input[name="store-payment"]` | `stores.raw_data` | 任意 | 全てOFF | チェックボックス（現金/カード/PayPay等）＋その他自由入力。 |
+| **GoogleマップURL** | `#edit-store-map` | `stores.raw_data` | 任意 | `""` | `placeholder="https://maps.app.goo.gl/..."` |
+| **Instagram URL** | `#edit-store-insta` | `stores.raw_data` | 任意 | `""` | `placeholder="https://www.instagram.com/..."` |
+| **今期参加フラグ** | `#edit-store-participating` | `season_stores` | **必須** | `true` | チェックボックス。OFFにすると今期の酒場一覧・マップに非表示。 |
+| **運営店フラグ** | `#edit-store-organizer` | `season_stores` | **必須** | `false` | チェックボックス。ONの店舗が特典達成QR卓上POP設置店となる。 |
+| **クーポン取扱フラグ** | `#edit-store-coupon-target` | `season_stores` | **必須** | `false` | チェックボックス。ONの店舗がハシゴ達成クーポンの利用対象店となる。 |
+| **特定日 (限定営業日)** | `#edit-store-special-date`| `season_stores` | 任意 | `""` | カレンダー選択（`YYYY-MM-DD`）。特定日のみ営業する店舗に設定。 |
+| **参加企画種別** | `#edit-store-plan-type` | `season_stores` | **必須** | `""`（未選択） | ドロップダウン選択（セット＋ゲーム両方 / セットのみ / ゲームのみ）。 |
+| **テイクアウト対応** | `#edit-store-takeout` | `season_stores` | **必須** | `""`（未選択） | ドロップダウン選択（テイクアウトOK / 不可 / 専門）。 |
+| **提供曜日** | `input[name="store-day"]` | `season_stores` | 任意 | 全てOFF | チェックボックス（月,火,水,木,金,土,日）。 |
+| **提供時間 (開始/終了)** | `#edit-store-hours-start/end` | `season_stores`| 任意 | `""` / `""` | 時刻入力 ＋ 翌日跨ぎチェックボックス。 |
+| **提供時間補足** | `#edit-store-time-notes` | `season_stores` | 任意 | `""` | `placeholder="例: 土日祝は15時〜"` |
+| **限定セット名** | `#edit-store-set-name` | `season_stores` | 条件付き必須 | `""` | `placeholder="セット名を入力"`（セット参加時必須）。 |
+| **セット料理内容** | `#edit-store-set-content`| `season_stores` | 任意 | `""` | `placeholder="料理内容・ドリンク詳細"` |
+| **セット価格・料金** | `#edit-store-set-price` | `season_stores` | 任意 | `""` | `placeholder="例: 1000 または 500円〜900円"`（文字列許容）。 |
+| **セットチャージ料** | `#edit-store-set-charge`| `season_stores` | 任意 | `""` | `placeholder="例: 不要 または ¥300"` |
+| **セット限定数量** | `#edit-store-set-limit` | `season_stores` | 任意 | `""` | `placeholder="例: 無くなるまで"` |
+| **セット備考** | `#edit-store-set-notes` | `season_stores` | 任意 | `""` | `placeholder="セットに関する注記"` |
+| **お遊びゲーム名** | `#edit-store-quest-name`| `season_stores` | 条件付き必須 | `""` | `placeholder="ゲーム名を入力"`（ゲーム参加時必須）。 |
+| **ゲーム内容・報酬** | `#edit-store-quest-content`| `season_stores`| 任意 | `""` | `placeholder="ゲームルール・勝利時報酬"` |
+| **ゲーム料金** | `#edit-store-quest-price`| `season_stores`| 任意 | `""` | `placeholder="例: 無料 または 500円"`（文字列許容）。 |
+| **ゲームチャージ料** | `#edit-store-quest-charge`| `season_stores`| 任意 | `""` | `placeholder="例: 不要"` |
+| **ゲーム注意事項・備考** | `#edit-store-quest-notes`| `season_stores`| 任意 | `""` | `placeholder="ゲームに関する注意事項"` |
+
 
 
 
