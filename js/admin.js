@@ -269,7 +269,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.20.06';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.11.05.01';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -3161,7 +3161,7 @@ class YoidoreAdminApp {
         const isAll = Boolean(t.is_all_stores || /全店|全軒|全件/.test(t.title || ''));
         const visitsBadge = isAll
           ? `<span class="badge" style="background:#fef3c7; color:#b45309; font-weight:bold; font-size:0.85rem; border:1px solid #fde68a;">
-              <i class="fa-solid fa-crown text-gold"></i> <strong>全軒制覇</strong>
+              <i class="fa-solid fa-crown text-gold"></i> <strong>${t.required_visits || '-'}店舗 (全店制覇)</strong>
             </span>`
           : `<span class="badge" style="background:#f1f5f9; color:#0f172a; font-weight:bold; font-size:0.85rem;">
               <i class="fa-solid fa-beer-mug-empty text-gold"></i> <strong>${t.required_visits}</strong> 軒
@@ -3197,6 +3197,15 @@ class YoidoreAdminApp {
     if (goodsSettings) goodsSettings.style.display = isGoods ? 'block' : 'none';
   }
 
+  getAllStoresQuota() {
+    const participatingStores = (this.stores || []).filter(s => s.is_participating !== false);
+    const specialDateStores = participatingStores.filter(s => {
+      const sd = String(s.special_date || s.raw_data?.special_date || s.raw_data?.seasons?.[this.selectedSeasonId]?.special_date || '').trim();
+      return Boolean(sd);
+    });
+    return Math.max(1, participatingStores.length - specialDateStores.length);
+  }
+
   toggleTierReqTypeUI() {
     const isAll = document.getElementById('edit-tier-req-type-all')?.checked;
     const numWrap = document.getElementById('tier-req-number-wrap');
@@ -3204,9 +3213,13 @@ class YoidoreAdminApp {
     const reqInput = document.getElementById('edit-tier-required');
     if (numWrap) numWrap.style.display = isAll ? 'none' : 'block';
     if (allWrap) allWrap.style.display = isAll ? 'block' : 'none';
-    if (isAll && reqInput && (!reqInput.value || Number(reqInput.value) <= 0)) {
-      const storeCount = this.stores?.length || 41;
-      reqInput.value = storeCount;
+    if (reqInput) {
+      if (isAll) {
+        reqInput.value = this.getAllStoresQuota();
+        reqInput.disabled = true;
+      } else {
+        reqInput.disabled = false;
+      }
     }
   }
 
@@ -3244,13 +3257,6 @@ class YoidoreAdminApp {
     }
     this.toggleTierTypeUI();
 
-    const isAllStores = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || '') || (tier.required_visits && Number(tier.required_visits) >= 40));
-    if (document.getElementById('edit-tier-req-type-all')) {
-      document.getElementById('edit-tier-req-type-all').checked = isAllStores;
-      document.getElementById('edit-tier-req-type-number').checked = !isAllStores;
-    }
-    this.toggleTierReqTypeUI();
-
     document.getElementById('edit-tier-id').value = tier.id || '';
     document.getElementById('edit-tier-title').value = tier.title || '';
     document.getElementById('edit-tier-required').value = tier.required_visits ?? '';
@@ -3262,6 +3268,13 @@ class YoidoreAdminApp {
     document.getElementById('edit-tier-exchange-loc').value = tier.exchange_location || '';
     document.getElementById('edit-tier-exchange-notice').value = tier.exchange_notice || '';
     document.getElementById('edit-tier-desc').value = tier.description || '';
+
+    const isAllStores = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || '') || (tier.required_visits && Number(tier.required_visits) >= 40));
+    if (document.getElementById('edit-tier-req-type-all')) {
+      document.getElementById('edit-tier-req-type-all').checked = isAllStores;
+      document.getElementById('edit-tier-req-type-number').checked = !isAllStores;
+    }
+    this.toggleTierReqTypeUI();
 
     document.body.style.overflow = 'hidden';
     document.getElementById('tier-modal').style.display = 'flex';
@@ -3280,8 +3293,7 @@ class YoidoreAdminApp {
     const title = document.getElementById('edit-tier-title').value.trim();
     let required_visits = parseInt(document.getElementById('edit-tier-required').value, 10);
     if (isAllStores) {
-      const storeCount = this.stores?.length || 41;
-      required_visits = storeCount;
+      required_visits = this.getAllStoresQuota();
     }
     const hero_title = document.getElementById('edit-tier-hero-title')?.value.trim() || null;
     const badge_color = document.getElementById('edit-tier-badge-color')?.value.trim() || '#facc15';

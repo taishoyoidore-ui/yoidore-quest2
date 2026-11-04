@@ -1319,7 +1319,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.10.15.01';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.11.05.01';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1719,7 +1719,7 @@ class YoidoreQuestApp {
         }
       } else {
         const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || '') || Number(tier.required_visits) >= 40);
-        statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成 (${isAll ? '全軒' : `${tier.required_visits}軒`})</span>`;
+        statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成 (${isAll ? '全店舗' : `${tier.required_visits}軒`})</span>`;
       }
 
       // 利用済み店舗の履歴HTML
@@ -1794,7 +1794,7 @@ class YoidoreQuestApp {
             <h4 class="treasure-tier-title">🏆 ${this.escapeHtml(tier.title)}</h4>
           </div>
           <div class="treasure-tier-condition">
-            <span>🍺 条件: <strong class="text-yellow">${isAll ? '全軒ハシゴ' : `${tier.required_visits}軒ハシゴ`}</strong></span>
+            <span>${isAll ? '👑 条件: <strong class="text-yellow">全店舗達成</strong>' : `🍺 条件: <strong class="text-yellow">${tier.required_visits}軒ハシゴ</strong>`}</span>
             <span> | 🎟️ <strong style="color:#ffffff;">お好きな${maxCount}軒で利用可能</strong></span>
           </div>
           ${actionHtml ? `<div class="treasure-tier-action">${actionHtml}</div>` : ''}
@@ -1834,7 +1834,7 @@ class YoidoreQuestApp {
         `;
       } else {
         const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || '') || Number(tier.required_visits) >= 40);
-        statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成 (${isAll ? '全軒' : `${tier.required_visits}軒`})</span>`;
+        statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成 (${isAll ? '全店舗' : `${tier.required_visits}軒`})</span>`;
       }
 
       return `
@@ -1848,7 +1848,7 @@ class YoidoreQuestApp {
             <h4 class="treasure-tier-title">🏆 ${this.escapeHtml(tier.title)}</h4>
           </div>
           <div class="treasure-tier-condition">
-            <span>🍺 条件: <strong class="text-yellow">${isAll ? '全軒ハシゴ' : `${tier.required_visits}軒ハシゴ`}</strong></span>
+            <span>${isAll ? '👑 条件: <strong class="text-yellow">全店舗達成</strong>' : `🍺 条件: <strong class="text-yellow">${tier.required_visits}軒ハシゴ</strong>`}</span>
             <span> | 🎁 <strong style="color:#ffffff;">${this.escapeHtml(tier.goods_name || tier.title || '記念品')}</strong></span>
           </div>
           ${tier.exchange_location ? `
@@ -4208,6 +4208,14 @@ class YoidoreQuestApp {
               </tr>
             ` : ''}
           </table>
+          ${specialDateStr ? `
+            <div style="margin-top: 10px; padding: 8px 10px; background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; border-radius: 4px; font-size: 12px; color: #f1f5f9; line-height: 1.5;">
+              <div style="color: #fde68a; font-weight: bold; margin-bottom: 2px;">
+                <i class="fa-solid fa-crown text-gold"></i> 全店制覇に関するご案内
+              </div>
+              ※営業日時の都合上、本店舗へのご来店がなくても「全店制覇」を達成可能です。ご来店時は通常通りハシゴ軒数（1軒）に加算されます。
+            </div>
+          ` : ''}
         </div>
 
         <!-- 3. 酔いどれセット情報枠 -->
