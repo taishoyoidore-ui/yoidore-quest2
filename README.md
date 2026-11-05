@@ -6,13 +6,12 @@
 
 ## 📚 ドキュメント・仕様書（`doc/` 配下）
 
-システムの設計、仕様、改定履歴、検討中の提案書はすべて [`doc/`](file:///C:/AG_WORK/yoidore-quest2/doc/) ディレクトリ内に集約・管理されています。開発・改修時は必ず最新のドキュメントを参照してください。
+システムの設計、仕様、改定履歴はすべて [`doc/`](file:///C:/AG_WORK/yoidore-quest2/doc/) ディレクトリ内に集約・管理されています。開発・改修時は必ず最新のドキュメントを参照してください。
 
 | ドキュメント | 概要 | リンク |
 | :--- | :--- | :--- |
 | **システム仕様書 (本体)** | システム概要、アーキテクチャ、DB設計、UXフロー、API仕様、バックオフィス全項目定義 | [doc/SPECIFICATION.md](file:///C:/AG_WORK/yoidore-quest2/doc/SPECIFICATION.md) |
 | **バージョン改定履歴** | 歴代全バージョンの改定内容、バグ修正、機能追加の詳細ログ（Changelog） | [doc/CHANGELOG.md](file:///C:/AG_WORK/yoidore-quest2/doc/CHANGELOG.md) |
-| **特定日・全店制覇 提案書** | 特定日限定営業店舗と全店制覇の整合性・UI・計算仕様（運営合意待ち） | [doc/PROPOSAL_all_stores_conquest_special_date.md](file:///C:/AG_WORK/yoidore-quest2/doc/PROPOSAL_all_stores_conquest_special_date.md) |
 
 ---
 
@@ -38,7 +37,6 @@ C:\AG_WORK\yoidore-quest2/
 └── doc/                        # 仕様書・ドキュメント・SQL定義
     ├── SPECIFICATION.md        # システム仕様書（Single Source of Truth）
     ├── CHANGELOG.md            # バージョン改定履歴（Changelog）
-    ├── PROPOSAL_all_stores_conquest_special_date.md # 特定日営業店舗と全店制覇の設計書
     └── *.sql                   # 初期SQLスキーマ・マイグレーション用リファレンス
 ```
 

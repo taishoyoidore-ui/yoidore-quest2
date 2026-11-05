@@ -554,10 +554,12 @@ class QuestApiManager {
     // 1. データベースのクラウド共有設定 (__system_config__) を取得
     const cloudConfig = await this.fetchSystemConfig();
     const tiersBySeason = cloudConfig?.reward_tiers_by_season || {};
+    const seasonKey = String(targetSeasonId);
 
     // シーズン別マップに存在する場合
-    if (tiersBySeason[targetSeasonId] && Array.isArray(tiersBySeason[targetSeasonId]) && tiersBySeason[targetSeasonId].length > 0) {
-      this.rewardTiers = tiersBySeason[targetSeasonId].map(s => ({
+    const seasonList = tiersBySeason[seasonKey] || tiersBySeason[targetSeasonId];
+    if (Array.isArray(seasonList)) {
+      this.rewardTiers = seasonList.map(s => ({
         id: Number(s.id),
         season_id: targetSeasonId,
         reward_type: s.reward_type || 'store_coupon',
@@ -1425,7 +1427,16 @@ class QuestApiManager {
 
     const cloudConfig = (await this.fetchSystemConfig()) || {};
     const tiersBySeason = cloudConfig.reward_tiers_by_season || {};
-    let currentSeasonTiers = tiersBySeason[targetSeasonId] || [];
+    const seasonKey = String(targetSeasonId);
+
+    // 正統なデータ解決:
+    // 1. reward_tiers_by_season に配列が存在すればそれをそのまま利用（定義済みなら空配列も尊重）
+    // 2. まだシーズン別マップが未作成（undefined）の場合のみ、旧形式フラット配列から初回移行
+    let currentSeasonTiers = Array.isArray(tiersBySeason[seasonKey])
+      ? [...tiersBySeason[seasonKey]]
+      : (Array.isArray(cloudConfig.reward_tiers)
+          ? cloudConfig.reward_tiers.filter(t => Number(t.season_id) === targetSeasonId || (!t.season_id && targetSeasonId === 2))
+          : []);
 
     let targetId = tierData.id ? Number(tierData.id) : null;
     if (!targetId) {
@@ -1442,7 +1453,7 @@ class QuestApiManager {
       currentSeasonTiers.push(cleanData);
     }
     currentSeasonTiers.sort((a, b) => (a.required_visits || 0) - (b.required_visits || 0));
-    tiersBySeason[targetSeasonId] = currentSeasonTiers;
+    tiersBySeason[seasonKey] = currentSeasonTiers;
 
     // 全特典フラット配列も更新
     const allFlatTiers = Object.values(tiersBySeason).flat();
@@ -1464,10 +1475,19 @@ class QuestApiManager {
 
     const cloudConfig = (await this.fetchSystemConfig()) || {};
     const tiersBySeason = cloudConfig.reward_tiers_by_season || {};
-    let currentSeasonTiers = tiersBySeason[targetSeasonId] || [];
+    const seasonKey = String(targetSeasonId);
+
+    // 正統なデータ解決:
+    // 1. reward_tiers_by_season に配列が存在すればそれをそのまま利用（定義済みなら空配列も尊重）
+    // 2. まだシーズン別マップが未作成（undefined）の場合のみ、旧形式フラット配列から初回移行
+    let currentSeasonTiers = Array.isArray(tiersBySeason[seasonKey])
+      ? [...tiersBySeason[seasonKey]]
+      : (Array.isArray(cloudConfig.reward_tiers)
+          ? cloudConfig.reward_tiers.filter(t => Number(t.season_id) === targetSeasonId || (!t.season_id && targetSeasonId === 2))
+          : []);
 
     currentSeasonTiers = currentSeasonTiers.filter(t => Number(t.id) !== numId);
-    tiersBySeason[targetSeasonId] = currentSeasonTiers;
+    tiersBySeason[seasonKey] = currentSeasonTiers;
 
     const allFlatTiers = Object.values(tiersBySeason).flat();
 
