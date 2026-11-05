@@ -2003,12 +2003,9 @@ class YoidoreAdminApp {
       cb.checked = currentDays ? currentDays.includes(cb.value) : false;
     });
 
-    // 特定日設定
+    // 特定日設定 (複数日ピッカー描画 & 値セット)
     const rawSpecialDate = String(store.special_date || raw.special_date || raw.seasons?.[this.selectedSeasonId]?.special_date || '').trim();
-    const specialDateInput = document.getElementById('edit-store-special-date');
-    if (specialDateInput) {
-      specialDateInput.value = rawSpecialDate;
-    }
+    this.renderSpecialDatePicker(rawSpecialDate);
 
     // 7. 提供時間/営業時間設定
     let currentHours = String(store.hours || '').trim();
@@ -2391,6 +2388,127 @@ class YoidoreAdminApp {
     }
   }
 
+  renderSpecialDatePicker(specialDateStr = '') {
+    const picker = document.getElementById('edit-store-special-dates-picker');
+    const input = document.getElementById('edit-store-special-date');
+    if (!picker || !input) return;
+
+    input.value = specialDateStr;
+
+    // 現在のシーズンの開催期間を取得
+    const season = (this.seasons && this.seasons.find(s => s.id === this.selectedSeasonId)) || this.api.currentSeason || {};
+    const startDateStr = season.start_date;
+    const endDateStr = season.end_date;
+
+    const selectedDates = specialDateStr.split(',').map(d => d.trim()).filter(Boolean);
+
+    if (!startDateStr || !endDateStr) {
+      picker.innerHTML = `<span style="font-size:12px; color:#94a3b8;">開催期間が設定されていません。</span>`;
+      this.updateSpecialDateSummary();
+      return;
+    }
+
+    const start = new Date(startDateStr);
+    const end = new Date(endDateStr);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      picker.innerHTML = `<span style="font-size:12px; color:#94a3b8;">開催期間の日付形式が不正です。</span>`;
+      this.updateSpecialDateSummary();
+      return;
+    }
+
+    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+    let html = '';
+    const cur = new Date(start);
+    let loopGuard = 0;
+
+    while (cur <= end && loopGuard < 60) {
+      const y = cur.getFullYear();
+      const m = String(cur.getMonth() + 1).padStart(2, '0');
+      const d = String(cur.getDate()).padStart(2, '0');
+      const dateStr = `${y}-${m}-${d}`;
+      const dayName = dayNames[cur.getDay()];
+      const isChecked = selectedDates.includes(dateStr);
+      const isWeekend = (dayName === '土' || dayName === '日');
+      const color = dayName === '日' ? '#ef4444' : (dayName === '土' ? '#3b82f6' : '#334155');
+
+      html += `
+        <label style="display:inline-flex; align-items:center; gap:4px; font-size:12px; cursor:pointer; margin:0; padding:3px 6px; border-radius:4px; border:1px solid ${isChecked ? '#ef4444' : '#e2e8f0'}; background:${isChecked ? '#fee2e2' : '#f8fafc'}; transition:all 0.15s;">
+          <input type="checkbox" name="store-special-date-check" value="${dateStr}" ${isChecked ? 'checked' : ''} onchange="window.adminApp.updateSpecialDateSelection()">
+          <span style="color:${color}; font-weight:${isChecked || isWeekend ? 'bold' : 'normal'};">${m}/${d}(${dayName})</span>
+        </label>
+      `;
+      cur.setDate(cur.getDate() + 1);
+      loopGuard++;
+    }
+
+    picker.innerHTML = html;
+    this.updateSpecialDateSummary();
+  }
+
+  updateSpecialDateSelection() {
+    const cbs = document.querySelectorAll('input[name="store-special-date-check"]:checked');
+    const selected = Array.from(cbs).map(cb => cb.value);
+    const input = document.getElementById('edit-store-special-date');
+    if (input) {
+      input.value = selected.join(', ');
+    }
+    // スタイル更新
+    document.querySelectorAll('input[name="store-special-date-check"]').forEach(cb => {
+      const label = cb.closest('label');
+      if (label) {
+        label.style.background = cb.checked ? '#fee2e2' : '#f8fafc';
+        label.style.borderColor = cb.checked ? '#ef4444' : '#e2e8f0';
+        const span = label.querySelector('span');
+        if (span) span.style.fontWeight = cb.checked ? 'bold' : 'normal';
+      }
+    });
+    this.updateSpecialDateSummary();
+  }
+
+  updateSpecialDateSummary() {
+    const input = document.getElementById('edit-store-special-date');
+    const summary = document.getElementById('edit-store-special-date-summary');
+    if (!summary) return;
+
+    const val = input ? input.value.trim() : '';
+    if (!val) {
+      summary.textContent = '(未設定: 通常の提供曜日で営業)';
+      summary.style.color = '#64748b';
+      summary.style.fontWeight = 'normal';
+      return;
+    }
+
+    const dates = val.split(',').map(d => d.trim()).filter(Boolean);
+    const count = dates.length;
+    let text = `${dates.join(', ')} (合計${count}日間)`;
+    if (count === 1) {
+      text += ' ➔ 👑全店制覇から自動除外';
+      summary.style.color = '#dc2626';
+    } else {
+      text += ' ➔ 全店制覇の対象（除外なし）';
+      summary.style.color = '#2563eb';
+    }
+    summary.textContent = text;
+    summary.style.fontWeight = 'bold';
+  }
+
+  clearSpecialDates() {
+    const cbs = document.querySelectorAll('input[name="store-special-date-check"]');
+    cbs.forEach(cb => {
+      cb.checked = false;
+      const label = cb.closest('label');
+      if (label) {
+        label.style.background = '#f8fafc';
+        label.style.borderColor = '#e2e8f0';
+        const span = label.querySelector('span');
+        if (span) span.style.fontWeight = 'normal';
+      }
+    });
+    const input = document.getElementById('edit-store-special-date');
+    if (input) input.value = '';
+    this.updateSpecialDateSummary();
+  }
+
   async deleteStore() {
     const storeId = document.getElementById('edit-store-id').value.trim();
     const name = document.getElementById('edit-store-name').value.trim();
@@ -2706,17 +2824,8 @@ class YoidoreAdminApp {
           return s === 'None' ? '' : s;
         };
 
-        // 日付セル（Date型、YYYY-MM-DD/YYYY/MM/DD、Excelシリアル値）を 'YYYY-MM-DD' に正規化するヘルパー
-        const normalizeSpecialDate = (val) => {
-          if (val === null || val === undefined || val === '') return '';
-          if (val instanceof Date) {
-            if (isNaN(val.getTime())) return '';
-            const y = val.getFullYear();
-            const m = String(val.getMonth() + 1).padStart(2, '0');
-            const d = String(val.getDate()).padStart(2, '0');
-            return `${y}-${m}-${d}`;
-          }
-          const s = String(val).trim();
+        // 単一日付文字列を 'YYYY-MM-DD' に正規化する内部ヘルパー
+        const normalizeSingleDate = (s) => {
           if (!s || s === '0' || s === 'None' || s === 'null' || s === 'undefined') return '';
           const match = s.match(/^(\d{4})[./\-\u5E74](\d{1,2})[./\-\u6708](\d{1,2})\u65E5?$/);
           if (match) {
@@ -2731,6 +2840,23 @@ class YoidoreAdminApp {
             return `${y}-${m}-${d}`;
           }
           return s;
+        };
+
+        // 日付セル（Date型、YYYY-MM-DD/YYYY/MM/DD、Excelシリアル値、カンマ区切り複数日）を正規化するヘルパー
+        const normalizeSpecialDate = (val) => {
+          if (val === null || val === undefined || val === '') return '';
+          if (val instanceof Date) {
+            if (isNaN(val.getTime())) return '';
+            const y = val.getFullYear();
+            const m = String(val.getMonth() + 1).padStart(2, '0');
+            const d = String(val.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+          }
+          const s = String(val).trim();
+          if (!s || s === '0' || s === 'None' || s === 'null' || s === 'undefined') return '';
+          // カンマまたは読点区切りで複数日を処理
+          const parts = s.split(/[,、]/).map(p => normalizeSingleDate(p.trim())).filter(Boolean);
+          return parts.join(', ');
         };
 
         let planType = planTypeRaw;
@@ -3197,13 +3323,56 @@ class YoidoreAdminApp {
     if (goodsSettings) goodsSettings.style.display = isGoods ? 'block' : 'none';
   }
 
+  /**
+   * 店舗のイベント期間中における「実営業日数」を計算
+   * @param {Object} store - 店舗オブジェクト
+   * @returns {number} 実営業日数
+   */
+  getStoreEventDaysCount(store) {
+    if (!store) return 0;
+    const raw = store.raw_data || {};
+    const seasonInfo = (this.selectedSeasonId && raw.seasons?.[this.selectedSeasonId]) ? raw.seasons[this.selectedSeasonId] : {};
+    const season = (this.seasons && this.seasons.find(s => s.id === this.selectedSeasonId)) || this.api.currentSeason || {};
+
+    // ① 特定日（special_date）が設定されている場合
+    const sdStr = String(store.special_date || raw.special_date || seasonInfo.special_date || '').trim();
+    if (sdStr) {
+      const dates = sdStr.split(',').map(d => d.trim()).filter(Boolean);
+      return dates.length; // 1日設定なら 1、2日設定なら 2
+    }
+
+    // ② 曜日指定（days）の場合
+    const daysStr = String(store.days || raw.days || seasonInfo.days || '').trim();
+    const startDateStr = season.start_date;
+    const endDateStr = season.end_date;
+    if (!daysStr || !startDateStr || !endDateStr) return 0;
+
+    const targetDays = daysStr.split(',').map(d => d.trim()).filter(Boolean);
+    if (targetDays.length === 0) return 0;
+
+    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+    let count = 0;
+    const cur = new Date(startDateStr);
+    const end = new Date(endDateStr);
+    if (isNaN(cur.getTime()) || isNaN(end.getTime())) return 0;
+
+    let loopGuard = 0;
+    while (cur <= end && loopGuard < 60) {
+      const dayName = dayNames[cur.getDay()];
+      if (targetDays.includes(dayName)) {
+        count++;
+      }
+      cur.setDate(cur.getDate() + 1);
+      loopGuard++;
+    }
+    return count;
+  }
+
   getAllStoresQuota() {
     const participatingStores = (this.stores || []).filter(s => s.is_participating !== false);
-    const specialDateStores = participatingStores.filter(s => {
-      const sd = String(s.special_date || s.raw_data?.special_date || s.raw_data?.seasons?.[this.selectedSeasonId]?.special_date || '').trim();
-      return Boolean(sd);
-    });
-    return Math.max(1, participatingStores.length - specialDateStores.length);
+    // イベント期間中「1日のみ」営業する店舗（特定日1日、または曜日指定で期間中1日のみ）を全店制覇から自動除外
+    const oneDayStores = participatingStores.filter(s => this.getStoreEventDaysCount(s) === 1);
+    return Math.max(1, participatingStores.length - oneDayStores.length);
   }
 
   toggleTierReqTypeUI() {

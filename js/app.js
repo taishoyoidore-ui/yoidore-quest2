@@ -7,14 +7,15 @@
 function checkIsOpenToday(store, now = new Date()) {
   if (!store) return false;
 
-  // 特定日（限定日営業）の判定: 設定されている場合、本日と一致しなければ即座に対象時間外(false)
+  // 特定日（限定日営業）の判定: 設定されている場合、本日が特定日のいずれかに一致しなければ即座に対象時間外(false)
   const specialDate = String(store.special_date || store.specialDate || store.conditions?.special_date || store.conditions?.specialDate || '').trim();
   if (specialDate) {
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     const nowDateStr = `${year}-${month}-${day}`;
-    if (nowDateStr !== specialDate) {
+    const specialDates = specialDate.split(',').map(d => d.trim()).filter(Boolean);
+    if (specialDates.length > 0 && !specialDates.includes(nowDateStr)) {
       return false;
     }
   }
@@ -176,7 +177,8 @@ function getStoreStatusBadge(store) {
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const day = String(now.getDate()).padStart(2, '0');
       const nowDateStr = `${year}-${month}-${day}`;
-      if (nowDateStr !== specialDate) {
+      const specialDates = specialDate.split(',').map(d => d.trim()).filter(Boolean);
+      if (specialDates.length > 0 && !specialDates.includes(nowDateStr)) {
         return { badgeClass: 'status-closed', text: 'どれクエ対象時間外' };
       }
     }
@@ -395,6 +397,46 @@ class YoidoreQuestApp {
       return `${m}/${d}${dayName}`;
     }
     return String(dStr);
+  }
+
+  // 店舗のイベント期間中における「実営業日数」を計算
+  getStoreEventDaysCount(store, season = window.questApi?.currentSeason) {
+    if (!store) return 0;
+    const raw = store.raw_data || {};
+    const seasonInfo = (season?.id && raw.seasons?.[season.id]) ? raw.seasons[season.id] : {};
+
+    // ① 特定日（special_date）が設定されている場合
+    const sdStr = String(store.special_date || raw.special_date || seasonInfo.special_date || '').trim();
+    if (sdStr) {
+      const dates = sdStr.split(',').map(d => d.trim()).filter(Boolean);
+      return dates.length;
+    }
+
+    // ② 曜日指定（days）の場合
+    const daysStr = String(store.days || raw.days || seasonInfo.days || '').trim();
+    const startDateStr = season?.start_date;
+    const endDateStr = season?.end_date;
+    if (!daysStr || !startDateStr || !endDateStr) return 0;
+
+    const targetDays = daysStr.split(',').map(d => d.trim()).filter(Boolean);
+    if (targetDays.length === 0) return 0;
+
+    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+    let count = 0;
+    const cur = new Date(startDateStr);
+    const end = new Date(endDateStr);
+    if (isNaN(cur.getTime()) || isNaN(end.getTime())) return 0;
+
+    let loopGuard = 0;
+    while (cur <= end && loopGuard < 60) {
+      const dayName = dayNames[cur.getDay()];
+      if (targetDays.includes(dayName)) {
+        count++;
+      }
+      cur.setDate(cur.getDate() + 1);
+      loopGuard++;
+    }
+    return count;
   }
 
   // 獲得特典マイルストーン段階数（unlockedTierCount）から勇者称号・レベルデータを取得 (reward_tiers 連動)
@@ -3905,7 +3947,12 @@ class YoidoreQuestApp {
           </div>
 
           <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:8px; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.15);">
-            ${store.special_date ? `<span class="tag" style="background:#7f1d1d; color:#fca5a5; border-color:#ef4444; font-weight:bold;">${store.special_date}限定</span>` : ''}
+            ${(() => {
+              if (!store.special_date) return '';
+              const sds = store.special_date.split(',').map(d => d.trim()).filter(Boolean);
+              if (sds.length === 1) return `<span class="tag" style="background:#7f1d1d; color:#fca5a5; border-color:#ef4444; font-weight:bold;">${sds[0]}限定</span>`;
+              return `<span class="tag" style="background:#7f1d1d; color:#fca5a5; border-color:#ef4444; font-weight:bold;">特定日限定 (${sds.length}日間)</span>`;
+            })()}
             ${store.isOrganizer ? `<span class="tag" style="background:#1e3a8a; color:#93c5fd; border-color:#3b82f6;">運営店</span>` : ''}
             ${store.area ? `<span class="tag tag-area">${store.area}</span>` : ''}
             ${store.category ? `<span class="tag">${store.category}</span>` : ''}
@@ -4095,15 +4142,19 @@ class YoidoreQuestApp {
     const specialDateStr = String(store.special_date || store.specialDate || conditions.special_date || conditions.specialDate || '').trim();
     let formattedSpecialDate = '';
     if (specialDateStr) {
-      const m = specialDateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-      if (m) {
-        const dObj = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
-        const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-        formattedSpecialDate = `${parseInt(m[1], 10)}年${parseInt(m[2], 10)}月${parseInt(m[3], 10)}日(${dayNames[dObj.getDay()]})`;
-      } else {
-        formattedSpecialDate = specialDateStr;
-      }
+      const dates = specialDateStr.split(',').map(d => d.trim()).filter(Boolean);
+      formattedSpecialDate = dates.map(d => {
+        const m = d.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (m) {
+          const dObj = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+          const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+          return `${parseInt(m[1], 10)}年${parseInt(m[2], 10)}月${parseInt(m[3], 10)}日(${dayNames[dObj.getDay()]})`;
+        }
+        return d;
+      }).join('、');
     }
+
+    const isExcludedFromAllStores = (this.getStoreEventDaysCount(store, activeSeason) === 1);
 
     const paymentMethods = Array.isArray(store.paymentMethods) && store.paymentMethods.length > 0
       ? store.paymentMethods
@@ -4208,12 +4259,12 @@ class YoidoreQuestApp {
               </tr>
             ` : ''}
           </table>
-          ${specialDateStr ? `
+          ${isExcludedFromAllStores ? `
             <div style="margin-top: 10px; padding: 8px 10px; background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; border-radius: 4px; font-size: 12px; color: #f1f5f9; line-height: 1.5;">
               <div style="color: #fde68a; font-weight: bold; margin-bottom: 2px;">
                 <i class="fa-solid fa-crown text-gold"></i> 全店制覇に関するご案内
               </div>
-              ※営業日時の都合上、本店舗へのご来店がなくても「全店制覇」を達成可能です。ご来店時は通常通りハシゴ軒数（1軒）に加算されます。
+              ※営業日時の都合上（イベント期間中1日のみ営業のため）、本店舗へのご来店がなくても「全店制覇」を達成可能です。ご来店時は通常通りハシゴ軒数（1軒）に加算されます。
             </div>
           ` : ''}
         </div>
