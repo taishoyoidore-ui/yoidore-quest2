@@ -404,52 +404,41 @@ class YoidoreAdminApp {
         this.users = [];
       }
 
-      // 5. 来店ログ一覧 (選択中シーズンで絞り込み)
+      // 5. 来店ログ一覧 (選択中シーズンで厳密絞り込み)
       try {
         const rawVisits = await this.api.supabaseFetch(`visits?select=*&order=visited_at.desc`);
-        this.visits = Array.isArray(rawVisits) ? rawVisits.filter(v => {
-          const vSeason = Number(v.season_id);
-          return vSeason === this.selectedSeasonId || (!v.season_id && this.selectedSeasonId === 2);
-        }) : [];
+        this.visits = Array.isArray(rawVisits) ? rawVisits.filter(v => Number(v.season_id) === this.selectedSeasonId) : [];
       } catch (e) {
         this.visits = [];
       }
 
-      // 6. クーポン発行・消し込み履歴 (選択中シーズンで絞り込み & 特典ランクマスタとの突き合わせ・グッズ判定)
+      // 6. クーポン発行・消し込み履歴 (選択中シーズンで厳密絞り込み)
       try {
         const rawCoupons = await this.api.supabaseFetch(`user_coupons?select=*&order=acquired_at.desc`);
-        const goodsTiers = (this.tiers || []).filter(t => t.reward_type === 'goods');
-
-        const filteredCoupons = Array.isArray(rawCoupons) ? rawCoupons.filter(c => {
-          const cSeason = Number(c.season_id);
-          return cSeason === this.selectedSeasonId || (!c.season_id && this.selectedSeasonId === 2);
-        }) : [];
+        const filteredCoupons = Array.isArray(rawCoupons) ? rawCoupons.filter(c => Number(c.season_id) === this.selectedSeasonId) : [];
 
         this.coupons = filteredCoupons.map(c => {
-          const tierStatusMatch = typeof c.status === 'string' ? c.status.match(/^tier_(\d+)_(active|used)$/) : null;
+          let normalizedStatus = c.status || 'active';
           let tierIdNum = c.reward_tier_id ? Number(c.reward_tier_id) : null;
-          let normalizedStatus = c.status;
 
+          // 旧データの tier_{id}_{active|used} があれば後方互換で正規化
+          const tierStatusMatch = typeof c.status === 'string' ? c.status.match(/^tier_(\d+)_(active|used)$/) : null;
           if (tierStatusMatch) {
-            tierIdNum = parseInt(tierStatusMatch[1], 10);
+            tierIdNum = tierIdNum || parseInt(tierStatusMatch[1], 10);
             normalizedStatus = tierStatusMatch[2];
-          } else if (c.status === 'used') {
-            normalizedStatus = 'used';
-          } else {
-            normalizedStatus = 'active';
           }
 
           let matchedTier = (this.tiers || []).find(t => Number(t.id) === tierIdNum);
-          const isGoods = matchedTier ? (matchedTier.reward_type === 'goods') : (c.reward_type === 'goods');
+          const isGoods = (c.reward_type === 'goods') || (matchedTier && matchedTier.reward_type === 'goods');
           return {
             ...c,
             status: normalizedStatus,
             season_id: this.selectedSeasonId,
             reward_tier_id: tierIdNum || matchedTier?.id || null,
             reward_type: isGoods ? 'goods' : (c.reward_type || 'store_coupon'),
-            goods_name: matchedTier?.goods_name || c.goods_name || (isGoods ? matchedTier?.title : null),
-            exchange_location: matchedTier?.exchange_location || c.exchange_location || null,
-            exchange_notice: matchedTier?.exchange_notice || c.exchange_notice || null,
+            goods_name: c.goods_name || matchedTier?.goods_name || (isGoods ? matchedTier?.title : null),
+            exchange_location: c.exchange_location || matchedTier?.exchange_location || null,
+            exchange_notice: c.exchange_notice || matchedTier?.exchange_notice || null,
             title: matchedTier?.title || c.title || ''
           };
         });

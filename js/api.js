@@ -666,11 +666,8 @@ class QuestApiManager {
     try {
       const data = await this.supabaseFetch(`visits?user_id=eq.${encodeURIComponent(this.currentUser.userId)}&select=*&order=visited_at.desc`);
       if (Array.isArray(data)) {
-        // 指定シーズンに絞り込み（旧データでseason_idが無いものは第2回とみなす）
-        this.visits = data.filter(v => {
-          const vSeason = Number(v.season_id);
-          return vSeason === targetSeasonId || (!v.season_id && targetSeasonId === 2);
-        });
+        // 指定シーズンに絞り込み（物理DBのseason_idで厳密抽出）
+        this.visits = data.filter(v => Number(v.season_id) === targetSeasonId);
         return this.visits;
       }
     } catch (e) {
@@ -745,6 +742,7 @@ class QuestApiManager {
           visited_at: new Date().toISOString()
         })
       });
+
       await this.getUserVisits(targetSeasonId);
     } catch (err) {
       console.error('Supabaseサイン記録保存エラー:', err);
@@ -859,9 +857,6 @@ class QuestApiManager {
   /* ------------------------------------------------------------------------
    * ユーザーの獲得クーポン・グッズ引換券一覧取得 (シーズン別・データベースから取得)
    * ------------------------------------------------------------------------ */
-  /* ------------------------------------------------------------------------
-   * ユーザーの獲得クーポン・グッズ引換券一覧取得 (シーズン別・データベースから取得)
-   * ------------------------------------------------------------------------ */
   async getUserCoupons(seasonId = null) {
     if (!this.currentUser || !this.currentUser.userId) return [];
     const targetSeasonId = Number(seasonId || this.currentSeason?.id || 2);
@@ -871,74 +866,36 @@ class QuestApiManager {
       const data = await this.supabaseFetch(`user_coupons?user_id=eq.${encodeURIComponent(this.currentUser.userId)}&select=*&order=acquired_at.asc`);
       if (Array.isArray(data)) {
         const tiers = await this.getRewardTiers(targetSeasonId);
-        const sortedTiers = [...tiers].sort((a, b) => (Number(a.required_visits) || 0) - (Number(b.required_visits) || 0));
 
-        // 指定シーズンで絞り込み
-        const filteredCoupons = data.filter(c => {
-          const cSeason = Number(c.season_id);
-          return cSeason === targetSeasonId || (!c.season_id && targetSeasonId === 2);
-        });
+        // 指定シーズンで厳密に絞り込み（物理カラム season_id に完全準拠）
+        const filteredCoupons = data.filter(c => Number(c.season_id) === targetSeasonId);
 
         // 獲得順にソート (古い順)
         const sortedFiltered = [...filteredCoupons].sort((a, b) => new Date(a.acquired_at || 0) - new Date(b.acquired_at || 0));
 
-        // 1. 各レコードの status / reward_tier_id から tier_id と normalizedStatus を直接特定
-        const tierAssignedCounts = new Map();
-        sortedTiers.forEach(t => tierAssignedCounts.set(Number(t.id), 0));
-
-        const preMapped = sortedFiltered.map(c => {
+        coupons = sortedFiltered.map(c => {
           let normalizedStatus = c.status || 'active';
           let explicitTierId = c.reward_tier_id ? Number(c.reward_tier_id) : null;
 
-          // status に tier_{id}_{active|used} が埋め込まれている場合を最優先解析
+          // 旧データの tier_{id}_{active|used} があれば後方互換で正規化
           const statusMatch = String(c.status || '').match(/^tier_(\d+)_(active|used)$/);
           if (statusMatch) {
-            explicitTierId = parseInt(statusMatch[1], 10);
+            explicitTierId = explicitTierId || parseInt(statusMatch[1], 10);
             normalizedStatus = statusMatch[2];
           }
 
-          let matchedTier = null;
-          if (explicitTierId) {
-            matchedTier = sortedTiers.find(t => Number(t.id) === explicitTierId);
-            if (matchedTier) {
-              const current = tierAssignedCounts.get(Number(matchedTier.id)) || 0;
-              tierAssignedCounts.set(Number(matchedTier.id), current + 1);
-            }
-          }
-          return { coupon: { ...c, status: normalizedStatus }, tier: matchedTier };
-        });
+          const matchedTier = explicitTierId ? tiers.find(t => Number(t.id) === explicitTierId) : null;
+          const isGoods = c.reward_type === 'goods' || matchedTier?.reward_type === 'goods';
 
-        // 2. tier_id が未特定のレガシーレコードをスロット順にスマートマッピング
-        coupons = preMapped.map(({ coupon: c, tier: alreadyMatched }) => {
-          let matchedTier = alreadyMatched;
-
-          if (!matchedTier && sortedTiers.length > 0) {
-            // スロット上限に達していない未充足のtierを昇順に探す
-            for (const t of sortedTiers) {
-              const tId = Number(t.id);
-              const maxSlots = t.reward_type === 'goods' ? 1 : (Number(t.selectable_count) || 5);
-              const assigned = tierAssignedCounts.get(tId) || 0;
-              if (assigned < maxSlots) {
-                matchedTier = t;
-                tierAssignedCounts.set(tId, assigned + 1);
-                break;
-              }
-            }
-            // 全枠満杯の場合は最後のtierに割り当て
-            if (!matchedTier) {
-              matchedTier = sortedTiers[sortedTiers.length - 1];
-            }
-          }
-
-          const isGoods = (matchedTier?.reward_type === 'goods') || (c.reward_type === 'goods');
           return {
             ...c,
+            status: normalizedStatus,
             season_id: targetSeasonId,
-            reward_tier_id: matchedTier?.id ? Number(matchedTier.id) : (c.reward_tier_id ? Number(c.reward_tier_id) : null),
+            reward_tier_id: explicitTierId,
             reward_type: isGoods ? 'goods' : (c.reward_type || 'store_coupon'),
-            goods_name: matchedTier?.goods_name || c.goods_name || matchedTier?.title || null,
-            exchange_location: matchedTier?.exchange_location || c.exchange_location || null,
-            exchange_notice: matchedTier?.exchange_notice || c.exchange_notice || null,
+            goods_name: c.goods_name || matchedTier?.goods_name || matchedTier?.title || null,
+            exchange_location: c.exchange_location || matchedTier?.exchange_location || null,
+            exchange_notice: c.exchange_notice || matchedTier?.exchange_notice || null,
             title: matchedTier?.title || c.title || (isGoods ? '限定グッズ引換券' : '酒場クーポン')
           };
         });
@@ -1020,7 +977,7 @@ class QuestApiManager {
           store_id: null,
           reward_tier_id: tierIdNum,
           season_id: targetSeasonId,
-          status: `tier_${tierIdNum}_active`,
+          status: 'active',
           acquired_at: new Date(baseTime + offsetMs).toISOString(),
           reward_type: 'goods',
           goods_name: tier.goods_name || tier.title,
@@ -1037,7 +994,7 @@ class QuestApiManager {
             store_id: null,
             reward_tier_id: tierIdNum,
             season_id: targetSeasonId,
-            status: `tier_${tierIdNum}_active`,
+            status: 'active',
             acquired_at: new Date(baseTime + offsetMs).toISOString(),
             reward_type: 'store_coupon'
           });
@@ -1083,7 +1040,7 @@ class QuestApiManager {
   }
 
   /* ------------------------------------------------------------------------
-   * 🛡️ クーポン・特典レコードの安全な一括保存処理（シーズンID・メタデータ完全保持 & 制約回避）
+   * クーポン・特典レコードの一括保存処理（正規スキーマ完全準拠）
    * ------------------------------------------------------------------------ */
   async saveCouponRowsSafely(rows, seasonId = 2) {
     if (!rows || rows.length === 0) return { success: true };
@@ -1091,11 +1048,10 @@ class QuestApiManager {
 
     const targetSeasonId = Number(seasonId || this.currentSeason?.id || 2);
 
-    // フルカラム行（season_id, reward_type, goods_name 等を含む完全な行）
-    const makeFullRows = (includeTierId = true) => rows.map(r => ({
+    const payload = rows.map(r => ({
       user_id: r.user_id,
       store_id: r.store_id || null,
-      reward_tier_id: includeTierId && r.reward_tier_id ? Number(r.reward_tier_id) : null,
+      reward_tier_id: r.reward_tier_id ? Number(r.reward_tier_id) : null,
       season_id: Number(r.season_id || targetSeasonId),
       status: r.status || 'active',
       acquired_at: r.acquired_at || new Date().toISOString(),
@@ -1105,92 +1061,20 @@ class QuestApiManager {
       exchange_notice: r.exchange_notice || null
     }));
 
-    // 旧スキーマ用最小限行（追加カラムが存在しない古いDB用フォールバック）
-    const makeMinimalRows = (includeTierId = true) => rows.map(r => ({
-      user_id: r.user_id,
-      store_id: r.store_id || null,
-      reward_tier_id: includeTierId && r.reward_tier_id ? Number(r.reward_tier_id) : null,
-      season_id: Number(r.season_id || targetSeasonId),
-      status: r.status || 'active',
-      acquired_at: r.acquired_at || new Date().toISOString()
-    }));
-
-    // 試行1: フルカラム（reward_tier_id含む）で一括INSERT
     try {
       await this.supabaseFetch('user_coupons', {
         method: 'POST',
         headers: { 'Prefer': 'return=representation' },
-        body: JSON.stringify(makeFullRows(true))
+        body: JSON.stringify(payload)
       });
       return { success: true };
-    } catch (err1) {
-      console.warn('フルカラム一括INSERTエラー（reward_tier_id制約回避モードで再試行）:', err1.message);
+    } catch (err) {
+      console.error('user_coupons 一括保存エラー:', err);
+      return {
+        success: false,
+        message: err.message || '特典の保存に失敗しました'
+      };
     }
-
-    // 試行2: フルカラム（reward_tier_id = null）で一括INSERT（reward_tiers FK制約エラー対策）
-    try {
-      await this.supabaseFetch('user_coupons', {
-        method: 'POST',
-        headers: { 'Prefer': 'return=representation' },
-        body: JSON.stringify(makeFullRows(false))
-      });
-      return { success: true };
-    } catch (err2) {
-      console.warn('フルカラム制約回避一括INSERTエラー（旧スキーマ最小限行で再試行）:', err2.message);
-    }
-
-    // 試行3: 旧スキーマ最小限行（season_idのみ含む）で一括INSERT
-    try {
-      await this.supabaseFetch('user_coupons', {
-        method: 'POST',
-        headers: { 'Prefer': 'return=representation' },
-        body: JSON.stringify(makeMinimalRows(false))
-      });
-      return { success: true };
-    } catch (err3) {
-      console.warn('最小限行一括INSERTエラー、個別行順次保存で再試行:', err3.message);
-    }
-
-    // 試行4: 個別行順次保存（フルカラム試行後、失敗なら最小限行）
-    let successCount = 0;
-    let lastError = null;
-
-    for (const row of makeFullRows(false)) {
-      try {
-        await this.supabaseFetch('user_coupons', {
-          method: 'POST',
-          body: JSON.stringify(row)
-        });
-        successCount++;
-      } catch (rowErr) {
-        try {
-          const minimalRow = {
-            user_id: row.user_id,
-            store_id: row.store_id,
-            season_id: row.season_id,
-            status: row.status,
-            acquired_at: row.acquired_at
-          };
-          await this.supabaseFetch('user_coupons', {
-            method: 'POST',
-            body: JSON.stringify(minimalRow)
-          });
-          successCount++;
-        } catch (minErr) {
-          lastError = minErr;
-          console.error('個別クーポン保存完全エラー:', minErr);
-        }
-      }
-    }
-
-    if (successCount > 0) {
-      return { success: true, count: successCount };
-    }
-
-    return {
-      success: false,
-      message: lastError ? (lastError.message || String(lastError)) : '保存に失敗しました'
-    };
   }
 
   /* ------------------------------------------------------------------------
@@ -1214,13 +1098,8 @@ class QuestApiManager {
     if (!couponId) return { success: false, message: 'クーポンIDが指定されていません' };
 
     const targetSeasonId = Number(seasonId || this.currentSeason?.id || 2);
-    // 対象クーポンのtierIdを取得して、tier_${tierId}_used にする
-    const existing = this.userCoupons?.find(c => String(c.id) === String(couponId));
-    const tierIdNum = existing ? Number(existing.reward_tier_id) : null;
-    const newStatus = (tierIdNum && !isNaN(tierIdNum)) ? `tier_${tierIdNum}_used` : 'used';
-
     const updateBody = {
-      status: newStatus,
+      status: 'used',
       used_at: new Date().toISOString()
     };
     if (storeId) {
