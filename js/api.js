@@ -449,11 +449,25 @@ class QuestApiManager {
 
 
     const now = new Date();
-    const startDate = this.currentSeason.start_date ? new Date(this.currentSeason.start_date) : null;
-    const endDate = this.currentSeason.end_date ? new Date(this.currentSeason.end_date) : null;
-    if (endDate) {
-      endDate.setHours(23, 59, 59, 999);
-    }
+
+    // 日付文字列 (YYYY-MM-DD) をローカル時刻の 00:00:00 で確実にパースするヘルパー
+    const parseLocalDate = (dateStr, isEndOfDay = false) => {
+      if (!dateStr) return null;
+      if (typeof dateStr === 'string' && dateStr.includes('-')) {
+        const [y, m, d] = dateStr.split('T')[0].split('-').map(Number);
+        return isEndOfDay ? new Date(y, m - 1, d, 23, 59, 59, 999) : new Date(y, m - 1, d, 0, 0, 0, 0);
+      }
+      const dt = new Date(dateStr);
+      if (isEndOfDay) {
+        dt.setHours(23, 59, 59, 999);
+      } else {
+        dt.setHours(0, 0, 0, 0);
+      }
+      return dt;
+    };
+
+    const startDate = parseLocalDate(this.currentSeason.start_date, false);
+    const endDate = parseLocalDate(this.currentSeason.end_date, true);
 
     // クーポン利用開始日（本開催終了翌日 00:00:00）
     let couponStartDate = null;
@@ -466,10 +480,7 @@ class QuestApiManager {
       couponStartDateStr = `${couponStartDate.getFullYear()}-${pad(couponStartDate.getMonth() + 1)}-${pad(couponStartDate.getDate())}`;
     }
 
-    const couponValidUntil = this.currentSeason.coupon_valid_until ? new Date(this.currentSeason.coupon_valid_until) : null;
-    if (couponValidUntil) {
-      couponValidUntil.setHours(23, 59, 59, 999);
-    }
+    const couponValidUntil = parseLocalDate(this.currentSeason.coupon_valid_until, true);
 
     const isBeforeEvent = startDate ? (now < startDate) : false;
     const isEventActive = (startDate && endDate) ? (now >= startDate && now <= endDate) : false; // 本開催中（サイン受取・宝箱解放）
@@ -730,6 +741,7 @@ class QuestApiManager {
         body: JSON.stringify({
           user_id: this.currentUser.userId,
           store_id: canonicalStoreId,
+          season_id: targetSeasonId,
           visited_at: new Date().toISOString()
         })
       });
@@ -784,6 +796,7 @@ class QuestApiManager {
     const insertRows = storesToAdd.map((s, idx) => ({
       user_id: this.currentUser.userId,
       store_id: s.id,
+      season_id: targetSeasonId,
       visited_at: new Date(now.getTime() - (storesToAdd.length - 1 - idx) * 60000).toISOString()
     }));
 
@@ -1070,57 +1083,103 @@ class QuestApiManager {
   }
 
   /* ------------------------------------------------------------------------
-   * 🛡️ クーポン・特典レコードの安全な一括保存処理（外部キー制約完全回避）
+   * 🛡️ クーポン・特典レコードの安全な一括保存処理（シーズンID・メタデータ完全保持 & 制約回避）
    * ------------------------------------------------------------------------ */
   async saveCouponRowsSafely(rows, seasonId = 2) {
     if (!rows || rows.length === 0) return { success: true };
     await this.syncUserToDatabase();
 
-    const makeCleanRows = (includeTierId = true) => rows.map(r => ({
+    const targetSeasonId = Number(seasonId || this.currentSeason?.id || 2);
+
+    // フルカラム行（season_id, reward_type, goods_name 等を含む完全な行）
+    const makeFullRows = (includeTierId = true) => rows.map(r => ({
       user_id: r.user_id,
       store_id: r.store_id || null,
       reward_tier_id: includeTierId && r.reward_tier_id ? Number(r.reward_tier_id) : null,
+      season_id: Number(r.season_id || targetSeasonId),
+      status: r.status || 'active',
+      acquired_at: r.acquired_at || new Date().toISOString(),
+      reward_type: r.reward_type || 'store_coupon',
+      goods_name: r.goods_name || null,
+      exchange_location: r.exchange_location || null,
+      exchange_notice: r.exchange_notice || null
+    }));
+
+    // 旧スキーマ用最小限行（追加カラムが存在しない古いDB用フォールバック）
+    const makeMinimalRows = (includeTierId = true) => rows.map(r => ({
+      user_id: r.user_id,
+      store_id: r.store_id || null,
+      reward_tier_id: includeTierId && r.reward_tier_id ? Number(r.reward_tier_id) : null,
+      season_id: Number(r.season_id || targetSeasonId),
       status: r.status || 'active',
       acquired_at: r.acquired_at || new Date().toISOString()
     }));
 
-    // 試行1: reward_tier_id を含めた一括INSERT
+    // 試行1: フルカラム（reward_tier_id含む）で一括INSERT
     try {
       await this.supabaseFetch('user_coupons', {
         method: 'POST',
         headers: { 'Prefer': 'return=representation' },
-        body: JSON.stringify(makeCleanRows(true))
+        body: JSON.stringify(makeFullRows(true))
       });
       return { success: true };
     } catch (err1) {
-      console.warn('reward_tier_id付き一括INSERTエラー（制約回避モードで再試行）:', err1.message);
+      console.warn('フルカラム一括INSERTエラー（reward_tier_id制約回避モードで再試行）:', err1.message);
     }
 
-    // 試行2: 外部キー制約エラー対策（reward_tier_id を null にして一括INSERT）
+    // 試行2: フルカラム（reward_tier_id = null）で一括INSERT（reward_tiers FK制約エラー対策）
     try {
       await this.supabaseFetch('user_coupons', {
         method: 'POST',
         headers: { 'Prefer': 'return=representation' },
-        body: JSON.stringify(makeCleanRows(false))
+        body: JSON.stringify(makeFullRows(false))
       });
       return { success: true };
     } catch (err2) {
-      console.warn('制約回避一括INSERTエラー、個別行順次保存で再試行:', err2.message);
+      console.warn('フルカラム制約回避一括INSERTエラー（旧スキーマ最小限行で再試行）:', err2.message);
     }
 
-    // 試行3: 個別行順次保存
+    // 試行3: 旧スキーマ最小限行（season_idのみ含む）で一括INSERT
+    try {
+      await this.supabaseFetch('user_coupons', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify(makeMinimalRows(false))
+      });
+      return { success: true };
+    } catch (err3) {
+      console.warn('最小限行一括INSERTエラー、個別行順次保存で再試行:', err3.message);
+    }
+
+    // 試行4: 個別行順次保存（フルカラム試行後、失敗なら最小限行）
     let successCount = 0;
     let lastError = null;
 
-    for (const row of makeCleanRows(false)) {
+    for (const row of makeFullRows(false)) {
       try {
         await this.supabaseFetch('user_coupons', {
           method: 'POST',
           body: JSON.stringify(row)
         });
         successCount++;
-      } catch (e) {
-        lastError = e;
+      } catch (rowErr) {
+        try {
+          const minimalRow = {
+            user_id: row.user_id,
+            store_id: row.store_id,
+            season_id: row.season_id,
+            status: row.status,
+            acquired_at: row.acquired_at
+          };
+          await this.supabaseFetch('user_coupons', {
+            method: 'POST',
+            body: JSON.stringify(minimalRow)
+          });
+          successCount++;
+        } catch (minErr) {
+          lastError = minErr;
+          console.error('個別クーポン保存完全エラー:', minErr);
+        }
       }
     }
 
@@ -1200,7 +1259,7 @@ class QuestApiManager {
     // 既に該当店舗でクーポン利用（used）済みか確認（シーズン全体で1店舗1回限り）
     const alreadyUsed = this.userCoupons.some(c => c.reward_type !== 'goods' && c.status === 'used' && c.store_id === storeId);
     if (alreadyUsed) {
-      return { success: false, message: 'この酒場では既にクーポンをご利用済みです（シーズン中1店舗1回限り）。' };
+      return { success: false, alreadyUsedAtStore: true, message: 'この酒場では既にクーポンをご利用済みです（シーズン中1店舗1回限り）。' };
     }
 
     // 未使用で、空枠レコード（store_id is null, status is active, reward_type is store_coupon）を探す
@@ -1328,54 +1387,78 @@ class QuestApiManager {
     return { success: true };
   }
 
-  // シーズンの新規登録 / 更新
+  // シーズンの新規登録 / 更新 (Single Source of Truth)
   async adminSaveSeason(seasonData) {
-    if (!this.currentSeason) this.currentSeason = {};
-    this.currentSeason = { ...this.currentSeason, ...seasonData };
+    const cloudConfig = (await this.fetchSystemConfig()) || {};
+    let seasonsList = Array.isArray(cloudConfig.seasons) ? [...cloudConfig.seasons] : (Array.isArray(this.seasons) ? [...this.seasons] : []);
 
-    if (!Array.isArray(this.seasons)) {
-      this.seasons = [{ ...this.currentSeason }];
-    }
-    const idx = this.seasons.findIndex(s => s.id === seasonData.id);
+    const targetId = Number(seasonData.id);
+    const cleanSeason = {
+      ...seasonData,
+      id: targetId,
+      is_active: Boolean(seasonData.is_active)
+    };
+
+    const idx = seasonsList.findIndex(s => Number(s.id) === targetId);
     if (idx >= 0) {
-      this.seasons[idx] = { ...this.seasons[idx], ...seasonData };
+      seasonsList[idx] = { ...seasonsList[idx], ...cleanSeason };
     } else {
-      this.seasons.unshift({ ...seasonData });
+      seasonsList.unshift(cleanSeason);
     }
+
+    // もし is_active が true なら他シーズンの is_active を false にする
+    if (cleanSeason.is_active) {
+      seasonsList.forEach(s => {
+        if (Number(s.id) !== targetId) s.is_active = false;
+      });
+      this.currentSeason = { ...cleanSeason };
+    } else if (this.currentSeason && Number(this.currentSeason.id) === targetId) {
+      this.currentSeason = { ...cleanSeason };
+    }
+
+    this.seasons = seasonsList;
 
     // Supabaseクラウド共有設定へ確実に永続化同期
     await this.saveSystemConfig({ seasons: this.seasons, current_season: this.currentSeason });
 
-    return seasonData;
+    return cleanSeason;
   }
 
-  // アクティブシーズンの切り替え
+  // アクティブシーズンの切り替え (Single Source of Truth & 型安全)
   async adminSetActiveSeason(seasonId) {
-    if (Array.isArray(this.seasons)) {
-      this.seasons.forEach(s => {
-        s.is_active = (s.id === seasonId);
-      });
-      const active = this.seasons.find(s => s.id === seasonId);
-      if (active) {
-        this.currentSeason = { ...active, is_active: true };
-      }
+    const targetId = Number(seasonId);
+    const cloudConfig = (await this.fetchSystemConfig()) || {};
+    let seasonsList = Array.isArray(cloudConfig.seasons) ? [...cloudConfig.seasons] : (Array.isArray(this.seasons) ? [...this.seasons] : []);
+
+    seasonsList.forEach(s => {
+      s.is_active = (Number(s.id) === targetId);
+    });
+
+    const active = seasonsList.find(s => Number(s.id) === targetId);
+    if (active) {
+      this.currentSeason = { ...active, is_active: true };
     }
+
+    this.seasons = seasonsList;
 
     // Supabaseクラウド共有設定へ確実に永続化同期
     await this.saveSystemConfig({ seasons: this.seasons, current_season: this.currentSeason });
     await this.getCurrentSeason();
   }
 
-  // シーズンの削除
+  // シーズンの削除 (Single Source of Truth)
   async adminDeleteSeason(seasonId) {
     const targetId = Number(seasonId);
-    if (Array.isArray(this.seasons)) {
-      this.seasons = this.seasons.filter(s => Number(s.id) !== targetId);
-    }
+    const cloudConfig = (await this.fetchSystemConfig()) || {};
+    let seasonsList = Array.isArray(cloudConfig.seasons) ? [...cloudConfig.seasons] : (Array.isArray(this.seasons) ? [...this.seasons] : []);
+
+    seasonsList = seasonsList.filter(s => Number(s.id) !== targetId);
+    this.seasons = seasonsList;
+
     if (this.currentSeason && Number(this.currentSeason.id) === targetId) {
       const remainingActive = this.seasons.find(s => s.is_active) || this.seasons[0];
       if (remainingActive) {
-        this.currentSeason = { ...remainingActive };
+        this.currentSeason = { ...remainingActive, is_active: true };
       }
     }
 
@@ -1501,7 +1584,7 @@ class QuestApiManager {
     return true;
   }
 
-  // 勇者レベル・称号 (hero_titles) の新規登録 / 更新
+  // 勇者レベル・称号 (hero_titles) の新規登録 / 更新 (Single Source of Truth)
   async adminSaveHeroTitle(titleData) {
     const cleanData = {
       level: Number(titleData.level),
@@ -1512,22 +1595,27 @@ class QuestApiManager {
       description: titleData.description || ''
     };
 
+    const cloudConfig = (await this.fetchSystemConfig()) || {};
+    let heroTitlesList = Array.isArray(cloudConfig.hero_titles)
+      ? [...cloudConfig.hero_titles]
+      : (Array.isArray(this.heroTitles) ? [...this.heroTitles] : []);
+
     let targetId = titleData.id ? Number(titleData.id) : null;
     if (!targetId) {
-      const maxId = (this.heroTitles && this.heroTitles.length > 0) ? 
-        this.heroTitles.reduce((max, t) => Math.max(max, Number(t.id) || 0), 0) : 0;
+      const maxId = heroTitlesList.reduce((max, t) => Math.max(max, Number(t.id) || 0), 0);
       targetId = maxId + 1;
     }
     cleanData.id = targetId;
 
-    if (!Array.isArray(this.heroTitles)) this.heroTitles = [];
-    const idx = this.heroTitles.findIndex(t => Number(t.id) === targetId || t.level === cleanData.level);
+    const idx = heroTitlesList.findIndex(t => Number(t.id) === targetId || Number(t.level) === cleanData.level);
     if (idx !== -1) {
-      this.heroTitles[idx] = { ...this.heroTitles[idx], ...cleanData };
+      heroTitlesList[idx] = { ...heroTitlesList[idx], ...cleanData };
     } else {
-      this.heroTitles.push(cleanData);
+      heroTitlesList.push(cleanData);
     }
-    this.heroTitles.sort((a, b) => a.min_visits - b.min_visits);
+    heroTitlesList.sort((a, b) => (Number(a.min_visits) || 0) - (Number(b.min_visits) || 0));
+
+    this.heroTitles = heroTitlesList;
 
     // Supabaseクラウド共有設定へ確実に永続化同期
     await this.saveSystemConfig({ hero_titles: this.heroTitles });
@@ -1535,10 +1623,16 @@ class QuestApiManager {
     return cleanData;
   }
 
-  // 勇者称号の削除
+  // 勇者称号の削除 (Single Source of Truth)
   async adminDeleteHeroTitle(titleId) {
     const numId = Number(titleId);
-    this.heroTitles = (this.heroTitles || []).filter(t => Number(t.id) !== numId && t.level !== numId);
+    const cloudConfig = (await this.fetchSystemConfig()) || {};
+    let heroTitlesList = Array.isArray(cloudConfig.hero_titles)
+      ? [...cloudConfig.hero_titles]
+      : (Array.isArray(this.heroTitles) ? [...this.heroTitles] : []);
+
+    heroTitlesList = heroTitlesList.filter(t => Number(t.id) !== numId && Number(t.level) !== numId);
+    this.heroTitles = heroTitlesList;
 
     // Supabaseクラウド共有設定へ確実に永続化同期
     await this.saveSystemConfig({ hero_titles: this.heroTitles });

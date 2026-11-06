@@ -1732,7 +1732,7 @@ class YoidoreQuestApp {
     // 1. クーポン型特典の一覧HTML（A案：スリム＆シンプルカード）
     const couponTiersList = rewardTiers.filter(t => t.reward_type !== 'goods');
     const couponsHtml = (couponTiersList.length > 0) ? couponTiersList.map(tier => {
-      const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || '') || Number(tier.required_visits) >= 40);
+      const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || ''));
       const isReached = userCoupons.some(c => Number(c.reward_tier_id) === Number(tier.id));
       const maxCount = tier.selectable_count || 5;
       const usedCoupons = tierCouponMap.get(Number(tier.id)) || [];
@@ -1760,7 +1760,7 @@ class YoidoreQuestApp {
           statusBadge = `<span class="treasure-tier-status status-unlocked" style="background:#0284c7; border-color:#38bdf8;">✨ 利用可能 (${remainCount}/${maxCount}回)</span>`;
         }
       } else {
-        const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || '') || Number(tier.required_visits) >= 40);
+        const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || ''));
         statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成 (${isAll ? '全店舗' : `${tier.required_visits}軒`})</span>`;
       }
 
@@ -1847,7 +1847,7 @@ class YoidoreQuestApp {
     // 2. グッズ記念品型特典の一覧HTML（A案：スリム＆シンプルカード）
     const goodsTiersList = rewardTiers.filter(t => t.reward_type === 'goods');
     const goodsHtml = (goodsTiersList.length > 0) ? goodsTiersList.map(tier => {
-      const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || '') || Number(tier.required_visits) >= 40);
+      const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || ''));
       const goodsCoupons = userCoupons.filter(c => c.reward_type === 'goods' && (Number(c.reward_tier_id) === Number(tier.id) || c.goods_name === tier.goods_name || c.goods_name === tier.title));
       const usedGoodsCoupon = goodsCoupons.find(c => c.status === 'used');
       const activeGoodsCoupon = goodsCoupons.find(c => c.status !== 'used');
@@ -1875,7 +1875,7 @@ class YoidoreQuestApp {
           </button>
         `;
       } else {
-        const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || '') || Number(tier.required_visits) >= 40);
+        const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || ''));
         statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成 (${isAll ? '全店舗' : `${tier.required_visits}軒`})</span>`;
       }
 
@@ -2764,12 +2764,12 @@ class YoidoreQuestApp {
             { id: 3, required_visits: 15, title: '15軒達成特典' },
             { id: 4, required_visits: 20, title: '20軒達成特典' },
             { id: 5, required_visits: 30, title: '30軒達成特典' },
-            { id: 6, required_visits: 42, title: '全店制覇特典' }
+            { id: 6, required_visits: 50, title: '全店制覇特典', is_all_stores: true }
           ];
 
       const tierButtonsHtml = tiers.map((tier) => {
         const visits = Number(tier.required_visits || 0);
-        const isAll = Boolean(tier.is_all_stores || visits >= 40 || /全店|全軒|全件/.test(tier.title || ''));
+        const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || ''));
         const label = isAll ? `👑 全軒制覇 (MAX)` : `🏆 ${visits}軒達成`;
         return `<button type="button" class="treasure-claim-btn qr-modal-test-tier-btn" data-tier-id="${tier.id}" style="background:#4a2c00; border-color:#d4af37; padding:6px 4px; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
           ${label}
@@ -3117,7 +3117,7 @@ class YoidoreQuestApp {
       claimedTiers.forEach(t => {
         const isGoods = t.reward_type === 'goods';
         const name = isGoods ? `『${t.goods_name || t.title}』` : `酒場クーポン ${t.selectable_count || 5}軒分`;
-        const reqPrefix = (t.is_all_stores || /全店|全軒|全件/.test(t.title || '') || Number(t.required_visits) >= 40) ? '全軒達成' : `${t.required_visits}軒達成`;
+        const reqPrefix = (t.is_all_stores || /全店|全軒|全件/.test(t.title || '')) ? '全軒達成' : `${t.required_visits}軒達成`;
         lines.push({
           text: `${reqPrefix}: ${name} を 受け取った！`,
           cls: 'tier'

@@ -3438,7 +3438,7 @@ class YoidoreAdminApp {
     document.getElementById('edit-tier-exchange-notice').value = tier.exchange_notice || '';
     document.getElementById('edit-tier-desc').value = tier.description || '';
 
-    const isAllStores = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || '') || (tier.required_visits && Number(tier.required_visits) >= 40));
+    const isAllStores = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || ''));
     if (document.getElementById('edit-tier-req-type-all')) {
       document.getElementById('edit-tier-req-type-all').checked = isAllStores;
       document.getElementById('edit-tier-req-type-number').checked = !isAllStores;
