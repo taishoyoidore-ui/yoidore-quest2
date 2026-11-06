@@ -2260,7 +2260,7 @@ class YoidoreQuestApp {
    * ------------------------------------------------------------------------ */
   openStoreSelectForCoupon(tier, seasonId = null) {
     const targetSeasonId = seasonId || window.questApi?.currentSeason?.id || 2;
-    const stores = this.getStores();
+    const stores = this.getStores(targetSeasonId);
     // 今期参加かつクーポン対象店舗のみを抽出
     const targetStores = stores.filter(s => s.is_participating !== false && s.isCouponTarget !== false);
     const userCoupons = (window.questApi && window.questApi.userCoupons) || [];
@@ -2268,7 +2268,7 @@ class YoidoreQuestApp {
     // シーズン全体で今期クーポン利用（used）済みの全店舗IDリスト（グッズ引換を除外：1店舗1回限り）
     const usedStoreIds = new Set(
       userCoupons
-        .filter(c => c.reward_type !== 'goods' && c.status === 'used' && c.store_id)
+        .filter(c => c.reward_type !== 'goods' && c.status === 'used' && c.store_id && (!c.season_id || Number(c.season_id) === Number(targetSeasonId)))
         .map(c => c.store_id)
     );
 
@@ -2413,6 +2413,22 @@ class YoidoreQuestApp {
       maxSlide = Math.max(0, trackRect.width - thumbRect.width - 6);
     };
 
+    const attachWindowListeners = () => {
+      window.addEventListener('touchmove', onMove, { passive: false });
+      window.addEventListener('touchend', onEnd);
+      window.addEventListener('touchcancel', onEnd);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onEnd);
+    };
+
+    const detachWindowListeners = () => {
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+      window.removeEventListener('touchcancel', onEnd);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onEnd);
+    };
+
     const onStart = (e) => {
       if (isConfirmed) return;
       updateMaxSlide();
@@ -2420,10 +2436,14 @@ class YoidoreQuestApp {
       thumb.classList.add('is-dragging');
       startX = getClientX(e);
       currentX = 0;
+      attachWindowListeners();
     };
 
     const onMove = (e) => {
       if (!isDragging || isConfirmed) return;
+      if (e.cancelable && e.type === 'touchmove') {
+        e.preventDefault();
+      }
       const clientX = getClientX(e);
       const delta = clientX - startX;
       currentX = Math.max(0, Math.min(delta, maxSlide));
@@ -2441,6 +2461,7 @@ class YoidoreQuestApp {
       if (maxSlide > 0 && currentX >= maxSlide * 0.85) {
         isConfirmed = true;
         isDragging = false;
+        detachWindowListeners();
         thumb.classList.remove('is-dragging');
         thumb.style.transform = `translateX(${maxSlide}px)`;
         if (fill) fill.style.width = '100%';
@@ -2451,6 +2472,7 @@ class YoidoreQuestApp {
     };
 
     const onEnd = () => {
+      detachWindowListeners();
       if (!isDragging || isConfirmed) return;
       isDragging = false;
       thumb.classList.remove('is-dragging');
@@ -2471,16 +2493,9 @@ class YoidoreQuestApp {
       }, 250);
     };
 
-    // タッチイベント
+    // タッチ・マウスの開始イベントのみ登録（移動・終了はドラッグ中のみ window に動的登録）
     thumb.addEventListener('touchstart', onStart, { passive: true });
-    window.addEventListener('touchmove', onMove, { passive: false });
-    window.addEventListener('touchend', onEnd);
-    window.addEventListener('touchcancel', onEnd);
-
-    // マウスイベント
     thumb.addEventListener('mousedown', onStart);
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onEnd);
   }
 
   /* ------------------------------------------------------------------------

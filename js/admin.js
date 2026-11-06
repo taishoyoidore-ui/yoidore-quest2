@@ -1534,29 +1534,15 @@ class YoidoreAdminApp {
     }).join('');
   }
 
-  setStoreParticipatingFilter(val) {
-    const hidden = document.getElementById('participating-filter');
-    if (hidden) hidden.value = val;
-    const group = document.getElementById('store-participating-segmented');
-    if (group) {
-      group.querySelectorAll('.segment-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.val === val);
-      });
-    }
-    this.filterStores();
-  }
-
   filterStores() {
     const searchElem = document.getElementById('store-search');
     const areaElem = document.getElementById('area-filter');
-    const partElem = document.getElementById('participating-filter');
     const planElem = document.getElementById('plan-filter');
     const couponElem = document.getElementById('coupon-target-filter');
     const orgElem = document.getElementById('organizer-filter');
 
     const search = searchElem ? searchElem.value.toLowerCase().trim() : '';
     const area = areaElem ? areaElem.value : '';
-    const participating = partElem ? partElem.value : '';
     const plan = planElem ? planElem.value : '';
     const couponTarget = couponElem ? couponElem.value : '';
     const organizer = orgElem ? orgElem.value : '';
@@ -1579,12 +1565,7 @@ class YoidoreAdminApp {
       // 2. エリア
       const matchArea = !area || s.area === area;
 
-      // 3. 参加状態
-      const matchPart = !participating ||
-        (participating === 'true' && s.is_participating !== false) ||
-        (participating === 'false' && s.is_participating === false);
-
-      // 4. 参加プラン
+      // 3. 参加プラン
       const hasSet = Boolean(s.set_name || s.set_price || (s.plan_type && s.plan_type.includes('セット')));
       const hasQuest = Boolean(s.quest_name || s.quest_price || (s.plan_type && (s.plan_type.includes('クエスト') || s.plan_type.includes('ゲーム'))));
       let matchPlan = true;
@@ -1596,18 +1577,18 @@ class YoidoreAdminApp {
         matchPlan = hasQuest && !hasSet;
       }
 
-      // 5. クーポン取扱
+      // 4. クーポン取扱
       const matchCoupon = !couponTarget || 
         (couponTarget === 'true' && Boolean(s.is_coupon_target)) ||
         (couponTarget === 'false' && !s.is_coupon_target);
 
-      // 6. 店舗種別 (運営店)
+      // 5. 店舗種別 (運営店)
       const isOrg = Boolean(s.is_organizer || s.isOrganizer);
       const matchOrg = !organizer ||
         (organizer === 'true' && isOrg) ||
         (organizer === 'false' && !isOrg);
 
-      return matchSearch && matchArea && matchPart && matchPlan && matchCoupon && matchOrg;
+      return matchSearch && matchArea && matchPlan && matchCoupon && matchOrg;
     });
 
     // 詳細条件バッジ（プラン・クーポン・店舗種別のいずれかが設定されていればバッジ点灯）
@@ -1740,6 +1721,7 @@ class YoidoreAdminApp {
     const newStatus = !store.is_coupon_target;
     store.is_coupon_target = newStatus;
 
+    const isCurrentActive = Number(targetSeasonId) === Number(this.api.currentSeason?.id || 2);
     const existingRaw = store.raw_data || {};
     const existingSeasons = { ...(existingRaw.seasons || {}) };
     const seasonData = { ...(existingSeasons[targetSeasonId] || {}) };
@@ -1749,17 +1731,17 @@ class YoidoreAdminApp {
     const updatedRawData = {
       ...existingRaw,
       seasons: existingSeasons,
-      ...(targetSeasonId === 2 ? { is_coupon_target: newStatus } : {})
+      ...(isCurrentActive ? { is_coupon_target: newStatus } : {})
     };
 
     try {
       const updatePayload = {
         raw_data: updatedRawData
       };
-      if (targetSeasonId === 2) {
+      if (isCurrentActive) {
         updatePayload.is_coupon_target = newStatus;
       }
-      await this.api.supabaseFetch(`stores?id=eq.${storeId}`, {
+      await this.api.supabaseFetch(`stores?id=eq.${encodeURIComponent(storeId)}`, {
         method: 'PATCH',
         headers: {
           'Prefer': 'return=representation'
@@ -2176,6 +2158,7 @@ class YoidoreAdminApp {
     if (!storeId) return alert('店舗IDは必須です');
 
     const targetSeasonId = this.selectedSeasonId || 2;
+    const isCurrentActive = Number(targetSeasonId) === Number(this.api.currentSeason?.id || 2);
     const isParticipating = document.getElementById('edit-store-participating') ? document.getElementById('edit-store-participating').checked : true;
 
     // 1. エリア取得
@@ -2321,8 +2304,8 @@ class YoidoreAdminApp {
       photo_url: photoUrl,
       // 2層分離: シーズン別企画データ
       seasons: existingSeasons,
-      // 互換用（第2回時はトップレベルにも反映）
-      ...(targetSeasonId === 2 ? {
+      // 互換用（アクティブシーズン時はトップレベルにも反映）
+      ...(isCurrentActive ? {
         days,
         hours,
         time_notes: timeNotes,
@@ -2349,7 +2332,7 @@ class YoidoreAdminApp {
       id: storeId,
       name: name,
       area: area,
-      ...(targetSeasonId === 2 ? { is_coupon_target: isCouponTarget } : {}),
+      ...(isCurrentActive ? { is_coupon_target: isCouponTarget } : {}),
       display_order: displayOrder,
       raw_data: rawData
     };
@@ -2368,7 +2351,7 @@ class YoidoreAdminApp {
         });
       } else {
         // 既存更新: PATCH (確実な上書き)
-        await this.api.supabaseFetch(`stores?id=eq.${storeId}`, {
+        await this.api.supabaseFetch(`stores?id=eq.${encodeURIComponent(storeId)}`, {
           method: 'PATCH',
           headers: {
             'Prefer': 'return=representation'
@@ -2520,7 +2503,7 @@ class YoidoreAdminApp {
 
     try {
       this.showToast(`酒場「${name}」を削除中...`);
-      await this.api.supabaseFetch(`stores?id=eq.${storeId}`, {
+      await this.api.supabaseFetch(`stores?id=eq.${encodeURIComponent(storeId)}`, {
         method: 'DELETE'
       });
       this.closeStoreModal();
@@ -3032,6 +3015,7 @@ class YoidoreAdminApp {
     if (validItems.length === 0) return alert('インポート対象の店舗がありません');
 
     const targetSeasonId = this.selectedSeasonId || 2;
+    const isCurrentActive = Number(targetSeasonId) === Number(this.api.currentSeason?.id || 2);
     const targetSeason = this.seasons.find(s => s.id === targetSeasonId);
     const seasonName = targetSeason ? targetSeason.name : '選択中イベント';
     const confirmMsg = `合計 ${validItems.length} 件の店舗データを「${seasonName}」の企画データとしてSupabaseに反映（店舗マスタ更新＋シーズン参加登録）します。よろしいですか？`;
@@ -3090,8 +3074,8 @@ class YoidoreAdminApp {
           photo_url: item.photo_url || '',
           // 2層分離: シーズン別企画データ
           seasons: existingSeasons,
-          // 互換用（第2回時はトップレベルにも反映）
-          ...(targetSeasonId === 2 ? {
+          // 互換用（アクティブシーズン時はトップレベルにも反映）
+          ...(isCurrentActive ? {
             days: item.days || '',
             hours: item.hours || '',
             time_notes: item.time_notes || '',
@@ -3117,7 +3101,7 @@ class YoidoreAdminApp {
           id: item.id,
           name: item.name,
           area: item.area,
-          is_coupon_target: Boolean(item.is_coupon_target),
+          ...(isCurrentActive ? { is_coupon_target: Boolean(item.is_coupon_target) } : {}),
           display_order: displayOrder,
           raw_data: rawData
         };
@@ -3694,11 +3678,6 @@ class YoidoreAdminApp {
 
     // 2. クーポン・特典利用履歴テーブル描画 (検索・種別フィルター & リアルタイム件数バッジ連動)
     this.renderCouponLogs();
-  }
-
-  /* 参加者 友だち種別トグルフィルター（互換性保持） */
-  setUserFriendFilter(val) {
-    this.renderParticipants();
   }
 
   /* 参加者 サマリーピル クイック絞り込み切り替え */

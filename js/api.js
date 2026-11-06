@@ -412,7 +412,7 @@ class QuestApiManager {
       let current = (await this.fetchSystemConfig()) || {};
       const updated = { ...current, ...partialConfig };
 
-      await this.supabaseFetch('users', {
+      await this.supabaseFetch('users?on_conflict=line_user_id', {
         method: 'POST',
         headers: {
           'Prefer': 'resolution=merge-duplicates,return=representation'
@@ -1018,7 +1018,7 @@ class QuestApiManager {
         allRowsToInsert.push({
           user_id: this.currentUser.userId,
           store_id: null,
-          reward_tier_id: tierIdNum <= 2 ? tierIdNum : null,
+          reward_tier_id: tierIdNum,
           season_id: targetSeasonId,
           status: `tier_${tierIdNum}_active`,
           acquired_at: new Date(baseTime + offsetMs).toISOString(),
@@ -1035,7 +1035,7 @@ class QuestApiManager {
           allRowsToInsert.push({
             user_id: this.currentUser.userId,
             store_id: null,
-            reward_tier_id: tierIdNum <= 2 ? tierIdNum : null,
+            reward_tier_id: tierIdNum,
             season_id: targetSeasonId,
             status: `tier_${tierIdNum}_active`,
             acquired_at: new Date(baseTime + offsetMs).toISOString(),
@@ -1581,62 +1581,6 @@ class QuestApiManager {
     });
 
     this.rewardTiers = currentSeasonTiers;
-    return true;
-  }
-
-  // 勇者レベル・称号 (hero_titles) の新規登録 / 更新 (Single Source of Truth)
-  async adminSaveHeroTitle(titleData) {
-    const cleanData = {
-      level: Number(titleData.level),
-      min_visits: Number(titleData.min_visits),
-      title: titleData.title,
-      badge_color: titleData.badge_color || '#facc15',
-      display_order: Number(titleData.display_order || titleData.level),
-      description: titleData.description || ''
-    };
-
-    const cloudConfig = (await this.fetchSystemConfig()) || {};
-    let heroTitlesList = Array.isArray(cloudConfig.hero_titles)
-      ? [...cloudConfig.hero_titles]
-      : (Array.isArray(this.heroTitles) ? [...this.heroTitles] : []);
-
-    let targetId = titleData.id ? Number(titleData.id) : null;
-    if (!targetId) {
-      const maxId = heroTitlesList.reduce((max, t) => Math.max(max, Number(t.id) || 0), 0);
-      targetId = maxId + 1;
-    }
-    cleanData.id = targetId;
-
-    const idx = heroTitlesList.findIndex(t => Number(t.id) === targetId || Number(t.level) === cleanData.level);
-    if (idx !== -1) {
-      heroTitlesList[idx] = { ...heroTitlesList[idx], ...cleanData };
-    } else {
-      heroTitlesList.push(cleanData);
-    }
-    heroTitlesList.sort((a, b) => (Number(a.min_visits) || 0) - (Number(b.min_visits) || 0));
-
-    this.heroTitles = heroTitlesList;
-
-    // Supabaseクラウド共有設定へ確実に永続化同期
-    await this.saveSystemConfig({ hero_titles: this.heroTitles });
-
-    return cleanData;
-  }
-
-  // 勇者称号の削除 (Single Source of Truth)
-  async adminDeleteHeroTitle(titleId) {
-    const numId = Number(titleId);
-    const cloudConfig = (await this.fetchSystemConfig()) || {};
-    let heroTitlesList = Array.isArray(cloudConfig.hero_titles)
-      ? [...cloudConfig.hero_titles]
-      : (Array.isArray(this.heroTitles) ? [...this.heroTitles] : []);
-
-    heroTitlesList = heroTitlesList.filter(t => Number(t.id) !== numId && Number(t.level) !== numId);
-    this.heroTitles = heroTitlesList;
-
-    // Supabaseクラウド共有設定へ確実に永続化同期
-    await this.saveSystemConfig({ hero_titles: this.heroTitles });
-
     return true;
   }
 

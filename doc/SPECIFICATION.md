@@ -93,7 +93,7 @@ C:\AG_WORK\yoidore-quest2/
 │   ├── app.js                  # ユーザーアプリ制御層（LIFF初期化、フレンドシップガード、画面遷移、ステータス計算、演出）
 │   └── admin.js                # バックオフィス制御層（Supabase Auth認証、Excelインポート、店舗・シーズン・特典管理、CSV出力）
 ├── css/
-│   ├── app.css                 # ユーザーアプリ用スタイルシート（ドラクエ・レトロRPG風テーマ、アニメーション）
+│   ├── style.css               # ユーザーアプリ用スタイルシート（ドラクエ・レトロRPG風テーマ、アニメーション）
 │   └── admin.css               # バックオフィス管理画面用スタイルシート（レスポンシブ、ダッシュボード、テーブルUI）
 ├── assets/                     # 共通画像アセット（アイコン、宝箱、バナー等）
 ├── photo/                      # 店舗外観・料理写真
@@ -137,11 +137,7 @@ sequenceDiagram
 
     Note over User, Shop: 4. 後夜祭期間の店頭消し込み ＆ クーポン利用
     User->>Shop: 後夜祭期間中、クーポン対象酒場へ来店・お会計時に提示
-    alt 冒険の書から利用する場合
-        User->>App: 特典カードから「🍺 対象酒場一覧から選んで使う」をタップ ➔ 店舗選択
-    else 店舗詳細画面から利用する場合
-        User->>App: 店舗詳細画面の「🍺 クーポンを使う」をタップ
-    end
+    User->>App: 冒険の書の特典カードから「🍺 対象酒場一覧から選んで使う」をタップ ➔ 店舗選択
     alt 本開催期間中（クーポン利用期間前）
         App-->>User: 「🔒 クーポン利用期間前（📅 イベント終了翌日〜）」案内表示（消し込みボタン無効化）
     else クーポン利用期間内（後夜祭フェーズ）
@@ -319,7 +315,7 @@ erDiagram
 | **バックオフィス** | **アンケートExcel自動2層振分取込** | Googleフォーム集計結果のExcel（全38列）を解析し、対象シーズンを指定して「店舗基本マスタ更新」と「シーズン参加データUPSERT」を同時に実行。 |
 | **バックオフィス** | **シーズン別 特典ランク・宝箱管理** | シーズンごとに独立した特典マイルストーン（必要軒数・クーポン型/グッズ型・引換設定）をGUIで完全作成・編集・削除。 |
 | **バックオフィス** | **店舗・特典別 集計分析 (Analytics)** | 選択中シーズンの来店数・クーポン指名数・店頭消し込み実績一覧（ソート・エリア絞り込み対応）、およびCSV出力をサポート。 |
-| **バックオフィス** | **全店舗POP一括印刷** | 全店舗の卓上QRコードPOP（A4レイアウト）を即座に印刷・PDF出力。 |
+| **バックオフィス** | **運営店専用 特典達成QR POP一括印刷** | 運営店舗に設置する各特典マイルストーン達成QRコード（`?claim_tier=XX`）の卓上POP（A4レイアウト）を即座にプレビュー・印刷・PDF出力。 |
 
 ---
 
@@ -449,7 +445,7 @@ flowchart TD
 
 ### 6.4 Excel列 ➔ データベース（stores / season_stores）項目対照表
 
-| Excel列（全38列） | 格納先テーブル | カラム・キー名 | 型 | 画面・用途 |
+| Excel列（全44列・マスタ補完含む） | 格納先テーブル | カラム・キー名 | 型 | 画面・用途 |
 |---|---|---|---|---|
 | A: タイムスタンプ | - | *(取込判定用)* | string | - |
 | B: 店名 | `stores` | `name` | string | 酒場名（正式名称） |
@@ -477,6 +473,7 @@ flowchart TD
 | Y / AJ: クエストチャージ | `season_stores` | `quest_charge` | string | ゲームチャージ料 |
 | Z / AK: クエスト備考 | `season_stores` | `quest_notes` | string | ゲーム注意事項・備考 |
 | AL: 缶バッチ希望数 | `season_stores` | `badge_sales_count` | string | 参加証(缶バッチ)販売希望数 |
+| AR: 特定日 | `season_stores` | `special_date` | string | 今期の特定日営業日 (YYYY-MM-DD またはカンマ区切り複数日) |
 | *(永続)* キャッチコピー | `stores` | `catch_copy` | string | 酒場カードのサブコピー |
 | *(永続)* Google Map URL | `stores` | `map_url` | string | GoogleマップURL |
 | *(永続)* Instagram URL | `stores` | `insta_url` | string | Instagram URL |
@@ -701,9 +698,11 @@ flowchart TD
 
 | 最新バージョン | 最終改定日 | 最新の改定概要 |
 | :--- | :--- | :--- |
+| **v2026.11.06.04** | 2026-11-06 | **深層コード再点検に伴うシーズン分離・DB書き込み堅牢化 ＆ デッドコードクリーンアップ**<br>・【クーポン店舗選択のシーズン分離強化】`app.js` の `openStoreSelectForCoupon` において、`this.getStores(targetSeasonId)` でアクティブシーズン店舗を厳密指定し、利用済店舗（`usedStoreIds`）の抽出でもシーズン条件を追加して他シーズン履歴の混入を未然防止。<br>・【システム設定UPSERTクエリ明示化】`api.js` の `saveSystemConfig` において `users?on_conflict=line_user_id` を明示し、ユーザー同期処理と通信記法を統一。<br>・【管理画面の廃止UI残骸・無効ステップ整理】`admin.js` 内の未使用関数（`setStoreParticipatingFilter`, `setUserFriendFilter`）および無効なHTML要素取得処理を整理削除。 |
+| **v2026.11.06.03** | 2026-11-06 | **ソースコード総点検に伴う不具合・非整合・デッドコードの根本改修 ＆ 堅牢化（スワイプ消込リスナー解除、シーズン動的判定、特典ID保存正常化、URLエンコード統一、未使用称号CRUD削除）**<br>・【店頭スワイプ消込のリスナー解除】店頭消込スライダーのイベントリスナーをドラッグ中のみ動的登録・解除する設計へ改修し、メモリリークとスクロール干渉を根絶。<br>・【店舗更新時のシーズン判定動的化】`admin.js` 内の店舗クーポン対象トグル・保存・Excelインポートにおける `targetSeasonId === 2` をアクティブシーズン判定（`isCurrentActive`）に刷新し、第3回以降の回次での更新不整合を防止。<br>・【特典獲得時のID保存正常化】`api.js` の `claimRewardTierCoupons` において ID 3以上の特典が `reward_tier_id: null` で登録されていた制約回避を是正し、最新スキーマで正確な特典IDをDB記録。<br>・【管理画面 REST URLのエンコード統一】`admin.js` 内の店舗更新・削除URLパラメータに `encodeURIComponent` を適用。<br>・【未使用称号CRUDの削除】`api.js` 内の未使用関数（`adminSaveHeroTitle`, `adminDeleteHeroTitle`）を安全に整理・削除。 |
+| **v2026.11.06.02** | 2026-11-06 | **仕様書・実装・DB詳細突合に伴う不一致・過不足の全面解消 ＆ 旧残骸ファイル（qrcodes/print_qrcodes.html）完全削除**<br>・【UXシーケンス図の是正】第3章シーケンス図から廃止済みの店舗詳細クーポン利用導線を削除し、冒険の書（マイページ）への一本化導線に統一。<br>・【POP印刷機能記述の是正】第5章のPOP印刷概要を「運営店専用 特典達成QR POP一括印刷（?claim_tier=XX）」の現行仕様へ更新。<br>・【Excel列対照表の完全化】第6.4節に特定日（AR列: `special_date`）を追加し全44列対照表へ整備。<br>・【第12章 入力項目定義書の完全同期】シーズン設定、特典ランク設定、店舗マスター管理の全HTML要素ID、name属性、初期値、欠落項目（写真パス、缶バッチ希望数）を実装と完全同期。<br>・【ファイル名不整合の是正】第2.2節のCSSファイル名を実体の `css/style.css` に修正。<br>・【旧仕様残骸の削除】第1期初期仕様の旧LIFF ID・全店チェックインQRがハードコードされていた `qrcodes/print_qrcodes.html` をリポジトリから完全削除。 |
+| **v2026.11.06.01** | 2026-11-06 | **完全リリースに向けた全モジュール・全ステップ総点検：DB書き込み（visits / user_coupons）のシーズンID・メタデータ欠落是正 ＆ シーズン・称号CRUDのSingle Source of Truth徹底 ＆ 日付境界安全化 ＆ 全店制覇判定のハードコード完全排除** |
 | **v2026.11.05.03** | 2026-11-05 | **特典マイルストーン保存・削除処理におけるキー型整合性確立と巻き込み消失防止（アトミックCRUDの確立）** |
-| **v2026.11.05.02** | 2026-11-05 | **特定日複数日設定UI（期間内チェックボックス）の導入 ＆ 期間中実営業日数（特定日・曜日限定）に基づく全店制覇除外ロジックへの完全準拠改修** |
-| **v2026.11.05.01** | 2026-11-05 | 特定日限定営業店舗（1日のみ営業等）の全店制覇算定除外ロジック自動化 ＆ 宝箱「全店舗達成」UI統一 ＆ 店舗詳細への全店制覇案内注記追加の実装反映 |
 
 ---
 
@@ -744,24 +743,24 @@ flowchart TD
 **【鉄則】新規作成時はすべての入力欄が「完全な空文字（`""`）」または「未選択状態」で初期化され、プログラム側から勝手な固定値や決め打ち文字列を初期値（`.value`）としてセットすることは恒久的に禁止**とします。
 
 ### 12.1 シーズン開催設定（`#season-modal` / `#tab-seasons`）
-主催者が開催回（第1回、第2回、第3回…）を作成・編集するフォーム項目です。
+主催者が開催回（第1回、第2回、第3回…）を作成・編集するフォーム項目です。新規作成モーダル（`#season-modal`）と、選択中シーズンの詳細編集フォーム（`#tab-seasons`）で各HTML要素がマッピングされています。
 
 | フォーム入力項目名 | HTML要素ID / name | データ型 | 必須/任意 | 初期値（新規時） | プレースホルダー / 説明・仕様 |
 | :--- | :--- | :---: | :---: | :---: | :--- |
-| **イベント名** | `#edit-season-name` | string | **必須** | `""` | `placeholder="例: 大正酔いどれクエストⅡ"`<br/>回次名・イベント正式名称。 |
-| **開催開始日** | `#edit-season-start` | date (`YYYY-MM-DD`) | **必須** | `""` | カレンダー選択。イベントのサイン集め（周遊）開始日。 |
-| **開催終了日** | `#edit-season-end` | date (`YYYY-MM-DD`) | **必須** | `""` | カレンダー選択。サイン集め終了日。翌日からクーポン利用期間に移行。 |
-| **クーポン有効期限** | `#edit-season-coupon-valid` | date (`YYYY-MM-DD`) | **必須** | `""` | カレンダー選択。ハシゴ達成酒場クーポンの最終利用可能期日。 |
+| **イベント名** | `#new-season-name` (新規)<br/>`#edit-season-name` (編集) | string | **必須** | `""` | `placeholder="例: 大正酔いどれクエストⅡ"`<br/>回次名・イベント正式名称。 |
+| **開催開始日** | `#new-season-start` (新規)<br/>`#edit-season-start` (編集) | date (`YYYY-MM-DD`) | **必須** | `""` | カレンダー選択。イベントのサイン集め（周遊）開始日。 |
+| **開催終了日** | `#new-season-end` (新規)<br/>`#edit-season-end` (編集) | date (`YYYY-MM-DD`) | **必須** | `""` | カレンダー選択。サイン集め終了日。翌日からクーポン利用期間に移行。 |
+| **クーポン有効期限** | `#new-season-valid` (新規)<br/>`#edit-season-valid` (編集) | date (`YYYY-MM-DD`) | **必須** | `""` | カレンダー選択。ハシゴ達成酒場クーポンの最終利用可能期日。 |
 | **イベント開催概要** | `#edit-season-overview` | string (textarea) | 任意 | `""` | `placeholder="イベント概要を入力"`<br/>案内所トップに表示される概要案内文。 |
-| **導きステップ1** | `#edit-season-step1` | string | 任意 | `""` | `placeholder="例: 酒場へ突入せよ"`<br/>案内所「はしご酒の導き」其の一見出し。 |
+| **導きステップ1** | `#edit-season-step1-title` | string | 任意 | `""` | `placeholder="例: 酒場へ突入せよ"`<br/>案内所「はしご酒の導き」其の一見出し。 |
 | **導きステップ1詳細** | `#edit-season-step1-desc` | string (textarea) | 任意 | `""` | `placeholder="其の一の説明を入力"` |
-| **導きステップ2** | `#edit-season-step2` | string | 任意 | `""` | `placeholder="例: サインを集めよ"`<br/>案内所「はしご酒の導き」其の二見出し。 |
+| **導きステップ2** | `#edit-season-step2-title` | string | 任意 | `""` | `placeholder="例: サインを集めよ"`<br/>案内所「はしご酒の導き」其の二見出し。 |
 | **導きステップ2詳細** | `#edit-season-step2-desc` | string (textarea) | 任意 | `""` | `placeholder="其の二の説明を入力"` |
-| **導きステップ3** | `#edit-season-step3` | string | 任意 | `""` | `placeholder="例: 宝箱を解放せよ"`<br/>案内所「はしご酒の導き」其の三見出し。 |
+| **導きステップ3** | `#edit-season-step3-title` | string | 任意 | `""` | `placeholder="例: 宝箱を解放せよ"`<br/>案内所「はしご酒の導き」其の三見出し。 |
 | **導きステップ3詳細** | `#edit-season-step3-desc` | string (textarea) | 任意 | `""` | `placeholder="其の三の説明を入力"` |
 | **冒険の心得（注意事項）** | `#edit-season-rules` | string (textarea) | 任意 | `""` | `placeholder="改行区切りで注意事項を入力"`<br/>案内所アコーディオンに表示される箇条書き注意事項。 |
-| **開始時初期称号 (Lv.1)** | `#edit-season-initial-title` | string | 任意 | `""` | `placeholder="例: 駆け出しの呑兵衛"`<br/>未巡回時の初期ステータス称号名（未設定時は「称号未獲得」）。 |
-| **初期称号バッジ色** | `#edit-season-initial-color` | color (`#HEX`) | 任意 | `#38bdf8` | 称号プレート枠・アイコンの色。 |
+| **開始時初期称号 (Lv.1)** | `#new-season-initial-hero-title` (新規)<br/>`#edit-season-initial-hero-title` (編集) | string | 任意 | `""` | `placeholder="例: 駆け出しの呑兵衛"`<br/>未巡回時の初期ステータス称号名（未設定時は「称号未獲得」）。 |
+| **初期称号バッジ色** | `#edit-season-initial-badge-color` | color (`#HEX`) | 任意 | `#94a3b8` | 称号プレート枠・アイコンの色（デフォルト: スレートグレー）。 |
 
 ---
 
@@ -770,17 +769,17 @@ flowchart TD
 
 | フォーム入力項目名 | HTML要素ID / name | データ型 | 必須/任意 | 初期値（新規時） | プレースホルダー / 説明・仕様 |
 | :--- | :--- | :---: | :---: | :---: | :--- |
-| **特典ランクタイトル** | `#tier-title` | string | **必須** | `""` | `placeholder="例: 5軒ハシゴ達成特典"`<br/>達成ダイアログや冒険の書に表示されるタイトル。 |
-| **達成条件種別** | `input[name="tier-visits-type"]` | radio | **必須** | `fixed` | `fixed`: 指定軒数で達成<br/>`all`: 👑 全軒制覇（全店舗達成） |
-| **必要来店店舗数** | `#tier-required-visits` | number | 条件付き必須 | `""` | `placeholder="例: 5"`<br/>`fixed` 選択時に1以上の数値を入力（そのまま勇者Lvになる）。 |
-| **特典タイプ** | `input[name="tier-reward-type"]` | radio | **必須** | `store_coupon` | `store_coupon`: 酒場クーポン型<br/>`goods`: 記念品グッズ引換型 |
-| **獲得可能クーポン数** | `#tier-coupon-count` | number | 条件付き必須 | `""` | `placeholder="例: 5"`<br/>クーポン型選択時に入力（1以上の枠数）。 |
-| **記念品グッズ名称** | `#tier-goods-name` | string | 条件付き必須 | `""` | `placeholder="例: 特製酔いどれトートバッグ"`<br/>グッズ型選択時に入力。 |
-| **記念品引換場所** | `#tier-exchange-location` | string | 任意 | `""` | `placeholder="例: 運営本部または対象運営店"`<br/>グッズ受取窓口の案内。 |
-| **記念品受取注意事項** | `#tier-exchange-notice` | string (textarea) | 任意 | `""` | `placeholder="例: 引換はイベント期間中のみ有効です"` |
-| **獲得称号名** | `#tier-hero-title` | string | 任意 | `""` | `placeholder="例: 呑み歩き勇者"`<br/>達成時に獲得・昇格する勇者称号名。 |
-| **称号バッジカラー** | `#tier-badge-color` | color (`#HEX`) | 任意 | `#ffd700` | 冒険の書および演出時の称号枠カラー。 |
-| **特典説明文** | `#tier-description` | string (textarea) | 任意 | `""` | `placeholder="特典内容の説明を入力"` |
+| **特典ランクタイトル** | `#edit-tier-title` | string | **必須** | `""` | `placeholder="例: 5軒ハシゴ達成特典"`<br/>達成ダイアログや冒険の書に表示されるタイトル。 |
+| **達成条件種別** | `input[name="edit-tier-req-type"]` | radio | **必須** | `number` | `number`: 指定軒数で達成<br/>`all`: 👑 全軒制覇（全店舗達成） |
+| **必要来店店舗数** | `#edit-tier-required` | number | 条件付き必須 | `""` | `placeholder="例: 5"`<br/>`number` 選択時に1以上の数値を入力（そのまま勇者Lvになる）。 |
+| **特典タイプ** | `input[name="edit-tier-type"]` | radio | **必須** | `store_coupon` | `store_coupon`: 酒場クーポン型<br/>`goods`: 記念品グッズ引換型 |
+| **獲得可能クーポン数** | `#edit-tier-selectable` | number | 条件付き必須 | `""` | `placeholder="例: 5"`<br/>クーポン型選択時に入力（1以上の枠数）。 |
+| **記念品グッズ名称** | `#edit-tier-goods-name` | string | 条件付き必須 | `""` | `placeholder="例: 特製酔いどれトートバッグ"`<br/>グッズ型選択時に入力。 |
+| **記念品引換場所** | `#edit-tier-exchange-loc` | string | 任意 | `""` | `placeholder="例: 運営本部または対象運営店"`<br/>グッズ受取窓口の案内。 |
+| **記念品受取注意事項** | `#edit-tier-exchange-notice` | string (textarea) | 任意 | `""` | `placeholder="例: 引換はイベント期間中のみ有効です"` |
+| **獲得称号名** | `#edit-tier-hero-title` | string | 任意 | `""` | `placeholder="例: 呑み歩き勇者"`<br/>達成時に獲得・昇格する勇者称号名。 |
+| **称号バッジカラー** | `#edit-tier-badge-color` | color (`#HEX`) | 任意 | `#facc15` | 冒険の書および演出時の称号枠カラー（デフォルト: ゴールド）。 |
+| **特典説明文** | `#edit-tier-desc` | string (textarea) | 任意 | `""` | `placeholder="特典内容の説明を入力"` |
 
 ---
 
@@ -789,26 +788,28 @@ flowchart TD
 
 | フォーム入力項目名 | HTML要素ID / name | 格納先レイヤー | 必須/任意 | 初期値（新規時） | プレースホルダー / 説明・仕様 |
 | :--- | :--- | :---: | :---: | :---: | :--- |
-| **店舗ID** | `#edit-store-id` | `stores.id` | **必須** | `""` | `placeholder="例: store-01"`<br/>英数字ユニークID（編集時は変更不可）。 |
+| **店舗ID** | `#edit-store-id` | `stores.id` | **必須** | 自動採番 (`store-XX`) | `placeholder="例: store-01"`<br/>英数字ユニークID（編集時は変更不可）。 |
 | **店舗正式名称** | `#edit-store-name` | `stores.name` | **必須** | `""` | `placeholder="店舗名を入力"` |
-| **キャッチコピー** | `#edit-store-catch` | `stores.raw_data` | 任意 | `""` | `placeholder="例: 牛すじとお酒とおばんざい"` |
-| **エリア** | `#edit-store-area` | `stores.area` | **必須** | `""`（未選択） | ドロップダウン選択（三軒家西/東/駅前/泉尾/平尾等）。 |
-| **ジャンル (カテゴリ)** | `#edit-store-cat` | `stores.raw_data` | **必須** | `""`（未選択） | ドロップダウン選択（居酒屋/おばんざい/焼肉/BAR等）。 |
+| **キャッチコピー** | `#edit-store-catchphrase` | `stores.raw_data` | 任意 | `""` | `placeholder="例: 牛すじとお酒とおばんざい"` |
+| **エリア** | `#edit-store-area-select`<br/>`#edit-store-area-custom` | `stores.area` | **必須** | `""`（未選択） | ドロップダウン選択（三軒家西/東/駅前/泉尾/平尾等）＋自由入力。 |
+| **ジャンル (カテゴリ)** | `#edit-store-category-select`<br/>`#edit-store-category-custom` | `stores.raw_data` | **必須** | `""`（未選択） | ドロップダウン選択（居酒屋/おばんざい/焼肉/BAR等）＋自由入力。 |
 | **席スタイル** | `#edit-store-style` | `stores.raw_data` | **必須** | `""`（未選択） | ドロップダウン選択 ＋ 自由入力欄。 |
 | **酔いどれタイプ** | `#edit-store-type` | `stores.raw_data` | **必須** | `""`（未選択） | ドロップダウン選択（サク飲み/腹ごしらえ/腰を据えて等）。 |
 | **店舗住所** | `#edit-store-address` | `stores.raw_data` | 任意 | `""` | `placeholder="大阪市大正区..."` |
 | **電話番号** | `#edit-store-tel` | `stores.raw_data` | 任意 | `""` | `placeholder="06-xxxx-xxxx"` |
-| **決済方法** | `input[name="store-payment"]` | `stores.raw_data` | 任意 | 全てOFF | チェックボックス（現金/カード/PayPay等）＋その他自由入力。 |
-| **GoogleマップURL** | `#edit-store-map` | `stores.raw_data` | 任意 | `""` | `placeholder="https://maps.app.goo.gl/..."` |
-| **Instagram URL** | `#edit-store-insta` | `stores.raw_data` | 任意 | `""` | `placeholder="https://www.instagram.com/..."` |
+| **決済方法** | `input[name="store-payment-check"]`<br/>`#edit-store-payment-other` | `stores.raw_data` | 任意 | 全てOFF / `""` | チェックボックス（現金/カード/PayPay等）＋その他自由入力。 |
+| **GoogleマップURL** | `#edit-store-map-url` | `stores.raw_data` | 任意 | `""` | `placeholder="https://maps.app.goo.gl/..."` |
+| **Instagram URL** | `#edit-store-insta-url` | `stores.raw_data` | 任意 | `""` | `placeholder="https://www.instagram.com/..."` |
+| **代表写真画像パス** | `#edit-store-photo-url` | `stores.raw_data` | 任意 | 自動補完 (`photo/XXX.jpg`) | `placeholder="photo/001.jpg"`<br/>店舗代表写真（ID採番時に自動補完）。 |
+| **缶バッチ販売希望数** | `#edit-store-badge-sales` | `season_stores` | 任意 | `""` | `placeholder="例: 10"`<br/>参加証(缶バッチ)の販売希望数。 |
 | **今期参加フラグ** | `#edit-store-participating` | `season_stores` | **必須** | `true` | チェックボックス。OFFにすると今期の酒場一覧・マップに非表示。 |
 | **運営店フラグ** | `#edit-store-organizer` | `season_stores` | **必須** | `false` | チェックボックス。ONの店舗が特典達成QR卓上POP設置店となる。 |
-| **クーポン取扱フラグ** | `#edit-store-coupon-target` | `season_stores` | **必須** | `false` | チェックボックス。ONの店舗がハシゴ達成クーポンの利用対象店となる。 |
-| **特定日 (限定営業日)** | `#edit-store-special-date`| `season_stores` | 任意 | `""` | 期間内カレンダー複数選択（カンマ区切り `YYYY-MM-DD`）。1日のみ設定時は全店制覇から自動除外、2日以上設定時は対象。 |
+| **クーポン取扱フラグ** | `#edit-store-coupon-target` | `season_stores` | **必須** | `true` | チェックボックス。ONの店舗がハシゴ達成クーポンの利用対象店となる。 |
+| **特定日 (限定営業日)** | `#edit-store-special-dates-picker` | `season_stores` | 任意 | 全てOFF | 期間内カレンダー複数日選択。1日のみ設定時は全店制覇から自動除外、2日以上設定時は対象。 |
 | **参加企画種別** | `#edit-store-plan-type` | `season_stores` | **必須** | `""`（未選択） | ドロップダウン選択（セット＋ゲーム両方 / セットのみ / ゲームのみ）。 |
 | **テイクアウト対応** | `#edit-store-takeout` | `season_stores` | **必須** | `""`（未選択） | ドロップダウン選択（テイクアウトOK / 不可 / 専門）。 |
-| **提供曜日** | `input[name="store-day"]` | `season_stores` | 任意 | 全てOFF | チェックボックス（月,火,水,木,金,土,日）。 |
-| **提供時間 (開始/終了)** | `#edit-store-hours-start/end` | `season_stores`| 任意 | `""` / `""` | 時刻入力 ＋ 翌日跨ぎチェックボックス。 |
+| **提供曜日** | `input[name="store-days-check"]` | `season_stores` | 任意 | 全てOFF | チェックボックス（月,火,水,木,金,土,日）。 |
+| **提供時間 (開始/終了)** | `#edit-store-hours-start`<br/>`#edit-store-hours-end`<br/>`#edit-store-hours-nextday`<br/>`#edit-store-hours-custom` | `season_stores`| 任意 | `""` / `""` / OFF / `""` | 開始・終了時刻入力 ＋ 翌日跨ぎチェック ＋ 変則営業時間入力欄。 |
 | **提供時間補足** | `#edit-store-time-notes` | `season_stores` | 任意 | `""` | `placeholder="例: 土日祝は15時〜"` |
 | **限定セット名** | `#edit-store-set-name` | `season_stores` | 条件付き必須 | `""` | `placeholder="セット名を入力"`（セット参加時必須）。 |
 | **セット料理内容** | `#edit-store-set-content`| `season_stores` | 任意 | `""` | `placeholder="料理内容・ドリンク詳細"` |
