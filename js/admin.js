@@ -269,7 +269,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.11.11.01';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.11.11.02';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -471,16 +471,32 @@ class YoidoreAdminApp {
   }
 
   /* ------------------------------------------------------------------------
+   * 日付文字列 (YYYY-MM-DD) をローカル時刻 (JST) で確実にパースするヘルパー
+   * ------------------------------------------------------------------------ */
+  parseLocalDate(dateStr, isEndOfDay = false) {
+    if (!dateStr) return null;
+    if (typeof dateStr === 'string' && dateStr.includes('-')) {
+      const [y, m, d] = dateStr.split('T')[0].split('-').map(Number);
+      return isEndOfDay ? new Date(y, m - 1, d, 23, 59, 59, 999) : new Date(y, m - 1, d, 0, 0, 0, 0);
+    }
+    const dt = new Date(dateStr);
+    if (isEndOfDay) {
+      dt.setHours(23, 59, 59, 999);
+    } else {
+      dt.setHours(0, 0, 0, 0);
+    }
+    return dt;
+  }
+
+  /* ------------------------------------------------------------------------
    * シーズンの期間フェーズ判定（日付＆本番稼働判定の分離）
    * ------------------------------------------------------------------------ */
   getSeasonPhaseInfo(season) {
     if (!season) return { phaseKey: 'unknown', phaseLabel: '不明', badgeClass: 'tag-area', timerText: '-', isEventActive: false, isCouponUsable: false };
     const now = new Date();
-    const startDate = season.start_date ? new Date(season.start_date) : null;
-    const endDate = season.end_date ? new Date(season.end_date) : null;
-    if (endDate) endDate.setHours(23, 59, 59, 999);
-    const validUntil = season.coupon_valid_until ? new Date(season.coupon_valid_until) : null;
-    if (validUntil) validUntil.setHours(23, 59, 59, 999);
+    const startDate = this.parseLocalDate(season.start_date, false);
+    const endDate = this.parseLocalDate(season.end_date, true);
+    const validUntil = this.parseLocalDate(season.coupon_valid_until, true);
 
     if (startDate && now < startDate) {
       const days = Math.max(1, Math.ceil((startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
@@ -783,15 +799,17 @@ class YoidoreAdminApp {
 
   /* 酒場集計データ算出共通ヘルパー */
   getAnalyticsStoreStats() {
-    return this.stores.map(store => {
+    return this.stores.filter(s => s.is_participating !== false).map(store => {
       const raw = store.raw_data || {};
       const usedCount = this.coupons.filter(c => c.store_id === store.id && c.status === 'used' && c.reward_type !== 'goods').length;
 
-      let planType = raw.plan_type || '';
+      let planType = store.plan_type || raw.plan_type || '';
       if (!planType) {
-        if (raw.set_name && raw.quest_name) planType = '両方で参加';
-        else if (raw.set_name) planType = '「酔いどれセット」のみ';
-        else if (raw.quest_name) planType = '「お遊びゲーム」のみ';
+        const sName = store.set_name || raw.set_name;
+        const qName = store.quest_name || raw.quest_name;
+        if (sName && qName) planType = '両方で参加';
+        else if (sName) planType = '「酔いどれセット」のみ';
+        else if (qName) planType = '「お遊びゲーム」のみ';
         else planType = '-';
       }
 
@@ -1076,8 +1094,8 @@ class YoidoreAdminApp {
       const matchSearch = !search || 
         (t.title || '').toLowerCase().includes(search) || 
         (t.goods_name || '').toLowerCase().includes(search) || 
-        (t.reward_desc || '').toLowerCase().includes(search) || 
-        (t.title_reward || '').toLowerCase().includes(search);
+        (t.description || '').toLowerCase().includes(search) || 
+        (t.hero_title || '').toLowerCase().includes(search);
 
       const matchType = typeFilter === 'all' || t.reward_type === typeFilter;
 
@@ -1131,7 +1149,7 @@ class YoidoreAdminApp {
         usedCountHtml = `<strong style="color:#059669; font-size:1.05rem;">${st.usedCount}</strong> <small>点</small>`;
         remainCountHtml = `<strong style="color:#d97706; font-size:1.05rem;">${st.remainingCount}</strong> <small>点</small>`;
       } else {
-        const selectableCount = Number(tier.selectable_count || tier.coupon_count) || 5;
+        const selectableCount = tier.selectable_count ?? tier.coupon_count ?? '-';
         detailName = `お好きな酒場 <strong style="color:#0284c7;">${selectableCount}</strong> 枠分`;
         progressBarColor = 'linear-gradient(90deg, #38bdf8, #0284c7)';
         targetCountHtml = `<strong>${st.reachedUsersCount}</strong> 名<br><small class="text-muted">(付与計 ${st.tierCoupons.length}枠)</small>`;
@@ -1168,15 +1186,17 @@ class YoidoreAdminApp {
   exportAnalyticsStoresToCSV() {
     let csvContent = '\uFEFF酒場ID,酒場名,エリア,参加企画,クーポン取扱対象,クーポン利用数(消込済)\n';
     
-    this.stores.forEach(store => {
+    this.stores.filter(s => s.is_participating !== false).forEach(store => {
       const raw = store.raw_data || {};
       const usedCount = this.coupons.filter(c => c.store_id === store.id && c.status === 'used' && c.reward_type !== 'goods').length;
 
-      let planType = raw.plan_type || '';
+      let planType = store.plan_type || raw.plan_type || '';
       if (!planType) {
-        if (raw.set_name && raw.quest_name) planType = '両方で参加';
-        else if (raw.set_name) planType = '「酔いどれセット」のみ';
-        else if (raw.quest_name) planType = '「お遊びゲーム」のみ';
+        const sName = store.set_name || raw.set_name;
+        const qName = store.quest_name || raw.quest_name;
+        if (sName && qName) planType = '両方で参加';
+        else if (sName) planType = '「酔いどれセット」のみ';
+        else if (qName) planType = '「お遊びゲーム」のみ';
         else planType = '-';
       }
 
@@ -1211,7 +1231,7 @@ class YoidoreAdminApp {
         remaining = Math.max(0, tierCoupons.length - usedCount);
         rateStr = tierCoupons.length > 0 ? `${Math.round((usedCount / tierCoupons.length) * 100)}%` : '0%';
       } else {
-        const selectableCount = Number(tier.selectable_count || tier.coupon_count) || 5;
+        const selectableCount = tier.selectable_count ?? tier.coupon_count ?? 0;
         detailName = `${selectableCount}酒場分`;
         const totalSlots = tierCoupons.length;
         usedCount = tierCoupons.filter(c => c.status === 'used').length;
@@ -1219,7 +1239,7 @@ class YoidoreAdminApp {
         rateStr = totalSlots > 0 ? `${Math.round((usedCount / totalSlots) * 100)}%` : '0%';
       }
 
-      const reqCount = tier.required_visits || tier.required_count || 5;
+      const reqCount = tier.required_visits ?? tier.required_count ?? 0;
       csvContent += `${tier.id},"${(tier.title || '').replace(/"/g, '""')}","${isGoods ? 'グッズ引換型' : '酒場クーポン型'}",${reqCount},"${detailName.replace(/"/g, '""')}","${(tier.exchange_location || '-').replace(/"/g, '""')}",${reachedUsersCount},${usedCount},${remaining},"${rateStr}"\n`;
     });
 
@@ -1236,11 +1256,12 @@ class YoidoreAdminApp {
    * 2. 店舗マスター管理
    * ------------------------------------------------------------------------ */
   updateStoreKPIs() {
-    const total = this.stores.length;
-    const organizer = this.stores.filter(s => Boolean(s.is_organizer || s.isOrganizer)).length;
-    const setStores = this.stores.filter(s => Boolean(s.set_name || s.set_price || (s.plan_type && s.plan_type.includes('セット')))).length;
-    const questStores = this.stores.filter(s => Boolean(s.quest_name || s.quest_price || (s.plan_type && (s.plan_type.includes('クエスト') || s.plan_type.includes('ゲーム'))))).length;
-    const couponStores = this.stores.filter(s => Boolean(s.is_coupon_target)).length;
+    const participatingStores = this.stores.filter(s => s.is_participating !== false);
+    const total = participatingStores.length;
+    const organizer = participatingStores.filter(s => Boolean(s.is_organizer || s.isOrganizer)).length;
+    const setStores = participatingStores.filter(s => Boolean(s.set_name || s.set_price || (s.plan_type && s.plan_type.includes('セット')))).length;
+    const questStores = participatingStores.filter(s => Boolean(s.quest_name || s.quest_price || (s.plan_type && (s.plan_type.includes('クエスト') || s.plan_type.includes('ゲーム'))))).length;
+    const couponStores = participatingStores.filter(s => Boolean(s.is_coupon_target)).length;
 
     const elemTotal = document.getElementById('store-kpi-total');
     if (elemTotal) elemTotal.textContent = `${total.toLocaleString()} 軒`;
@@ -1475,6 +1496,8 @@ class YoidoreAdminApp {
           <td>
             <div class="table-store-name" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
               <strong>${this.escapeHtml(store.name)}</strong>
+              ${!isParticipating ?
+                '<span class="badge" style="background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; font-size:11px; padding:2px 6px; font-weight:bold;">不参加</span>' : ''}
               ${(store.is_organizer || store.isOrganizer) ? 
                 '<span class="badge" style="background:#dbeafe; color:#1d4ed8; border:1px solid #bfdbfe; font-size:11px; padding:2px 6px; font-weight:bold;">運営店</span>' : ''}
             </div>
@@ -2226,7 +2249,7 @@ class YoidoreAdminApp {
     let questNotes = document.getElementById('edit-store-quest-notes').value.trim();
 
     // 選択された参加企画に合わせて不要な側のデータをクリーンアップ（データの不整合を防止）
-    if (planType.includes('クエスト」のみ') || planType.includes('ゲーム」のみ') || planType.includes('お遊びゲーム')) {
+    if (planType.includes('クエスト」のみ') || planType.includes('ゲーム」のみ') || planType.includes('お遊びゲーム」のみ')) {
       setName = ''; setPrice = ''; setContent = ''; setCharge = ''; setLimit = ''; setNotes = '';
     } else if (planType.includes('セット」のみ')) {
       questName = ''; questPrice = ''; questContent = ''; questCharge = ''; questNotes = '';
@@ -2380,9 +2403,9 @@ class YoidoreAdminApp {
       return;
     }
 
-    const start = new Date(startDateStr);
-    const end = new Date(endDateStr);
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    const start = this.parseLocalDate(startDateStr, false);
+    const end = this.parseLocalDate(endDateStr, true);
+    if (!start || !end || isNaN(start.getTime()) || isNaN(end.getTime())) {
       picker.innerHTML = `<span style="font-size:12px; color:#94a3b8;">開催期間の日付形式が不正です。</span>`;
       this.updateSpecialDateSummary();
       return;
@@ -2511,6 +2534,13 @@ class YoidoreAdminApp {
    * ------------------------------------------------------------------------ */
   openExcelImportModal() {
     this.importData = [];
+    const targetSeason = this.seasons.find(s => s.id === this.selectedSeasonId);
+    const seasonName = targetSeason ? targetSeason.name : '選択中イベント';
+    const seasonBadge = document.getElementById('import-modal-season-badge');
+    if (seasonBadge) {
+      seasonBadge.textContent = `取り込み対象イベント: ${seasonName}（店舗マスター更新＋企画データ登録）`;
+    }
+
     const fileInput = document.getElementById('import-file-input');
     if (fileInput) fileInput.value = '';
     const resultsArea = document.getElementById('import-results-area');
@@ -2836,7 +2866,7 @@ class YoidoreAdminApp {
         let questName = '', questContent = '', questNotes = '', questPrice = '', questCharge = '';
 
         const isSetOnly = planType.includes('セット」のみ');
-        const isQuestOnly = planType.includes('クエスト」のみ') || planType.includes('ゲーム」のみ') || planType.includes('お遊びゲーム');
+        const isQuestOnly = planType.includes('クエスト」のみ') || planType.includes('ゲーム」のみ') || planType.includes('お遊びゲーム」のみ');
 
         if (isSetOnly) {
           // 「セットのみ」の場合はExcelのセット情報列（Col 15〜20）からそのまま抽出
@@ -3266,7 +3296,7 @@ class YoidoreAdminApp {
             </div>
           `;
         } else {
-          rewardContent = `お好きな酒場 <strong style="color:#0284c7;">${t.selectable_count || 5}</strong> 枠分`;
+          rewardContent = `お好きな酒場 <strong style="color:#0284c7;">${t.selectable_count ?? '-'}</strong> 枠分`;
         }
 
         let notesHtml = '';
@@ -3349,9 +3379,9 @@ class YoidoreAdminApp {
 
     const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
     let count = 0;
-    const cur = new Date(startDateStr);
-    const end = new Date(endDateStr);
-    if (isNaN(cur.getTime()) || isNaN(end.getTime())) return 0;
+    const cur = this.parseLocalDate(startDateStr, false);
+    const end = this.parseLocalDate(endDateStr, true);
+    if (!cur || !end || isNaN(cur.getTime()) || isNaN(end.getTime())) return 0;
 
     let loopGuard = 0;
     while (cur <= end && loopGuard < 60) {
@@ -3604,7 +3634,6 @@ class YoidoreAdminApp {
     document.getElementById('new-season-valid').value = '';
     const newTitleEl = document.getElementById('new-season-initial-hero-title');
     if (newTitleEl) newTitleEl.value = '';
-    document.getElementById('new-season-active').checked = false;
     document.body.style.overflow = 'hidden';
     document.getElementById('season-modal').style.display = 'flex';
   }
@@ -3621,19 +3650,15 @@ class YoidoreAdminApp {
     const end_date = document.getElementById('new-season-end').value;
     const coupon_valid_until = document.getElementById('new-season-valid').value;
     const initial_hero_title = document.getElementById('new-season-initial-hero-title')?.value.trim() || '';
-    const is_active = document.getElementById('new-season-active').checked;
 
-    const seasonData = { id, name, start_date, end_date, coupon_valid_until, initial_hero_title, initial_badge_color: '#94a3b8', is_active };
+    const seasonData = { id, name, start_date, end_date, coupon_valid_until, initial_hero_title, initial_badge_color: '#94a3b8', is_active: false };
 
     try {
       this.showToast('新規シーズンを作成中...');
-      if (is_active) {
-        await this.api.adminSetActiveSeason(id);
-      }
       await this.api.adminSaveSeason(seasonData);
 
       this.closeSeasonModal();
-      this.showToast(`「${name}」を作成しました！`);
+      this.showToast(`「${name}」を作成しました！（準備完了後に「本番適用にする」で公開できます）`);
       this.selectedSeasonId = id;
       await this.loadAllData();
     } catch (err) {
@@ -3991,7 +4016,7 @@ class YoidoreAdminApp {
               if (tItem.isGoods) {
                 return `<span class="badge" style="background:#fef3c7; color:#92400e; border:1px solid #fde047; font-size:11px; padding:2px 6px;" title="${this.escapeHtml(t.title)} (記念品)"><i class="fa-solid fa-gift"></i> ${req}軒</span>`;
               } else {
-                return `<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:2px 6px;" title="${this.escapeHtml(t.title)} (${t.selectable_count || 5}枠)"><i class="fa-solid fa-ticket"></i> ${req}軒(${t.selectable_count || 5}枠)</span>`;
+                return `<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:2px 6px;" title="${this.escapeHtml(t.title)} (${t.selectable_count ?? '-'}枠)"><i class="fa-solid fa-ticket"></i> ${req}軒(${t.selectable_count ?? '-'}枠)</span>`;
               }
             }).join('')}
           </div>
@@ -4162,6 +4187,8 @@ class YoidoreAdminApp {
       return true;
     });
 
+    this.lastFilteredCoupons = filteredCoupons;
+
     // 件数バッジ更新
     const countBadge = document.getElementById('coupons-filtered-count');
     if (countBadge) {
@@ -4303,7 +4330,7 @@ class YoidoreAdminApp {
             : '-';
           const storeName = claimCoupon && claimCoupon.store_id 
             ? (this.stores.find(s => s.id === claimCoupon.store_id)?.name || claimCoupon.store_id) 
-            : (tier.exchange_location || '指定引換所');
+            : (tier.exchange_location || '-');
 
           cardsHtml.push(`
             <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 14px;">
@@ -4483,7 +4510,7 @@ class YoidoreAdminApp {
     const user = (this.users || []).find(u => u.line_user_id === coupon.user_id);
     const userName = user ? user.display_name : coupon.user_id;
     const tier = (this.tiers || []).find(t => Number(t.id) === Number(coupon.reward_tier_id));
-    const tierName = tier ? `【${tier.required_visits || 5}軒達成】${tier.title}` : '酒場クーポン';
+    const tierName = tier ? `【${tier.required_visits ?? '-'}軒達成】${tier.title}` : '酒場クーポン';
 
     const modal = document.getElementById('manual-redeem-modal');
     if (!modal) return;
@@ -4599,11 +4626,12 @@ class YoidoreAdminApp {
 
     if (this.activeLogSubTab === 'users') {
       csvContent += 'LINE_User_ID,表示名,獲得特典一覧,酒場クーポン総枠数,酒場クーポン利用済数,酒場クーポン残枠数,記念品グッズ総数,記念品グッズ受取済数,消込店舗一覧,参加登録日時,最終アクセス\n';
-      this.users.forEach(u => {
+      const targetUsers = Array.isArray(this.lastFilteredUsers) ? this.lastFilteredUsers.map(item => item.user || item) : this.users;
+      targetUsers.forEach(u => {
         const userCoupons = (this.coupons || []).filter(c => c.user_id === u.line_user_id);
         const unlockedTierIds = Array.from(new Set(userCoupons.map(c => Number(c.reward_tier_id)).filter(Boolean)));
         const unlockedTiers = (this.tiers || []).filter(t => unlockedTierIds.includes(Number(t.id)));
-        const rewardsSummary = unlockedTiers.map(t => `${t.title}(${t.reward_type === 'goods' ? 'グッズ' : `${t.selectable_count || 5}枠`})`).join(' / ') || (userCoupons.length > 0 ? `${userCoupons.length}件` : '未獲得');
+        const rewardsSummary = unlockedTiers.map(t => `${t.title}(${t.reward_type === 'goods' ? 'グッズ' : `${t.selectable_count ?? 0}枠`})`).join(' / ') || (userCoupons.length > 0 ? `${userCoupons.length}件` : '未獲得');
 
         const storeCoupons = userCoupons.filter(c => c.reward_type !== 'goods');
         const goodsCoupons = userCoupons.filter(c => c.reward_type === 'goods');
@@ -4622,7 +4650,8 @@ class YoidoreAdminApp {
       });
     } else if (this.activeLogSubTab === 'coupons') {
       csvContent += '利用・受取日時,種別,シーズンID,LINE_User_ID,ユーザー名,酒場ID,酒場名/記念品名,状態\n';
-      this.coupons.forEach(c => {
+      const targetCoupons = Array.isArray(this.lastFilteredCoupons) ? this.lastFilteredCoupons : this.coupons;
+      targetCoupons.forEach(c => {
         const store = this.stores.find(s => s.id === c.store_id);
         const user = this.users.find(u => u.line_user_id === c.user_id);
         const isGoods = c.reward_type === 'goods';
@@ -4680,7 +4709,7 @@ class YoidoreAdminApp {
     container.innerHTML = '';
     const liffId = this.api.liffId || '2011637649-WWv6pnTL';
     const currentSeason = this.seasons.find(s => s.id === this.selectedSeasonId) || this.api.currentSeason;
-    const seasonTitle = currentSeason ? currentSeason.name : '大正酔いどれクエスト';
+    const seasonTitle = currentSeason?.name || '';
 
     tiers.forEach(tier => {
       const reqVisits = tier.required_visits ?? tier.required_count ?? 0;
@@ -4690,7 +4719,7 @@ class YoidoreAdminApp {
       card.className = 'pop-card';
 
       const isGoods = tier.reward_type === 'goods';
-      const couponCount = tier.selectable_count || tier.coupon_count || 5;
+      const couponCount = tier.selectable_count ?? tier.coupon_count ?? '-';
       const rewardSummary = isGoods
         ? `🎁 記念品: ${this.escapeHtml(tier.goods_name || tier.title)}`
         : `🍺 酒場クーポン ${couponCount}枠`;

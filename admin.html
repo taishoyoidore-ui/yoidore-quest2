@@ -12,7 +12,7 @@
 
   <link rel="icon" href="assets/banner.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/admin.css?v=20261111_01">
+  <link rel="stylesheet" href="css/admin.css?v=20261111_02">
   <!-- Supabase JS Client for Auth -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- SheetJS for Excel Import -->
@@ -76,7 +76,7 @@
         </button>
       </form>
       <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 14px;">
-        システムバージョン: <strong class="app-version-text">v2026.11.11.01</strong>
+        システムバージョン: <strong class="app-version-text">v2026.11.11.02</strong>
       </div>
     </div>
   </div>
@@ -137,7 +137,7 @@
           <span id="admin-user-email">管理者</span>
         </div>
         <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-bottom: 6px;">
-          システムバージョン: <strong class="app-version-text">v2026.11.11.01</strong>
+          システムバージョン: <strong class="app-version-text">v2026.11.11.02</strong>
         </div>
         <button class="btn btn-outline-danger btn-sm btn-block" onclick="window.adminApp.handleLogout()">
           <i class="fa-solid fa-arrow-right-from-bracket"></i> ログアウト
@@ -159,19 +159,19 @@
           <div class="season-badge-select">
             <i class="fa-solid fa-trophy"></i>
             <select id="season-selector" onchange="window.adminApp.onSeasonSelectChange(this.value)">
-              <option value="2">大正酔いどれクエスト</option>
+              <option value="">シーズン読込中...</option>
             </select>
           </div>
         </div>
         <div class="header-right">
           <span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-size:11px; padding:3px 8px; font-weight:bold;">
-            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.11.11.01</span>
+            <i class="fa-solid fa-code-branch"></i> <span class="app-version-text">v2026.11.11.02</span>
           </span>
           <span id="last-sync-time" class="text-muted"><i class="fa-solid fa-arrows-rotate fa-spin"></i> 同期中...</span>
           <button class="btn btn-secondary btn-sm" onclick="window.adminApp.refreshData()">
             <i class="fa-solid fa-rotate"></i> 最新データ更新
           </button>
-          <a href="index.html?v=20261111_01" target="_blank" class="btn btn-outline btn-sm">
+          <a href="index.html?v=20261111_02" target="_blank" class="btn btn-outline btn-sm">
             <i class="fa-solid fa-up-right-from-square"></i> アプリ実機表示
           </a>
         </div>
@@ -978,13 +978,6 @@
             <label><i class="fa-solid fa-crown" style="color: #f59e0b;"></i> 参加開始時の初期称号 (Lv.1)</label>
             <input type="text" id="new-season-initial-hero-title" class="form-control" placeholder="例: 見習い呑兵衛（任意・未入力時は未獲得表示）">
           </div>
-          <div class="form-group custom-toggle-box">
-            <label class="toggle-switch-label">
-              <input type="checkbox" id="new-season-active">
-              <span class="toggle-switch-slider"></span>
-              <strong style="margin-left: 10px;">⚡ 作成後、直ちにこのシーズンを本番適用にする</strong>
-            </label>
-          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="window.adminApp.closeSeasonModal()">キャンセル</button>
@@ -1000,7 +993,7 @@
       <div class="modal-header">
         <div>
           <h3 id="store-modal-title" style="margin: 0;">店舗情報の編集</h3>
-          <small id="store-modal-season-badge" style="color: #64748b; font-weight: 500;">対象イベント: 大正酔いどれクエスト</small>
+          <small id="store-modal-season-badge" style="color: #64748b; font-weight: 500;">対象イベント: -</small>
         </div>
         <button class="modal-close-btn" onclick="window.adminApp.closeStoreModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>
@@ -1029,7 +1022,7 @@
 
           <div class="form-group">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-              <label style="margin:0;">店舗住所 (Googleマップ連動) <span class="required">*</span></label>
+              <label style="margin:0;">店舗住所 (Googleマップ連動)</label>
               <a id="btn-check-address-map" href="#" target="_blank" class="btn btn-outline btn-sm" style="padding:1px 6px; font-size:11px; display:none;">
                 <i class="fa-solid fa-location-dot text-primary"></i> 住所で地図確認
               </a>
@@ -1362,7 +1355,7 @@
             </div>
             <div id="tier-req-number-wrap">
               <div style="display:flex; align-items:center; gap:8px;">
-                <input type="number" id="edit-tier-required" class="form-control" min="1" max="100" placeholder="例: 5" style="max-width:140px;">
+                <input type="number" id="edit-tier-required" class="form-control" min="1" placeholder="例: 5" style="max-width:140px;">
                 <span>軒</span>
               </div>
               <small class="text-muted">ユーザーがこの軒数を巡ると宝箱が解放されます（例: 5軒ならLv.5）。</small>
@@ -1392,7 +1385,7 @@
           <!-- 店舗クーポン型専用設定 -->
           <div id="tier-coupon-settings" class="form-group">
             <label>獲得可能クーポン数 <span class="badge badge-required">必須</span></label>
-            <input type="number" id="edit-tier-selectable" class="form-control" min="1" max="33" placeholder="例: 5">
+            <input type="number" id="edit-tier-selectable" class="form-control" min="1" placeholder="例: 5">
             <small class="text-muted">対象店舗の中から選べる店舗数です。</small>
           </div>
 
@@ -1448,7 +1441,7 @@
       <div class="modal-header">
         <div>
           <h3 style="margin: 0;"><i class="fa-solid fa-file-excel text-green"></i> Googleフォーム店舗アンケート一括取り込み</h3>
-          <small id="import-modal-season-badge" style="color: #64748b; font-weight: 500;">取り込み対象イベント: 大正酔いどれクエスト（店舗マスター更新＋企画データ登録）</small>
+          <small id="import-modal-season-badge" style="color: #64748b; font-weight: 500;">取り込み対象イベント: -（店舗マスター更新＋企画データ登録）</small>
         </div>
         <button class="modal-close-btn" onclick="window.adminApp.closeExcelImportModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>
@@ -1594,8 +1587,8 @@
   <div id="toast" class="admin-toast"></div>
 
   <!-- スクリプト読み込み -->
-  <script src="js/config.js?v=20261111_01"></script>
-  <script src="js/api.js?v=20261111_01"></script>
-  <script src="js/admin.js?v=20261111_01"></script>
+  <script src="js/config.js?v=20261111_02"></script>
+  <script src="js/api.js?v=20261111_02"></script>
+  <script src="js/admin.js?v=20261111_02"></script>
 </body>
 </html>

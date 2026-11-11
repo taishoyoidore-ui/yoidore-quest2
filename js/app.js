@@ -30,10 +30,10 @@ function checkIsOpenToday(store, now = new Date()) {
       if (info.isCouponUsable) return true; // クーポン利用期間中は全参加店舗で利用可能
       if (!info.isEventActive) return false;
     } else if (activeSeason.start_date && activeSeason.end_date) {
-      const startDate = new Date(activeSeason.start_date);
-      startDate.setHours(0, 0, 0, 0);
-      const endDate = new Date(activeSeason.end_date);
-      endDate.setHours(23, 59, 59, 999);
+      const [sy, sm, sd] = String(activeSeason.start_date).split('T')[0].split('-').map(Number);
+      const startDate = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
+      const [ey, em, ed] = String(activeSeason.end_date).split('T')[0].split('-').map(Number);
+      const endDate = new Date(ey, em - 1, ed, 23, 59, 59, 999);
       if (now < startDate || now > endDate) {
         return false;
       }
@@ -423,8 +423,10 @@ class YoidoreQuestApp {
 
     const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
     let count = 0;
-    const cur = new Date(startDateStr);
-    const end = new Date(endDateStr);
+    const [sy, sm, sd] = String(startDateStr).split('T')[0].split('-').map(Number);
+    const [ey, em, ed] = String(endDateStr).split('T')[0].split('-').map(Number);
+    const cur = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
+    const end = new Date(ey, em - 1, ed, 23, 59, 59, 999);
     if (isNaN(cur.getTime()) || isNaN(end.getTime())) return 0;
 
     let loopGuard = 0;
@@ -1223,8 +1225,9 @@ class YoidoreQuestApp {
       if (e.state.filters) {
         this.filters = { ...e.state.filters };
       }
-      if (e.state.selectedStoreId && typeof STORES_DATA !== 'undefined') {
-        this.selectedStore = STORES_DATA.find(s => s.id === e.state.selectedStoreId) || null;
+      if (e.state.selectedStoreId) {
+        const stores = this.getStores() || [];
+        this.selectedStore = stores.find(s => s.id === e.state.selectedStoreId) || null;
       }
       this.navigateTo(e.state.view, null, true);
     } else {
@@ -1362,7 +1365,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.11.11.01';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.11.11.02';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1459,7 +1462,7 @@ class YoidoreQuestApp {
     let topMessage = '大正酔いどれクエストへようこそ！コマンドを選んで酒場を探そう！楽しみ方は下の【冒険の心得】をチェック！';
 
     if (statusInfo) {
-      const seasonTitle = currentSeason.name ? `【${currentSeason.name}】` : '【大正酔いどれクエスト】';
+      const seasonTitle = currentSeason.name ? `【${currentSeason.name}】` : 'イベント';
       if (statusInfo.isBeforeEvent) {
         const startFormatted = currentSeason.start_date ? this.formatDateWithDay(currentSeason.start_date) : '';
         const daysUntilText = (statusInfo.daysUntilEventStart !== undefined) ? `（開幕まであと${statusInfo.daysUntilEventStart}日）` : '';
@@ -1709,7 +1712,7 @@ class YoidoreQuestApp {
     let unassignedIdx = 0;
     for (const t of couponTiers) {
       const assigned = tierCouponMap.get(Number(t.id));
-      const limit = Number(t.selectable_count) || 5;
+      const limit = Number(t.selectable_count) || 0;
       while (assigned && assigned.length < limit && unassignedIdx < unassignedCoupons.length) {
         assigned.push(unassignedCoupons[unassignedIdx]);
         unassignedIdx++;
@@ -1735,7 +1738,7 @@ class YoidoreQuestApp {
     const couponsHtml = (couponTiersList.length > 0) ? couponTiersList.map(tier => {
       const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || ''));
       const isReached = userCoupons.some(c => Number(c.reward_tier_id) === Number(tier.id));
-      const maxCount = tier.selectable_count || 5;
+      const maxCount = Number(tier.selectable_count) || 0;
       const usedCoupons = tierCouponMap.get(Number(tier.id)) || [];
       const usedCount = usedCoupons.length;
       const remainCount = Math.max(0, maxCount - usedCount);
@@ -2085,61 +2088,6 @@ class YoidoreQuestApp {
         }
       });
     });
-
-    // 共通テストマイルストーン実行関数
-    const handleTestTierClaim = async (tierIdx, btnEl) => {
-      const tiers = window.questApi?.rewardTiers || [];
-      const targetTier = tiers[tierIdx] || tiers.find(t => (tierIdx === 0 && Number(t.required_visits) <= 5) || (tierIdx === 1 && Number(t.required_visits) <= 10) || (tierIdx === 2 && Number(t.required_visits) <= 15)) || { id: tierIdx + 1, title: `${(tierIdx + 1) * 5}軒達成特典` };
-
-      btnEl.disabled = true;
-      const origText = btnEl.innerHTML;
-      btnEl.innerHTML = '処理中...';
-
-      try {
-        await this.handleClaimMilestoneTier(targetTier.id);
-      } catch (e) {
-        alert('エラーが発生しました: ' + e.message);
-      } finally {
-        btnEl.disabled = false;
-        btnEl.innerHTML = origText;
-      }
-    };
-
-    const btnT1 = container.querySelector('#btn-quick-test-tier1');
-    if (btnT1) btnT1.addEventListener('click', () => handleTestTierClaim(0, btnT1));
-
-    const btnT2 = container.querySelector('#btn-quick-test-tier2');
-    if (btnT2) btnT2.addEventListener('click', () => handleTestTierClaim(1, btnT2));
-
-    const btnT3 = container.querySelector('#btn-quick-test-tier3');
-    if (btnT3) btnT3.addEventListener('click', () => handleTestTierClaim(2, btnT3));
-
-    const btnReset = container.querySelector('#btn-quick-test-reset');
-    if (btnReset) {
-      btnReset.addEventListener('click', async () => {
-        if (!confirm('⚠️ 【履歴リセット】今期の獲得クーポン・特典履歴をすべて初期化しますか？')) {
-          return;
-        }
-        btnReset.disabled = true;
-        btnReset.textContent = 'リセット中...';
-        try {
-          const res = await (window.questApi.resetVisitsAndCoupons ? window.questApi.resetVisitsAndCoupons() : window.questApi.resetUserVisitsAndCouponsForTest());
-          if (res && res.success === false) {
-            alert('初期化に失敗しました: ' + (res.message || '通信エラー'));
-          } else {
-            this.playBackSE();
-            alert('冒険の書の獲得特典・クーポン履歴を初期化しました。');
-            await this.render();
-          }
-        } catch (err) {
-          console.error('Reset error:', err);
-          alert('初期化中にエラーが発生しました: ' + (err.message || '不明なエラー'));
-        } finally {
-          btnReset.disabled = false;
-          btnReset.textContent = '🗑️ 履歴リセット';
-        }
-      });
-    }
 
     // バックグラウンドで最新データをサイレント同期（画面は即時表示したまま、裏で通信）
     this.refreshQuestBookInBackground(seasonId);
@@ -2670,7 +2618,7 @@ class YoidoreQuestApp {
             🎁 ${this.escapeHtml(goodsTitle)}
           </div>
           <div style="font-size: 12px; color: var(--text-cyan); margin-bottom: 10px; background: rgba(0,0,0,0.4); padding: 7px 10px; border-radius: 6px; text-align: left;">
-            📍 <strong>引換場所:</strong> ${this.escapeHtml(tier.exchange_location || '全参加酒場または運営本部')}
+            📍 <strong>引換場所:</strong> ${this.escapeHtml(tier.exchange_location || '未設定')}
           </div>
           ${tier.exchange_notice ? `
             <div style="font-size: 12px; color: #fde68a; margin-bottom: 12px; background: rgba(0,0,0,0.3); padding: 8px 10px; border-radius: 6px; text-align: left; line-height: 1.4;">
@@ -2802,7 +2750,7 @@ class YoidoreQuestApp {
     }
 
     const storeId = coupon.store_id;
-    const store = (this.stores || []).find(s => s.id === storeId) || coupon.stores || { id: storeId, name: storeId || '酒場' };
+    const store = (this.getStores() || []).find(s => s.id === storeId) || coupon.stores || { id: storeId, name: storeId || '酒場' };
     const tierId = Number(coupon.reward_tier_id);
     const tier = (window.questApi?.rewardTiers || []).find(t => Number(t.id) === tierId) || { id: tierId, title: coupon.title || 'ハシゴ酒達成特典' };
     return this.openStoreCouponRedeemModal(tier, store, coupon.season_id);
@@ -2825,30 +2773,25 @@ class YoidoreQuestApp {
     if (isTestMode) {
       const tiers = (window.questApi?.rewardTiers && window.questApi.rewardTiers.length > 0)
         ? [...window.questApi.rewardTiers].sort((a, b) => Number(a.required_visits || 0) - Number(b.required_visits || 0))
-        : [
-            { id: 1, required_visits: 5, title: '5軒達成特典' },
-            { id: 2, required_visits: 10, title: '10軒達成特典' },
-            { id: 3, required_visits: 15, title: '15軒達成特典' },
-            { id: 4, required_visits: 20, title: '20軒達成特典' },
-            { id: 5, required_visits: 30, title: '30軒達成特典' },
-            { id: 6, required_visits: 50, title: '全店制覇特典', is_all_stores: true }
-          ];
+        : [];
 
-      const tierButtonsHtml = tiers.map((tier) => {
-        const visits = Number(tier.required_visits || 0);
-        const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || ''));
-        const label = isAll ? `👑 全軒制覇 (MAX)` : `🏆 ${visits}軒達成`;
-        return `<button type="button" class="treasure-claim-btn qr-modal-test-tier-btn" data-tier-id="${tier.id}" style="background:#4a2c00; border-color:#d4af37; padding:6px 4px; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-          ${label}
-        </button>`;
-      }).join('');
+      const tierButtonsHtml = tiers.length > 0
+        ? `<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:5px; margin-bottom:8px;">
+            ${tiers.map((tier) => {
+              const visits = Number(tier.required_visits || 0);
+              const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || ''));
+              const label = isAll ? `👑 全軒制覇 (MAX)` : `🏆 ${visits}軒達成`;
+              return `<button type="button" class="treasure-claim-btn qr-modal-test-tier-btn" data-tier-id="${tier.id}" style="background:#4a2c00; border-color:#d4af37; padding:6px 4px; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                ${label}
+              </button>`;
+            }).join('')}
+          </div>`
+        : `<div style="font-size:11px; color:#94a3b8; text-align:center; padding:6px 0; margin-bottom:8px;">特典ランクが未設定です</div>`;
 
       testControlsHtml = `
         <div style="background:rgba(0,0,0,0.5); border:1px dashed #d4af37; border-radius:6px; padding:8px; margin-top:8px;">
           <div style="font-size:11px; color:#ffdd57; font-weight:bold; margin-bottom:6px;">🛠️ テスト用シミュレーション</div>
-          <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:5px; margin-bottom:8px;">
-            ${tierButtonsHtml}
-          </div>
+          ${tierButtonsHtml}
           <button type="button" id="qr-modal-reset-user-btn" class="treasure-claim-btn" style="background:#6b1d1d; border-color:#e53e3e; padding:6px 8px; font-size:12px; width:100%;">
             🔄 自身の実績（来店・特典消込）を初期化
           </button>
@@ -3183,7 +3126,7 @@ class YoidoreQuestApp {
     if (claimedTiers && claimedTiers.length > 0) {
       claimedTiers.forEach(t => {
         const isGoods = t.reward_type === 'goods';
-        const name = isGoods ? `『${t.goods_name || t.title}』` : `酒場クーポン ${t.selectable_count || 5}軒分`;
+        const name = isGoods ? `『${t.goods_name || t.title}』` : `酒場クーポン ${t.selectable_count ?? 0}軒分`;
         const reqPrefix = (t.is_all_stores || /全店|全軒|全件/.test(t.title || '')) ? '全軒達成' : `${t.required_visits}軒達成`;
         lines.push({
           text: `${reqPrefix}: ${name} を 受け取った！`,

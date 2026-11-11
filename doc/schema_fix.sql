@@ -1,6 +1,10 @@
 -- ============================================================================
--- 大正酔いどれクエスト - user_coupons テーブル制約修復＆完全最適化SQL
+-- 【過去マイグレーション履歴】大正酔いどれクエスト - user_coupons テーブル制約修復SQL
+-- ※ 現行本番の最新スキーマ定義は doc/schema.sql および doc/SPECIFICATION.md を参照してください。
 -- ============================================================================
+-- 7. 旧 reward_tiers 外部キー制約および visits 旧ユニーク制約の解除（安全マイグレーション用）
+ALTER TABLE public.user_coupons DROP CONSTRAINT IF EXISTS user_coupons_reward_tier_id_fkey;
+ALTER TABLE public.visits DROP CONSTRAINT IF EXISTS visits_user_id_store_id_key;
 -- 特典達成時のクーポン枠保存（store_id: NULL、未消費状態）および
 -- 複数枚クーポンの一括獲得を許可するためのスキーマ修正です。
 

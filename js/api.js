@@ -1023,7 +1023,7 @@ class QuestApiManager {
           exchange_notice: tier.exchange_notice || null
         });
       } else {
-        const ticketCount = Number(tier.selectable_count) || 5;
+        const ticketCount = Number(tier.selectable_count) || 0;
         totalNewSlots += ticketCount;
         for (let i = 0; i < ticketCount; i++) {
           offsetMs += 10;
@@ -1266,33 +1266,29 @@ class QuestApiManager {
     return { success: true };
   }
 
-  // シーズンの新規登録 / 更新 (Single Source of Truth)
+  // シーズンの新規登録 / 更新 (Single Source of Truth・本番適用切替は adminSetActiveSeason に分離)
   async adminSaveSeason(seasonData) {
     const cloudConfig = (await this.fetchSystemConfig()) || {};
     let seasonsList = Array.isArray(cloudConfig.seasons) ? [...cloudConfig.seasons] : (Array.isArray(this.seasons) ? [...this.seasons] : []);
 
     const targetId = Number(seasonData.id);
+    const idx = seasonsList.findIndex(s => Number(s.id) === targetId);
+    const preservedActive = idx >= 0 ? Boolean(seasonsList[idx].is_active) : (seasonsList.length === 0);
+
     const cleanSeason = {
       ...seasonData,
       id: targetId,
-      is_active: Boolean(seasonData.is_active)
+      is_active: preservedActive
     };
 
-    const idx = seasonsList.findIndex(s => Number(s.id) === targetId);
     if (idx >= 0) {
       seasonsList[idx] = { ...seasonsList[idx], ...cleanSeason };
     } else {
       seasonsList.unshift(cleanSeason);
     }
 
-    // もし is_active が true なら他シーズンの is_active を false にする
-    if (cleanSeason.is_active) {
-      seasonsList.forEach(s => {
-        if (Number(s.id) !== targetId) s.is_active = false;
-      });
-      this.currentSeason = { ...cleanSeason };
-    } else if (this.currentSeason && Number(this.currentSeason.id) === targetId) {
-      this.currentSeason = { ...cleanSeason };
+    if (cleanSeason.is_active || (this.currentSeason && Number(this.currentSeason.id) === targetId)) {
+      this.currentSeason = { ...seasonsList.find(s => Number(s.id) === targetId) };
     }
 
     this.seasons = seasonsList;
