@@ -583,6 +583,8 @@ class QuestApiManager {
         exchange_notice: s.exchange_notice || null,
         hero_title: s.hero_title || null,
         badge_color: s.badge_color || '#facc15',
+        stock_limit: (s.stock_limit !== undefined && s.stock_limit !== null && s.stock_limit !== '') ? Number(s.stock_limit) : null,
+        is_stock_out: Boolean(s.is_stock_out),
         description: s.description || ''
       })).sort((a, b) => (a.required_visits || 0) - (b.required_visits || 0));
 
@@ -610,6 +612,8 @@ class QuestApiManager {
           exchange_notice: s.exchange_notice || null,
           hero_title: s.hero_title || null,
           badge_color: s.badge_color || '#facc15',
+          stock_limit: (s.stock_limit !== undefined && s.stock_limit !== null && s.stock_limit !== '') ? Number(s.stock_limit) : null,
+          is_stock_out: Boolean(s.is_stock_out),
           description: s.description || ''
         })).sort((a, b) => (a.required_visits || 0) - (b.required_visits || 0));
 
@@ -906,6 +910,40 @@ class QuestApiManager {
 
     this.userCoupons = coupons;
     return coupons;
+  }
+
+  /* ------------------------------------------------------------------------
+   * 記念品グッズ特典の全参加者引換済み件数集計 (リアルタイム在庫・上限判定用)
+   * ------------------------------------------------------------------------ */
+  async getGoodsRedemptionCounts(seasonId = null) {
+    const targetSeasonId = Number(seasonId || this.currentSeason?.id || 2);
+    try {
+      let data = [];
+      try {
+        data = await this.supabaseFetch(`user_coupons?reward_type=eq.goods&status=eq.used&season_id=eq.${targetSeasonId}&select=reward_tier_id,goods_name`);
+      } catch (e) {
+        data = await this.supabaseFetch(`user_coupons?reward_type=eq.goods&status=eq.used&select=reward_tier_id,goods_name`);
+      }
+
+      const counts = {};
+      if (Array.isArray(data)) {
+        data.forEach(row => {
+          const tierId = row.reward_tier_id ? Number(row.reward_tier_id) : null;
+          if (tierId) {
+            counts[tierId] = (counts[tierId] || 0) + 1;
+          }
+          if (row.goods_name) {
+            counts[row.goods_name] = (counts[row.goods_name] || 0) + 1;
+          }
+        });
+      }
+      this.goodsRedemptionCounts = counts;
+      return counts;
+    } catch (err) {
+      console.warn('記念品グッズ引換件数集計エラー（フォールバック）:', err);
+      this.goodsRedemptionCounts = this.goodsRedemptionCounts || {};
+      return this.goodsRedemptionCounts;
+    }
   }
 
   /* ------------------------------------------------------------------------
@@ -1346,6 +1384,8 @@ class QuestApiManager {
       exchange_notice: tierData.exchange_notice || null,
       hero_title: tierData.hero_title || null,
       badge_color: tierData.badge_color || '#facc15',
+      stock_limit: (tierData.stock_limit !== undefined && tierData.stock_limit !== null && tierData.stock_limit !== '') ? Number(tierData.stock_limit) : null,
+      is_stock_out: Boolean(tierData.is_stock_out),
       description: tierData.description || ''
     };
 

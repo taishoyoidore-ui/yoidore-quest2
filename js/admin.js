@@ -269,7 +269,7 @@ class YoidoreAdminApp {
   }
 
   applyVersionBadges() {
-    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.11.06.04';
+    const versionStr = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.11.11.01';
     document.querySelectorAll('.app-version-text').forEach(el => {
       el.textContent = versionStr;
     });
@@ -3241,9 +3241,33 @@ class YoidoreAdminApp {
           </span>
         ` : '<span class="text-muted" style="font-size: 12px;">-</span>';
 
-        const rewardContent = isGoods
-          ? `<strong style="color:#0f172a;">🎁 ${this.escapeHtml(t.goods_name || 'オリジナルグッズ')}</strong>`
-          : `お好きな酒場 <strong style="color:#0284c7;">${t.selectable_count || 5}</strong> 枠分`;
+        let rewardContent = '';
+        if (isGoods) {
+          const usedCount = (this.coupons || []).filter(c => c.reward_type === 'goods' && c.status === 'used' && (Number(c.reward_tier_id) === Number(t.id) || c.goods_name === t.goods_name || c.goods_name === t.title)).length;
+          const stockLimit = (t.stock_limit !== undefined && t.stock_limit !== null && t.stock_limit !== '' && Number(t.stock_limit) > 0) ? Number(t.stock_limit) : null;
+          const isStockOut = Boolean(t.is_stock_out) || (stockLimit !== null && usedCount >= stockLimit);
+          
+          let stockBadge = '';
+          if (t.is_stock_out) {
+            stockBadge = `<span class="badge" style="background:#fee2e2; color:#b91c1c; border:1px solid #f87171; font-weight:bold; margin-top:3px; display:inline-block;">⛔ 配布終了 (手動停止中)</span>`;
+          } else if (stockLimit !== null) {
+            const remaining = Math.max(0, stockLimit - usedCount);
+            if (remaining === 0) {
+              stockBadge = `<span class="badge" style="background:#fee2e2; color:#b91c1c; border:1px solid #f87171; font-weight:bold; margin-top:3px; display:inline-block;">⛔ 配布終了 (先着${stockLimit}名上限到達)</span>`;
+            } else {
+              stockBadge = `<span class="badge" style="background:#ecfdf5; color:#047857; border:1px solid #6ee7b7; margin-top:3px; display:inline-block;">先着${stockLimit}名 (引換済: ${usedCount} / 残: <strong>${remaining}</strong>)</span>`;
+            }
+          }
+
+          rewardContent = `
+            <div>
+              <strong style="color:#0f172a;">🎁 ${this.escapeHtml(t.goods_name || 'オリジナルグッズ')}</strong>
+              ${stockBadge ? `<div>${stockBadge}</div>` : ''}
+            </div>
+          `;
+        } else {
+          rewardContent = `お好きな酒場 <strong style="color:#0284c7;">${t.selectable_count || 5}</strong> 枠分`;
+        }
 
         let notesHtml = '';
         if (isGoods && t.exchange_location) {
@@ -3409,6 +3433,11 @@ class YoidoreAdminApp {
     document.getElementById('edit-tier-goods-name').value = tier.goods_name || '';
     document.getElementById('edit-tier-exchange-loc').value = tier.exchange_location || '';
     document.getElementById('edit-tier-exchange-notice').value = tier.exchange_notice || '';
+    const stockLimit = (tier.stock_limit !== undefined && tier.stock_limit !== null && tier.stock_limit !== '') ? tier.stock_limit : '';
+    const stockLimitEl = document.getElementById('edit-tier-stock-limit');
+    if (stockLimitEl) stockLimitEl.value = stockLimit;
+    const stockOutEl = document.getElementById('edit-tier-stock-out');
+    if (stockOutEl) stockOutEl.checked = Boolean(tier.is_stock_out);
     document.getElementById('edit-tier-desc').value = tier.description || '';
 
     const isAllStores = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || ''));
@@ -3444,6 +3473,9 @@ class YoidoreAdminApp {
     const goods_name = document.getElementById('edit-tier-goods-name').value.trim();
     const exchange_location = document.getElementById('edit-tier-exchange-loc').value.trim();
     const exchange_notice = document.getElementById('edit-tier-exchange-notice').value.trim();
+    const stock_limit_raw = document.getElementById('edit-tier-stock-limit')?.value.trim();
+    const stock_limit = (isGoods && stock_limit_raw !== '' && !isNaN(parseInt(stock_limit_raw, 10))) ? Math.max(0, parseInt(stock_limit_raw, 10)) : null;
+    const is_stock_out = isGoods ? Boolean(document.getElementById('edit-tier-stock-out')?.checked) : false;
     const description = document.getElementById('edit-tier-desc').value.trim();
     const season_id = this.selectedSeasonId;
 
@@ -3472,6 +3504,8 @@ class YoidoreAdminApp {
       goods_name: isGoods ? goods_name : null,
       exchange_location: isGoods ? exchange_location : null,
       exchange_notice: isGoods ? exchange_notice : null,
+      stock_limit: isGoods ? stock_limit : null,
+      is_stock_out: isGoods ? is_stock_out : false,
       description
     };
 

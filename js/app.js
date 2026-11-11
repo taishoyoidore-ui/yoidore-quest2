@@ -605,12 +605,13 @@ class YoidoreQuestApp {
           window.STORES_DATA = stores;
         }
 
-        // 特典設定・称号・来店履歴・クーポン履歴を並列取得
+        // 特典設定・称号・来店履歴・クーポン履歴・グッズ引換状況を並列取得
         await Promise.all([
           window.questApi.getRewardTiers(),
           window.questApi.getHeroTitles(),
           window.questApi.getUserVisits(),
-          window.questApi.getUserCoupons()
+          window.questApi.getUserCoupons(),
+          window.questApi.getGoodsRedemptionCounts()
         ]);
 
         const claimTierId = extractClaimTierParam(window.location.href);
@@ -1361,7 +1362,7 @@ class YoidoreQuestApp {
 
   // アプリ共通フッターバージョン表示HTML
   getFooterVersionHTML() {
-    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.11.06.04';
+    const v = (window.APP_CONFIG && window.APP_CONFIG.version) || 'v2026.11.11.01';
     return `
       <div class="app-footer-version">
         <div>大正酔いどれクエスト 公式ガイド</div>
@@ -1846,6 +1847,7 @@ class YoidoreQuestApp {
 
     // 2. グッズ記念品型特典の一覧HTML（A案：スリム＆シンプルカード）
     const goodsTiersList = rewardTiers.filter(t => t.reward_type === 'goods');
+    const goodsCounts = window.questApi?.goodsRedemptionCounts || {};
     const goodsHtml = (goodsTiersList.length > 0) ? goodsTiersList.map(tier => {
       const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || ''));
       const goodsCoupons = userCoupons.filter(c => c.reward_type === 'goods' && (Number(c.reward_tier_id) === Number(tier.id) || c.goods_name === tier.goods_name || c.goods_name === tier.title));
@@ -1855,6 +1857,11 @@ class YoidoreQuestApp {
       const isClaimed = Boolean(goodsCoupon);
       const isReached = isClaimed;
       const isUsed = Boolean(usedGoodsCoupon) || goodsCoupon?.status === 'used';
+
+      // 数量限定・配布終了判定
+      const usedTotal = Number(goodsCounts[tier.id] || goodsCounts[tier.goods_name] || 0);
+      const stockLimit = (tier.stock_limit !== undefined && tier.stock_limit !== null && tier.stock_limit !== '') ? Number(tier.stock_limit) : null;
+      const isStockOut = Boolean(tier.is_stock_out) || (stockLimit !== null && stockLimit > 0 && usedTotal >= stockLimit);
 
       let actionHtml = '';
       let statusBadge = '';
@@ -1867,6 +1874,22 @@ class YoidoreQuestApp {
             受取日時: ${new Date(goodsCoupon?.used_at || goodsCoupon?.acquired_at || Date.now()).toLocaleString('ja-JP')}
           </div>
         `;
+      } else if (isStockOut) {
+        if (isReached) {
+          statusBadge = '<span class="treasure-tier-status" style="background:#dc2626; color:#ffffff; border-color:#ef4444;">⚠️ 配布終了</span>';
+          actionHtml = `
+            <div style="font-size:12px; color:#f87171; text-align:center; padding:6px 0; font-weight:bold;">
+              ⚠️ 規定数量に達したため配布終了しました
+            </div>
+          `;
+        } else {
+          statusBadge = '<span class="treasure-tier-status" style="background:#475569; color:#cbd5e1; border-color:#64748b;">配布終了</span>';
+          actionHtml = `
+            <div style="font-size:11.5px; color:#94a3b8; text-align:center; padding:4px 0;">
+              ※限定数に達したため受付終了
+            </div>
+          `;
+        }
       } else if (isReached) {
         statusBadge = '<span class="treasure-tier-status status-unlocked">🎁 引換可能</span>';
         actionHtml = `
@@ -1875,8 +1898,8 @@ class YoidoreQuestApp {
           </button>
         `;
       } else {
-        const isAll = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || ''));
-        statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成 (${isAll ? '全店舗' : `${tier.required_visits}軒`})</span>`;
+        const isAllCondition = Boolean(tier.is_all_stores || /全店|全軒|全件/.test(tier.title || ''));
+        statusBadge = `<span class="treasure-tier-status status-locked">🔒 未達成 (${isAllCondition ? '全店舗' : `${tier.required_visits}軒`})</span>`;
       }
 
       return `
@@ -1892,6 +1915,7 @@ class YoidoreQuestApp {
           <div class="treasure-tier-condition">
             <span>${isAll ? '👑 条件: <strong class="text-yellow">全店舗達成</strong>' : `🍺 条件: <strong class="text-yellow">${tier.required_visits}軒ハシゴ</strong>`}</span>
             <span> | 🎁 <strong style="color:#ffffff;">${this.escapeHtml(tier.goods_name || tier.title || '記念品')}</strong></span>
+            ${stockLimit && stockLimit > 0 ? `<span> | 🏷️ <strong style="color:#fbbf24;">先着${stockLimit}名様限定</strong></span>` : ''}
           </div>
           ${tier.exchange_location ? `
             <div class="treasure-tier-location" style="font-size:12px; color:#cbd5e1; margin-top:2px;">📍 <strong>引換場所:</strong> ${this.escapeHtml(tier.exchange_location)}</div>
@@ -2130,15 +2154,18 @@ class YoidoreQuestApp {
     try {
       const prevCouponsSign = (window.questApi.userCoupons || []).map(c => `${c.id}:${c.status}:${c.store_id || ''}:${c.used_at || ''}`).join('|');
       const prevVisitsLen = (window.questApi.visits || []).length;
+      const prevGoodsCountsSign = JSON.stringify(window.questApi.goodsRedemptionCounts || {});
       await Promise.all([
         window.questApi.getRewardTiers(seasonId),
         window.questApi.getUserCoupons(seasonId),
-        window.questApi.getUserVisits(seasonId)
+        window.questApi.getUserVisits(seasonId),
+        window.questApi.getGoodsRedemptionCounts(seasonId)
       ]);
       const newCouponsSign = (window.questApi.userCoupons || []).map(c => `${c.id}:${c.status}:${c.store_id || ''}:${c.used_at || ''}`).join('|');
       const newVisitsLen = (window.questApi.visits || []).length;
+      const newGoodsCountsSign = JSON.stringify(window.questApi.goodsRedemptionCounts || {});
       // ユーザーがまだ冒険の書画面を表示していて、データに変更があった場合のみ再描画
-      if (this.currentView === 'quest-book' && (prevCouponsSign !== newCouponsSign || prevVisitsLen !== newVisitsLen)) {
+      if (this.currentView === 'quest-book' && (prevCouponsSign !== newCouponsSign || prevVisitsLen !== newVisitsLen || prevGoodsCountsSign !== newGoodsCountsSign)) {
         const container = document.getElementById('view-container');
         if (container) {
           this.renderQuestBookView(container);
@@ -2615,6 +2642,17 @@ class YoidoreQuestApp {
    * ------------------------------------------------------------------------ */
   openGoodsRedeemModal(tier, seasonId = null) {
     const targetSeasonId = seasonId || window.questApi?.currentSeason?.id || 2;
+
+    // 在庫切れ・手動停止チェック（事前ガード）
+    const goodsCounts = window.questApi?.goodsRedemptionCounts || {};
+    const usedTotal = Number(goodsCounts[tier.id] || goodsCounts[tier.goods_name] || 0);
+    const stockLimit = (tier.stock_limit !== undefined && tier.stock_limit !== null && tier.stock_limit !== '') ? Number(tier.stock_limit) : null;
+    const isStockOut = Boolean(tier.is_stock_out) || (stockLimit !== null && stockLimit > 0 && usedTotal >= stockLimit);
+    if (isStockOut) {
+      alert('申し訳ありません。この記念品は規定数量に達したため、配布終了となりました。');
+      return;
+    }
+
     const overlay = document.createElement('div');
     overlay.className = 'rpg-modal-overlay';
     overlay.id = 'goods-redeem-modal';
@@ -2677,6 +2715,20 @@ class YoidoreQuestApp {
               <div style="font-size: 15px; color: #fff; margin-top: 14px; font-weight: bold;">受取消し込み処理中...</div>
             </div>
           `;
+        }
+
+        // 引換直前の最新在庫・停止状態チェック（直前の同時引換・手動停止ダブルガード）
+        try {
+          const freshCounts = await window.questApi.getGoodsRedemptionCounts(targetSeasonId);
+          const freshUsed = Number(freshCounts?.[tier.id] || freshCounts?.[tier.goods_name] || 0);
+          if (Boolean(tier.is_stock_out) || (stockLimit !== null && stockLimit > 0 && freshUsed >= stockLimit)) {
+            alert('申し訳ありません。規定数量に達したため、直前に配布終了となりました。');
+            overlay.remove();
+            this.render();
+            return;
+          }
+        } catch (e) {
+          console.warn('Goods stock check error on redeem:', e);
         }
 
         // 既存の未受取クーポンを探す、無ければ自動発行
